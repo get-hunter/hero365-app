@@ -28,10 +28,75 @@ export const auth = {
     return { data, error }
   },
 
+  signUpWithPhone: async (phone: string, password: string, userData?: { full_name?: string }) => {
+    const { data, error } = await supabase.auth.signUp({
+      phone,
+      password,
+      options: {
+        data: userData || {}
+      }
+    })
+    return { data, error }
+  },
+
   signIn: async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
+    })
+    return { data, error }
+  },
+
+  signInWithPhone: async (phone: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      phone,
+      password
+    })
+    return { data, error }
+  },
+
+  signInWithOTP: async (phone: string) => {
+    const { data, error } = await supabase.auth.signInWithOtp({
+      phone
+    })
+    return { data, error }
+  },
+
+  verifyOTP: async (phone: string, token: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone,
+      token,
+      type: 'sms'
+    })
+    return { data, error }
+  },
+
+  signInWithGoogle: async (redirectTo?: string) => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectTo || `${window.location.origin}/`
+      }
+    })
+    return { data, error }
+  },
+
+  signInWithApple: async (redirectTo?: string) => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: redirectTo || `${window.location.origin}/`
+      }
+    })
+    return { data, error }
+  },
+
+  signInWithGitHub: async (redirectTo?: string) => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: redirectTo || `${window.location.origin}/`
+      }
     })
     return { data, error }
   },
