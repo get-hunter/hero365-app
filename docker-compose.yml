@@ -74,6 +74,10 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
+      # Supabase Configuration
+      - SUPABASE_URL=${SUPABASE_URL?Variable not set}
+      - SUPABASE_KEY=${SUPABASE_KEY?Variable not set}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY?Variable not set}
 
   backend:
     image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
@@ -107,6 +111,10 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
+      # Supabase Configuration
+      - SUPABASE_URL=${SUPABASE_URL?Variable not set}
+      - SUPABASE_KEY=${SUPABASE_KEY?Variable not set}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY?Variable not set}
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
@@ -144,6 +152,8 @@ services:
       context: ./frontend
       args:
         - VITE_API_URL=https://api.${DOMAIN?Variable not set}
+        - VITE_SUPABASE_URL=${SUPABASE_URL?Variable not set}
+        - VITE_SUPABASE_ANON_KEY=${SUPABASE_KEY?Variable not set}
         - NODE_ENV=production
     labels:
       - traefik.enable=true

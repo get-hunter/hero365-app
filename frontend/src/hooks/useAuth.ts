@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import type { User, Session } from "@supabase/supabase-js"
 
 import {
   type Body_login_login_access_token as AccessToken,
@@ -10,64 +11,123 @@ import {
   type UserRegister,
   UsersService,
 } from "@/client"
+import { auth, supabase } from "@/lib/supabase"
 import { handleError } from "@/utils"
 
 const isLoggedIn = () => {
-  return localStorage.getItem("access_token") !== null
+  // Check both legacy token and Supabase session
+  return localStorage.getItem("access_token") !== null || 
+         localStorage.getItem("sb-access-token") !== null
 }
 
 const useAuth = () => {
   const [error, setError] = useState<string | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data: user } = useQuery<UserPublic | null, Error>({
+
+  // Initialize Supabase auth state
+  useEffect(() => {
+    // Get initial session
+    auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+
+        if (session?.access_token) {
+          localStorage.setItem("sb-access-token", session.access_token)
+        } else {
+          localStorage.removeItem("sb-access-token")
+        }
+
+        // Invalidate queries when auth state changes
+        queryClient.invalidateQueries({ queryKey: ["currentUser"] })
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [queryClient])
+
+  // Legacy user query for backward compatibility
+  const { data: legacyUser } = useQuery<UserPublic | null, Error>({
     queryKey: ["currentUser"],
     queryFn: UsersService.readUserMe,
-    enabled: isLoggedIn(),
+    enabled: localStorage.getItem("access_token") !== null && !user,
   })
 
   const signUpMutation = useMutation({
-    mutationFn: (data: UserRegister) =>
-      UsersService.registerUser({ requestBody: data }),
-
+    mutationFn: async (data: UserRegister & { full_name?: string }) => {
+      const { data: authData, error } = await auth.signUp(
+        data.email,
+        data.password,
+        { full_name: data.full_name }
+      )
+      
+      if (error) throw error
+      return authData
+    },
     onSuccess: () => {
       navigate({ to: "/login" })
     },
-    onError: (err: ApiError) => {
-      handleError(err)
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] })
+    onError: (err: any) => {
+      setError(err.message || "Sign up failed")
     },
   })
 
-  const login = async (data: AccessToken) => {
-    const response = await LoginService.loginAccessToken({
-      formData: data,
-    })
-    localStorage.setItem("access_token", response.access_token)
-  }
-
   const loginMutation = useMutation({
-    mutationFn: login,
+    mutationFn: async (data: { email: string; password: string }) => {
+      const { data: authData, error } = await auth.signIn(data.email, data.password)
+      
+      if (error) throw error
+      return authData
+    },
     onSuccess: () => {
       navigate({ to: "/" })
     },
-    onError: (err: ApiError) => {
-      handleError(err)
+    onError: (err: any) => {
+      setError(err.message || "Login failed")
     },
   })
 
-  const logout = () => {
-    localStorage.removeItem("access_token")
-    navigate({ to: "/login" })
+  const logout = async () => {
+    const { error } = await auth.signOut()
+    if (error) {
+      setError(error.message)
+    } else {
+      localStorage.removeItem("access_token") // Remove legacy token
+      localStorage.removeItem("sb-access-token")
+      navigate({ to: "/login" })
+    }
   }
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const { error } = await auth.resetPassword(email)
+      if (error) throw error
+    },
+    onError: (err: any) => {
+      setError(err.message || "Password reset failed")
+    },
+  })
 
   return {
     signUpMutation,
     loginMutation,
+    resetPasswordMutation,
     logout,
-    user,
+    user: user || legacyUser, // Prefer Supabase user, fallback to legacy
+    session,
+    loading,
     error,
     resetError: () => setError(null),
   }
