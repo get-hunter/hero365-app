@@ -31,6 +31,7 @@ class SupabaseService:
                 return {
                     "id": response.user.id,
                     "email": response.user.email,
+                    "phone": response.user.phone,
                     "user_metadata": response.user.user_metadata,
                     "app_metadata": response.user.app_metadata,
                 }
@@ -39,7 +40,7 @@ class SupabaseService:
             return None
     
     def create_user(self, email: str, password: str, user_metadata: dict = None) -> AuthResponse:
-        """Create a new user with Supabase Auth."""
+        """Create a new user with email and password using Supabase Auth."""
         if not self.enabled or not self.admin_client:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -58,6 +59,68 @@ class SupabaseService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Failed to create user: {str(e)}"
+            )
+    
+    def create_user_with_phone(self, phone: str, password: str, user_metadata: dict = None) -> AuthResponse:
+        """Create a new user with phone number and password using Supabase Auth."""
+        if not self.enabled or not self.admin_client:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Supabase authentication is not configured"
+            )
+        
+        try:
+            response = self.admin_client.auth.admin.create_user({
+                "phone": phone,
+                "password": password,
+                "user_metadata": user_metadata or {},
+                "phone_confirm": True  # Auto-confirm phone for admin created users
+            })
+            return response
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to create user with phone: {str(e)}"
+            )
+    
+    def send_otp(self, phone: str) -> bool:
+        """Send OTP to phone number for passwordless authentication."""
+        if not self.enabled or not self.client:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Supabase authentication is not configured"
+            )
+        
+        try:
+            response = self.client.auth.sign_in_with_otp({
+                "phone": phone
+            })
+            return True
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to send OTP: {str(e)}"
+            )
+    
+    def verify_otp(self, phone: str, token: str) -> AuthResponse:
+        """Verify OTP for phone number authentication."""
+        if not self.enabled or not self.client:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Supabase authentication is not configured"
+            )
+        
+        try:
+            response = self.client.auth.verify_otp({
+                "phone": phone,
+                "token": token,
+                "type": "sms"
+            })
+            return response
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Failed to verify OTP: {str(e)}"
             )
     
     def update_user_metadata(self, user_id: str, user_metadata: dict) -> dict:

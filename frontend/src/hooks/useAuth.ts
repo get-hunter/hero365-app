@@ -84,6 +84,25 @@ const useAuth = () => {
     },
   })
 
+  const signUpWithPhoneMutation = useMutation({
+    mutationFn: async (data: { phone: string; password: string; full_name?: string }) => {
+      const { data: authData, error } = await auth.signUpWithPhone(
+        data.phone,
+        data.password,
+        { full_name: data.full_name }
+      )
+      
+      if (error) throw error
+      return authData
+    },
+    onSuccess: () => {
+      navigate({ to: "/login" })
+    },
+    onError: (err: any) => {
+      setError(err.message || "Phone sign up failed")
+    },
+  })
+
   const loginMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
       const { data: authData, error } = await auth.signIn(data.email, data.password)
@@ -96,6 +115,80 @@ const useAuth = () => {
     },
     onError: (err: any) => {
       setError(err.message || "Login failed")
+    },
+  })
+
+  const loginWithPhoneMutation = useMutation({
+    mutationFn: async (data: { phone: string; password: string }) => {
+      const { data: authData, error } = await auth.signInWithPhone(data.phone, data.password)
+      
+      if (error) throw error
+      return authData
+    },
+    onSuccess: () => {
+      navigate({ to: "/" })
+    },
+    onError: (err: any) => {
+      setError(err.message || "Phone login failed")
+    },
+  })
+
+  const sendOTPMutation = useMutation({
+    mutationFn: async (phone: string) => {
+      const { data, error } = await auth.signInWithOTP(phone)
+      if (error) throw error
+      return data
+    },
+    onError: (err: any) => {
+      setError(err.message || "Failed to send OTP")
+    },
+  })
+
+  const verifyOTPMutation = useMutation({
+    mutationFn: async (data: { phone: string; token: string }) => {
+      const { data: authData, error } = await auth.verifyOTP(data.phone, data.token)
+      
+      if (error) throw error
+      return authData
+    },
+    onSuccess: () => {
+      navigate({ to: "/" })
+    },
+    onError: (err: any) => {
+      setError(err.message || "OTP verification failed")
+    },
+  })
+
+  const signInWithGoogleMutation = useMutation({
+    mutationFn: async (redirectTo?: string) => {
+      const { data, error } = await auth.signInWithGoogle(redirectTo)
+      if (error) throw error
+      return data
+    },
+    onError: (err: any) => {
+      setError(err.message || "Google sign in failed")
+    },
+  })
+
+  const signInWithAppleMutation = useMutation({
+    mutationFn: async (redirectTo?: string) => {
+      const { data, error } = await auth.signInWithApple(redirectTo)
+      if (error) throw error
+      return data
+    },
+    onError: (err: any) => {
+      setError(err.message || "Apple sign in failed")
+    },
+  })
+
+  const signInWithGitHubMutation = useMutation({
+    mutationFn: async (redirectTo?: string) => {
+      const { data, error } = await auth.signInWithGitHub(redirectTo)
+      if (error) throw error
+      return data
+    },
+    onError: (err: any) => {
+      setError(err.message || "GitHub sign in failed")
     },
   })
 
@@ -122,7 +215,14 @@ const useAuth = () => {
 
   return {
     signUpMutation,
+    signUpWithPhoneMutation,
     loginMutation,
+    loginWithPhoneMutation,
+    sendOTPMutation,
+    verifyOTPMutation,
+    signInWithGoogleMutation,
+    signInWithAppleMutation,
+    signInWithGitHubMutation,
     resetPasswordMutation,
     logout,
     user: user || legacyUser, // Prefer Supabase user, fallback to legacy

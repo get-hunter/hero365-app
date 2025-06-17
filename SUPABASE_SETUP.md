@@ -76,9 +76,9 @@ VITE_SUPABASE_ANON_KEY=your-anon-public-key
    - Run your migration scripts
    - Or use `psql` with Supabase connection string
 
-## Step 4: Supabase Configuration
+## Step 4: Supabase Authentication Configuration
 
-### Authentication Settings
+### Basic Authentication Settings
 
 1. **Go to Authentication → Settings in Supabase Dashboard**
 
@@ -90,8 +90,79 @@ VITE_SUPABASE_ANON_KEY=your-anon-public-key
    - Customize signup confirmation email
    - Customize password reset email
 
-4. **Providers** (Optional):
-   - Enable OAuth providers (Google, GitHub, etc.)
+### OAuth Provider Setup
+
+#### Google OAuth
+
+1. **Create Google OAuth App**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing one
+   - Enable Google+ API
+   - Go to Credentials → Create Credentials → OAuth 2.0 Client ID
+   - Set application type to "Web application"
+   - Add authorized redirect URIs:
+     - `https://your-project.supabase.co/auth/v1/callback`
+     - `http://localhost:5173` (for development)
+
+2. **Configure in Supabase**:
+   - Go to Authentication → Providers in Supabase Dashboard
+   - Enable Google provider
+   - Add your Google Client ID and Client Secret
+   - Set redirect URL: `https://your-project.supabase.co/auth/v1/callback`
+
+#### Apple OAuth
+
+1. **Create Apple App**:
+   - Go to [Apple Developer Console](https://developer.apple.com/)
+   - Create a new App ID or use existing one
+   - Enable "Sign In with Apple" capability
+   - Create a Services ID for web authentication
+   - Configure domains and redirect URLs:
+     - Domain: `your-project.supabase.co`
+     - Redirect URL: `https://your-project.supabase.co/auth/v1/callback`
+
+2. **Generate Key**:
+   - Create a new Key for "Sign In with Apple"
+   - Download the .p8 key file
+
+3. **Configure in Supabase**:
+   - Go to Authentication → Providers in Supabase Dashboard
+   - Enable Apple provider
+   - Add your Apple Team ID, Key ID, and Private Key
+
+#### GitHub OAuth (Optional)
+
+1. **Create GitHub OAuth App**:
+   - Go to GitHub Settings → Developer settings → OAuth Apps
+   - Create a new OAuth App
+   - Set Authorization callback URL: `https://your-project.supabase.co/auth/v1/callback`
+
+2. **Configure in Supabase**:
+   - Go to Authentication → Providers
+   - Enable GitHub provider
+   - Add Client ID and Client Secret
+
+### Phone Authentication Setup
+
+1. **Enable Phone Authentication**:
+   - Go to Authentication → Settings in Supabase Dashboard
+   - Enable "Enable phone confirmations"
+
+2. **Configure SMS Provider**:
+   - **Option A: Twilio**
+     - Sign up for Twilio account
+     - Get Account SID and Auth Token
+     - Purchase a phone number
+     - Add Twilio credentials in Supabase Settings
+
+   - **Option B: MessageBird**
+     - Sign up for MessageBird account
+     - Get API key
+     - Add MessageBird credentials in Supabase Settings
+
+3. **Phone Number Format**:
+   - Use international format: `+1234567890`
+   - Validate phone numbers in your frontend
 
 ### Row Level Security (RLS)
 
@@ -134,8 +205,13 @@ VITE_SUPABASE_ANON_KEY=your-anon-public-key
    - Test API endpoints at `http://localhost:8000/docs`
 
 3. **Test authentication endpoints**:
-   - `POST /api/v1/auth/signup` - Create account
-   - `POST /api/v1/auth/signin` - Sign in (use frontend for this)
+   - `POST /api/v1/auth/signup` - Email/password signup
+   - `POST /api/v1/auth/signup/phone` - Phone/password signup
+   - `POST /api/v1/auth/signin` - Email/password signin
+   - `POST /api/v1/auth/signin/phone` - Phone/password signin
+   - `POST /api/v1/auth/otp/send` - Send OTP to phone
+   - `POST /api/v1/auth/otp/verify` - Verify OTP
+   - `GET /api/v1/auth/oauth/{provider}` - OAuth URL generation
    - `GET /api/v1/users/me` - Get current user
 
 ### Frontend Testing
@@ -146,14 +222,106 @@ VITE_SUPABASE_ANON_KEY=your-anon-public-key
    npm run dev
    ```
 
-2. **Test user flows**:
-   - Sign up with email/password
-   - Check email for verification (if enabled)
-   - Sign in
+2. **Test authentication flows**:
+   - Email/password signup and signin
+   - Phone/password signup and signin
+   - Phone OTP authentication
+   - Google OAuth signin
+   - Apple OAuth signin
+   - GitHub OAuth signin (if enabled)
    - Test password reset
    - Test user profile updates
 
-## Step 6: Production Deployment
+## Step 6: Postman Testing Guide
+
+### Email/Password Authentication
+
+#### Signup
+```
+POST http://localhost:8000/api/v1/auth/signup
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "SecurePassword123!",
+  "full_name": "Test User"
+}
+```
+
+#### Signin
+```
+POST http://localhost:8000/api/v1/auth/signin
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "SecurePassword123!"
+}
+```
+
+### Phone Authentication
+
+#### Phone Signup
+```
+POST http://localhost:8000/api/v1/auth/signup/phone
+Content-Type: application/json
+
+{
+  "phone": "+1234567890",
+  "password": "SecurePassword123!",
+  "full_name": "Test User"
+}
+```
+
+#### Phone Signin
+```
+POST http://localhost:8000/api/v1/auth/signin/phone
+Content-Type: application/json
+
+{
+  "phone": "+1234567890",
+  "password": "SecurePassword123!"
+}
+```
+
+#### Send OTP
+```
+POST http://localhost:8000/api/v1/auth/otp/send
+Content-Type: application/json
+
+{
+  "phone": "+1234567890"
+}
+```
+
+#### Verify OTP
+```
+POST http://localhost:8000/api/v1/auth/otp/verify
+Content-Type: application/json
+
+{
+  "phone": "+1234567890",
+  "token": "123456"
+}
+```
+
+### OAuth Authentication
+
+#### Get OAuth URL
+```
+GET http://localhost:8000/api/v1/auth/oauth/google
+GET http://localhost:8000/api/v1/auth/oauth/apple
+GET http://localhost:8000/api/v1/auth/oauth/github
+```
+
+### Using Authentication Token
+
+For protected endpoints, add the Bearer token:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+## Step 7: Production Deployment
 
 ### Environment Variables
 
@@ -185,69 +353,74 @@ docker-compose up -d
 
 ## Features Enabled
 
-### ✅ What's Working
+### ✅ Authentication Methods
+
+- **Email/Password**: Traditional email and password authentication
+- **Phone/Password**: Phone number and password authentication
+- **Phone/OTP**: Passwordless authentication using SMS OTP
+- **Google OAuth**: Sign in with Google account
+- **Apple OAuth**: Sign in with Apple ID
+- **GitHub OAuth**: Sign in with GitHub account (optional)
+
+### ✅ Backend Features
 
 - **Supabase Database**: PostgreSQL database hosted by Supabase
-- **Supabase Authentication**: Email/password auth with JWT tokens
-- **Backward Compatibility**: Legacy authentication still works
+- **JWT Token Verification**: Both legacy and Supabase tokens accepted
 - **Auto User Creation**: Users created in local DB when they sign in via Supabase
-- **Token Verification**: Both legacy and Supabase tokens are accepted
 - **Password Reset**: Using Supabase's built-in email system
-- **Real-time Ready**: Supabase client configured for real-time features
+- **User Management**: Admin endpoints for user management
+
+### ✅ Frontend Features
+
+- **Unified Auth Hook**: Single hook managing all authentication methods
+- **OAuth Integration**: Seamless OAuth provider integration
+- **Phone Authentication**: Complete phone auth UI with OTP verification
+- **Responsive Design**: Mobile-friendly authentication forms
+- **Error Handling**: Comprehensive error handling and user feedback
 
 ### 🔄 Migration Features
 
 - **Dual Authentication**: Supports both legacy and Supabase auth
-- **User ID Sync**: Existing users get Supabase IDs on first login
-- **Database Fallback**: Falls back to local PostgreSQL if Supabase unavailable
+- **Gradual Migration**: Can migrate users gradually from legacy to Supabase
+- **Backward Compatibility**: Existing users continue to work
 
-### 🚀 Future Enhancements
+## Security Considerations
 
-- **Real-time Updates**: Add Supabase real-time subscriptions
-- **File Storage**: Integrate Supabase Storage for file uploads
-- **OAuth Providers**: Add Google, GitHub, etc. authentication
-- **Edge Functions**: Use Supabase Edge Functions for serverless logic
+1. **Environment Variables**: Keep service role key secret
+2. **RLS Policies**: Implement proper row-level security
+3. **CORS Configuration**: Configure allowed origins properly
+4. **Rate Limiting**: Consider implementing rate limiting for auth endpoints
+5. **Phone Verification**: Always verify phone numbers before allowing access
+6. **OAuth Scopes**: Request minimal necessary OAuth scopes
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Database Connection Errors**:
-   - Verify SUPABASE_URL and SUPABASE_SERVICE_KEY
-   - Check if your IP is whitelisted in Supabase (if required)
+1. **OAuth Not Working**:
+   - Check redirect URLs match exactly
+   - Verify client credentials
+   - Check Supabase provider configuration
 
-2. **Authentication Errors**:
-   - Ensure SUPABASE_KEY is the anon/public key
-   - Check Site URL in Supabase dashboard
+2. **Phone Auth Not Working**:
+   - Verify SMS provider configuration
+   - Check phone number format (+country code)
+   - Ensure sufficient SMS credits
 
-3. **CORS Errors**:
-   - Add your frontend URL to Supabase allowed origins
-   - Check BACKEND_CORS_ORIGINS in your .env
+3. **Database Connection Issues**:
+   - Verify Supabase URL and keys
+   - Check database migration status
+   - Review connection string format
 
-4. **Migration Issues**:
-   - Run migrations with Supabase connection string
-   - Check table permissions and RLS policies
+4. **CORS Errors**:
+   - Add frontend domain to Supabase allowed origins
+   - Check CORS middleware configuration
 
-### Getting Help
+### Support
 
-- Check the [Supabase Documentation](https://supabase.com/docs)
-- Review server logs for detailed error messages
-- Test API endpoints using the FastAPI docs at `/docs`
-
-## Security Considerations
-
-1. **Never expose service_role key** in frontend code
-2. **Use anon key** for frontend/client applications
-3. **Enable RLS** for user data protection
-4. **Validate tokens** on the backend before database operations
-5. **Use HTTPS** in production for all Supabase communications
-
-## Performance Tips
-
-1. **Connection Pooling**: Supabase handles this automatically
-2. **Query Optimization**: Use indexed columns for better performance
-3. **Real-time Subscriptions**: Only subscribe to necessary data
-4. **CDN**: Use Supabase's global CDN for better response times
+- Supabase Documentation: [docs.supabase.com](https://docs.supabase.com)
+- Community Support: [supabase.com/support](https://supabase.com/support)
+- GitHub Issues: Create issues in your repository for project-specific problems
 
 ---
 
