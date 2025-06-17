@@ -51,23 +51,58 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str
     SENTRY_DSN: HttpUrl | None = None
-    POSTGRES_SERVER: str
+    
+    # Supabase Configuration (optional for backward compatibility)
+    SUPABASE_URL: str | None = None
+    SUPABASE_KEY: str | None = None
+    SUPABASE_SERVICE_KEY: str | None = None
+    
+    # Legacy PostgreSQL Configuration (for backward compatibility)
+    POSTGRES_SERVER: str | None = None
     POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str = ""
-    POSTGRES_DB: str = ""
+    POSTGRES_USER: str | None = None
+    POSTGRES_PASSWORD: str | None = None
+    POSTGRES_DB: str | None = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
-        return MultiHostUrl.build(
-            scheme="postgresql+psycopg",
-            username=self.POSTGRES_USER,
-            password=self.POSTGRES_PASSWORD,
-            host=self.POSTGRES_SERVER,
-            port=self.POSTGRES_PORT,
-            path=self.POSTGRES_DB,
-        )
+        # Use Supabase connection if available, otherwise fall back to local PostgreSQL
+        if self.SUPABASE_URL and self.SUPABASE_SERVICE_KEY:
+            # Extract database connection details from Supabase URL
+            # Supabase URL format: https://xyz.supabase.co
+            # Database URL format: postgresql://postgres:[password]@db.xyz.supabase.co:5432/postgres
+            supabase_host = self.SUPABASE_URL.replace("https://", "").replace("http://", "")
+            db_host = f"db.{supabase_host}"
+            return MultiHostUrl.build(
+                scheme="postgresql+psycopg",
+                username="postgres",
+                password=self.SUPABASE_SERVICE_KEY,
+                host=db_host,
+                port=5432,
+                path="postgres",
+            )
+        else:
+            # Fall back to local PostgreSQL - ensure all required fields are set
+            if not all([self.POSTGRES_SERVER, self.POSTGRES_USER, self.POSTGRES_DB]):
+                # Set default values for local development
+                return MultiHostUrl.build(
+                    scheme="postgresql+psycopg",
+                    username=self.POSTGRES_USER or "postgres",
+                    password=self.POSTGRES_PASSWORD or "changethis",
+                    host=self.POSTGRES_SERVER or "localhost",
+                    port=self.POSTGRES_PORT,
+                    path=self.POSTGRES_DB or "app",
+                )
+            
+            return MultiHostUrl.build(
+                scheme="postgresql+psycopg",
+                username=self.POSTGRES_USER,
+                password=self.POSTGRES_PASSWORD,
+                host=self.POSTGRES_SERVER,
+                port=self.POSTGRES_PORT,
+                path=self.POSTGRES_DB,
+            )
 
     SMTP_TLS: bool = True
     SMTP_SSL: bool = False
