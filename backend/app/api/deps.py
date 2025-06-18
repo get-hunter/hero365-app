@@ -1,22 +1,20 @@
 from collections.abc import Generator
 from typing import Annotated
-import uuid
 
 import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
-from sqlmodel import Session, select
+from sqlalchemy.orm import sessionmaker, Session
 
-from app.core import security
 from app.core.config import settings
 from app.core.db import engine
 from app.core.supabase import supabase_service
-from app.models import TokenPayload, User
+from app.core.security import ALGORITHM
 
-reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/login/access-token"
+reusable_oauth2 = HTTPBearer(
+    scheme_name="Authorization"
 )
 
 
@@ -26,86 +24,67 @@ def get_db() -> Generator[Session, None, None]:
 
 
 SessionDep = Annotated[Session, Depends(get_db)]
-TokenDep = Annotated[str, Depends(reusable_oauth2)]
+TokenDep = Annotated[HTTPAuthorizationCredentials, Depends(reusable_oauth2)]
 
 
-def get_current_user(session: SessionDep, token: TokenDep) -> User:
-    # Try to decode as Supabase token first
-    supabase_user_data = security.verify_supabase_token(token)
-    
-    if supabase_user_data:
-        # Handle Supabase authentication
-        user_id = supabase_user_data.get("id")
-        email = supabase_user_data.get("email")
+def get_current_user(token: TokenDep) -> dict:
+    """
+    Get current user directly from Supabase.
+    """
+    try:
+        # Extract token from Authorization header
+        token_str = token.credentials
         
-        if not user_id or not email:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid token data",
-            )
+        # Verify with Supabase
+        supabase_user_data = supabase_service.verify_token(token_str)
         
-        # Try to find existing user by Supabase ID first, then by email
-        user = session.exec(select(User).where(User.id == uuid.UUID(user_id))).first()
+        if supabase_user_data:
+            return supabase_user_data
         
-        if not user:
-            # Try to find by email for migration cases
-            user = session.exec(select(User).where(User.email == email)).first()
-            
-            if user:
-                # Update the user ID to match Supabase ID
-                user.id = uuid.UUID(user_id)
-                session.add(user)
-                session.commit()
-                session.refresh(user)
-            else:
-                # Create new user from Supabase data
-                user_metadata = supabase_user_data.get("user_metadata", {})
-                app_metadata = supabase_user_data.get("app_metadata", {})
-                
-                user = User(
-                    id=uuid.UUID(user_id),
-                    email=email,
-                    full_name=user_metadata.get("full_name"),
-                    is_active=True,
-                    is_superuser=app_metadata.get("is_superuser", False),
-                    hashed_password=""  # Not used with Supabase auth
-                )
-                session.add(user)
-                session.commit()
-                session.refresh(user)
-        
-        if not user.is_active:
-            raise HTTPException(status_code=400, detail="Inactive user")
-        
-        return user
-    
-    else:
-        # Fall back to legacy token validation
+        # If Supabase verification fails, try legacy JWT verification
         try:
             payload = jwt.decode(
-                token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+                token_str, settings.SECRET_KEY, algorithms=[ALGORITHM]
             )
-            token_data = TokenPayload(**payload)
+            email: str = payload.get("sub")
+            if email is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Could not validate credentials",
+                )
+            
+            # Return legacy user format
+            return {
+                "id": email,  # Use email as ID for legacy tokens
+                "email": email,
+                "phone": None,
+                "user_metadata": {},
+                "app_metadata": {},
+            }
         except (InvalidTokenError, ValidationError):
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
             )
         
-        user = session.get(User, token_data.sub)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        if not user.is_active:
-            raise HTTPException(status_code=400, detail="Inactive user")
-        return user
-
-
-CurrentUser = Annotated[User, Depends(get_current_user)]
-
-
-def get_current_active_superuser(current_user: CurrentUser) -> User:
-    if not current_user.is_superuser:
+    except Exception as e:
         raise HTTPException(
-            status_code=403, detail="The user doesn't have enough privileges"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Could not validate credentials: {str(e)}",
+        )
+
+
+CurrentUser = Annotated[dict, Depends(get_current_user)]
+
+
+def get_current_active_superuser(current_user: CurrentUser) -> dict:
+    """
+    Get current active superuser from Supabase user metadata
+    """
+    app_metadata = current_user.get("app_metadata", {})
+    if not app_metadata.get("is_superuser", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Not enough permissions"
         )
     return current_user

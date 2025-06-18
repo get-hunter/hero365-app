@@ -17,8 +17,11 @@ def read_items(
     """
     Retrieve items.
     """
+    # Extract user info from dict
+    is_superuser = current_user.get("app_metadata", {}).get("is_superuser", False)
+    user_id = current_user["id"]
 
-    if current_user.is_superuser:
+    if is_superuser:
         count_statement = select(func.count()).select_from(Item)
         count = session.exec(count_statement).one()
         statement = select(Item).offset(skip).limit(limit)
@@ -27,12 +30,12 @@ def read_items(
         count_statement = (
             select(func.count())
             .select_from(Item)
-            .where(Item.owner_id == current_user.id)
+            .where(Item.owner_id == uuid.UUID(user_id))
         )
         count = session.exec(count_statement).one()
         statement = (
             select(Item)
-            .where(Item.owner_id == current_user.id)
+            .where(Item.owner_id == uuid.UUID(user_id))
             .offset(skip)
             .limit(limit)
         )
@@ -46,10 +49,14 @@ def read_item(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) -> 
     """
     Get item by ID.
     """
+    # Extract user info from dict
+    is_superuser = current_user.get("app_metadata", {}).get("is_superuser", False)
+    user_id = uuid.UUID(current_user["id"])
+    
     item = session.get(Item, id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
-    if not current_user.is_superuser and (item.owner_id != current_user.id):
+    if not is_superuser and (item.owner_id != user_id):
         raise HTTPException(status_code=400, detail="Not enough permissions")
     return item
 
@@ -61,7 +68,8 @@ def create_item(
     """
     Create new item.
     """
-    item = Item.model_validate(item_in, update={"owner_id": current_user.id})
+    user_id = uuid.UUID(current_user["id"])
+    item = Item.model_validate(item_in, update={"owner_id": user_id})
     session.add(item)
     session.commit()
     session.refresh(item)
@@ -79,10 +87,14 @@ def update_item(
     """
     Update an item.
     """
+    # Extract user info from dict
+    is_superuser = current_user.get("app_metadata", {}).get("is_superuser", False)
+    user_id = uuid.UUID(current_user["id"])
+    
     item = session.get(Item, id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
-    if not current_user.is_superuser and (item.owner_id != current_user.id):
+    if not is_superuser and (item.owner_id != user_id):
         raise HTTPException(status_code=400, detail="Not enough permissions")
     update_dict = item_in.model_dump(exclude_unset=True)
     item.sqlmodel_update(update_dict)
@@ -99,10 +111,14 @@ def delete_item(
     """
     Delete an item.
     """
+    # Extract user info from dict
+    is_superuser = current_user.get("app_metadata", {}).get("is_superuser", False)
+    user_id = uuid.UUID(current_user["id"])
+    
     item = session.get(Item, id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
-    if not current_user.is_superuser and (item.owner_id != current_user.id):
+    if not is_superuser and (item.owner_id != user_id):
         raise HTTPException(status_code=400, detail="Not enough permissions")
     session.delete(item)
     session.commit()
