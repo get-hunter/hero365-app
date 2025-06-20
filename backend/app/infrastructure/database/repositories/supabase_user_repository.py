@@ -232,6 +232,52 @@ class SupabaseUserRepository(UserRepository):
         except Exception as e:
             raise DatabaseError(f"Failed to count superusers: {str(e)}")
     
+    # Missing methods from BaseRepository and UserRepository
+    async def exists(self, entity_id: uuid.UUID) -> bool:
+        """Check if an entity exists."""
+        try:
+            response = self.client.table(self.table_name).select("id").eq("id", str(entity_id)).execute()
+            
+            return len(response.data) > 0
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to check user existence: {str(e)}")
+    
+    async def email_exists(self, email: Email, exclude_user_id: Optional[uuid.UUID] = None) -> bool:
+        """Check if an email address is already in use."""
+        return not await self.is_email_unique(email, exclude_user_id)
+    
+    async def phone_exists(self, phone: Phone, exclude_user_id: Optional[uuid.UUID] = None) -> bool:
+        """Check if a phone number is already in use."""
+        return not await self.is_phone_unique(phone, exclude_user_id)
+    
+    async def get_superusers(self, skip: int = 0, limit: int = 100) -> List[User]:
+        """Get all superusers with pagination."""
+        try:
+            response = self.client.table(self.table_name).select("*").eq("is_superuser", True).range(skip, skip + limit - 1).order("created_at", desc=True).execute()
+            
+            return [self._dict_to_user(user_data) for user_data in response.data]
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to get superusers: {str(e)}")
+    
+    async def count_active_users(self) -> int:
+        """Count the number of active users."""
+        return await self.count_active()
+    
+    async def update_supabase_id(self, user_id: uuid.UUID, supabase_id: str) -> bool:
+        """Update user's Supabase ID."""
+        try:
+            response = self.client.table(self.table_name).update({
+                "supabase_id": supabase_id,
+                "updated_at": datetime.utcnow().isoformat()
+            }).eq("id", str(user_id)).execute()
+            
+            return len(response.data) > 0
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to update Supabase ID: {str(e)}")
+    
     def _user_to_dict(self, user: User) -> dict:
         """Convert User domain entity to dictionary for Supabase."""
         return {

@@ -115,6 +115,16 @@ class SupabaseItemRepository(ItemRepository):
         except Exception as e:
             raise DatabaseError(f"Failed to get active items by owner: {str(e)}")
     
+    async def get_deleted_by_owner_id(self, owner_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[Item]:
+        """Get deleted items by owner ID with pagination."""
+        try:
+            response = self.client.table(self.table_name).select("*").eq("owner_id", str(owner_id)).eq("is_deleted", True).range(skip, skip + limit - 1).order("deleted_at", desc=True).execute()
+            
+            return [self._dict_to_item(item_data) for item_data in response.data]
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to get deleted items by owner: {str(e)}")
+    
     async def search_by_content(self, query: str, owner_id: Optional[uuid.UUID] = None, 
                                skip: int = 0, limit: int = 100) -> List[Item]:
         """Search items by content."""
@@ -133,6 +143,41 @@ class SupabaseItemRepository(ItemRepository):
             
         except Exception as e:
             raise DatabaseError(f"Failed to search items: {str(e)}")
+    
+    async def search_by_title(self, title: str, owner_id: Optional[uuid.UUID] = None, 
+                             skip: int = 0, limit: int = 100) -> List[Item]:
+        """Search items by title."""
+        try:
+            # Build the search query
+            search_query = self.client.table(self.table_name).select("*").ilike("title", f"%{title}%")
+            
+            if owner_id:
+                search_query = search_query.eq("owner_id", str(owner_id))
+            
+            response = search_query.range(skip, skip + limit - 1).order("created_at", desc=True).execute()
+            
+            return [self._dict_to_item(item_data) for item_data in response.data]
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to search items by title: {str(e)}")
+    
+    async def get_updated_items(self, owner_id: Optional[uuid.UUID] = None,
+                               days: int = 7, skip: int = 0, limit: int = 100) -> List[Item]:
+        """Get recently updated items."""
+        try:
+            cutoff_date = (datetime.utcnow() - timedelta(days=days)).isoformat()
+            
+            query = self.client.table(self.table_name).select("*").gte("updated_at", cutoff_date)
+            
+            if owner_id:
+                query = query.eq("owner_id", str(owner_id))
+            
+            response = query.range(skip, skip + limit - 1).order("updated_at", desc=True).execute()
+            
+            return [self._dict_to_item(item_data) for item_data in response.data]
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to get updated items: {str(e)}")
     
     async def count(self) -> int:
         """Get total count of items."""

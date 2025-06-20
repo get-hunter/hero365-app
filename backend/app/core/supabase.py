@@ -134,6 +134,42 @@ class SupabaseService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Failed to list users: {str(e)}"
             )
+    
+    def sign_in_with_oauth(self, provider: str, id_token: str, access_token: str = None) -> AuthResponse:
+        """Sign in with OAuth provider using ID token."""
+        try:
+            # Use the correct Supabase method for ID token authentication
+            response = self.client.auth.sign_in_with_id_token({
+                "provider": provider,
+                "token": id_token,
+                "access_token": access_token
+            })
+            return response
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Failed to sign in with {provider}: {str(e)}"
+            )
+    
+    def create_user_with_oauth(self, provider: str, provider_id: str, email: str, user_metadata: dict = None) -> AuthResponse:
+        """Create a user from OAuth provider data."""
+        try:
+            # Create user with admin client
+            response = self.admin_client.auth.admin.create_user({
+                "email": email,
+                "user_metadata": user_metadata or {},
+                "app_metadata": {
+                    "provider": provider,
+                    "provider_id": provider_id
+                },
+                "email_confirm": True  # OAuth users are pre-verified
+            })
+            return response
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to create OAuth user: {str(e)}"
+            )
 
 
 # Global instance
