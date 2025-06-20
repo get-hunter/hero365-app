@@ -190,4 +190,96 @@ class CreateUserUseCase:
             is_active=user.is_active,
             is_superuser=user.is_superuser,
             supabase_id=user.supabase_id
-        ) 
+        )
+    
+    async def execute_oauth_registration(self, create_user_dto: CreateUserDTO) -> UserDTO:
+        """
+        Execute OAuth user registration without requiring current_user_id.
+        
+        This method is specifically for OAuth flows where users are created
+        automatically during the authentication process.
+        
+        Args:
+            create_user_dto: Data for creating the OAuth user
+            
+        Returns:
+            UserDTO containing the created user data
+            
+        Raises:
+            ValidationError: If input validation fails
+            UserAlreadyExistsError: If user already exists
+            DomainValidationError: If domain rules are violated
+        """
+        # Validate OAuth-specific input
+        await self._validate_oauth_input(create_user_dto)
+        
+        # Check for existing users (with OAuth-specific logic)
+        await self._check_oauth_uniqueness(create_user_dto)
+        
+        # Create domain objects
+        email = self._create_email(create_user_dto.email)
+        phone = self._create_phone(create_user_dto.phone)
+        
+        # Create user entity with OAuth defaults
+        user = User(
+            id=uuid.uuid4(),
+            email=email,
+            phone=phone,
+            full_name=create_user_dto.full_name,
+            is_active=create_user_dto.is_active,
+            is_superuser=False,  # OAuth users are not superusers by default
+            supabase_id=create_user_dto.supabase_id
+        )
+        
+        # Save to repository
+        created_user = await self.user_repository.create(user)
+        
+        # Convert to DTO
+        return self._entity_to_dto(created_user)
+    
+    async def _validate_oauth_input(self, dto: CreateUserDTO) -> None:
+        """
+        Validate OAuth-specific input.
+        
+        Args:
+            dto: CreateUserDTO to validate
+            
+        Raises:
+            ValidationError: If validation fails
+        """
+        # For OAuth, email is typically required
+        if not dto.email:
+            raise ValidationError(
+                "email",
+                "Email is required for OAuth registration"
+            )
+        
+        # Validate full name if provided
+        if dto.full_name is not None and len(dto.full_name.strip()) == 0:
+            raise ValidationError("full_name", "Full name cannot be empty")
+    
+    async def _check_oauth_uniqueness(self, dto: CreateUserDTO) -> None:
+        """
+        Check OAuth user uniqueness with lenient rules.
+        
+        For OAuth, we may want to link existing users instead of throwing errors.
+        
+        Args:
+            dto: CreateUserDTO to check
+            
+        Raises:
+            UserAlreadyExistsError: If user already exists and cannot be linked
+        """
+        if dto.email:
+            try:
+                email = Email.create(dto.email)
+                existing_user = await self.user_repository.get_by_email(email)
+                if existing_user:
+                    # For OAuth, we might want to link accounts instead of failing
+                    # For now, we'll still throw an error but with a more helpful message
+                    raise UserAlreadyExistsError(
+                        f"User with email {dto.email} already exists. "
+                        f"Consider linking OAuth account to existing user."
+                    )
+            except DomainValidationError as e:
+                raise ValidationError("email", str(e)) 

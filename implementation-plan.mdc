@@ -204,14 +204,25 @@ Refactored all route imports and schemas to use new clean architecture patterns 
 
 User requested to skip test creation for now. Tests can be implemented later following the clean architecture patterns established.
 
+## Phase 6: OAuth Integration - Correct Architecture
+### Step 6.1: Implemented OAuth with iOS App → Backend → Supabase flow - **Done**
+- [x] Restored OAuth endpoints with simplified Supabase server-side integration
+- [x] Created OAuth controller using Supabase's sign_in_with_oauth methods
+- [x] Updated OAuth schemas to use ID tokens instead of authorization codes
+- [x] Updated documentation to show correct iOS App → Backend → Supabase architecture
+
+Implemented OAuth authentication maintaining the same flow as email/phone auth (iOS App → Backend → Supabase).
+iOS app sends ID tokens to backend, backend validates with Supabase, returns session tokens - no Supabase iOS SDK needed.
+
 ### Step 5.3: Clean up old structure - **Done**
 - [x] Remove old files
 - [x] Update imports
 - [x] Update documentation
+- [x] Eliminate models.py completely
 
-Removed old CRUD file and cleaned up models.py to contain only minimal legacy compatibility layer.
-Updated all route imports to use clean architecture schemas and removed SQLModel dependencies.
-Fixed all import errors and confirmed application loads successfully with clean architecture components.
+Removed old CRUD file and completely eliminated models.py by moving all classes to appropriate clean architecture locations.
+Moved Message to common_schemas.py and auth classes (Token, TokenPayload, NewPassword) to auth_schemas.py.
+Updated all route imports to use clean architecture schemas and confirmed application works perfectly without legacy models.
 
 ## Progress Tracking
 Each completed step will be marked with "Done" and include a two-line summary of what was accomplished.

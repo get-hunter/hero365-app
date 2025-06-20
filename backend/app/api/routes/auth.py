@@ -5,6 +5,12 @@ from pydantic import BaseModel, EmailStr
 from app.core.supabase import supabase_service
 from app.api.schemas.common_schemas import Message
 from app.api.schemas.user_schemas import UserResponse
+from app.api.schemas.auth_schemas import (
+    AppleSignInRequest,
+    GoogleSignInRequest, 
+    OAuthSignInResponse,
+)
+from app.api.controllers.oauth_controller import OAuthController
 
 router = APIRouter(tags=["auth"])
 
@@ -354,4 +360,56 @@ def password_recovery(email: EmailStr) -> Message:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to send password recovery email: {str(e)}"
-        ) 
+        )
+
+
+# OAuth Controller for native mobile authentication
+oauth_controller = OAuthController()
+
+
+@router.post("/auth/apple/signin", response_model=OAuthSignInResponse)
+async def apple_sign_in(request: AppleSignInRequest) -> OAuthSignInResponse:
+    """
+    Handle Apple Sign-In with ID token from native iOS app.
+    
+    This endpoint receives the ID token from Apple Sign-In on iOS
+    and validates it with Supabase to create/authenticate the user.
+    
+    Flow: iOS App → Backend (this endpoint) → Supabase Auth
+    
+    Args:
+        request: Apple sign-in request containing ID token and user info
+        
+    Returns:
+        OAuth sign-in response with access tokens and user information
+    """
+    try:
+        return await oauth_controller.apple_sign_in(request)
+    except Exception as e:
+        print(f"Apple Sign-In error: {str(e)}")
+        print(f"Request data: {request}")
+        raise
+
+
+@router.post("/auth/google/signin", response_model=OAuthSignInResponse)
+async def google_sign_in(request: GoogleSignInRequest) -> OAuthSignInResponse:
+    """
+    Handle Google Sign-In with ID token from native iOS app.
+    
+    This endpoint receives the ID token from Google Sign-In on iOS
+    and validates it with Supabase to create/authenticate the user.
+    
+    Flow: iOS App → Backend (this endpoint) → Supabase Auth
+    
+    Args:
+        request: Google sign-in request containing ID token and user info
+        
+    Returns:
+        OAuth sign-in response with access tokens and user information
+    """
+    try:
+        return await oauth_controller.google_sign_in(request)
+    except Exception as e:
+        print(f"Google Sign-In error: {str(e)}")
+        print(f"Request data: {request}")
+        raise 

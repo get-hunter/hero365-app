@@ -1,577 +1,549 @@
-# Hero365 API Integration Guide for Swift Apps
+# Native Apple/Google Sign-In Integration Guide for Swift
 
-This guide provides comprehensive documentation for integrating Hero365 backend authentication APIs into your Swift iOS application. The API supports multiple authentication methods including email/password, phone number, and OAuth providers (Google, Apple).
+This guide explains how to integrate native Apple and Google Sign-In with your Swift iOS app using your **Hero365 backend as a proxy to Supabase Auth**.
 
-## Table of Contents
+> **🏗️ Architecture**: iOS App → Your Backend → Supabase Auth (consistent with email/phone auth)
 
-- [Base Configuration](#base-configuration)
-- [Authentication Methods](#authentication-methods)
-- [API Endpoints](#api-endpoints)
-- [Authentication Flows](#authentication-flows)
-- [Error Handling](#error-handling)
-- [Token Management](#token-management)
-- [Best Practices](#best-practices)
-- [Testing](#testing)
-
-## Base Configuration
-
-### API Base URL
+## 🏗️ Architecture Overview
 
 ```
-Development: http://localhost:8000
-Production: https://your-api-domain.com
+iOS App → Hero365 Backend → Supabase Auth
 ```
 
-### API Version
+**Benefits of this approach:**
+- ✅ Consistent with your existing email/phone authentication flow
+- ✅ Centralized authentication logic in your backend
+- ✅ Your backend handles all Supabase integration
+- ✅ iOS app only needs to handle native OAuth and send ID tokens
+- ✅ No need for Supabase iOS SDK
 
-All authentication endpoints are prefixed with `/api/v1`
+## 📱 iOS Implementation
 
-### Content Type
+### 1. Apple Sign-In Implementation
 
-All requests should use `Content-Type: application/json`
+```swift
+import AuthenticationServices
 
-### Headers
-
-```
-Content-Type: application/json
-Authorization: Bearer {access_token}  # For protected endpoints
-```
-
-## Authentication Methods
-
-The Hero365 API supports the following authentication methods:
-
-1. **Email & Password** - Traditional authentication
-2. **Phone & Password** - Phone number with password
-3. **Phone & OTP** - Passwordless phone authentication via SMS
-4. **Google OAuth** - Sign in with Google
-5. **Apple OAuth** - Sign in with Apple ID
-
-## API Endpoints
-
-### 1. Email & Password Authentication
-
-#### Sign Up with Email
-
-**Endpoint:** `POST /api/v1/auth/signup`
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePassword123!",
-  "full_name": "John Doe"  // Optional
-}
-```
-
-**Response:**
-```json
-{
-  "message": "User created successfully. Please check your email for verification."
-}
-```
-
-**Status Codes:**
-- `200` - Success
-- `400` - Invalid request data
-- `503` - Supabase not configured
-
-#### Sign In with Email
-
-**Endpoint:** `POST /api/v1/auth/signin`
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePassword123!"
-}
-```
-
-**Response:**
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "user-uuid-here",
-    "email": "user@example.com",
-    "user_metadata": {
-      "full_name": "John Doe"
+class AppleSignInManager: NSObject, ObservableObject {
+    @Published var isSignedIn = false
+    @Published var errorMessage: String?
+    
+    private let apiBaseURL = "http://localhost:8000/api/v1"  // Update for production
+    
+    func signInWithApple() {
+        let request = ASAuthorizationAppleIDProvider().createRequest()
+        request.requestedScopes = [.fullName, .email]
+        
+        let authorizationController = ASAuthorizationController(authorizationRequests: [request])
+        authorizationController.delegate = self
+        authorizationController.performRequests()
     }
-  }
 }
-```
 
-**Status Codes:**
-- `200` - Success
-- `401` - Invalid credentials
-- `503` - Supabase not configured
-
-### 2. Phone Number Authentication
-
-#### Sign Up with Phone
-
-**Endpoint:** `POST /api/v1/auth/signup/phone`
-
-**Request Body:**
-```json
-{
-  "phone": "+1234567890",
-  "password": "SecurePassword123!",
-  "full_name": "John Doe"  // Optional
-}
-```
-
-**Response:**
-```json
-{
-  "message": "User created successfully. Please verify your phone number."
-}
-```
-
-**Status Codes:**
-- `200` - Success
-- `400` - Invalid request data
-- `503` - Supabase not configured
-
-#### Sign In with Phone
-
-**Endpoint:** `POST /api/v1/auth/signin/phone`
-
-**Request Body:**
-```json
-{
-  "phone": "+1234567890",
-  "password": "SecurePassword123!"
-}
-```
-
-**Response:**
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "user-uuid-here",
-    "phone": "+1234567890",
-    "user_metadata": {
-      "full_name": "John Doe"
+extension AppleSignInManager: ASAuthorizationControllerDelegate {
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        
+        if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
+            
+            guard let identityToken = appleIDCredential.identityToken,
+                  let idTokenString = String(data: identityToken, encoding: .utf8) else {
+                self.errorMessage = "Failed to get ID token from Apple"
+                return
+            }
+            
+            let email = appleIDCredential.email
+            let fullName = appleIDCredential.fullName?.formatted()
+            
+            Task {
+                await sendAppleTokenToBackend(
+                    idToken: idTokenString,
+                    userIdentifier: appleIDCredential.user,
+                    email: email,
+                    fullName: fullName
+                )
+            }
+        }
     }
-  }
+    
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        self.errorMessage = "Apple Sign-In failed: \(error.localizedDescription)"
+    }
+    
+    private func sendAppleTokenToBackend(
+        idToken: String,
+        userIdentifier: String,
+        email: String?,
+        fullName: String?
+    ) async {
+        let requestBody = AppleSignInRequest(
+            id_token: idToken,
+            user_identifier: userIdentifier,
+            email: email,
+            full_name: fullName
+        )
+        
+        do {
+            let url = URL(string: "\(apiBaseURL)/auth/apple/signin")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONEncoder().encode(requestBody)
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                throw AuthError.invalidResponse
+            }
+            
+            let authResponse = try JSONDecoder().decode(OAuthSignInResponse.self, from: data)
+            
+            DispatchQueue.main.async {
+                self.handleSuccessfulAuth(authResponse)
+            }
+            
+        } catch {
+            DispatchQueue.main.async {
+                self.errorMessage = "Apple Sign-In failed: \(error.localizedDescription)"
+            }
+        }
+    }
+    
+    private func handleSuccessfulAuth(_ response: OAuthSignInResponse) {
+        // Store tokens securely
+        TokenManager.shared.storeTokens(response)
+        
+        // Update UI
+        self.isSignedIn = true
+        self.errorMessage = nil
+        
+        print("Apple Sign-In successful for user: \(response.user.email ?? "Unknown")")
+        print("Is new user: \(response.is_new_user)")
+    }
+}
+
+// Helper extension for PersonNameComponents
+extension PersonNameComponents {
+    func formatted() -> String {
+        var parts: [String] = []
+        if let givenName = givenName { parts.append(givenName) }
+        if let familyName = familyName { parts.append(familyName) }
+        return parts.joined(separator: " ")
+    }
 }
 ```
 
-### 3. Phone OTP Authentication
+### 2. Google Sign-In Implementation
 
-#### Send OTP
+First, add Google Sign-In SDK to your project:
 
-**Endpoint:** `POST /api/v1/auth/otp/send`
+```
+https://github.com/google/GoogleSignIn-iOS
+```
 
-**Request Body:**
-```json
-{
-  "phone": "+1234567890"
+```swift
+import GoogleSignIn
+
+class GoogleSignInManager: NSObject, ObservableObject {
+    @Published var isSignedIn = false
+    @Published var errorMessage: String?
+    
+    private let apiBaseURL = "http://localhost:8000/api/v1"  // Update for production
+    
+    func signInWithGoogle() {
+        guard let presentingViewController = UIApplication.shared.windows.first?.rootViewController else {
+            return
+        }
+        
+        GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController) { [weak self] result, error in
+            
+            if let error = error {
+                self?.errorMessage = "Google Sign-In failed: \(error.localizedDescription)"
+                return
+            }
+            
+            guard let user = result?.user,
+                  let idToken = user.idToken?.tokenString else {
+                self?.errorMessage = "Failed to get ID token from Google"
+                return
+            }
+            
+            Task {
+                await self?.sendGoogleTokenToBackend(
+                    idToken: idToken,
+                    accessToken: user.accessToken.tokenString,
+                    email: user.profile?.email,
+                    fullName: user.profile?.name,
+                    givenName: user.profile?.givenName,
+                    familyName: user.profile?.familyName,
+                    pictureURL: user.profile?.imageURL(withDimension: 200)?.absoluteString
+                )
+            }
+        }
+    }
+    
+    private func sendGoogleTokenToBackend(
+        idToken: String,
+        accessToken: String,
+        email: String?,
+        fullName: String?,
+        givenName: String?,
+        familyName: String?,
+        pictureURL: String?
+    ) async {
+        let requestBody = GoogleSignInRequest(
+            id_token: idToken,
+            access_token: accessToken,
+            email: email,
+            full_name: fullName,
+            given_name: givenName,
+            family_name: familyName,
+            picture_url: pictureURL
+        )
+        
+        do {
+            let url = URL(string: "\(apiBaseURL)/auth/google/signin")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONEncoder().encode(requestBody)
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                throw AuthError.invalidResponse
+            }
+            
+            let authResponse = try JSONDecoder().decode(OAuthSignInResponse.self, from: data)
+            
+            DispatchQueue.main.async {
+                self.handleSuccessfulAuth(authResponse)
+            }
+            
+        } catch {
+            DispatchQueue.main.async {
+                self.errorMessage = "Google Sign-In failed: \(error.localizedDescription)"
+            }
+        }
+    }
+    
+    private func handleSuccessfulAuth(_ response: OAuthSignInResponse) {
+        // Store tokens securely
+        TokenManager.shared.storeTokens(response)
+        
+        // Update UI
+        self.isSignedIn = true
+        self.errorMessage = nil
+        
+        print("Google Sign-In successful for user: \(response.user.email ?? "Unknown")")
+        print("Is new user: \(response.is_new_user)")
+    }
 }
 ```
 
-**Response:**
-```json
-{
-  "message": "OTP sent successfully to your phone number."
+### 3. Data Models
+
+```swift
+// Request Models
+struct AppleSignInRequest: Codable {
+    let id_token: String
+    let user_identifier: String
+    let email: String?
+    let full_name: String?
+}
+
+struct GoogleSignInRequest: Codable {
+    let id_token: String
+    let access_token: String?
+    let email: String?
+    let full_name: String?
+    let given_name: String?
+    let family_name: String?
+    let picture_url: String?
+}
+
+// Response Models
+struct OAuthSignInResponse: Codable {
+    let access_token: String
+    let refresh_token: String
+    let expires_in: Int
+    let token_type: String
+    let user: User
+    let is_new_user: Bool
+}
+
+struct User: Codable {
+    let id: String
+    let email: String?
+    let phone: String?
+    let full_name: String?
+    let is_active: Bool
+    let is_superuser: Bool
+    let supabase_id: String?
+}
+
+enum AuthError: Error {
+    case invalidResponse
+    case missingIdToken
+    case networkError
+    case decodingError
 }
 ```
 
-**Status Codes:**
-- `200` - Success
-- `400` - Invalid phone number or SMS sending failed
-- `503` - Supabase not configured
+### 4. SwiftUI Integration
 
-#### Verify OTP
+```swift
+import SwiftUI
 
-**Endpoint:** `POST /api/v1/auth/otp/verify`
-
-**Request Body:**
-```json
-{
-  "phone": "+1234567890",
-  "token": "123456"
+struct LoginView: View {
+    @StateObject private var appleSignIn = AppleSignInManager()
+    @StateObject private var googleSignIn = GoogleSignInManager()
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Welcome to Hero365")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+            
+            // Apple Sign-In Button
+            SignInWithAppleButton(
+                onRequest: { request in
+                    request.requestedScopes = [.fullName, .email]
+                }
+            ) { result in
+                appleSignIn.signInWithApple()
+            }
+            .frame(height: 50)
+            .signInWithAppleButtonStyle(.black)
+            
+            // Google Sign-In Button
+            Button("Sign in with Google") {
+                googleSignIn.signInWithGoogle()
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(8)
+            
+            if let error = appleSignIn.errorMessage ?? googleSignIn.errorMessage {
+                Text(error)
+                    .foregroundColor(.red)
+                    .font(.caption)
+            }
+        }
+        .padding()
+        .onChange(of: appleSignIn.isSignedIn) { isSignedIn in
+            if isSignedIn {
+                // Navigate to main app
+            }
+        }
+        .onChange(of: googleSignIn.isSignedIn) { isSignedIn in
+            if isSignedIn {
+                // Navigate to main app
+            }
+        }
+    }
 }
 ```
 
-**Response:**
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "user-uuid-here",
-    "phone": "+1234567890",
-    "user_metadata": {}
-  }
+### 5. Token Management
+
+```swift
+import KeychainAccess
+
+class TokenManager {
+    static let shared = TokenManager()
+    private let keychain = Keychain(service: "com.yourapp.hero365")
+        .accessibility(.whenUnlockedThisDeviceOnly)
+    
+    private init() {}
+    
+    func storeTokens(_ response: OAuthSignInResponse) {
+        keychain["hero365_access_token"] = response.access_token
+        keychain["hero365_refresh_token"] = response.refresh_token
+        
+        // Store expiry time
+        let expiryDate = Date().addingTimeInterval(TimeInterval(response.expires_in))
+        let expiryData = try? JSONEncoder().encode(expiryDate)
+        keychain["hero365_token_expiry"] = expiryData?.base64EncodedString()
+    }
+    
+    func getAccessToken() -> String? {
+        return keychain["hero365_access_token"]
+    }
+    
+    func getRefreshToken() -> String? {
+        return keychain["hero365_refresh_token"]
+    }
+    
+    func clearTokens() {
+        keychain["hero365_access_token"] = nil
+        keychain["hero365_refresh_token"] = nil
+        keychain["hero365_token_expiry"] = nil
+    }
+    
+    func isTokenExpired() -> Bool {
+        guard let expiryString = keychain["hero365_token_expiry"],
+              let expiryData = Data(base64Encoded: expiryString),
+              let expiryDate = try? JSONDecoder().decode(Date.self, from: expiryData) else {
+            return true
+        }
+        
+        return Date() >= expiryDate
+    }
 }
 ```
 
-**Status Codes:**
-- `200` - Success
-- `401` - Invalid OTP
-- `503` - Supabase not configured
+## 🔧 Backend Configuration
 
-### 4. OAuth Authentication
+### Supabase Dashboard Setup
 
-#### Get OAuth URL
+1. Go to your **Supabase Dashboard**
+2. Navigate to **Authentication > Providers**
+3. **Enable Apple Sign-In:**
+   - Toggle on Apple
+   - Add your Apple Client ID
+   - Add your Apple Team ID
+   - Upload your Apple Private Key
+4. **Enable Google Sign-In:**
+   - Toggle on Google
+   - Add your Google Client ID
+   - Add your Google Client Secret
 
-**Endpoint:** `GET /api/v1/auth/oauth/{provider}`
+### Your Backend Endpoints
 
-**Supported Providers:** `google`, `apple`, `github`
+Your backend now provides these OAuth endpoints:
 
-**Example:** `GET /api/v1/auth/oauth/google`
+```http
+# OAuth Endpoints (your backend)
+POST /api/v1/auth/apple/signin   # Apple Sign-In with ID token
+POST /api/v1/auth/google/signin  # Google Sign-In with ID token
 
-**Response:**
-```json
-{
-  "url": "https://your-project.supabase.co/auth/v1/authorize?provider=google",
-  "provider": "google"
-}
+# Standard Auth Endpoints
+POST /api/v1/auth/signup         # Email/password signup
+POST /api/v1/auth/signin         # Email/password signin
+POST /api/v1/auth/otp/send       # Send SMS OTP
+POST /api/v1/auth/otp/verify     # Verify SMS OTP
+
+# User Endpoints
+GET /api/v1/users/me             # Get current user (requires auth)
 ```
 
-**Status Codes:**
-- `200` - Success
-- `400` - Unsupported OAuth provider
-- `503` - Supabase not configured
+## 🔄 Authentication Flow
 
-### 5. Utility Endpoints
-
-#### Refresh Token
-
-**Endpoint:** `POST /api/v1/auth/refresh`
-
-**Request Body:**
-```json
-{
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
+### Apple Sign-In Flow
+```
+1. User taps "Sign in with Apple" button
+2. iOS shows native Apple Sign-In UI
+3. User authenticates with Face ID/Touch ID/Passcode
+4. iOS app receives ID token from Apple
+5. App sends POST to /api/v1/auth/apple/signin with ID token
+6. Backend validates ID token with Supabase
+7. Backend returns access_token + refresh_token
+8. App stores tokens securely in Keychain
 ```
 
-**Response:**
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
+### Google Sign-In Flow
+```
+1. User taps "Sign in with Google" button
+2. iOS shows Google Sign-In UI
+3. User authenticates with Google account
+4. iOS app receives ID token from Google
+5. App sends POST to /api/v1/auth/google/signin with ID token
+6. Backend validates ID token with Supabase
+7. Backend returns access_token + refresh_token
+8. App stores tokens securely in Keychain
 ```
 
-#### Password Recovery
+## 🧪 Testing
 
-**Endpoint:** `POST /api/v1/auth/password-recovery`
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com"
-}
+### Test Apple Sign-In
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/apple/signin \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user_identifier": "000123.abc456def789.1234",
+    "email": "test@privaterelay.appleid.com",
+    "full_name": "Test User"
+  }'
 ```
 
-**Response:**
-```json
-{
-  "message": "Password recovery email sent"
-}
+### Test Google Sign-In
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/google/signin \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "access_token": "ya29.a0ARrdaM...",
+    "email": "test@gmail.com",
+    "full_name": "Test User"
+  }'
 ```
 
-#### Get Current User
-
-**Endpoint:** `GET /api/v1/users/me`
-
-**Headers:**
-```
-Authorization: Bearer {access_token}
-```
-
-**Response:**
-```json
-{
-  "id": "user-uuid-here",
-  "email": "user@example.com",
-  "phone": "+1234567890",
-  "full_name": "John Doe",
-  "is_active": true,
-  "is_superuser": false
-}
-```
-
-#### Sign Out
-
-**Endpoint:** `POST /api/v1/auth/signout`
-
-**Response:**
-```json
-{
-  "message": "Sign out should be handled by the frontend Supabase client"
-}
-```
-
-**Note:** Sign out should be handled locally by clearing stored tokens.
-
-## Authentication Flows
-
-### 1. Email/Password Flow
-
-```
-1. User enters email and password
-2. App sends POST to /api/v1/auth/signin
-3. Backend validates credentials via Supabase
-4. Backend returns access_token and refresh_token
-5. App stores tokens securely (Keychain)
-6. App includes access_token in Authorization header for protected requests
-```
-
-### 2. Phone/Password Flow
-
-```
-1. User enters phone number and password
-2. App sends POST to /api/v1/auth/signin/phone
-3. Backend validates credentials via Supabase
-4. Backend returns access_token and refresh_token
-5. App stores tokens securely
-```
-
-### 3. Phone/OTP Flow
-
-```
-1. User enters phone number
-2. App sends POST to /api/v1/auth/otp/send
-3. Backend sends SMS via configured provider
-4. User receives SMS with 6-digit code
-5. User enters OTP code
-6. App sends POST to /api/v1/auth/otp/verify with phone and token
-7. Backend validates OTP via Supabase
-8. Backend returns access_token and refresh_token
-```
-
-### 4. OAuth Flow (Google/Apple)
-
-```
-1. App calls GET /api/v1/auth/oauth/{provider} to get OAuth URL
-2. App opens OAuth URL in web view or external browser
-3. User completes OAuth flow with provider
-4. Provider redirects to callback URL with authorization code
-5. Supabase handles token exchange automatically
-6. App receives authentication result via deep link or URL monitoring
-7. App extracts tokens from callback URL parameters
-```
-
-### 5. Apple Sign In (Native)
-
-For native Apple Sign In, you can skip the OAuth URL and use Apple's native SDK:
-
-```
-1. Use Apple's AuthenticationServices framework
-2. Get authorization code from Apple
-3. Exchange code with Supabase directly (via web view or backend call)
-4. Extract tokens from response
-```
-
-## Error Handling
-
-### HTTP Status Codes
-
-- `200` - Success
-- `400` - Bad Request (invalid data, validation errors)
-- `401` - Unauthorized (invalid credentials, expired token)
-- `403` - Forbidden (insufficient permissions)
-- `404` - Not Found (endpoint doesn't exist)
-- `503` - Service Unavailable (Supabase not configured)
-
-### Error Response Format
-
-```json
-{
-  "detail": "Error message describing what went wrong"
-}
-```
-
-### Common Error Messages
-
-- `"Invalid credentials"` - Wrong email/password or phone/password
-- `"Invalid OTP"` - Wrong OTP code or expired
-- `"Invalid refresh token"` - Refresh token is expired or invalid
-- `"Supabase authentication is not configured"` - Backend configuration issue
-- `"Failed to send OTP: [reason]"` - SMS sending failed
-- `"Unsupported OAuth provider"` - Invalid provider name
-
-### Recommended Error Handling
-
-1. **Network Errors**: Check internet connectivity, retry with exponential backoff
-2. **401 Unauthorized**: Clear stored tokens, redirect to login
-3. **400 Bad Request**: Show user-friendly validation errors
-4. **503 Service Unavailable**: Show maintenance message, retry later
-
-## Token Management
-
-### Token Storage
-
-**Recommended**: Use iOS Keychain for secure token storage
-
-```
-- Store access_token with key: "hero365_access_token"
-- Store refresh_token with key: "hero365_refresh_token"
-- Set accessibility: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-```
-
-### Token Lifecycle
-
-1. **Access Token**: Short-lived (default: 8 days), used for API requests
-2. **Refresh Token**: Long-lived, used to get new access tokens
-3. **Automatic Refresh**: Check token expiry before requests, refresh if needed
-
-### Token Refresh Strategy
-
-```
-1. Before each API request, check if access_token is expired
-2. If expired, use refresh_token to get new tokens via /api/v1/auth/refresh
-3. Update stored tokens with new values
-4. Retry original request with new access_token
-5. If refresh fails (401), clear tokens and redirect to login
-```
-
-### Token Validation
-
-Access tokens are JWT tokens. You can decode them to check:
-- `exp` (expiry time)
-- `sub` (subject/user ID)
-- `email` or `phone` (user identifier)
-
-## Best Practices
-
-### Security
-
-1. **Always use HTTPS** in production
-2. **Store tokens in Keychain**, never in UserDefaults
-3. **Validate SSL certificates** to prevent man-in-the-middle attacks
-4. **Implement certificate pinning** for production apps
-5. **Clear tokens on app uninstall** or user logout
-
-### User Experience
-
-1. **Phone Number Formatting**: Format phone numbers with country code (+1234567890)
-2. **OTP Input**: Provide easy 6-digit OTP input with auto-detection from SMS
-3. **Loading States**: Show loading indicators during authentication
-4. **Error Messages**: Display user-friendly error messages
-5. **Auto-retry**: Implement automatic retry for network failures
-
-### Performance
-
-1. **Token Caching**: Cache valid tokens to avoid unnecessary requests
-2. **Background Refresh**: Refresh tokens in background before expiry
-3. **Request Timeout**: Set appropriate timeouts (30 seconds for auth requests)
-4. **Connection Pooling**: Reuse HTTP connections where possible
-
-### OAuth Integration
-
-#### Google Sign In
-
-1. Configure Google Sign-In SDK
-2. Get authorization code from Google
-3. Use Supabase OAuth flow or exchange code manually
-4. Handle both success and cancellation cases
-
-#### Apple Sign In
-
-1. Use AuthenticationServices framework
-2. Handle both Sign In with Apple button and programmatic calls
-3. Support biometric authentication where available
-4. Handle account deletion requirements
-
-### Phone Number Validation
-
-```
-Valid formats:
-- "+1234567890" (recommended)
-- "+1 (234) 567-8900" (will be normalized)
-- International format with country code
-
-Invalid formats:
-- "234-567-8900" (missing country code)
-- "1234567890" (missing + prefix)
-```
-
-### OTP Best Practices
-
-1. **Auto-detection**: Use SMS auto-detection for better UX
-2. **Resend Logic**: Allow OTP resend after 30-60 seconds
-3. **Expiry Handling**: Show countdown timer for OTP expiry
-4. **Rate Limiting**: Implement client-side rate limiting for OTP requests
-
-## Testing
-
-### Development Environment
-
-```
-Base URL: http://localhost:8000
-Supabase: Development project
-SMS: Test mode (no actual SMS sent)
-```
-
-### Test Accounts
-
-For development testing, you can create test accounts:
-
-```json
-{
-  "email": "test@example.com",
-  "phone": "+1234567890",
-  "password": "TestPassword123!"
-}
-```
-
-### Postman Collection
-
-Import the following collection for API testing:
-
-```
-POST {{base_url}}/api/v1/auth/signup
-POST {{base_url}}/api/v1/auth/signin
-POST {{base_url}}/api/v1/auth/signup/phone
-POST {{base_url}}/api/v1/auth/signin/phone
-POST {{base_url}}/api/v1/auth/otp/send
-POST {{base_url}}/api/v1/auth/otp/verify
-GET {{base_url}}/api/v1/auth/oauth/google
-GET {{base_url}}/api/v1/auth/oauth/apple
-POST {{base_url}}/api/v1/auth/refresh
-GET {{base_url}}/api/v1/users/me
-```
-
-### Testing OAuth
-
-For OAuth testing in development:
-1. Use web view or external browser
-2. Monitor callback URLs
-3. Test both success and cancellation flows
-4. Verify token extraction from callback
-
-## Support and Resources
-
-### Documentation
-- Supabase Auth: https://supabase.com/docs/guides/auth
-- Apple Sign In: https://developer.apple.com/sign-in-with-apple/
-- Google Sign In: https://developers.google.com/identity
+## 🚨 Troubleshooting
 
 ### Common Issues
 
-1. **CORS Errors**: Ensure your app's bundle ID is configured in backend CORS settings
-2. **SSL Errors**: Use proper certificates in production
-3. **Token Expiry**: Implement proper token refresh logic
-4. **Phone Format**: Always use international format with country code
-5. **OAuth Redirect**: Ensure proper URL schemes are configured
+**1. 422 Unprocessable Entity:**
+- Check that all required fields are included in the request
+- Verify JSON format is correct
+- Ensure `id_token` and `user_identifier` are provided for Apple
+- Ensure `id_token` is provided for Google
 
-### Contact
+**2. ID Token validation failed:**
+- Ensure your Supabase project has Apple/Google OAuth properly configured
+- Check that the ID token is being sent correctly from iOS
+- Verify the token hasn't expired (Apple ID tokens expire after 10 minutes)
+- Error: "Unable to detect issuer in ID token" means invalid/test token
 
-For API-specific issues:
-- Check API documentation: `{base_url}/docs`
-- Review server logs for detailed error messages
-- Test endpoints using the interactive API docs
+**3. Backend returning 401:**
+- Check Supabase logs in your dashboard
+- Ensure OAuth providers are enabled in Supabase
+- Verify your iOS app is configured correctly with Apple/Google
+- Make sure you're using real ID tokens, not test strings
 
----
+**4. iOS app not getting ID token:**
+- For Apple: Ensure you're testing on a physical device
+- For Google: Check GoogleService-Info.plist configuration
+- Verify OAuth client IDs are correct
 
-**Note**: This API uses Supabase for authentication. Ensure your backend is properly configured with Supabase credentials and OAuth providers before implementing authentication in your Swift app. 
+### Debug Logging
+
+Your backend now includes detailed logging. Watch for these messages:
+
+```
+🍎 Apple Sign-In attempt for user: [user_identifier]
+📧 Email: [email]
+👤 Full name: [full_name]
+🔑 ID token length: [length] chars
+✅ Apple Sign-In successful for Supabase user: [user_id]
+❌ Apple Sign-In error: [error_details]
+```
+
+### Testing with Real Tokens
+
+**Important**: The endpoints require real ID tokens from Apple/Google:
+
+- ❌ Test strings like `"test_token"` will fail with validation errors
+- ✅ Real ID tokens from iOS Sign-In will work properly
+- 🔍 Use the debug logging to verify token format and length
+
+## 📚 Additional Resources
+
+- [Apple Sign-In Documentation](https://developer.apple.com/sign-in-with-apple/)
+- [Google Sign-In for iOS](https://developers.google.com/identity/sign-in/ios)
+- [Supabase Auth Guide](https://supabase.com/docs/guides/auth)
+
+## ✅ Summary
+
+This approach maintains your existing architecture pattern:
+
+- **✅ Consistent Flow**: iOS App → Backend → Supabase (same as email/phone)
+- **✅ Centralized Logic**: All authentication logic in your backend
+- **✅ Simple iOS Integration**: Just handle native OAuth and send ID tokens
+- **✅ Secure**: ID tokens are validated server-side by Supabase
+- **✅ No Additional Dependencies**: No need for Supabase iOS SDK
+- **✅ Debug Logging**: Detailed logs help troubleshoot issues 

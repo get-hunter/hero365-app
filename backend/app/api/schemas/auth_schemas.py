@@ -223,4 +223,47 @@ class TokenPayload(BaseModel):
 class NewPassword(BaseModel):
     """New password for reset (legacy compatibility)."""
     token: str
-    new_password: str = Field(min_length=8, max_length=40) 
+    new_password: str = Field(min_length=8, max_length=40)
+
+
+# Native Mobile OAuth Schemas
+class AppleSignInRequest(BaseModel):
+    """Schema for Apple Sign-In with ID token from iOS app."""
+    
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True
+    )
+    
+    id_token: str = Field(..., description="ID token from Apple Sign-In")
+    user_identifier: str = Field(..., description="User identifier from Apple")
+    email: Optional[EmailStr] = Field(None, description="Email from Apple (if provided)")
+    full_name: Optional[str] = Field(None, description="Full name from Apple (if provided)")
+
+
+class GoogleSignInRequest(BaseModel):
+    """Schema for Google Sign-In with ID token from iOS app."""
+    
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True
+    )
+    
+    id_token: str = Field(..., description="ID token from Google Sign-In")
+    access_token: Optional[str] = Field(None, description="Access token from Google")
+    email: Optional[EmailStr] = Field(None, description="Email from Google")
+    full_name: Optional[str] = Field(None, description="Full name from Google")
+    given_name: Optional[str] = Field(None, description="Given name from Google")
+    family_name: Optional[str] = Field(None, description="Family name from Google")
+    picture_url: Optional[str] = Field(None, description="Profile picture URL from Google")
+
+
+class OAuthSignInResponse(BaseModel):
+    """Schema for OAuth sign-in response."""
+    
+    access_token: str = Field(..., description="Supabase access token")
+    refresh_token: str = Field(..., description="Supabase refresh token") 
+    expires_in: int = Field(..., description="Token expiration time in seconds")
+    token_type: str = Field(default="bearer", description="Token type")
+    user: AuthUserResponse = Field(..., description="User information")
+    is_new_user: bool = Field(..., description="Whether this is a newly created user") 

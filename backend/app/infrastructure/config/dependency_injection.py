@@ -101,10 +101,9 @@ class DependencyContainer:
     
     def _setup_use_cases(self):
         """Initialize use case implementations."""
-        # User use cases
+        # User use cases (create first since it's needed by register_user)
         self._use_cases['create_user'] = CreateUserUseCase(
-            user_repository=self.get_repository('user_repository'),
-            email_service=self.get_service('email_service')
+            user_repository=self.get_repository('user_repository')
         )
         
         self._use_cases['get_user'] = GetUserUseCase(
@@ -112,32 +111,25 @@ class DependencyContainer:
         )
         
         self._use_cases['update_user'] = UpdateUserUseCase(
-            user_repository=self.get_repository('user_repository'),
-            email_service=self.get_service('email_service')
+            user_repository=self.get_repository('user_repository')
         )
         
         self._use_cases['delete_user'] = DeleteUserUseCase(
             user_repository=self.get_repository('user_repository'),
-            item_repository=self.get_repository('item_repository'),
-            auth_service=self.get_service('auth_service')
+            item_repository=self.get_repository('item_repository')
         )
         
-        # Auth use cases
+        # Auth use cases (register_user needs create_user to be already created)
         self._use_cases['authenticate_user'] = AuthenticateUserUseCase(
-            user_repository=self.get_repository('user_repository'),
-            auth_service=self.get_service('auth_service')
+            user_repository=self.get_repository('user_repository')
         )
         
         self._use_cases['register_user'] = RegisterUserUseCase(
-            user_repository=self.get_repository('user_repository'),
-            auth_service=self.get_service('auth_service'),
-            email_service=self.get_service('email_service')
+            create_user_use_case=self._use_cases['create_user']
         )
         
         self._use_cases['reset_password'] = ResetPasswordUseCase(
-            user_repository=self.get_repository('user_repository'),
-            auth_service=self.get_service('auth_service'),
-            email_service=self.get_service('email_service')
+            user_repository=self.get_repository('user_repository')
         )
         
         # Item use cases
@@ -147,18 +139,15 @@ class DependencyContainer:
         )
         
         self._use_cases['get_items'] = GetItemsUseCase(
-            item_repository=self.get_repository('item_repository'),
-            user_repository=self.get_repository('user_repository')
+            item_repository=self.get_repository('item_repository')
         )
         
         self._use_cases['update_item'] = UpdateItemUseCase(
-            item_repository=self.get_repository('item_repository'),
-            user_repository=self.get_repository('user_repository')
+            item_repository=self.get_repository('item_repository')
         )
         
         self._use_cases['delete_item'] = DeleteItemUseCase(
-            item_repository=self.get_repository('item_repository'),
-            user_repository=self.get_repository('user_repository')
+            item_repository=self.get_repository('item_repository')
         )
     
     def _get_supabase_client(self) -> Client:
