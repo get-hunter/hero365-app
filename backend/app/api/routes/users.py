@@ -7,18 +7,18 @@ from app.api.deps import (
     get_current_active_superuser,
 )
 from app.core.supabase import supabase_service
-from app.models import (
-    Message,
-    UpdatePassword,
-    UserPublic,
-    UsersPublic,
-    UserUpdateMe,
+from app.api.schemas.common_schemas import Message
+from app.api.schemas.user_schemas import (
+    UserResponse,
+    UserListResponse,
+    UserUpdateRequest,
+    ChangePasswordRequest,
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("/me", response_model=UserPublic)
+@router.get("/me", response_model=UserResponse)
 def read_user_me(current_user: CurrentUser) -> Any:
     """
     Get current user information from Supabase.
@@ -33,8 +33,8 @@ def read_user_me(current_user: CurrentUser) -> Any:
     }
 
 
-@router.patch("/me", response_model=UserPublic)
-def update_user_me(*, current_user: CurrentUser, user_in: UserUpdateMe) -> Any:
+@router.patch("/me", response_model=UserResponse)
+def update_user_me(*, current_user: CurrentUser, user_in: UserUpdateRequest) -> Any:
     """
     Update own user information in Supabase.
     """
@@ -64,7 +64,7 @@ def update_user_me(*, current_user: CurrentUser, user_in: UserUpdateMe) -> Any:
 
 
 @router.patch("/me/password", response_model=Message)
-def update_password_me(*, current_user: CurrentUser, body: UpdatePassword) -> Any:
+def update_password_me(*, current_user: CurrentUser, body: ChangePasswordRequest) -> Any:
     """
     Update own password in Supabase.
     """
@@ -88,7 +88,7 @@ def delete_user_me(current_user: CurrentUser) -> Any:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/", dependencies=[Depends(get_current_active_superuser)], response_model=UsersPublic)
+@router.get("/", dependencies=[Depends(get_current_active_superuser)], response_model=UserListResponse)
 def read_users(skip: int = 0, limit: int = 100) -> Any:
     """
     Retrieve users from Supabase (admin only).
@@ -110,9 +110,13 @@ def read_users(skip: int = 0, limit: int = 100) -> Any:
                 "is_superuser": user.app_metadata.get("is_superuser", False) if user.app_metadata else False,
             })
         
-        return {
-            "data": users_data,
-            "count": len(users_data)
-        }
+        return UserListResponse(
+            users=users_data,
+            total_count=len(users_data),
+            page=(skip // limit) + 1,
+            page_size=limit,
+            has_next=len(users_data) == limit,
+            has_previous=skip > 0
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

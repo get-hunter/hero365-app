@@ -1,0 +1,393 @@
+"""
+User Repository Implementation
+
+Concrete implementation of UserRepository interface using SQLModel/SQLAlchemy.
+"""
+
+import uuid
+from typing import Optional, List
+from datetime import datetime, timedelta
+
+from sqlmodel import Session, select, func, and_, or_
+from sqlalchemy.exc import IntegrityError
+
+from ....domain.repositories.user_repository import UserRepository
+from ....domain.entities.user import User
+from ....domain.value_objects.email import Email
+from ....domain.value_objects.phone import Phone
+from ....domain.exceptions.domain_exceptions import (
+    EntityNotFoundError, DuplicateEntityError, DatabaseError
+)
+from ..models import UserModel
+from ..mappers import UserMapper, DomainModelMapper
+from ....core.db import engine
+
+
+class SQLModelUserRepository(UserRepository):
+    """
+    SQLModel implementation of UserRepository.
+    
+    This repository handles data persistence for User entities using SQLModel/SQLAlchemy.
+    """
+    
+    def __init__(self, session: Optional[Session] = None):
+        self._session = session
+    
+    def _get_session(self) -> Session:
+        """Get database session."""
+        if self._session:
+            return self._session
+        return Session(engine)
+    
+    async def create(self, user: User) -> User:
+        """
+        Create a new user in the database.
+        
+        Args:
+            user: User entity to create
+            
+        Returns:
+            Created User entity
+            
+        Raises:
+            DuplicateEntityError: If user with email/phone already exists
+            DatabaseError: If database operation fails
+        """
+        with self._get_session() as session:
+            try:
+                # Convert to database model
+                user_model = UserMapper.to_model(user)
+                
+                # Add to session and commit
+                session.add(user_model)
+                session.commit()
+                session.refresh(user_model)
+                
+                # Convert back to domain entity
+                return UserMapper.to_entity(user_model)
+                
+            except IntegrityError as e:
+                session.rollback()
+                # Check if it's a duplicate constraint violation
+                error_message = str(e.orig).lower()
+                if "unique" in error_message or "duplicate" in error_message:
+                    if "email" in error_message:
+                        raise DuplicateEntityError(f"Email {user.email} already exists")
+                    elif "phone" in error_message:
+                        raise DuplicateEntityError(f"Phone {user.phone} already exists")
+                    elif "supabase_id" in error_message:
+                        raise DuplicateEntityError(f"Supabase ID {user.supabase_id} already exists")
+                    else:
+                        raise DuplicateEntityError("User already exists")
+                else:
+                    raise DatabaseError(f"Database error: {str(e)}")
+            except Exception as e:
+                session.rollback()
+                raise DatabaseError(f"Failed to create user: {str(e)}")
+    
+    async def get_by_id(self, user_id: uuid.UUID) -> Optional[User]:
+        """
+        Get user by ID.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            User entity if found, None otherwise
+        """
+        with self._get_session() as session:
+            try:
+                user_model = session.get(UserModel, user_id)
+                return UserMapper.to_entity(user_model) if user_model else None
+            except Exception as e:
+                raise DatabaseError(f"Failed to get user by ID: {str(e)}")
+    
+    async def get_by_email(self, email: Email) -> Optional[User]:
+        """
+        Get user by email.
+        
+        Args:
+            email: Email value object
+            
+        Returns:
+            User entity if found, None otherwise
+        """
+        with self._get_session() as session:
+            try:
+                statement = select(UserModel).where(UserModel.email == str(email))
+                user_model = session.exec(statement).first()
+                return UserMapper.to_entity(user_model) if user_model else None
+            except Exception as e:
+                raise DatabaseError(f"Failed to get user by email: {str(e)}")
+    
+    async def get_by_phone(self, phone: Phone) -> Optional[User]:
+        """
+        Get user by phone.
+        
+        Args:
+            phone: Phone value object
+            
+        Returns:
+            User entity if found, None otherwise
+        """
+        with self._get_session() as session:
+            try:
+                statement = select(UserModel).where(UserModel.phone == str(phone))
+                user_model = session.exec(statement).first()
+                return UserMapper.to_entity(user_model) if user_model else None
+            except Exception as e:
+                raise DatabaseError(f"Failed to get user by phone: {str(e)}")
+    
+    async def get_by_supabase_id(self, supabase_id: str) -> Optional[User]:
+        """
+        Get user by Supabase ID.
+        
+        Args:
+            supabase_id: Supabase user ID
+            
+        Returns:
+            User entity if found, None otherwise
+        """
+        with self._get_session() as session:
+            try:
+                statement = select(UserModel).where(UserModel.supabase_id == supabase_id)
+                user_model = session.exec(statement).first()
+                return UserMapper.to_entity(user_model) if user_model else None
+            except Exception as e:
+                raise DatabaseError(f"Failed to get user by Supabase ID: {str(e)}")
+    
+    async def update(self, user: User) -> User:
+        """
+        Update user in the database.
+        
+        Args:
+            user: User entity with updated data
+            
+        Returns:
+            Updated User entity
+            
+        Raises:
+            EntityNotFoundError: If user doesn't exist
+            DatabaseError: If database operation fails
+        """
+        with self._get_session() as session:
+            try:
+                # Get existing user model
+                user_model = session.get(UserModel, user.id)
+                if not user_model:
+                    raise EntityNotFoundError(f"User with ID {user.id} not found")
+                
+                # Update model from entity
+                UserMapper.update_model_from_entity(user_model, user)
+                user_model.updated_at = datetime.utcnow()
+                
+                # Commit changes
+                session.commit()
+                session.refresh(user_model)
+                
+                # Convert back to domain entity
+                return UserMapper.to_entity(user_model)
+                
+            except EntityNotFoundError:
+                raise
+            except IntegrityError as e:
+                session.rollback()
+                error_message = str(e.orig).lower()
+                if "unique" in error_message or "duplicate" in error_message:
+                    if "email" in error_message:
+                        raise DuplicateEntityError(f"Email {user.email} already exists")
+                    elif "phone" in error_message:
+                        raise DuplicateEntityError(f"Phone {user.phone} already exists")
+                    else:
+                        raise DuplicateEntityError("User data conflicts with existing user")
+                else:
+                    raise DatabaseError(f"Database error: {str(e)}")
+            except Exception as e:
+                session.rollback()
+                raise DatabaseError(f"Failed to update user: {str(e)}")
+    
+    async def delete(self, user_id: uuid.UUID) -> bool:
+        """
+        Delete user from the database.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            True if user was deleted, False if not found
+        """
+        with self._get_session() as session:
+            try:
+                user_model = session.get(UserModel, user_id)
+                if not user_model:
+                    return False
+                
+                session.delete(user_model)
+                session.commit()
+                return True
+                
+            except Exception as e:
+                session.rollback()
+                raise DatabaseError(f"Failed to delete user: {str(e)}")
+    
+    async def get_all(self, skip: int = 0, limit: int = 100) -> List[User]:
+        """
+        Get all users with pagination.
+        
+        Args:
+            skip: Number of users to skip
+            limit: Maximum number of users to return
+            
+        Returns:
+            List of User entities
+        """
+        with self._get_session() as session:
+            try:
+                statement = select(UserModel).offset(skip).limit(limit).order_by(UserModel.created_at.desc())
+                user_models = session.exec(statement).all()
+                return DomainModelMapper.map_user_list(user_models)
+            except Exception as e:
+                raise DatabaseError(f"Failed to get all users: {str(e)}")
+    
+    async def get_active_users(self, skip: int = 0, limit: int = 100) -> List[User]:
+        """
+        Get active users with pagination.
+        
+        Args:
+            skip: Number of users to skip
+            limit: Maximum number of users to return
+            
+        Returns:
+            List of active User entities
+        """
+        with self._get_session() as session:
+            try:
+                statement = select(UserModel).where(
+                    UserModel.is_active == True
+                ).offset(skip).limit(limit).order_by(UserModel.created_at.desc())
+                user_models = session.exec(statement).all()
+                return DomainModelMapper.map_user_list(user_models)
+            except Exception as e:
+                raise DatabaseError(f"Failed to get active users: {str(e)}")
+    
+    async def search_users(self, query: str, skip: int = 0, limit: int = 100) -> List[User]:
+        """
+        Search users by name, email, or phone.
+        
+        Args:
+            query: Search query
+            skip: Number of users to skip
+            limit: Maximum number of users to return
+            
+        Returns:
+            List of matching User entities
+        """
+        with self._get_session() as session:
+            try:
+                search_pattern = f"%{query}%"
+                statement = select(UserModel).where(
+                    or_(
+                        UserModel.full_name.ilike(search_pattern),
+                        UserModel.email.ilike(search_pattern),
+                        UserModel.phone.ilike(search_pattern)
+                    )
+                ).offset(skip).limit(limit).order_by(UserModel.created_at.desc())
+                user_models = session.exec(statement).all()
+                return DomainModelMapper.map_user_list(user_models)
+            except Exception as e:
+                raise DatabaseError(f"Failed to search users: {str(e)}")
+    
+    async def count(self) -> int:
+        """
+        Get total count of users.
+        
+        Returns:
+            Total number of users
+        """
+        with self._get_session() as session:
+            try:
+                statement = select(func.count(UserModel.id))
+                return session.exec(statement).one()
+            except Exception as e:
+                raise DatabaseError(f"Failed to count users: {str(e)}")
+    
+    async def count_active(self) -> int:
+        """
+        Get count of active users.
+        
+        Returns:
+            Number of active users
+        """
+        with self._get_session() as session:
+            try:
+                statement = select(func.count(UserModel.id)).where(UserModel.is_active == True)
+                return session.exec(statement).one()
+            except Exception as e:
+                raise DatabaseError(f"Failed to count active users: {str(e)}")
+    
+    async def is_email_unique(self, email: Email, exclude_user_id: Optional[uuid.UUID] = None) -> bool:
+        """
+        Check if email is unique.
+        
+        Args:
+            email: Email to check
+            exclude_user_id: User ID to exclude from check
+            
+        Returns:
+            True if email is unique
+        """
+        with self._get_session() as session:
+            try:
+                statement = select(UserModel).where(UserModel.email == str(email))
+                if exclude_user_id:
+                    statement = statement.where(UserModel.id != exclude_user_id)
+                
+                user_model = session.exec(statement).first()
+                return user_model is None
+            except Exception as e:
+                raise DatabaseError(f"Failed to check email uniqueness: {str(e)}")
+    
+    async def is_phone_unique(self, phone: Phone, exclude_user_id: Optional[uuid.UUID] = None) -> bool:
+        """
+        Check if phone is unique.
+        
+        Args:
+            phone: Phone to check
+            exclude_user_id: User ID to exclude from check
+            
+        Returns:
+            True if phone is unique
+        """
+        with self._get_session() as session:
+            try:
+                statement = select(UserModel).where(UserModel.phone == str(phone))
+                if exclude_user_id:
+                    statement = statement.where(UserModel.id != exclude_user_id)
+                
+                user_model = session.exec(statement).first()
+                return user_model is None
+            except Exception as e:
+                raise DatabaseError(f"Failed to check phone uniqueness: {str(e)}")
+    
+    async def get_recent_users(self, days: int = 7, skip: int = 0, limit: int = 100) -> List[User]:
+        """
+        Get recently created users.
+        
+        Args:
+            days: Number of days to look back
+            skip: Number of users to skip
+            limit: Maximum number of users to return
+            
+        Returns:
+            List of recently created User entities
+        """
+        with self._get_session() as session:
+            try:
+                cutoff_date = datetime.utcnow() - timedelta(days=days)
+                statement = select(UserModel).where(
+                    UserModel.created_at >= cutoff_date
+                ).offset(skip).limit(limit).order_by(UserModel.created_at.desc())
+                user_models = session.exec(statement).all()
+                return DomainModelMapper.map_user_list(user_models)
+            except Exception as e:
+                raise DatabaseError(f"Failed to get recent users: {str(e)}") 
