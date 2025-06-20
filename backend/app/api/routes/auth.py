@@ -3,7 +3,8 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr
 
 from app.core.supabase import supabase_service
-from app.models import Message, UserPublic
+from app.api.schemas.common_schemas import Message
+from app.api.schemas.user_schemas import UserResponse
 
 router = APIRouter(tags=["auth"])
 

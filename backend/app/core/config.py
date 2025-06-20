@@ -54,35 +54,14 @@ class Settings(BaseSettings):
     
     # Supabase Configuration (required)
     SUPABASE_URL: str
-    SUPABASE_KEY: str
-    SUPABASE_SERVICE_KEY: str
-
+    SUPABASE_KEY: str  # Anon key for client operations
+    SUPABASE_SERVICE_KEY: str  # Service key for admin operations
+    
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
-        """
-        Construct Supabase PostgreSQL connection URL.
-        Format: postgresql://postgres:[service_key]@db.[project-ref].supabase.co:5432/postgres
-        """
-        if not self.SUPABASE_URL or not self.SUPABASE_SERVICE_KEY:
-            raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY are required")
-        
-        # Extract project reference from Supabase URL
-        # https://abc123.supabase.co -> abc123
-        supabase_host = self.SUPABASE_URL.replace("https://", "").replace("http://", "")
-        project_ref = supabase_host.split(".")[0]
-        
-        # Construct database host
-        db_host = f"db.{project_ref}.supabase.co"
-        
-        return MultiHostUrl.build(
-            scheme="postgresql+psycopg",
-            username="postgres",
-            password=self.SUPABASE_SERVICE_KEY,
-            host=db_host,
-            port=5432,
-            path="postgres",
-        )
+    def SUPABASE_ANON_KEY(self) -> str:
+        """Alias for SUPABASE_KEY for clarity."""
+        return self.SUPABASE_KEY
 
     SMTP_TLS: bool = True
     SMTP_SSL: bool = False
@@ -135,7 +114,7 @@ class Settings(BaseSettings):
         if not self.SUPABASE_URL:
             raise ValueError("SUPABASE_URL is required")
         if not self.SUPABASE_KEY:
-            raise ValueError("SUPABASE_KEY is required")
+            raise ValueError("SUPABASE_KEY (anon key) is required")
         if not self.SUPABASE_SERVICE_KEY:
             raise ValueError("SUPABASE_SERVICE_KEY is required")
         

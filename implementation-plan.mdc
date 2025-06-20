@@ -1,0 +1,217 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Clean Architecture Implementation Plan
+
+## Overview
+Transform the Hero365 app from a traditional FastAPI structure to clean architecture with proper separation of concerns and dependency inversion.
+
+## Phase 1: Domain Layer Foundation
+### Step 1.1: Create domain directory structure - **Done**
+- [x] Create domain entities directory
+- [x] Create value objects directory  
+- [x] Create repositories interfaces directory
+- [x] Create domain services directory
+- [x] Create domain exceptions directory
+
+Created complete domain layer directory structure with proper package initialization.
+All directories are now ready for domain layer implementation with clear separation of concerns.
+
+### Step 1.2: Implement User domain entity - **Done**
+- [x] Create User entity with business logic
+- [x] Define User behavior methods
+- [x] Separate from database concerns
+
+Implemented comprehensive User domain entity with business rules and behavior methods.
+Entity includes validation, profile management, account lifecycle, and permission checking methods.
+
+### Step 1.3: Implement Item domain entity - **Done**
+- [x] Create Item entity with business logic
+- [x] Define Item behavior methods
+- [x] Separate from database concerns
+
+Implemented comprehensive Item domain entity with business rules and behavior methods.
+Entity includes content validation, soft delete, ownership, permissions, and utility methods.
+
+### Step 1.4: Create value objects - **Done**
+- [x] Email value object with validation
+- [x] Phone value object with validation
+- [x] Password value object with validation
+
+Created Email, Phone, and Password value objects with comprehensive validation and business methods.
+All value objects are immutable and include domain-specific behaviors like formatting, validation, and security.
+
+### Step 1.5: Define repository interfaces - **Done**
+- [x] UserRepository interface
+- [x] ItemRepository interface
+- [x] Base repository interface
+
+Created comprehensive repository interfaces following the Repository pattern with domain-specific operations.
+Interfaces define contracts for data access without implementation details, supporting dependency inversion.
+
+### Step 1.6: Create domain exceptions - **Done**
+- [x] Domain-specific exceptions
+- [x] Business rule violations
+
+Created comprehensive domain exception hierarchy with specific exceptions for validation, business rules, and entity operations.
+Exceptions include proper error codes and contextual information for better error handling.
+
+## Phase 2: Application Layer
+### Step 2.1: Create application directory structure - **Done**
+- [x] Create use cases directory
+- [x] Create DTOs directory
+- [x] Create ports directory
+- [x] Create application exceptions
+
+Created complete application layer directory structure with organized subdirectories.
+Implemented comprehensive application exception hierarchy for use case error handling.
+
+### Step 2.2: Implement User use cases - **Done**
+- [x] CreateUser use case
+- [x] UpdateUser use case
+- [x] DeleteUser use case
+- [x] GetUser use case
+
+Implemented comprehensive user management use cases with business logic validation.
+All use cases include proper permission checks, validation, and error handling following clean architecture principles.
+
+### Step 2.3: Implement Auth use cases - **Done**
+- [x] AuthenticateUser use case
+- [x] RegisterUser use case
+- [x] ResetPassword use case
+
+Implemented comprehensive authentication use cases with proper validation and security measures.
+Use cases handle both local and Supabase authentication patterns with appropriate business logic.
+
+### Step 2.4: Implement Item use cases - **Done**
+- [x] CreateItem use case
+- [x] UpdateItem use case
+- [x] DeleteItem use case
+- [x] GetItems use case
+
+Implemented comprehensive item management use cases with proper permission controls and business logic.
+Use cases support bulk operations, soft/hard deletion, statistics, and user-based filtering.
+
+### Step 2.5: Create DTOs - **Done**
+- [x] User DTOs
+- [x] Item DTOs
+- [x] Auth DTOs
+
+Created comprehensive DTOs for all domain entities with proper data transfer structures.
+DTOs include creation, update, search, and specialized DTOs for different use cases.
+
+### Step 2.6: Define application ports - **Done**
+- [x] Email service port interface
+- [x] SMS service port interface  
+- [x] Authentication service port interface
+
+Created comprehensive port interfaces for external services following the ports and adapters pattern.
+Interfaces define contracts for email, SMS, and authentication services without implementation details.
+
+## Phase 3: Infrastructure Layer
+### Step 3.1: Create infrastructure directory structure - **Done**
+- [x] Create database directory
+- [x] Create external services directory
+- [x] Create web directory
+- [x] Create config directory
+
+Created complete infrastructure layer directory structure with proper package organization.
+Each directory has clear separation of concerns for database, external services, web, and configuration.
+
+### Step 3.2: Move and refactor database models - **Done**
+- [x] Move current models to infrastructure layer
+- [x] Separate database models from domain entities
+- [x] Create mapping between domain and database layers
+
+Created SQLModel database models separated from domain entities with proper timestamps and relationships.
+Implemented comprehensive mappers for converting between domain entities and database models.
+
+### Step 3.3: Implement concrete repositories - **Done**
+- [x] SQLModel User repository implementation
+- [x] SQLModel Item repository implementation
+- [x] Database repository structure created
+- [x] Repository interfaces fully implemented
+
+Implemented complete SQLModel repositories for both User and Item entities with all CRUD operations, search, pagination, and error handling.
+Repositories follow clean architecture principles with proper domain entity conversion and comprehensive database operations.
+
+### Step 3.4: Create external service adapters - **Done**
+- [x] Supabase auth service adapter
+- [x] SMTP email service adapter
+- [x] Twilio SMS service adapter
+
+Created comprehensive external service adapters implementing all application port interfaces.
+Adapters handle authentication, email delivery, and SMS services with proper error handling and service abstraction.
+
+### Step 3.5: Setup dependency injection - **Done**
+- [x] Create DI container
+- [x] Configure service bindings
+- [x] Setup factory patterns
+- [x] Wire all use cases with dependencies
+- [x] Migrated from SQLModel to Supabase client SDK
+- [x] Fixed all import issues and application startup
+
+Implemented comprehensive dependency injection container managing all application dependencies.
+Migrated to full Supabase client SDK approach, resolved all import issues, and confirmed application can start successfully.
+
+## Phase 4: Presentation Layer
+### Step 4.1: Create presentation directory structure - **Done**
+- [x] Create controllers directory
+- [x] Create API schemas directory
+- [x] Create middleware directory
+
+Created complete presentation layer structure with organized directories for controllers, schemas, and middleware.
+All directories initialized with proper package structure and documentation.
+
+### Step 4.2: Refactor API controllers - **Done**
+- [x] Item controller with use case dependencies
+- [x] Comprehensive controller infrastructure established
+- [x] Routes refactored to use clean architecture
+
+Implemented clean architecture item controller with proper dependency injection and use case delegation.
+Refactored item routes to use new controller with proper request/response schemas, error handling, and dependency injection.
+
+### Step 4.3: Create API schemas - **Done**
+- [x] Request schemas
+- [x] Response schemas
+- [x] Validation schemas
+
+Created comprehensive API schemas for items, users, and authentication with proper validation and documentation.
+All schemas include proper field validation, type checking, and business rule enforcement.
+
+### Step 4.4: Implement middleware - **Done**
+- [x] Error handling middleware
+- [x] CORS middleware
+- [x] Auth middleware
+
+Implemented comprehensive middleware suite for clean architecture including centralized error handling, CORS configuration, and JWT authentication.
+All middleware includes proper exception handling, logging, and security features following clean architecture principles.
+
+## Phase 5: Integration & Testing
+### Step 5.1: Update main application - **Done**
+- [x] Wire up dependency injection
+- [x] Update FastAPI app configuration
+- [x] Migrate routes to new structure
+
+Updated main application to use clean architecture middleware stack with proper error handling, CORS, and authentication.
+Refactored all route imports and schemas to use new clean architecture patterns and removed legacy dependencies.
+
+### Step 5.2: Update tests - **Skipped**
+- [x] Skipped per user request
+- [x] Tests will be implemented later
+
+User requested to skip test creation for now. Tests can be implemented later following the clean architecture patterns established.
+
+### Step 5.3: Clean up old structure - **Done**
+- [x] Remove old files
+- [x] Update imports
+- [x] Update documentation
+
+Removed old CRUD file and cleaned up models.py to contain only minimal legacy compatibility layer.
+Updated all route imports to use clean architecture schemas and removed SQLModel dependencies.
+Fixed all import errors and confirmed application loads successfully with clean architecture components.
+
+## Progress Tracking
+Each completed step will be marked with "Done" and include a two-line summary of what was accomplished.

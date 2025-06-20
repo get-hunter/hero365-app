@@ -1,125 +1,122 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
-from sqlmodel import func, select
+from fastapi import APIRouter, HTTPException, Depends
 
-from app.api.deps import CurrentUser, SessionDep
-from app.models import Item, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate, Message
+from app.api.deps import CurrentUser
+from app.api.controllers.item_controller import ItemController
+from app.api.schemas.item_schemas import (
+    ItemCreateRequest, ItemUpdateRequest, ItemResponse, 
+    ItemListResponse, ItemSearchRequest
+)
+from app.api.schemas.common_schemas import Message
 
 router = APIRouter(prefix="/items", tags=["items"])
 
 
-@router.get("/", response_model=ItemsPublic)
-def read_items(
-    session: SessionDep, current_user: CurrentUser, skip: int = 0, limit: int = 100
-) -> Any:
+def get_item_controller() -> ItemController:
+    """Dependency to get item controller."""
+    return ItemController()
+
+
+@router.get("/", response_model=ItemListResponse)
+async def read_items(
+    current_user: CurrentUser, 
+    skip: int = 0, 
+    limit: int = 100,
+    controller: ItemController = Depends(get_item_controller)
+) -> ItemListResponse:
     """
-    Retrieve items.
-    """
-    # Extract user info from dict
-    is_superuser = current_user.get("app_metadata", {}).get("is_superuser", False)
-    user_id = current_user["id"]
-
-    if is_superuser:
-        count_statement = select(func.count()).select_from(Item)
-        count = session.exec(count_statement).one()
-        statement = select(Item).offset(skip).limit(limit)
-        items = session.exec(statement).all()
-    else:
-        count_statement = (
-            select(func.count())
-            .select_from(Item)
-            .where(Item.owner_id == uuid.UUID(user_id))
-        )
-        count = session.exec(count_statement).one()
-        statement = (
-            select(Item)
-            .where(Item.owner_id == uuid.UUID(user_id))
-            .offset(skip)
-            .limit(limit)
-        )
-        items = session.exec(statement).all()
-
-    return ItemsPublic(data=items, count=count)
-
-
-@router.get("/{id}", response_model=ItemPublic)
-def read_item(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) -> Any:
-    """
-    Get item by ID.
+    Retrieve items using clean architecture.
     """
     # Extract user info from dict
     is_superuser = current_user.get("app_metadata", {}).get("is_superuser", False)
-    user_id = uuid.UUID(current_user["id"])
+    current_user_id = uuid.UUID(current_user["id"])
     
-    item = session.get(Item, id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if not is_superuser and (item.owner_id != user_id):
-        raise HTTPException(status_code=400, detail="Not enough permissions")
-    return item
+    # Use controller
+    return await controller.get_items(
+        current_user_id=current_user_id,
+        is_superuser=is_superuser,
+        skip=skip,
+        limit=limit
+    )
 
 
-@router.post("/", response_model=ItemPublic)
-def create_item(
-    *, session: SessionDep, current_user: CurrentUser, item_in: ItemCreate
-) -> Any:
+@router.get("/{id}", response_model=ItemResponse)
+async def read_item(
+    current_user: CurrentUser, 
+    id: uuid.UUID,
+    controller: ItemController = Depends(get_item_controller)
+) -> ItemResponse:
     """
-    Create new item.
+    Get item by ID using clean architecture.
     """
-    user_id = uuid.UUID(current_user["id"])
-    item = Item.model_validate(item_in, update={"owner_id": user_id})
-    session.add(item)
-    session.commit()
-    session.refresh(item)
-    return item
+    # Extract user info
+    current_user_id = uuid.UUID(current_user["id"])
+    
+    # Use controller
+    return await controller.get_item(
+        item_id=id,
+        current_user_id=current_user_id
+    )
 
 
-@router.put("/{id}", response_model=ItemPublic)
-def update_item(
+@router.post("/", response_model=ItemResponse)
+async def create_item(
+    *, 
+    current_user: CurrentUser, 
+    item_in: ItemCreateRequest,
+    controller: ItemController = Depends(get_item_controller)
+) -> ItemResponse:
+    """
+    Create new item using clean architecture.
+    """
+    # Extract user info
+    current_user_id = uuid.UUID(current_user["id"])
+    
+    # Use controller
+    return await controller.create_item(
+        request=item_in,
+        current_user_id=current_user_id
+    )
+
+
+@router.put("/{id}", response_model=ItemResponse)
+async def update_item(
     *,
-    session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
-    item_in: ItemUpdate,
-) -> Any:
+    item_in: ItemUpdateRequest,
+    controller: ItemController = Depends(get_item_controller)
+) -> ItemResponse:
     """
-    Update an item.
+    Update an item using clean architecture.
     """
-    # Extract user info from dict
-    is_superuser = current_user.get("app_metadata", {}).get("is_superuser", False)
-    user_id = uuid.UUID(current_user["id"])
+    # Extract user info
+    current_user_id = uuid.UUID(current_user["id"])
     
-    item = session.get(Item, id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if not is_superuser and (item.owner_id != user_id):
-        raise HTTPException(status_code=400, detail="Not enough permissions")
-    update_dict = item_in.model_dump(exclude_unset=True)
-    item.sqlmodel_update(update_dict)
-    session.add(item)
-    session.commit()
-    session.refresh(item)
-    return item
+    # Use controller
+    return await controller.update_item(
+        item_id=id,
+        request=item_in,
+        current_user_id=current_user_id
+    )
 
 
 @router.delete("/{id}")
-def delete_item(
-    session: SessionDep, current_user: CurrentUser, id: uuid.UUID
-) -> Message:
+async def delete_item(
+    current_user: CurrentUser, 
+    id: uuid.UUID,
+    controller: ItemController = Depends(get_item_controller)
+) -> dict:
     """
-    Delete an item.
+    Delete an item using clean architecture.
     """
-    # Extract user info from dict
-    is_superuser = current_user.get("app_metadata", {}).get("is_superuser", False)
-    user_id = uuid.UUID(current_user["id"])
+    # Extract user info
+    current_user_id = uuid.UUID(current_user["id"])
     
-    item = session.get(Item, id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if not is_superuser and (item.owner_id != user_id):
-        raise HTTPException(status_code=400, detail="Not enough permissions")
-    session.delete(item)
-    session.commit()
-    return Message(message="Item deleted successfully")
+    # Use controller
+    return await controller.delete_item(
+        item_id=id,
+        current_user_id=current_user_id
+    )

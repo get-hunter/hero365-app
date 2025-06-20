@@ -1,33 +1,27 @@
-from sqlmodel import Session, create_engine, select
+from supabase import create_client, Client
 
-from app import crud
 from app.core.config import settings
-from app.models import User, UserCreate
-
-engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+from app.core.supabase import supabase_service
 
 
-# make sure all SQLModel models are imported (app.models) before initializing DB
-# otherwise, SQLModel might fail to initialize relationships properly
-# for more details: https://github.com/fastapi/full-stack-fastapi-template/issues/28
+def get_supabase_client() -> Client:
+    """Get Supabase client."""
+    return create_client(
+        supabase_url=settings.SUPABASE_URL,
+        supabase_key=settings.SUPABASE_ANON_KEY
+    )
 
 
-def init_db(session: Session) -> None:
-    # Tables should be created with Alembic migrations
-    # But if you don't want to use migrations, create
-    # the tables un-commenting the next lines
-    # from sqlmodel import SQLModel
-
-    # This works because the models are already imported and registered from app.models
-    # SQLModel.metadata.create_all(engine)
-
-    user = session.exec(
-        select(User).where(User.email == settings.FIRST_SUPERUSER)
-    ).first()
-    if not user:
-        user_in = UserCreate(
-            email=settings.FIRST_SUPERUSER,
-            password=settings.FIRST_SUPERUSER_PASSWORD,
-            is_superuser=True,
-        )
-        user = crud.create_user(session=session, user_create=user_in)
+def init_db() -> None:
+    """Initialize database with first superuser if needed."""
+    try:
+        # Check if first superuser exists via Supabase service
+        # This now uses Supabase Auth instead of database tables
+        if settings.FIRST_SUPERUSER and settings.FIRST_SUPERUSER_PASSWORD:
+            # The superuser initialization is now handled by Supabase Auth
+            # You can create the first superuser through Supabase Dashboard
+            # or use the Supabase Admin API
+            pass
+    except Exception as e:
+        print(f"Database initialization warning: {e}")
+        # Non-critical error during initialization

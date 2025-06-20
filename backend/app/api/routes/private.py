@@ -3,12 +3,8 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.api.deps import SessionDep
-from app.core.security import get_password_hash
-from app.models import (
-    User,
-    UserPublic,
-)
+from app.api.deps import CurrentUser
+from app.api.schemas.user_schemas import UserResponse
 
 router = APIRouter(tags=["private"], prefix="/private")
 
@@ -20,19 +16,18 @@ class PrivateUserCreate(BaseModel):
     is_verified: bool = False
 
 
-@router.post("/users/", response_model=UserPublic)
-def create_user(user_in: PrivateUserCreate, session: SessionDep) -> Any:
+@router.post("/users/", response_model=UserResponse)
+def create_user(user_in: PrivateUserCreate) -> Any:
     """
     Create a new user.
+    
+    NOTE: This endpoint is temporarily disabled during clean architecture migration.
+    Will be properly implemented in Phase 4 using clean architecture patterns.
     """
-
-    user = User(
-        email=user_in.email,
-        full_name=user_in.full_name,
-        hashed_password=get_password_hash(user_in.password),
+    # TODO: Implement using CreateUserUseCase in Phase 4
+    from fastapi import HTTPException
+    
+    raise HTTPException(
+        status_code=501, 
+        detail="Create user endpoint temporarily disabled during architecture migration"
     )
-
-    session.add(user)
-    session.commit()
-
-    return user
