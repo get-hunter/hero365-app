@@ -1,7 +1,7 @@
 from supabase import create_client, Client
 
 from app.core.config import settings
-from app.core.supabase import supabase_service
+# Removed monolithic supabase_service import - now using clean architecture components
 
 
 def get_supabase_client() -> Client:

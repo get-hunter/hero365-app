@@ -6,7 +6,7 @@ from app.api.deps import (
     CurrentUser,
     get_current_active_superuser,
 )
-from app.core.supabase import supabase_service
+from app.core.auth_facade import auth_facade
 from app.api.schemas.common_schemas import Message
 from app.api.schemas.user_schemas import (
     UserResponse,
@@ -26,7 +26,7 @@ def read_user_me(current_user: CurrentUser) -> Any:
     Get current user information from Supabase.
     """
     user_metadata = current_user.get("user_metadata", {})
-    onboarding_data = supabase_service.get_onboarding_data(user_metadata)
+    onboarding_data = auth_facade.get_onboarding_data(user_metadata)
     
     return {
         "id": current_user["id"],
@@ -42,7 +42,7 @@ def read_user_me(current_user: CurrentUser) -> Any:
 
 
 @router.patch("/me", response_model=UserResponse)
-def update_user_me(*, current_user: CurrentUser, user_in: UserUpdateRequest) -> Any:
+async def update_user_me(*, current_user: CurrentUser, user_in: UserUpdateRequest) -> Any:
     """
     Update own user information in Supabase.
     """
@@ -54,18 +54,18 @@ def update_user_me(*, current_user: CurrentUser, user_in: UserUpdateRequest) -> 
             user_metadata["full_name"] = user_in.full_name
         
         # Update user in Supabase
-        updated_user = supabase_service.update_user_metadata(
+        updated_user = await auth_facade.update_user_metadata(
             current_user["id"], 
             user_metadata
         )
         
         return {
-            "id": updated_user["id"],
-            "email": updated_user.get("email"),
-            "phone": updated_user.get("phone"),
-            "full_name": updated_user.get("user_metadata", {}).get("full_name"),
+            "id": updated_user.id if hasattr(updated_user, 'id') else updated_user["id"],
+            "email": updated_user.email if hasattr(updated_user, 'email') else updated_user.get("email"),
+            "phone": updated_user.phone if hasattr(updated_user, 'phone') else updated_user.get("phone"),
+            "full_name": user_metadata.get("full_name"),
             "is_active": True,
-            "is_superuser": updated_user.get("app_metadata", {}).get("is_superuser", False),
+            "is_superuser": user_metadata.get("is_superuser", False),
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -85,19 +85,22 @@ def update_password_me(*, current_user: CurrentUser, body: ChangePasswordRequest
 
 
 @router.delete("/me", response_model=Message)
-def delete_user_me(current_user: CurrentUser) -> Any:
+async def delete_user_me(current_user: CurrentUser) -> Any:
     """
     Delete own user account from Supabase.
     """
     try:
-        supabase_service.delete_user(current_user["id"])
-        return {"message": "User deleted successfully"}
+        success = await auth_facade.delete_user(current_user["id"])
+        if success:
+            return {"message": "User deleted successfully"}
+        else:
+            raise HTTPException(status_code=400, detail="Failed to delete user")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/me/onboarding-completed", response_model=OnboardingCompletedResponse)
-def mark_onboarding_completed(
+async def mark_onboarding_completed(
     *, 
     current_user: CurrentUser, 
     request: OnboardingCompletedRequest
@@ -112,7 +115,7 @@ def mark_onboarding_completed(
         completion_date = request.completion_date or datetime.utcnow()
         
         # Update user metadata with onboarding completion
-        updated_user = supabase_service.mark_onboarding_completed(
+        result = await auth_facade.mark_onboarding_completed(
             current_user["id"],
             completed_steps=request.completed_steps,
             completion_date=completion_date.isoformat()
@@ -129,7 +132,7 @@ def mark_onboarding_completed(
 
 
 @router.get("/", dependencies=[Depends(get_current_active_superuser)], response_model=UserListResponse)
-def read_users(skip: int = 0, limit: int = 100) -> Any:
+async def read_users(skip: int = 0, limit: int = 100) -> Any:
     """
     Retrieve users from Supabase (admin only).
     """
@@ -137,17 +140,23 @@ def read_users(skip: int = 0, limit: int = 100) -> Any:
         # Calculate page number for Supabase pagination
         page = (skip // limit) + 1
         
-        result = supabase_service.list_users(page=page, per_page=limit)
+        result = await auth_facade.list_users(page=page, per_page=limit)
         
         users_data = []
         for user in result["users"]:
+            # Handle both old and new user data structure
+            if hasattr(user, 'metadata'):
+                user_metadata = user.metadata or {}
+            else:
+                user_metadata = getattr(user, 'user_metadata', {}) or {}
+                
             users_data.append({
                 "id": user.id,
                 "email": user.email,
-                "phone": user.phone,
-                "full_name": user.user_metadata.get("full_name") if user.user_metadata else None,
+                "phone": getattr(user, 'phone', None),
+                "full_name": user_metadata.get("full_name"),
                 "is_active": True,
-                "is_superuser": user.app_metadata.get("is_superuser", False) if user.app_metadata else False,
+                "is_superuser": user_metadata.get("is_superuser", False),
             })
         
         return UserListResponse(

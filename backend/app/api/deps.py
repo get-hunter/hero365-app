@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from supabase import Client
 
 from app.core.config import settings
-from app.core.supabase import supabase_service
+from app.core.auth_facade import auth_facade
 from app.core.security import ALGORITHM
 from app.infrastructure.config.dependency_injection import get_container
 
@@ -26,7 +26,7 @@ SupabaseDep = Annotated[Client, Depends(get_supabase_client)]
 TokenDep = Annotated[HTTPAuthorizationCredentials, Depends(reusable_oauth2)]
 
 
-def get_current_user(token: TokenDep) -> dict:
+async def get_current_user(token: TokenDep) -> dict:
     """
     Get current user directly from Supabase.
     """
@@ -35,7 +35,7 @@ def get_current_user(token: TokenDep) -> dict:
         token_str = token.credentials
         
         # Verify with Supabase
-        supabase_user_data = supabase_service.verify_token(token_str)
+        supabase_user_data = await auth_facade.verify_token(token_str)
         
         if supabase_user_data:
             return supabase_user_data
