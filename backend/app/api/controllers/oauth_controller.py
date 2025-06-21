@@ -53,6 +53,9 @@ class OAuthController:
             # Check if this is a new user
             is_new_user = self._is_new_user(auth_response.user)
             
+            # Get onboarding data
+            onboarding_data = self.supabase.get_onboarding_data(auth_response.user.user_metadata or {})
+            
             # Build user response
             user_data = AuthUserResponse(
                 id=auth_response.user.id,
@@ -61,7 +64,10 @@ class OAuthController:
                 full_name=self._get_full_name(auth_response.user, request.full_name),
                 is_active=True,
                 is_superuser=False,
-                supabase_id=auth_response.user.id
+                supabase_id=auth_response.user.id,
+                onboarding_completed=onboarding_data["onboarding_completed"],
+                onboarding_completed_at=onboarding_data["onboarding_completed_at"],
+                completed_steps=onboarding_data["completed_steps"]
             )
             
             return OAuthSignInResponse(
@@ -112,6 +118,9 @@ class OAuthController:
             # Check if this is a new user
             is_new_user = self._is_new_user(auth_response.user)
             
+            # Get onboarding data
+            onboarding_data = self.supabase.get_onboarding_data(auth_response.user.user_metadata or {})
+            
             # Build user response
             user_data = AuthUserResponse(
                 id=auth_response.user.id,
@@ -120,7 +129,10 @@ class OAuthController:
                 full_name=self._get_full_name(auth_response.user, request.full_name),
                 is_active=True,
                 is_superuser=False,
-                supabase_id=auth_response.user.id
+                supabase_id=auth_response.user.id,
+                onboarding_completed=onboarding_data["onboarding_completed"],
+                onboarding_completed_at=onboarding_data["onboarding_completed_at"],
+                completed_steps=onboarding_data["completed_steps"]
             )
             
             return OAuthSignInResponse(

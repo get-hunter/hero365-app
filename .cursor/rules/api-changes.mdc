@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Every time there is an API change, we should generate a separated .md file with the specs to inform the app client. 

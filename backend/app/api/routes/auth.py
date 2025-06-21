@@ -142,6 +142,9 @@ def sign_in(signin_data: SignInRequest) -> dict:
         })
         
         if response.user and response.session:
+            user_metadata = response.user.user_metadata or {}
+            onboarding_data = supabase_service.get_onboarding_data(user_metadata)
+            
             return {
                 "access_token": response.session.access_token,
                 "refresh_token": response.session.refresh_token,
@@ -149,6 +152,9 @@ def sign_in(signin_data: SignInRequest) -> dict:
                     "id": response.user.id,
                     "email": response.user.email,
                     "user_metadata": response.user.user_metadata,
+                    "onboarding_completed": onboarding_data["onboarding_completed"],
+                    "onboarding_completed_at": onboarding_data["onboarding_completed_at"],
+                    "completed_steps": onboarding_data["completed_steps"]
                 }
             }
         else:
@@ -183,6 +189,9 @@ def sign_in_with_phone(signin_data: PhoneSignInRequest) -> dict:
         })
         
         if response.user and response.session:
+            user_metadata = response.user.user_metadata or {}
+            onboarding_data = supabase_service.get_onboarding_data(user_metadata)
+            
             return {
                 "access_token": response.session.access_token,
                 "refresh_token": response.session.refresh_token,
@@ -190,6 +199,9 @@ def sign_in_with_phone(signin_data: PhoneSignInRequest) -> dict:
                     "id": response.user.id,
                     "phone": response.user.phone,
                     "user_metadata": response.user.user_metadata,
+                    "onboarding_completed": onboarding_data["onboarding_completed"],
+                    "onboarding_completed_at": onboarding_data["onboarding_completed_at"],
+                    "completed_steps": onboarding_data["completed_steps"]
                 }
             }
         else:
@@ -249,6 +261,9 @@ def verify_otp(verification_data: OTPVerificationRequest) -> dict:
         })
         
         if response.user and response.session:
+            user_metadata = response.user.user_metadata or {}
+            onboarding_data = supabase_service.get_onboarding_data(user_metadata)
+            
             return {
                 "access_token": response.session.access_token,
                 "refresh_token": response.session.refresh_token,
@@ -256,6 +271,9 @@ def verify_otp(verification_data: OTPVerificationRequest) -> dict:
                     "id": response.user.id,
                     "phone": response.user.phone,
                     "user_metadata": response.user.user_metadata,
+                    "onboarding_completed": onboarding_data["onboarding_completed"],
+                    "onboarding_completed_at": onboarding_data["onboarding_completed_at"],
+                    "completed_steps": onboarding_data["completed_steps"]
                 }
             }
         else:

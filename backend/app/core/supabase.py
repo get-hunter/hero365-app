@@ -106,6 +106,59 @@ class SupabaseService:
                 detail=f"Failed to update user: {str(e)}"
             )
     
+    def mark_onboarding_completed(self, user_id: str, completed_steps: list = None, completion_date: str = None) -> dict:
+        """Mark user onboarding as completed."""
+        try:
+            # Get current user metadata
+            user_response = self.admin_client.auth.admin.get_user_by_id(user_id)
+            current_metadata = user_response.user.user_metadata or {}
+            
+            # Update onboarding metadata
+            onboarding_data = {
+                "onboarding_completed": True,
+                "completed_at": completion_date,
+                "completed_steps": completed_steps or []
+            }
+            
+            # Merge with existing metadata
+            updated_metadata = {**current_metadata, **onboarding_data}
+            
+            # Update user metadata
+            response = self.admin_client.auth.admin.update_user_by_id(
+                user_id, 
+                {"user_metadata": updated_metadata}
+            )
+            return response.user
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to mark onboarding completed: {str(e)}"
+            )
+    
+    def get_onboarding_data(self, user_metadata: dict) -> dict:
+        """Extract onboarding data from user metadata."""
+        if not user_metadata:
+            return {
+                "onboarding_completed": False,
+                "onboarding_completed_at": None,
+                "completed_steps": []
+            }
+        
+        from datetime import datetime
+        completed_at_str = user_metadata.get("completed_at")
+        completed_at = None
+        if completed_at_str:
+            try:
+                completed_at = datetime.fromisoformat(completed_at_str.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                pass
+        
+        return {
+            "onboarding_completed": user_metadata.get("onboarding_completed", False),
+            "onboarding_completed_at": completed_at,
+            "completed_steps": user_metadata.get("completed_steps", [])
+        }
+    
     def delete_user(self, user_id: str) -> bool:
         """Delete a user."""
         try:

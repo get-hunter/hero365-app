@@ -6,7 +6,7 @@ Request and response schemas for authentication endpoints.
 
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
 
@@ -79,6 +79,9 @@ class AuthUserResponse(BaseModel):
     is_superuser: bool
     supabase_id: Optional[str] = None
     last_login: Optional[datetime] = None
+    onboarding_completed: Optional[bool] = None
+    onboarding_completed_at: Optional[datetime] = None
+    completed_steps: Optional[List[str]] = None
 
 
 class RefreshTokenRequest(BaseModel):
