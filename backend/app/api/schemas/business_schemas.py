@@ -9,11 +9,13 @@ from datetime import datetime
 from typing import Optional, List
 from enum import Enum
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, field_serializer
+from pydantic import ConfigDict
 
 from ...domain.entities.business import CompanySize, ReferralSource
 from ...domain.entities.business_membership import BusinessRole
 from ...domain.entities.business_invitation import InvitationStatus
+from ...utils import format_datetime_utc
 
 
 # Enum schemas for API responses
@@ -119,6 +121,8 @@ class BusinessUpdateRequest(BaseModel):
 
 class BusinessResponse(BaseModel):
     """Response schema for business information."""
+    model_config = ConfigDict(json_encoders={datetime: format_datetime_utc})
+    
     id: uuid.UUID
     name: str
     industry: str
@@ -149,10 +153,17 @@ class BusinessResponse(BaseModel):
     enabled_features: List[str]
     created_date: Optional[datetime]
     last_modified: Optional[datetime]
+    
+    @field_serializer('created_date', 'last_modified', 'onboarding_completed_date')
+    def serialize_datetime(self, dt: Optional[datetime]) -> Optional[str]:
+        """Serialize datetime to standardized UTC format."""
+        return format_datetime_utc(dt)
 
 
 class BusinessSummaryResponse(BaseModel):
     """Response schema for business summary information."""
+    model_config = ConfigDict(json_encoders={datetime: format_datetime_utc})
+    
     id: uuid.UUID
     name: str
     industry: str
@@ -161,11 +172,18 @@ class BusinessSummaryResponse(BaseModel):
     created_date: Optional[datetime]
     team_member_count: Optional[int]
     onboarding_completed: bool
+    
+    @field_serializer('created_date')
+    def serialize_datetime(self, dt: Optional[datetime]) -> Optional[str]:
+        """Serialize datetime to standardized UTC format."""
+        return format_datetime_utc(dt)
 
 
 # Business membership schemas
 class BusinessMembershipResponse(BaseModel):
     """Response schema for business membership."""
+    model_config = ConfigDict(json_encoders={datetime: format_datetime_utc})
+    
     id: uuid.UUID
     business_id: uuid.UUID
     user_id: str
@@ -178,6 +196,11 @@ class BusinessMembershipResponse(BaseModel):
     department_id: Optional[uuid.UUID]
     job_title: Optional[str]
     role_display: str
+    
+    @field_serializer('joined_date', 'invited_date')
+    def serialize_datetime(self, dt: Optional[datetime]) -> Optional[str]:
+        """Serialize datetime to standardized UTC format."""
+        return format_datetime_utc(dt)
 
 
 class BusinessMembershipUpdateRequest(BaseModel):
@@ -215,6 +238,8 @@ class BusinessInvitationCreateRequest(BaseModel):
 
 class BusinessInvitationResponse(BaseModel):
     """Response schema for business invitations."""
+    model_config = ConfigDict(json_encoders={datetime: format_datetime_utc})
+    
     id: uuid.UUID
     business_id: uuid.UUID
     business_name: str
@@ -233,6 +258,11 @@ class BusinessInvitationResponse(BaseModel):
     role_display: str
     status_display: str
     expiry_summary: str
+    
+    @field_serializer('invitation_date', 'expiry_date', 'accepted_date', 'declined_date')
+    def serialize_datetime(self, dt: Optional[datetime]) -> Optional[str]:
+        """Serialize datetime to standardized UTC format."""
+        return format_datetime_utc(dt)
 
 
 class BusinessInvitationAcceptRequest(BaseModel):

@@ -7,7 +7,9 @@ Request and response schemas for authentication endpoints.
 import uuid
 from datetime import datetime
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field, EmailStr, ConfigDict
+from pydantic import BaseModel, Field, EmailStr, ConfigDict, field_serializer
+
+from ...utils import format_datetime_utc
 
 
 class LoginRequest(BaseModel):
@@ -69,7 +71,7 @@ class AuthTokenResponse(BaseModel):
 class AuthUserResponse(BaseModel):
     """Schema for authenticated user information."""
     
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, json_encoders={datetime: format_datetime_utc})
     
     id: uuid.UUID
     email: Optional[str]
@@ -79,9 +81,11 @@ class AuthUserResponse(BaseModel):
     is_superuser: bool
     supabase_id: Optional[str] = None
     last_login: Optional[datetime] = None
-    onboarding_completed: Optional[bool] = None
-    onboarding_completed_at: Optional[datetime] = None
-    completed_steps: Optional[List[str]] = None
+    
+    @field_serializer('last_login')
+    def serialize_datetime(self, dt: Optional[datetime]) -> Optional[str]:
+        """Serialize datetime to standardized UTC format."""
+        return format_datetime_utc(dt)
 
 
 class RefreshTokenRequest(BaseModel):
@@ -201,6 +205,8 @@ class SupabaseAuthResponse(BaseModel):
 class AuthSessionResponse(BaseModel):
     """Schema for authentication session response."""
     
+    model_config = ConfigDict(json_encoders={datetime: format_datetime_utc})
+    
     session_id: str
     user_id: uuid.UUID
     created_at: datetime
@@ -209,6 +215,11 @@ class AuthSessionResponse(BaseModel):
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
     is_active: bool = True
+    
+    @field_serializer('created_at', 'expires_at', 'last_activity')
+    def serialize_datetime(self, dt: Optional[datetime]) -> Optional[str]:
+        """Serialize datetime to standardized UTC format."""
+        return format_datetime_utc(dt)
 
 
 # Legacy Auth Models (moved from models.py)

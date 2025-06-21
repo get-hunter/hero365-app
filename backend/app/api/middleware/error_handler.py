@@ -36,15 +36,21 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process request and handle any exceptions."""
+        # Log ALL requests to see what's being processed
+        logger.info(f"ErrorHandlerMiddleware processing: {request.method} {request.url.path}")
+        
         try:
             response = await call_next(request)
+            logger.info(f"ErrorHandlerMiddleware completed: {request.method} {request.url.path} -> {response.status_code}")
             return response
         
-        except HTTPException:
+        except HTTPException as e:
+            logger.error(f"HTTPException in ErrorHandlerMiddleware: {request.method} {request.url.path} -> {e.status_code}: {e.detail}")
             # Re-raise HTTPExceptions as they are already properly formatted
             raise
         
         except Exception as exc:
+            logger.error(f"Exception in ErrorHandlerMiddleware: {request.method} {request.url.path} -> {type(exc).__name__}: {str(exc)}")
             return await self._handle_exception(request, exc)
     
     async def _handle_exception(self, request: Request, exc: Exception) -> JSONResponse:

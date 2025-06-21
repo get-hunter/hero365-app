@@ -1,6 +1,8 @@
 import sentry_sdk
-from fastapi import FastAPI
+import logging
+from fastapi import FastAPI, Request, Response
 from fastapi.routing import APIRoute
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.main import api_router
 from app.api.middleware.error_handler import ErrorHandlerMiddleware
@@ -8,6 +10,8 @@ from app.api.middleware.cors_handler import add_cors_middleware
 from app.api.middleware.auth_handler import AuthMiddleware
 from app.core.config import settings
 
+# Configure logging
+logger = logging.getLogger(__name__)
 
 def custom_generate_unique_id(route: APIRoute) -> str:
     return f"{route.tags[0]}-{route.name}"
@@ -27,6 +31,7 @@ def create_application() -> FastAPI:
         generate_unique_id_function=custom_generate_unique_id,
         description="Hero365 App - Clean Architecture Implementation",
         version="2.0.0",
+        redirect_slashes=False,  # Prevent automatic redirects that strip auth headers
     )
 
     # Add middleware in correct order (last added = first executed)
@@ -45,10 +50,18 @@ def create_application() -> FastAPI:
             "/redoc", 
             "/openapi.json",
             "/health",
-            f"{settings.API_V1_STR}/login",
-            f"{settings.API_V1_STR}/register",
-            f"{settings.API_V1_STR}/reset-password",
-            f"{settings.API_V1_STR}/forgot-password",
+            f"{settings.API_V1_STR}/auth/signup",
+            f"{settings.API_V1_STR}/auth/signup/phone",
+            f"{settings.API_V1_STR}/auth/signin",
+            f"{settings.API_V1_STR}/auth/signin/phone",
+            f"{settings.API_V1_STR}/auth/otp/send",
+            f"{settings.API_V1_STR}/auth/otp/verify",
+            f"{settings.API_V1_STR}/auth/oauth/google",
+            f"{settings.API_V1_STR}/auth/oauth/apple",
+            f"{settings.API_V1_STR}/auth/apple/signin",
+            f"{settings.API_V1_STR}/auth/google/signin",
+            f"{settings.API_V1_STR}/auth/password-recovery",
+            f"{settings.API_V1_STR}/auth/refresh",
         ]
     )
 

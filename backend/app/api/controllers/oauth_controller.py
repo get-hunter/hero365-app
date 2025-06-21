@@ -1,26 +1,26 @@
 """
 OAuth Controller
 
-Handles Apple and Google Sign-In using Supabase's server-side OAuth methods.
-This maintains the iOS App → Backend → Supabase Auth flow.
+Handles OAuth authentication flows for Apple and Google sign-in.
+Simplified to remove onboarding metadata handling since onboarding completion
+is now determined purely by business membership status.
 """
 
-import jwt
-from typing import Dict, Any
+import logging
 from fastapi import HTTPException, status
 
+from app.api.schemas.auth_schemas import (
+    AppleSignInRequest, GoogleSignInRequest, OAuthSignInResponse, AuthUserResponse
+)
 from app.core.auth_facade import auth_facade
 from app.infrastructure.config.dependency_injection import get_container
-from app.api.schemas.auth_schemas import (
-    AppleSignInRequest,
-    GoogleSignInRequest, 
-    OAuthSignInResponse,
-    AuthUserResponse
-)
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class OAuthController:
-    """Controller for handling OAuth authentication flows."""
+    """Controller for OAuth authentication flows."""
     
     def __init__(self):
         self.auth_facade = auth_facade
@@ -33,7 +33,7 @@ class OAuthController:
         Flow: iOS App sends ID token → Backend validates with Supabase → Returns session
         """
         try:
-            print(f"🍎 Apple Sign-In attempt for user: {request.user_identifier}")
+            print(f"🔍 Apple Sign-In attempt")
             print(f"📧 Email: {request.email}")
             print(f"👤 Full name: {request.full_name}")
             print(f"🔑 ID token length: {len(request.id_token)} chars")
@@ -66,20 +66,10 @@ class OAuthController:
             is_new_user = self._is_new_user(user_data)
             print(f"🔍 Is new user: {is_new_user}")
             
-            # For new users, ensure onboarding metadata is set to default values
-            if is_new_user:
-                default_onboarding_metadata = {
-                    "onboarding_completed": False,
-                    "completed_steps": []
-                }
-                await self._update_user_metadata_if_needed(user_data.id, default_onboarding_metadata)
-                print(f"📝 Set default onboarding metadata for new user: {default_onboarding_metadata}")
-            
-            # Get fresh user data to include any metadata updates
+            # Get user metadata for basic profile information
             auth_service = self.container.get_auth_service()
             updated_user_result = await auth_service.get_user_by_id(user_data.id)
             
-            # Get onboarding data using the correct metadata field
             if updated_user_result:
                 user_metadata = updated_user_result.provider_metadata or {}
                 print(f"🔍 Retrieved user metadata: {user_metadata}")
@@ -88,10 +78,7 @@ class OAuthController:
                 user_metadata = getattr(user_data, 'user_metadata', {}) or {}
                 print(f"🔍 Fallback user metadata: {user_metadata}")
             
-            onboarding_data = self.auth_facade.get_onboarding_data(user_metadata)
-            print(f"🔍 Onboarding data: {onboarding_data}")
-            
-            # Build user response
+            # Build user response (no onboarding fields - determined by business membership)
             user_response = AuthUserResponse(
                 id=user_data.id,
                 email=user_data.email,
@@ -99,10 +86,7 @@ class OAuthController:
                 full_name=self._get_full_name_from_metadata(user_metadata, request.full_name),
                 is_active=True,
                 is_superuser=False,
-                supabase_id=user_data.id,
-                onboarding_completed=onboarding_data["onboarding_completed"],
-                onboarding_completed_at=onboarding_data["onboarding_completed_at"],
-                completed_steps=onboarding_data["completed_steps"]
+                supabase_id=user_data.id
             )
             
             return OAuthSignInResponse(
@@ -177,20 +161,10 @@ class OAuthController:
             is_new_user = self._is_new_user(user_data)
             print(f"🔍 Is new user: {is_new_user}")
             
-            # For new users, ensure onboarding metadata is set to default values
-            if is_new_user:
-                default_onboarding_metadata = {
-                    "onboarding_completed": False,
-                    "completed_steps": []
-                }
-                await self._update_user_metadata_if_needed(user_data.id, default_onboarding_metadata)
-                print(f"📝 Set default onboarding metadata for new user: {default_onboarding_metadata}")
-            
-            # Get fresh user data to include any metadata updates
+            # Get user metadata for basic profile information
             auth_service = self.container.get_auth_service()
             updated_user_result = await auth_service.get_user_by_id(user_data.id)
             
-            # Get onboarding data using the correct metadata field
             if updated_user_result:
                 user_metadata = updated_user_result.provider_metadata or {}
                 print(f"🔍 Retrieved user metadata: {user_metadata}")
@@ -199,10 +173,7 @@ class OAuthController:
                 user_metadata = getattr(user_data, 'user_metadata', {}) or {}
                 print(f"🔍 Fallback user metadata: {user_metadata}")
             
-            onboarding_data = self.auth_facade.get_onboarding_data(user_metadata)
-            print(f"🔍 Onboarding data: {onboarding_data}")
-            
-            # Build user response
+            # Build user response (no onboarding fields - determined by business membership)
             user_response = AuthUserResponse(
                 id=user_data.id,
                 email=user_data.email,
@@ -210,10 +181,7 @@ class OAuthController:
                 full_name=self._get_full_name_from_metadata(user_metadata, request.full_name),
                 is_active=True,
                 is_superuser=False,
-                supabase_id=user_data.id,
-                onboarding_completed=onboarding_data["onboarding_completed"],
-                onboarding_completed_at=onboarding_data["onboarding_completed_at"],
-                completed_steps=onboarding_data["completed_steps"]
+                supabase_id=user_data.id
             )
             
             return OAuthSignInResponse(
@@ -264,4 +232,10 @@ class OAuthController:
         if not user_metadata:
             return fallback_name
         
-        return user_metadata.get("full_name", fallback_name) 
+        # Try various metadata fields for full name
+        return (
+            user_metadata.get("full_name") or
+            user_metadata.get("name") or
+            fallback_name or
+            ""
+        ) 
