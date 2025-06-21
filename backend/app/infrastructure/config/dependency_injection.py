@@ -74,7 +74,8 @@ class DependencyContainer:
         if settings.SUPABASE_URL and settings.SUPABASE_ANON_KEY:
             self._services['auth_service'] = SupabaseAuthAdapter(
                 supabase_url=settings.SUPABASE_URL,
-                supabase_key=settings.SUPABASE_ANON_KEY
+                supabase_key=settings.SUPABASE_ANON_KEY,
+                supabase_service_key=settings.SUPABASE_SERVICE_KEY
             )
         
         # Email service

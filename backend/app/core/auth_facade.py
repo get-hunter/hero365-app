@@ -31,13 +31,14 @@ class AuthFacade:
         result = await auth_service.verify_token(token)
         
         if result.success and result.user:
-            return {
+            user_data = {
                 "id": result.user.id,
                 "email": result.user.email,
-                "phone": result.user.phone,
-                "user_metadata": result.user.metadata,
+                "phone": getattr(result.user, 'phone', None),
+                "user_metadata": getattr(result.user, 'metadata', {}),
                 "app_metadata": {},  # Can be extracted from metadata if needed
             }
+            return user_data
         return None
     
     async def create_user(self, email: str, password: str, user_metadata: Dict = None) -> Dict:

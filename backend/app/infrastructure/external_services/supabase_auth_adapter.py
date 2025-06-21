@@ -20,14 +20,23 @@ class SupabaseAuthAdapter(AuthServicePort):
     This adapter handles authentication operations using Supabase Auth API.
     """
     
-    def __init__(self, supabase_url: Optional[str] = None, supabase_key: Optional[str] = None):
+    def __init__(self, supabase_url: Optional[str] = None, supabase_key: Optional[str] = None, 
+                 supabase_service_key: Optional[str] = None):
         self.supabase_url = supabase_url or os.getenv("SUPABASE_URL")
         self.supabase_key = supabase_key or os.getenv("SUPABASE_ANON_KEY")
+        self.supabase_service_key = supabase_service_key or os.getenv("SUPABASE_SERVICE_KEY")
         
         if not self.supabase_url or not self.supabase_key:
             raise ValueError("Supabase URL and key must be provided")
         
+        if not self.supabase_service_key:
+            raise ValueError("Supabase service key must be provided for admin operations")
+        
+        # Regular client for standard operations
         self.client: Client = create_client(self.supabase_url, self.supabase_key)
+        
+        # Admin client for admin operations (user management, metadata updates)
+        self.admin_client: Client = create_client(self.supabase_url, self.supabase_service_key)
     
     async def authenticate_with_email(self, email: str, password: str) -> AuthResult:
         """Authenticate user with email and password."""
@@ -141,11 +150,8 @@ class SupabaseAuthAdapter(AuthServicePort):
     async def verify_token(self, token: str) -> AuthResult:
         """Verify an authentication token."""
         try:
-            # Set the session with the token
-            self.client.auth.set_session(token, token)  # Using same token for access and refresh
-            
-            # Get user info
-            response = self.client.auth.get_user()
+            # Use admin client to get user by JWT token
+            response = self.admin_client.auth.get_user(jwt=token)
             
             if response.user:
                 auth_user = self._convert_to_auth_user(response.user)
@@ -207,7 +213,7 @@ class SupabaseAuthAdapter(AuthServicePort):
         try:
             # This requires admin privileges in Supabase
             # For regular app usage, this might not be available
-            response = self.client.auth.admin.get_user_by_id(user_id)
+            response = self.admin_client.auth.admin.get_user_by_id(user_id)
             
             if response.user:
                 return self._convert_to_auth_user(response.user)
@@ -365,7 +371,7 @@ class SupabaseAuthAdapter(AuthServicePort):
     async def delete_user(self, user_id: str) -> bool:
         """Delete a user account."""
         try:
-            self.client.auth.admin.delete_user(user_id)
+            self.admin_client.auth.admin.delete_user(user_id)
             return True
         except Exception:
             return False
@@ -373,7 +379,7 @@ class SupabaseAuthAdapter(AuthServicePort):
     async def list_users(self, page: int = 1, per_page: int = 50) -> Dict[str, Any]:
         """List all users with pagination."""
         try:
-            response = self.client.auth.admin.list_users(
+            response = self.admin_client.auth.admin.list_users(
                 page=page,
                 per_page=per_page
             )
@@ -431,7 +437,7 @@ class SupabaseAuthAdapter(AuthServicePort):
                                    user_metadata: Dict[str, Any] = None) -> AuthResult:
         """Create a user from OAuth provider data."""
         try:
-            response = self.client.auth.admin.create_user({
+            response = self.admin_client.auth.admin.create_user({
                 "email": email,
                 "user_metadata": user_metadata or {},
                 "app_metadata": {
@@ -500,7 +506,7 @@ class SupabaseAuthAdapter(AuthServicePort):
     async def update_user_metadata(self, user_id: str, user_metadata: Dict[str, Any]) -> AuthResult:
         """Update user metadata."""
         try:
-            response = self.client.auth.admin.update_user_by_id(
+            response = self.admin_client.auth.admin.update_user_by_id(
                 user_id, 
                 {"user_metadata": user_metadata}
             )
