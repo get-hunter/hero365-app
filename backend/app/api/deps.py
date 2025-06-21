@@ -9,7 +9,6 @@ from supabase import Client
 
 from app.core.config import settings
 from app.core.auth_facade import auth_facade
-from app.core.security import ALGORITHM
 from app.infrastructure.config.dependency_injection import get_container
 
 reusable_oauth2 = HTTPBearer(
@@ -42,7 +41,7 @@ async def get_current_user(token: TokenDep) -> dict:
         # If Supabase verification fails, try legacy JWT verification
         try:
             payload = jwt.decode(
-                token_str, settings.SECRET_KEY, algorithms=[ALGORITHM]
+                token_str, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
             )
             email: str = payload.get("sub")
             if email is None:

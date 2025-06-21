@@ -12,7 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 import jwt
 
 from ...core.config import settings
-from ...core.security import decode_token
+from ...core.auth_facade import auth_facade
 from ...infrastructure.config.dependency_injection import get_container
 
 # Configure logging
@@ -116,28 +116,13 @@ class AuthMiddleware(BaseHTTPMiddleware):
             User information dict if valid, None otherwise
         """
         try:
-            # Decode and verify token
-            payload = await decode_token(token)
-            if not payload:
+            # Verify token with Supabase
+            user_data = await auth_facade.verify_token(token)
+            if not user_data:
                 return None
             
-            # Extract user information from token
-            user_info = {
-                "id": payload.get("sub"),
-                "email": payload.get("email"),
-                "phone": payload.get("phone"),
-                "is_superuser": payload.get("is_superuser", False),
-                "is_active": payload.get("is_active", True),
-                "app_metadata": payload.get("app_metadata", {}),
-                "user_metadata": payload.get("user_metadata", {}),
-                "token_exp": payload.get("exp"),
-                "token_iat": payload.get("iat"),
-            }
-            
-            # Additional validation can be added here
-            # (e.g., check if user is still active in database)
-            
-            return user_info
+            # Return user information in expected format
+            return user_data
             
         except jwt.ExpiredSignatureError:
             logger.warning("Token has expired")
