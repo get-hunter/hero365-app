@@ -13,6 +13,8 @@ from app.api.schemas.user_schemas import (
     UserListResponse,
     UserUpdateRequest,
     ChangePasswordRequest,
+    OnboardingCompletedRequest,
+    OnboardingCompletedResponse,
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -23,13 +25,19 @@ def read_user_me(current_user: CurrentUser) -> Any:
     """
     Get current user information from Supabase.
     """
+    user_metadata = current_user.get("user_metadata", {})
+    onboarding_data = supabase_service.get_onboarding_data(user_metadata)
+    
     return {
         "id": current_user["id"],
         "email": current_user.get("email"),
         "phone": current_user.get("phone"),
-        "full_name": current_user.get("user_metadata", {}).get("full_name"),
+        "full_name": user_metadata.get("full_name"),
         "is_active": True,  # Supabase users are active by default
         "is_superuser": current_user.get("app_metadata", {}).get("is_superuser", False),
+        "onboarding_completed": onboarding_data["onboarding_completed"],
+        "onboarding_completed_at": onboarding_data["onboarding_completed_at"],
+        "completed_steps": onboarding_data["completed_steps"],
     }
 
 
@@ -84,6 +92,38 @@ def delete_user_me(current_user: CurrentUser) -> Any:
     try:
         supabase_service.delete_user(current_user["id"])
         return {"message": "User deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/me/onboarding-completed", response_model=OnboardingCompletedResponse)
+def mark_onboarding_completed(
+    *, 
+    current_user: CurrentUser, 
+    request: OnboardingCompletedRequest
+) -> Any:
+    """
+    Mark user onboarding as completed.
+    """
+    try:
+        from datetime import datetime
+        
+        # Use current timestamp if not provided
+        completion_date = request.completion_date or datetime.utcnow()
+        
+        # Update user metadata with onboarding completion
+        updated_user = supabase_service.mark_onboarding_completed(
+            current_user["id"],
+            completed_steps=request.completed_steps,
+            completion_date=completion_date.isoformat()
+        )
+        
+        return OnboardingCompletedResponse(
+            success=True,
+            message="Onboarding marked as completed successfully",
+            onboarding_completed=True,
+            completed_at=completion_date
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

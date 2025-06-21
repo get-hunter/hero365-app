@@ -60,6 +60,9 @@ class UserResponse(BaseModel):
     supabase_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    onboarding_completed: Optional[bool] = None
+    onboarding_completed_at: Optional[datetime] = None
+    completed_steps: Optional[List[str]] = None
 
 
 class UserSummaryResponse(BaseModel):
@@ -181,4 +184,25 @@ class BulkUserOperationResponse(BaseModel):
     message: str
     processed_count: int
     failed_count: int
-    failed_users: Optional[List[uuid.UUID]] = None 
+    failed_users: Optional[List[uuid.UUID]] = None
+
+
+class OnboardingCompletedRequest(BaseModel):
+    """Schema for marking onboarding as completed."""
+    
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True
+    )
+    
+    completed_steps: Optional[List[str]] = Field(None, description="List of completed onboarding steps")
+    completion_date: Optional[datetime] = Field(None, description="Date when onboarding was completed")
+
+
+class OnboardingCompletedResponse(BaseModel):
+    """Schema for onboarding completion response."""
+    
+    success: bool
+    message: str
+    onboarding_completed: bool
+    completed_at: Optional[datetime] = None 
