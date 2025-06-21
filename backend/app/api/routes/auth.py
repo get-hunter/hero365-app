@@ -5,7 +5,7 @@ from pydantic import BaseModel, EmailStr
 from app.core.auth_facade import auth_facade
 from app.infrastructure.config.dependency_injection import get_container
 from app.api.schemas.common_schemas import Message
-from app.api.schemas.user_schemas import UserResponse
+
 from app.api.schemas.auth_schemas import (
     AppleSignInRequest,
     GoogleSignInRequest, 

@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 import jwt
@@ -25,49 +26,46 @@ SupabaseDep = Annotated[Client, Depends(get_supabase_client)]
 TokenDep = Annotated[HTTPAuthorizationCredentials, Depends(reusable_oauth2)]
 
 
-async def get_current_user(token: TokenDep) -> dict:
+async def get_current_user(
+    supabase: SupabaseDep, token: TokenDep
+) -> dict:
     """
-    Get current user directly from Supabase.
+    Get current user from Supabase Auth token.
+    
+    Returns Supabase user data directly without creating local user records.
+    This simplifies the authentication flow and removes the need for user sync.
+    
+    Returns:
+        dict: Supabase user data containing id, email, user_metadata, etc.
     """
     try:
-        # Extract token from Authorization header
-        token_str = token.credentials
+        # Get user from Supabase Auth using the token
+        user_response = supabase.auth.get_user(token.credentials)
         
-        # Verify with Supabase
-        supabase_user_data = await auth_facade.verify_token(token_str)
-        
-        if supabase_user_data:
-            return supabase_user_data
-        # If Supabase verification fails, try legacy JWT verification
-        try:
-            payload = jwt.decode(
-                token_str, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
-            )
-            email: str = payload.get("sub")
-            if email is None:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Could not validate credentials",
-                )
-            
-            # Return legacy user format
-            return {
-                "id": email,  # Use email as ID for legacy tokens
-                "email": email,
-                "phone": None,
-                "user_metadata": {},
-                "app_metadata": {},
-            }
-        except (InvalidTokenError, ValidationError):
+        if not user_response.user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
             )
+        
+        # Return Supabase user data directly
+        return {
+            "sub": user_response.user.id,  # Keep 'sub' for JWT compatibility
+            "id": user_response.user.id,
+            "email": user_response.user.email,
+            "phone": user_response.user.phone,
+            "user_metadata": user_response.user.user_metadata or {},
+            "created_at": user_response.user.created_at,
+            "last_sign_in_at": user_response.user.last_sign_in_at,
+            "is_active": True  # Supabase users are active by default
+        }
         
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Could not validate credentials: {str(e)}",
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
 

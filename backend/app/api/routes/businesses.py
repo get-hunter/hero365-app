@@ -36,7 +36,7 @@ async def create_business(
     return await controller.create_business(request, current_user["sub"])
 
 
-@router.get("/my", response_model=List[UserBusinessSummaryResponse])
+@router.get("/me", response_model=List[UserBusinessSummaryResponse])
 async def get_my_businesses(
     skip: int = Query(0, ge=0, description="Number of businesses to skip"),
     limit: int = Query(10, ge=1, le=100, description="Maximum number of businesses to return"),

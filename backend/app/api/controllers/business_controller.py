@@ -505,9 +505,8 @@ class BusinessController:
     async def decline_invitation(self, invitation_id: uuid.UUID, current_user_id: str) -> bool:
         """Decline a business invitation."""
         try:
-            return await self.manage_invitations_use_case.decline_invitation(
-                invitation_id, current_user_id
-            )
+            result = await self.manage_invitations_use_case.decline_invitation(invitation_id, current_user_id)
+            return result
             
         except ValidationError as e:
             raise HTTPException(
@@ -516,7 +515,32 @@ class BusinessController:
             )
         except BusinessLogicError as e:
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=str(e)
+            )
+        except ApplicationError as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            )
+
+    async def get_user_invitations(self, current_user: dict) -> List[BusinessInvitationResponse]:
+        """Get all invitations for the current user."""
+        try:
+            # Extract email and phone from user data
+            user_email = current_user.get("email")
+            user_phone = current_user.get("phone")
+            
+            result = await self.manage_invitations_use_case.get_user_invitations(
+                user_email=user_email,
+                user_phone=user_phone
+            )
+            
+            return [self._invitation_dto_to_response(invitation) for invitation in result]
+            
+        except ValidationError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
         except ApplicationError as e:

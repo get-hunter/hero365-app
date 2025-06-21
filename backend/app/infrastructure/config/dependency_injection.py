@@ -11,8 +11,6 @@ from supabase import create_client, Client
 from ...core.config import settings
 
 # Domain Repositories
-from ...domain.repositories.user_repository import UserRepository
-from ...domain.repositories.item_repository import ItemRepository
 from ...domain.repositories.business_repository import BusinessRepository
 from ...domain.repositories.business_membership_repository import BusinessMembershipRepository
 from ...domain.repositories.business_invitation_repository import BusinessInvitationRepository
@@ -23,8 +21,6 @@ from ...application.ports.email_service import EmailServicePort
 from ...application.ports.sms_service import SMSServicePort
 
 # Infrastructure Implementations
-from ..database.repositories.supabase_user_repository import SupabaseUserRepository
-from ..database.repositories.supabase_item_repository import SupabaseItemRepository
 from ..database.repositories.supabase_business_repository import SupabaseBusinessRepository
 from ..database.repositories.supabase_business_membership_repository import SupabaseBusinessMembershipRepository
 from ..database.repositories.supabase_business_invitation_repository import SupabaseBusinessInvitationRepository
@@ -33,20 +29,9 @@ from ..external_services.smtp_email_adapter import SMTPEmailAdapter
 from ..external_services.twilio_sms_adapter import TwilioSMSAdapter
 
 # Application Use Cases
-from ...application.use_cases.user.create_user import CreateUserUseCase
-from ...application.use_cases.user.get_user import GetUserUseCase
-from ...application.use_cases.user.update_user import UpdateUserUseCase
-from ...application.use_cases.user.delete_user import DeleteUserUseCase
-from ...application.use_cases.user.manage_onboarding import ManageOnboardingUseCase
-
 from ...application.use_cases.auth.authenticate_user import AuthenticateUserUseCase
 from ...application.use_cases.auth.register_user import RegisterUserUseCase
 from ...application.use_cases.auth.reset_password import ResetPasswordUseCase
-
-from ...application.use_cases.item.create_item import CreateItemUseCase
-from ...application.use_cases.item.get_items import GetItemsUseCase
-from ...application.use_cases.item.update_item import UpdateItemUseCase
-from ...application.use_cases.item.delete_item import DeleteItemUseCase
 
 from ...application.use_cases.business.create_business import CreateBusinessUseCase
 from ...application.use_cases.business.invite_team_member import InviteTeamMemberUseCase
@@ -80,8 +65,6 @@ class DependencyContainer:
         """Initialize repository implementations."""
         # Database repositories using Supabase client
         supabase_client = self._get_supabase_client()
-        self._repositories['user_repository'] = SupabaseUserRepository(supabase_client=supabase_client)
-        self._repositories['item_repository'] = SupabaseItemRepository(supabase_client=supabase_client)
         self._repositories['business_repository'] = SupabaseBusinessRepository(supabase_client=supabase_client)
         self._repositories['business_membership_repository'] = SupabaseBusinessMembershipRepository(supabase_client=supabase_client)
         self._repositories['business_invitation_repository'] = SupabaseBusinessInvitationRepository(supabase_client=supabase_client)
@@ -121,59 +104,10 @@ class DependencyContainer:
     
     def _setup_use_cases(self):
         """Initialize use case implementations."""
-        # User use cases (create first since it's needed by register_user)
-        self._use_cases['create_user'] = CreateUserUseCase(
-            user_repository=self.get_repository('user_repository')
-        )
-        
-        self._use_cases['get_user'] = GetUserUseCase(
-            user_repository=self.get_repository('user_repository')
-        )
-        
-        self._use_cases['update_user'] = UpdateUserUseCase(
-            user_repository=self.get_repository('user_repository')
-        )
-        
-        self._use_cases['delete_user'] = DeleteUserUseCase(
-            user_repository=self.get_repository('user_repository'),
-            item_repository=self.get_repository('item_repository')
-        )
-        
-        self._use_cases['manage_onboarding'] = ManageOnboardingUseCase(
-            user_repository=self.get_repository('user_repository'),
-            auth_service=self.get_service('auth_service')
-        )
-        
-        # Auth use cases (register_user needs create_user to be already created)
-        self._use_cases['authenticate_user'] = AuthenticateUserUseCase(
-            user_repository=self.get_repository('user_repository')
-        )
-        
-        self._use_cases['register_user'] = RegisterUserUseCase(
-            create_user_use_case=self._use_cases['create_user']
-        )
-        
-        self._use_cases['reset_password'] = ResetPasswordUseCase(
-            user_repository=self.get_repository('user_repository')
-        )
-        
-        # Item use cases
-        self._use_cases['create_item'] = CreateItemUseCase(
-            item_repository=self.get_repository('item_repository'),
-            user_repository=self.get_repository('user_repository')
-        )
-        
-        self._use_cases['get_items'] = GetItemsUseCase(
-            item_repository=self.get_repository('item_repository')
-        )
-        
-        self._use_cases['update_item'] = UpdateItemUseCase(
-            item_repository=self.get_repository('item_repository')
-        )
-        
-        self._use_cases['delete_item'] = DeleteItemUseCase(
-            item_repository=self.get_repository('item_repository')
-        )
+        # Auth use cases (simplified without user management)
+        self._use_cases['authenticate_user'] = AuthenticateUserUseCase()
+        self._use_cases['register_user'] = RegisterUserUseCase()
+        self._use_cases['reset_password'] = ResetPasswordUseCase()
         
         # Business use cases
         self._use_cases['create_business'] = CreateBusinessUseCase(
@@ -221,156 +155,104 @@ class DependencyContainer:
             membership_repository=self.get_repository('business_membership_repository'),
             invitation_repository=self.get_repository('business_invitation_repository')
         )
-    
+
     def _get_supabase_client(self) -> Client:
-        """Get Supabase client."""
-        if not self._supabase_client:
-            self._supabase_client = create_client(
-                supabase_url=settings.SUPABASE_URL,
-                supabase_key=settings.SUPABASE_ANON_KEY
-            )
+        """Get or create Supabase client."""
+        if self._supabase_client is None:
+            self._supabase_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
         return self._supabase_client
-    
+
     def get_repository(self, name: str) -> Any:
         """Get repository by name."""
-        if name not in self._repositories:
-            raise ValueError(f"Repository '{name}' not found")
-        return self._repositories[name]
-    
+        return self._repositories.get(name)
+
     def get_service(self, name: str) -> Any:
         """Get service by name."""
-        if name not in self._services:
-            raise ValueError(f"Service '{name}' not found")
-        return self._services[name]
-    
+        return self._services.get(name)
+
     def get_use_case(self, name: str) -> Any:
         """Get use case by name."""
-        if name not in self._use_cases:
-            raise ValueError(f"Use case '{name}' not found")
-        return self._use_cases[name]
-    
-    def get_user_repository(self) -> UserRepository:
-        """Get user repository."""
-        return self.get_repository('user_repository')
-    
-    def get_item_repository(self) -> ItemRepository:
-        """Get item repository."""
-        return self.get_repository('item_repository')
-    
+        return self._use_cases.get(name)
+
     def get_auth_service(self) -> AuthServicePort:
         """Get authentication service."""
         return self.get_service('auth_service')
-    
+
     def get_email_service(self) -> EmailServicePort:
         """Get email service."""
         return self.get_service('email_service')
-    
+
     def get_sms_service(self) -> Optional[SMSServicePort]:
-        """Get SMS service (may be None if not configured)."""
+        """Get SMS service."""
         return self.get_service('sms_service')
-    
-    # User Use Cases
-    def get_create_user_use_case(self) -> CreateUserUseCase:
-        """Get create user use case."""
-        return self.get_use_case('create_user')
-    
-    def get_get_user_use_case(self) -> GetUserUseCase:
-        """Get get user use case."""
-        return self.get_use_case('get_user')
-    
-    def get_update_user_use_case(self) -> UpdateUserUseCase:
-        """Get update user use case."""
-        return self.get_use_case('update_user')
-    
-    def get_delete_user_use_case(self) -> DeleteUserUseCase:
-        """Get delete user use case."""
-        return self.get_use_case('delete_user')
-    
-    # Auth Use Cases
+
     def get_authenticate_user_use_case(self) -> AuthenticateUserUseCase:
         """Get authenticate user use case."""
         return self.get_use_case('authenticate_user')
-    
+
     def get_register_user_use_case(self) -> RegisterUserUseCase:
         """Get register user use case."""
         return self.get_use_case('register_user')
-    
+
     def get_reset_password_use_case(self) -> ResetPasswordUseCase:
         """Get reset password use case."""
         return self.get_use_case('reset_password')
-    
-    # Item Use Cases
-    def get_create_item_use_case(self) -> CreateItemUseCase:
-        """Get create item use case."""
-        return self.get_use_case('create_item')
-    
-    def get_get_items_use_case(self) -> GetItemsUseCase:
-        """Get get items use case."""
-        return self.get_use_case('get_items')
-    
-    def get_update_item_use_case(self) -> UpdateItemUseCase:
-        """Get update item use case."""
-        return self.get_use_case('update_item')
-    
-    def get_delete_item_use_case(self) -> DeleteItemUseCase:
-        """Get delete item use case."""
-        return self.get_use_case('delete_item')
-    
-    def get_manage_onboarding_use_case(self) -> ManageOnboardingUseCase:
-        """Get manage onboarding use case."""
-        return self.get_use_case('manage_onboarding')
-    
-    # Business repositories
+
     def get_business_repository(self) -> BusinessRepository:
         """Get business repository."""
         return self.get_repository('business_repository')
-    
+
     def get_business_membership_repository(self) -> BusinessMembershipRepository:
         """Get business membership repository."""
         return self.get_repository('business_membership_repository')
-    
+
     def get_business_invitation_repository(self) -> BusinessInvitationRepository:
         """Get business invitation repository."""
         return self.get_repository('business_invitation_repository')
-    
-    # Business use cases
+
     def get_create_business_use_case(self) -> CreateBusinessUseCase:
         """Get create business use case."""
         return self.get_use_case('create_business')
-    
+
     def get_invite_team_member_use_case(self) -> InviteTeamMemberUseCase:
         """Get invite team member use case."""
         return self.get_use_case('invite_team_member')
-    
+
     def get_accept_invitation_use_case(self) -> AcceptInvitationUseCase:
         """Get accept invitation use case."""
         return self.get_use_case('accept_invitation')
-    
+
     def get_get_user_businesses_use_case(self) -> GetUserBusinessesUseCase:
         """Get user businesses use case."""
         return self.get_use_case('get_user_businesses')
-    
+
     def get_get_business_detail_use_case(self) -> GetBusinessDetailUseCase:
         """Get business detail use case."""
         return self.get_use_case('get_business_detail')
-    
+
     def get_update_business_use_case(self) -> UpdateBusinessUseCase:
         """Get update business use case."""
         return self.get_use_case('update_business')
-    
+
     def get_manage_team_member_use_case(self) -> ManageTeamMemberUseCase:
         """Get manage team member use case."""
         return self.get_use_case('manage_team_member')
-    
+
     def get_manage_invitations_use_case(self) -> ManageInvitationsUseCase:
         """Get manage invitations use case."""
         return self.get_use_case('manage_invitations')
-    
+
     def close(self):
-        """Clean up resources."""
+        """Close all connections and cleanup resources."""
+        # Close Supabase connection if exists
         if self._supabase_client:
-            # Supabase client doesn't need explicit cleanup
+            # Supabase client doesn't need explicit closing
             self._supabase_client = None
+        
+        # Clear all dependencies
+        self._repositories.clear()
+        self._services.clear()
+        self._use_cases.clear()
 
 
 # Global container instance
@@ -386,34 +268,23 @@ def get_container() -> DependencyContainer:
 
 
 def reset_container():
-    """Reset the global container (useful for testing)."""
+    """Reset the global container (mainly for testing)."""
     global _container
     if _container:
         _container.close()
     _container = None
 
 
-# Convenience functions for common dependencies
-def get_user_repository() -> UserRepository:
-    """Get user repository."""
-    return get_container().get_user_repository()
-
-
-def get_item_repository() -> ItemRepository:
-    """Get item repository."""
-    return get_container().get_item_repository()
-
-
 def get_auth_service() -> AuthServicePort:
-    """Get authentication service."""
+    """Get auth service from container."""
     return get_container().get_auth_service()
 
 
 def get_email_service() -> EmailServicePort:
-    """Get email service."""
+    """Get email service from container."""
     return get_container().get_email_service()
 
 
 def get_sms_service() -> Optional[SMSServicePort]:
-    """Get SMS service."""
+    """Get SMS service from container."""
     return get_container().get_sms_service() 
