@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 import jwt
+from jwt import InvalidTokenError
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
 
@@ -54,5 +55,5 @@ async def decode_token(token: str) -> Optional[dict]:
         return payload
     except jwt.ExpiredSignatureError:
         return None
-    except jwt.JWTError:
+    except InvalidTokenError:
         return None
