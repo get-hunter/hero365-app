@@ -39,7 +39,6 @@ async def get_current_user(token: TokenDep) -> dict:
         
         if supabase_user_data:
             return supabase_user_data
-        
         # If Supabase verification fails, try legacy JWT verification
         try:
             payload = jwt.decode(

@@ -64,15 +64,32 @@ class OAuthController:
             
             # Check if this is a new user
             is_new_user = self._is_new_user(user_data)
+            print(f"🔍 Is new user: {is_new_user}")
+            
+            # For new users, ensure onboarding metadata is set to default values
+            if is_new_user:
+                default_onboarding_metadata = {
+                    "onboarding_completed": False,
+                    "completed_steps": []
+                }
+                await self._update_user_metadata_if_needed(user_data.id, default_onboarding_metadata)
+                print(f"📝 Set default onboarding metadata for new user: {default_onboarding_metadata}")
             
             # Get fresh user data to include any metadata updates
             auth_service = self.container.get_auth_service()
             updated_user_result = await auth_service.get_user_by_id(user_data.id)
             
             # Get onboarding data using the correct metadata field
-            user_metadata = (updated_user_result.provider_metadata if updated_user_result 
-                           else user_data.provider_metadata) or {}
+            if updated_user_result:
+                user_metadata = updated_user_result.provider_metadata or {}
+                print(f"🔍 Retrieved user metadata: {user_metadata}")
+            else:
+                # Fallback to original user data metadata
+                user_metadata = getattr(user_data, 'user_metadata', {}) or {}
+                print(f"🔍 Fallback user metadata: {user_metadata}")
+            
             onboarding_data = self.auth_facade.get_onboarding_data(user_metadata)
+            print(f"🔍 Onboarding data: {onboarding_data}")
             
             # Build user response
             user_response = AuthUserResponse(
@@ -158,15 +175,32 @@ class OAuthController:
             
             # Check if this is a new user
             is_new_user = self._is_new_user(user_data)
+            print(f"🔍 Is new user: {is_new_user}")
+            
+            # For new users, ensure onboarding metadata is set to default values
+            if is_new_user:
+                default_onboarding_metadata = {
+                    "onboarding_completed": False,
+                    "completed_steps": []
+                }
+                await self._update_user_metadata_if_needed(user_data.id, default_onboarding_metadata)
+                print(f"📝 Set default onboarding metadata for new user: {default_onboarding_metadata}")
             
             # Get fresh user data to include any metadata updates
             auth_service = self.container.get_auth_service()
             updated_user_result = await auth_service.get_user_by_id(user_data.id)
             
             # Get onboarding data using the correct metadata field
-            user_metadata = (updated_user_result.provider_metadata if updated_user_result 
-                           else user_data.provider_metadata) or {}
+            if updated_user_result:
+                user_metadata = updated_user_result.provider_metadata or {}
+                print(f"🔍 Retrieved user metadata: {user_metadata}")
+            else:
+                # Fallback to original user data metadata
+                user_metadata = getattr(user_data, 'user_metadata', {}) or {}
+                print(f"🔍 Fallback user metadata: {user_metadata}")
+            
             onboarding_data = self.auth_facade.get_onboarding_data(user_metadata)
+            print(f"🔍 Onboarding data: {onboarding_data}")
             
             # Build user response
             user_response = AuthUserResponse(
