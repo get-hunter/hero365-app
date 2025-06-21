@@ -5,6 +5,7 @@ Repository implementation using Supabase client SDK for business management oper
 """
 
 import uuid
+import logging
 from typing import Optional, List, Tuple
 from datetime import datetime, timedelta
 import json
@@ -18,6 +19,8 @@ from ....domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DuplicateEntityError, DatabaseError
 )
 
+# Configure logging
+logger = logging.getLogger(__name__)
 
 class SupabaseBusinessRepository(BusinessRepository):
     """
@@ -30,20 +33,29 @@ class SupabaseBusinessRepository(BusinessRepository):
     def __init__(self, supabase_client: Client):
         self.client = supabase_client
         self.table_name = "businesses"
+        logger.info(f"SupabaseBusinessRepository initialized with client: {self.client}")
     
     async def create(self, business: Business) -> Business:
         """Create a new business in Supabase."""
+        logger.info(f"create() called for business: {business.name}, owner: {business.owner_id}")
+        
         try:
             business_data = self._business_to_dict(business)
+            logger.info(f"Business data prepared: {business_data['name']}")
             
+            logger.info("Making request to Supabase table.insert")
             response = self.client.table(self.table_name).insert(business_data).execute()
+            logger.info(f"Supabase response received: data={response.data is not None}")
             
             if response.data:
+                logger.info(f"Business created successfully in Supabase: {response.data[0]['id']}")
                 return self._dict_to_business(response.data[0])
             else:
+                logger.error("Failed to create business - no data returned from Supabase")
                 raise DatabaseError("Failed to create business - no data returned")
                 
         except Exception as e:
+            logger.error(f"Exception in create(): {type(e).__name__}: {str(e)}")
             if "duplicate key" in str(e).lower() or "unique" in str(e).lower():
                 raise DuplicateEntityError(f"Business with name '{business.name}' already exists for this owner")
             raise DatabaseError(f"Failed to create business: {str(e)}")

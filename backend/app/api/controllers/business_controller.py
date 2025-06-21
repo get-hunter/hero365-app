@@ -5,6 +5,7 @@ Handles business management API endpoints with proper dependency injection and u
 """
 
 import uuid
+import logging
 from typing import List
 from fastapi import HTTPException, status
 
@@ -37,13 +38,13 @@ from ...application.exceptions.application_exceptions import (
     ApplicationError, ValidationError, BusinessLogicError
 )
 
+# Configure logging
+logger = logging.getLogger(__name__)
 
 class BusinessController:
     """
-    Business management controller with clean architecture.
-    
-    This controller delegates business logic to use cases and handles
-    HTTP-specific concerns like status codes and error responses.
+    Business management controller that handles HTTP requests and delegates
+    to appropriate use cases following clean architecture principles.
     """
     
     def __init__(
@@ -65,11 +66,18 @@ class BusinessController:
         self.update_business_use_case = update_business_use_case
         self.manage_team_member_use_case = manage_team_member_use_case
         self.manage_invitations_use_case = manage_invitations_use_case
+        
+        logger.info("BusinessController initialized successfully")
+
     
     async def create_business(self, request: BusinessCreateRequest, current_user_id: str) -> BusinessResponse:
         """Create a new business."""
+        logger.info(f"create_business called for user: {current_user_id}")
+        logger.info(f"Business request data - name: {request.name}, industry: {request.industry}")
+        
         try:
             # Convert request to DTO
+            logger.info("Converting request to BusinessCreateDTO")
             dto = BusinessCreateDTO(
                 name=request.name,
                 industry=request.industry,
@@ -86,27 +94,42 @@ class BusinessController:
                 referral_source=ReferralSource(request.referral_source.value) if request.referral_source else None,
                 timezone=request.timezone
             )
+            logger.info(f"BusinessCreateDTO created successfully: name={dto.name}, owner_id={dto.owner_id}")
             
             # Execute use case
+            logger.info("Calling create_business_use_case.execute")
             result = await self.create_business_use_case.execute(dto)
+            logger.info(f"create_business_use_case.execute completed successfully: business_id={result.id}")
             
             # Convert to response schema
-            return self._business_dto_to_response(result)
+            logger.info("Converting result to response schema")
+            response = self._business_dto_to_response(result)
+            logger.info(f"Business created successfully: {response.id}")
+            return response
             
         except ValidationError as e:
+            logger.error(f"ValidationError in create_business: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
         except BusinessLogicError as e:
+            logger.error(f"BusinessLogicError in create_business: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=str(e)
             )
         except ApplicationError as e:
+            logger.error(f"ApplicationError in create_business: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=str(e)
+            )
+        except Exception as e:
+            logger.error(f"Unexpected exception in create_business: {type(e).__name__}: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Unexpected error: {str(e)}"
             )
     
     async def get_user_businesses(self, current_user_id: str, skip: int = 0, limit: int = 100) -> List[UserBusinessSummaryResponse]:

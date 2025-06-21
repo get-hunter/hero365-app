@@ -51,25 +51,36 @@ class AuthMiddleware(BaseHTTPMiddleware):
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process request and validate authentication if required."""
+        path = request.url.path
+        logger.info(f"AuthMiddleware processing request: {request.method} {path}")
+        
         # Skip authentication for certain paths
         if self._should_skip_auth(request):
+            logger.info(f"Skipping authentication for path: {path}")
             return await call_next(request)
+        
+        logger.info(f"Authentication required for path: {path}")
         
         # Extract and validate token
         token = self._extract_token(request)
         if token:
+            logger.info(f"Token extracted: {token[:50]}...")
             user_info = await self._validate_token(token)
             if user_info:
+                logger.info(f"Token validated successfully for user: {user_info.get('sub', 'unknown')}")
                 # Add user info to request state
                 request.state.user = user_info
                 request.state.authenticated = True
             else:
+                logger.warning("Token validation failed")
                 request.state.authenticated = False
         else:
+            logger.warning("No token found in request")
             request.state.authenticated = False
         
         # Continue with request processing
         response = await call_next(request)
+        logger.info(f"Request processed, response status: {response.status_code}")
         return response
     
     def _should_skip_auth(self, request: Request) -> bool:
@@ -92,17 +103,21 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Try Authorization header first
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
+            logger.info("Token found in Authorization header")
             return auth_header[7:]  # Remove "Bearer " prefix
         
         # Try X-API-Key header as fallback
         api_key = request.headers.get("X-API-Key")
         if api_key:
+            logger.info("Token found in X-API-Key header")
             return api_key
         
         # Try cookie (for browser-based requests)
         if "access_token" in request.cookies:
+            logger.info("Token found in cookies")
             return request.cookies["access_token"]
         
+        logger.info("No token found in request")
         return None
     
     async def _validate_token(self, token: str) -> Optional[Dict[str, Any]]:
@@ -116,11 +131,14 @@ class AuthMiddleware(BaseHTTPMiddleware):
             User information dict if valid, None otherwise
         """
         try:
+            logger.info("Validating token with auth facade")
             # Verify token with Supabase
             user_data = await auth_facade.verify_token(token)
             if not user_data:
+                logger.warning("Auth facade returned no user data")
                 return None
             
+            logger.info(f"Token validation successful for user: {user_data.get('sub', 'unknown')}")
             # Return user information in expected format
             return user_data
             

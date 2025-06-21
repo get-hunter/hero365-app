@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import emails  # type: ignore
 import jwt
@@ -13,6 +13,20 @@ from app.core.config import settings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def format_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
+    """Format datetime to standardized UTC format without microseconds."""
+    if dt is None:
+        return None
+    # Ensure datetime is in UTC and format without microseconds
+    if dt.tzinfo is None:
+        # Assume naive datetime is UTC
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    else:
+        # Convert to UTC if not already
+        utc_dt = dt.utctimetuple()
+        return datetime(*utc_dt[:6]).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 @dataclass

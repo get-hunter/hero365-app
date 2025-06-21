@@ -307,7 +307,7 @@ class SupabaseBusinessInvitationRepository(BusinessInvitationRepository):
             "invited_by": invitation.invited_by,
             "invited_by_name": invitation.invited_by_name,
             "role": invitation.role.value,
-            "permissions": json.dumps(invitation.permissions),
+            "permissions": invitation.permissions,  # Send as list directly, not JSON string
             "invitation_date": invitation.invitation_date.isoformat(),
             "expiry_date": invitation.expiry_date.isoformat(),
             "status": invitation.status.value,
@@ -325,7 +325,7 @@ class SupabaseBusinessInvitationRepository(BusinessInvitationRepository):
             invited_by=data["invited_by"],
             invited_by_name=data["invited_by_name"],
             role=BusinessRole(data["role"]),
-            permissions=json.loads(data["permissions"]),
+            permissions=data["permissions"],  # Already a list from JSONB, no need to parse
             invitation_date=datetime.fromisoformat(data["invitation_date"]),
             expiry_date=datetime.fromisoformat(data["expiry_date"]),
             status=InvitationStatus(data["status"]),

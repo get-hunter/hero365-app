@@ -5,6 +5,7 @@ FastAPI routes for business management endpoints.
 """
 
 import uuid
+import logging
 from typing import List
 from fastapi import APIRouter, Depends, Query
 
@@ -18,10 +19,20 @@ from ..schemas.business_schemas import (
 from ..schemas.common_schemas import Message
 from ..deps import get_current_user, get_business_controller
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
-@router.post("/", response_model=BusinessResponse, status_code=201)
+@router.get("/debug", status_code=200)
+async def debug_endpoint():
+    """Debug endpoint to test if business routes are working."""
+    logger.info("🔧 Debug endpoint called")
+    return {"message": "Business routes are working", "status": "ok"}
+
+
+@router.post("", response_model=BusinessResponse, status_code=201)
 async def create_business(
     request: BusinessCreateRequest,
     current_user: dict = Depends(get_current_user),
@@ -33,7 +44,23 @@ async def create_business(
     Creates a new business with the current user as the owner.
     Automatically creates an owner membership for the user.
     """
-    return await controller.create_business(request, current_user["sub"])
+    logger.info(f"create_business endpoint called")
+    logger.info(f"Current user: {current_user}")
+    logger.info(f"Business request: name={request.name}, industry={request.industry}")
+    logger.info(f"Controller instance: {controller}")
+    
+    try:
+        result = await controller.create_business(request, current_user["sub"])
+        logger.info(f"Business creation successful: {result.id}")
+        
+        # Log the complete response before returning
+        logger.info(f"HTTP Response (201 Created): {result.model_dump_json(indent=2)}")
+        logger.info(f"Business {result.id} created successfully for user {current_user.get('email', current_user['sub'])}")
+        
+        return result
+    except Exception as e:
+        logger.error(f"Exception in create_business endpoint: {type(e).__name__}: {str(e)}")
+        raise
 
 
 @router.get("/me", response_model=List[UserBusinessSummaryResponse])

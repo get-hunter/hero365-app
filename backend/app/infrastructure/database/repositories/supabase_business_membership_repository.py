@@ -265,7 +265,7 @@ class SupabaseBusinessMembershipRepository(BusinessMembershipRepository):
             "business_id": str(membership.business_id),
             "user_id": membership.user_id,
             "role": membership.role.value,
-            "permissions": json.dumps(membership.permissions),
+            "permissions": membership.permissions,  # Send as list directly, not JSON string
             "joined_date": membership.joined_date.isoformat(),
             "invited_date": membership.invited_date.isoformat() if membership.invited_date else None,
             "invited_by": membership.invited_by,
@@ -281,7 +281,7 @@ class SupabaseBusinessMembershipRepository(BusinessMembershipRepository):
             business_id=uuid.UUID(data["business_id"]),
             user_id=data["user_id"],
             role=BusinessRole(data["role"]),
-            permissions=json.loads(data["permissions"]),
+            permissions=data["permissions"],  # Already a list from JSONB, no need to parse
             joined_date=datetime.fromisoformat(data["joined_date"]),
             invited_date=datetime.fromisoformat(data["invited_date"]) if data.get("invited_date") else None,
             invited_by=data.get("invited_by"),

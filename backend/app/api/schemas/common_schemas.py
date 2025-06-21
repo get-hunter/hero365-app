@@ -4,7 +4,11 @@ Common Response Schemas
 Shared response schemas used across multiple endpoints.
 """
 
-from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, ConfigDict, field_serializer
+
+from ...utils import format_datetime_utc
 
 
 class Message(BaseModel):
@@ -27,6 +31,8 @@ class ErrorResponse(BaseModel):
 
 class StatusResponse(BaseModel):
     """Health/status check response."""
+    model_config = ConfigDict(json_encoders={datetime: format_datetime_utc})
+    
     status: str
     version: str
-    timestamp: str 
+    timestamp: str  # Keep as string for backward compatibility 

@@ -164,7 +164,8 @@ class DependencyContainer:
     def _get_supabase_client(self) -> Client:
         """Get or create Supabase client."""
         if self._supabase_client is None:
-            self._supabase_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+            # Use service key for database operations (bypasses RLS and has full access)
+            self._supabase_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
         return self._supabase_client
 
     def get_repository(self, name: str) -> Any:
