@@ -31,6 +31,7 @@ from ...application.use_cases.user.create_user import CreateUserUseCase
 from ...application.use_cases.user.get_user import GetUserUseCase
 from ...application.use_cases.user.update_user import UpdateUserUseCase
 from ...application.use_cases.user.delete_user import DeleteUserUseCase
+from ...application.use_cases.user.manage_onboarding import ManageOnboardingUseCase
 
 from ...application.use_cases.auth.authenticate_user import AuthenticateUserUseCase
 from ...application.use_cases.auth.register_user import RegisterUserUseCase
@@ -117,6 +118,11 @@ class DependencyContainer:
         self._use_cases['delete_user'] = DeleteUserUseCase(
             user_repository=self.get_repository('user_repository'),
             item_repository=self.get_repository('item_repository')
+        )
+        
+        self._use_cases['manage_onboarding'] = ManageOnboardingUseCase(
+            user_repository=self.get_repository('user_repository'),
+            auth_service=self.get_service('auth_service')
         )
         
         # Auth use cases (register_user needs create_user to be already created)
@@ -243,6 +249,10 @@ class DependencyContainer:
     def get_delete_item_use_case(self) -> DeleteItemUseCase:
         """Get delete item use case."""
         return self.get_use_case('delete_item')
+    
+    def get_manage_onboarding_use_case(self) -> ManageOnboardingUseCase:
+        """Get manage onboarding use case."""
+        return self.get_use_case('manage_onboarding')
     
     def close(self):
         """Clean up resources."""

@@ -363,47 +363,176 @@ class SupabaseAuthAdapter(AuthServicePort):
             )
     
     async def delete_user(self, user_id: str) -> bool:
-        """Delete user from authentication service."""
+        """Delete a user account."""
         try:
-            # This requires admin privileges
             self.client.auth.admin.delete_user(user_id)
             return True
         except Exception:
             return False
     
     async def list_users(self, page: int = 1, per_page: int = 50) -> Dict[str, Any]:
-        """List users in the authentication service."""
+        """List all users with pagination."""
         try:
-            # This requires admin privileges
-            response = self.client.auth.admin.list_users(page=page, per_page=per_page)
+            response = self.client.auth.admin.list_users(
+                page=page,
+                per_page=per_page
+            )
             
-            users = []
-            if hasattr(response, 'users'):
-                users = [self._convert_to_auth_user(user) for user in response.users]
+            users = [self._convert_to_auth_user(user) for user in response.users]
             
             return {
                 "users": users,
                 "page": page,
                 "per_page": per_page,
-                "total": len(users)  # Supabase doesn't provide total count in basic response
+                "total": len(users),
+                "has_next": response.next_page is not None
             }
-        except Exception:
+        except Exception as e:
             return {
                 "users": [],
                 "page": page,
                 "per_page": per_page,
-                "total": 0
+                "total": 0,
+                "has_next": False,
+                "error": str(e)
             }
     
-    async def get_service_health(self) -> Dict[str, Any]:
-        """Get authentication service health status."""
+    async def sign_in_with_oauth(self, provider: str, id_token: str, access_token: str = None) -> AuthResult:
+        """Sign in with OAuth provider using ID token."""
         try:
-            # Simple health check by attempting to get current session
-            self.client.auth.get_session()
+            response = self.client.auth.sign_in_with_id_token({
+                "provider": provider,
+                "token": id_token,
+                "access_token": access_token
+            })
+            
+            if response.user and response.session:
+                auth_user = self._convert_to_auth_user(response.user)
+                auth_token = self._convert_to_auth_token(response.session)
+                
+                return AuthResult(
+                    success=True,
+                    user=auth_user,
+                    token=auth_token
+                )
+            else:
+                return AuthResult(
+                    success=False,
+                    error_message="OAuth authentication failed"
+                )
+        except Exception as e:
+            return AuthResult(
+                success=False,
+                error_message=str(e),
+                error_code="OAUTH_ERROR"
+            )
+    
+    async def create_user_with_oauth(self, provider: str, provider_id: str, email: str, 
+                                   user_metadata: Dict[str, Any] = None) -> AuthResult:
+        """Create a user from OAuth provider data."""
+        try:
+            response = self.client.auth.admin.create_user({
+                "email": email,
+                "user_metadata": user_metadata or {},
+                "app_metadata": {
+                    "provider": provider,
+                    "provider_id": provider_id
+                },
+                "email_confirm": True  # OAuth users are pre-verified
+            })
+            
+            if response.user:
+                auth_user = self._convert_to_auth_user(response.user)
+                return AuthResult(
+                    success=True,
+                    user=auth_user
+                )
+            else:
+                return AuthResult(
+                    success=False,
+                    error_message="Failed to create OAuth user"
+                )
+        except Exception as e:
+            return AuthResult(
+                success=False,
+                error_message=str(e),
+                error_code="OAUTH_CREATE_ERROR"
+            )
+    
+    async def send_otp(self, phone: str) -> bool:
+        """Send OTP to phone number for passwordless authentication."""
+        try:
+            self.client.auth.sign_in_with_otp({"phone": phone})
+            return True
+        except Exception:
+            return False
+    
+    async def verify_otp(self, phone: str, token: str) -> AuthResult:
+        """Verify OTP for phone number authentication."""
+        try:
+            response = self.client.auth.verify_otp({
+                "phone": phone,
+                "token": token,
+                "type": "sms"
+            })
+            
+            if response.user and response.session:
+                auth_user = self._convert_to_auth_user(response.user)
+                auth_token = self._convert_to_auth_token(response.session)
+                
+                return AuthResult(
+                    success=True,
+                    user=auth_user,
+                    token=auth_token
+                )
+            else:
+                return AuthResult(
+                    success=False,
+                    error_message="OTP verification failed"
+                )
+        except Exception as e:
+            return AuthResult(
+                success=False,
+                error_message=str(e),
+                error_code="OTP_ERROR"
+            )
+    
+    async def update_user_metadata(self, user_id: str, user_metadata: Dict[str, Any]) -> AuthResult:
+        """Update user metadata."""
+        try:
+            response = self.client.auth.admin.update_user_by_id(
+                user_id, 
+                {"user_metadata": user_metadata}
+            )
+            
+            if response.user:
+                auth_user = self._convert_to_auth_user(response.user)
+                return AuthResult(
+                    success=True,
+                    user=auth_user
+                )
+            else:
+                return AuthResult(
+                    success=False,
+                    error_message="Failed to update user metadata"
+                )
+        except Exception as e:
+            return AuthResult(
+                success=False,
+                error_message=str(e),
+                error_code="UPDATE_ERROR"
+            )
+
+    async def get_service_health(self) -> Dict[str, Any]:
+        """Check if the authentication service is healthy."""
+        try:
+            # Simple health check by trying to get current user
+            # This will fail gracefully if service is down
+            await self.verify_token("dummy_token")  # This will fail but service is responsive
             return {
                 "status": "healthy",
                 "service": "supabase_auth",
-                "timestamp": "2024-01-01T00:00:00Z"  # Would be current timestamp
+                "timestamp": "2024-01-01T00:00:00Z"  # You might want to use actual timestamp
             }
         except Exception as e:
             return {
@@ -415,15 +544,16 @@ class SupabaseAuthAdapter(AuthServicePort):
     
     def _convert_to_auth_user(self, supabase_user) -> AuthUser:
         """Convert Supabase user to AuthUser."""
+        user_metadata = supabase_user.user_metadata or {}
         return AuthUser(
             id=supabase_user.id,
             email=supabase_user.email,
             phone=supabase_user.phone,
-            full_name=supabase_user.user_metadata.get("full_name") if supabase_user.user_metadata else None,
+            full_name=user_metadata.get("full_name"),
             provider=AuthProvider.SUPABASE,
             is_email_verified=bool(supabase_user.email_confirmed_at),
             is_phone_verified=bool(supabase_user.phone_confirmed_at),
-            provider_metadata=supabase_user.user_metadata or {},
+            provider_metadata=user_metadata,
             created_at=supabase_user.created_at,
             last_sign_in=supabase_user.last_sign_in_at
         )
@@ -433,7 +563,7 @@ class SupabaseAuthAdapter(AuthServicePort):
         return AuthToken(
             access_token=supabase_session.access_token,
             refresh_token=supabase_session.refresh_token,
-            token_type="Bearer",
+            token_type=supabase_session.token_type or "Bearer",
             expires_in=supabase_session.expires_in,
-            expires_at=str(supabase_session.expires_at) if supabase_session.expires_at else None
+            expires_at=supabase_session.expires_at
         ) 

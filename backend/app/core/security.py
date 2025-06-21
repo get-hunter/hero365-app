@@ -6,7 +6,7 @@ from passlib.context import CryptContext
 from fastapi import HTTPException, status
 
 from app.core.config import settings
-from app.core.supabase import supabase_service
+from app.core.auth_facade import auth_facade
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -32,20 +32,20 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def verify_supabase_token(token: str) -> Optional[dict]:
+async def verify_supabase_token(token: str) -> Optional[dict]:
     """Verify Supabase JWT token and return user data."""
     try:
-        user_data = supabase_service.verify_token(token)
+        user_data = await auth_facade.verify_token(token)
         return user_data
     except Exception as e:
         return None
 
 
-def decode_token(token: str) -> Optional[dict]:
+async def decode_token(token: str) -> Optional[dict]:
     """Decode JWT token - supports both legacy and Supabase tokens."""
     try:
         # First try to verify as Supabase token
-        supabase_user = verify_supabase_token(token)
+        supabase_user = await verify_supabase_token(token)
         if supabase_user:
             return supabase_user
         

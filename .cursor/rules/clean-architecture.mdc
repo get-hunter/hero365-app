@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+This project follows clean arquitecture practices. So, berofe implementing a new feature, class, method, database access, etc make a search to deeply understand the structure and maintaing good practices.
