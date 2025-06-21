@@ -52,6 +52,8 @@ All authentication endpoints now include onboarding status in their responses:
 - `POST /auth/apple/signin` (Apple Sign-In)
 - `POST /auth/google/signin` (Google Sign-In)
 
+**Important Note**: OAuth endpoints (Apple/Google Sign-In) now properly save the `full_name` and other profile information to user metadata in Supabase, ensuring persistence across sessions.
+
 **Enhanced User Object in Auth Responses**:
 ```json
 {
@@ -114,6 +116,18 @@ Onboarding data is stored in the user's metadata in Supabase:
   }
 }
 ```
+
+### OAuth Profile Data Persistence
+
+**Apple Sign-In**: The `full_name` provided in the sign-in request is automatically saved to user metadata.
+
+**Google Sign-In**: Multiple profile fields are saved to user metadata:
+- `full_name`: Complete name
+- `given_name`: First name  
+- `family_name`: Last name
+- `picture_url`: Profile picture URL
+
+**Metadata Update Logic**: Profile data is only saved if the field is not already present or is empty, preventing overwrites of existing user-modified data.
 
 ## Usage Examples
 
