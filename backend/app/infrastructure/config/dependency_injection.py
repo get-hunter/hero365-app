@@ -13,6 +13,9 @@ from ...core.config import settings
 # Domain Repositories
 from ...domain.repositories.user_repository import UserRepository
 from ...domain.repositories.item_repository import ItemRepository
+from ...domain.repositories.business_repository import BusinessRepository
+from ...domain.repositories.business_membership_repository import BusinessMembershipRepository
+from ...domain.repositories.business_invitation_repository import BusinessInvitationRepository
 
 # Application Ports
 from ...application.ports.auth_service import AuthServicePort
@@ -22,6 +25,9 @@ from ...application.ports.sms_service import SMSServicePort
 # Infrastructure Implementations
 from ..database.repositories.supabase_user_repository import SupabaseUserRepository
 from ..database.repositories.supabase_item_repository import SupabaseItemRepository
+from ..database.repositories.supabase_business_repository import SupabaseBusinessRepository
+from ..database.repositories.supabase_business_membership_repository import SupabaseBusinessMembershipRepository
+from ..database.repositories.supabase_business_invitation_repository import SupabaseBusinessInvitationRepository
 from ..external_services.supabase_auth_adapter import SupabaseAuthAdapter
 from ..external_services.smtp_email_adapter import SMTPEmailAdapter
 from ..external_services.twilio_sms_adapter import TwilioSMSAdapter
@@ -41,6 +47,15 @@ from ...application.use_cases.item.create_item import CreateItemUseCase
 from ...application.use_cases.item.get_items import GetItemsUseCase
 from ...application.use_cases.item.update_item import UpdateItemUseCase
 from ...application.use_cases.item.delete_item import DeleteItemUseCase
+
+from ...application.use_cases.business.create_business import CreateBusinessUseCase
+from ...application.use_cases.business.invite_team_member import InviteTeamMemberUseCase
+from ...application.use_cases.business.accept_invitation import AcceptInvitationUseCase
+from ...application.use_cases.business.get_user_businesses import GetUserBusinessesUseCase
+from ...application.use_cases.business.get_business_detail import GetBusinessDetailUseCase
+from ...application.use_cases.business.update_business import UpdateBusinessUseCase
+from ...application.use_cases.business.manage_team_member import ManageTeamMemberUseCase
+from ...application.use_cases.business.manage_invitations import ManageInvitationsUseCase
 
 
 class DependencyContainer:
@@ -67,6 +82,9 @@ class DependencyContainer:
         supabase_client = self._get_supabase_client()
         self._repositories['user_repository'] = SupabaseUserRepository(supabase_client=supabase_client)
         self._repositories['item_repository'] = SupabaseItemRepository(supabase_client=supabase_client)
+        self._repositories['business_repository'] = SupabaseBusinessRepository(supabase_client=supabase_client)
+        self._repositories['business_membership_repository'] = SupabaseBusinessMembershipRepository(supabase_client=supabase_client)
+        self._repositories['business_invitation_repository'] = SupabaseBusinessInvitationRepository(supabase_client=supabase_client)
     
     def _setup_services(self):
         """Initialize external service adapters."""
@@ -155,6 +173,53 @@ class DependencyContainer:
         
         self._use_cases['delete_item'] = DeleteItemUseCase(
             item_repository=self.get_repository('item_repository')
+        )
+        
+        # Business use cases
+        self._use_cases['create_business'] = CreateBusinessUseCase(
+            business_repository=self.get_repository('business_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        self._use_cases['invite_team_member'] = InviteTeamMemberUseCase(
+            business_repository=self.get_repository('business_repository'),
+            membership_repository=self.get_repository('business_membership_repository'),
+            invitation_repository=self.get_repository('business_invitation_repository'),
+            email_service=self.get_service('email_service')
+        )
+        
+        self._use_cases['accept_invitation'] = AcceptInvitationUseCase(
+            business_repository=self.get_repository('business_repository'),
+            membership_repository=self.get_repository('business_membership_repository'),
+            invitation_repository=self.get_repository('business_invitation_repository')
+        )
+        
+        self._use_cases['get_user_businesses'] = GetUserBusinessesUseCase(
+            business_repository=self.get_repository('business_repository'),
+            membership_repository=self.get_repository('business_membership_repository'),
+            invitation_repository=self.get_repository('business_invitation_repository')
+        )
+        
+        self._use_cases['get_business_detail'] = GetBusinessDetailUseCase(
+            business_repository=self.get_repository('business_repository'),
+            membership_repository=self.get_repository('business_membership_repository'),
+            invitation_repository=self.get_repository('business_invitation_repository')
+        )
+        
+        self._use_cases['update_business'] = UpdateBusinessUseCase(
+            business_repository=self.get_repository('business_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        self._use_cases['manage_team_member'] = ManageTeamMemberUseCase(
+            business_repository=self.get_repository('business_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        self._use_cases['manage_invitations'] = ManageInvitationsUseCase(
+            business_repository=self.get_repository('business_repository'),
+            membership_repository=self.get_repository('business_membership_repository'),
+            invitation_repository=self.get_repository('business_invitation_repository')
         )
     
     def _get_supabase_client(self) -> Client:
@@ -254,6 +319,52 @@ class DependencyContainer:
     def get_manage_onboarding_use_case(self) -> ManageOnboardingUseCase:
         """Get manage onboarding use case."""
         return self.get_use_case('manage_onboarding')
+    
+    # Business repositories
+    def get_business_repository(self) -> BusinessRepository:
+        """Get business repository."""
+        return self.get_repository('business_repository')
+    
+    def get_business_membership_repository(self) -> BusinessMembershipRepository:
+        """Get business membership repository."""
+        return self.get_repository('business_membership_repository')
+    
+    def get_business_invitation_repository(self) -> BusinessInvitationRepository:
+        """Get business invitation repository."""
+        return self.get_repository('business_invitation_repository')
+    
+    # Business use cases
+    def get_create_business_use_case(self) -> CreateBusinessUseCase:
+        """Get create business use case."""
+        return self.get_use_case('create_business')
+    
+    def get_invite_team_member_use_case(self) -> InviteTeamMemberUseCase:
+        """Get invite team member use case."""
+        return self.get_use_case('invite_team_member')
+    
+    def get_accept_invitation_use_case(self) -> AcceptInvitationUseCase:
+        """Get accept invitation use case."""
+        return self.get_use_case('accept_invitation')
+    
+    def get_get_user_businesses_use_case(self) -> GetUserBusinessesUseCase:
+        """Get user businesses use case."""
+        return self.get_use_case('get_user_businesses')
+    
+    def get_get_business_detail_use_case(self) -> GetBusinessDetailUseCase:
+        """Get business detail use case."""
+        return self.get_use_case('get_business_detail')
+    
+    def get_update_business_use_case(self) -> UpdateBusinessUseCase:
+        """Get update business use case."""
+        return self.get_use_case('update_business')
+    
+    def get_manage_team_member_use_case(self) -> ManageTeamMemberUseCase:
+        """Get manage team member use case."""
+        return self.get_use_case('manage_team_member')
+    
+    def get_manage_invitations_use_case(self) -> ManageInvitationsUseCase:
+        """Get manage invitations use case."""
+        return self.get_use_case('manage_invitations')
     
     def close(self):
         """Clean up resources."""

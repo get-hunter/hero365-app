@@ -74,6 +74,23 @@ async def get_current_user(token: TokenDep) -> dict:
 CurrentUser = Annotated[dict, Depends(get_current_user)]
 
 
+def get_business_controller():
+    """Get business controller with dependencies."""
+    from app.api.controllers.business_controller import BusinessController
+    container = get_container()
+    
+    return BusinessController(
+        create_business_use_case=container.get_create_business_use_case(),
+        invite_team_member_use_case=container.get_invite_team_member_use_case(),
+        accept_invitation_use_case=container.get_accept_invitation_use_case(),
+        get_user_businesses_use_case=container.get_get_user_businesses_use_case(),
+        get_business_detail_use_case=container.get_get_business_detail_use_case(),
+        update_business_use_case=container.get_update_business_use_case(),
+        manage_team_member_use_case=container.get_manage_team_member_use_case(),
+        manage_invitations_use_case=container.get_manage_invitations_use_case()
+    )
+
+
 def get_current_active_superuser(current_user: CurrentUser) -> dict:
     """
     Get current active superuser from Supabase user metadata

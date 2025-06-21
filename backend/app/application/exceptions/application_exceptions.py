@@ -93,8 +93,11 @@ class PermissionDeniedError(ApplicationException):
 class ValidationError(ApplicationException):
     """Raised when input validation fails at the application layer."""
     
-    def __init__(self, field: str, message: str):
-        full_message = f"Validation error for field '{field}': {message}"
+    def __init__(self, message: str, field: str = None):
+        if field:
+            full_message = f"Validation error for field '{field}': {message}"
+        else:
+            full_message = message
         super().__init__(full_message, "VALIDATION_ERROR")
         self.field = field
         self.validation_message = message
@@ -132,4 +135,16 @@ class RateLimitExceededError(ApplicationException):
         super().__init__(message, "RATE_LIMIT_EXCEEDED")
         self.operation = operation
         self.limit = limit
-        self.window = window 
+        self.window = window
+
+
+class BusinessLogicError(ApplicationException):
+    """Raised when business logic rules are violated."""
+    
+    def __init__(self, message: str, rule: str = None):
+        super().__init__(message, "BUSINESS_LOGIC_ERROR")
+        self.rule = rule
+
+
+# Aliases for backwards compatibility
+ApplicationError = ApplicationException 
