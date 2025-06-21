@@ -45,14 +45,29 @@ class AuthTokenDTO:
 class AuthUserDTO:
     """DTO for authenticated user information."""
     
-    id: uuid.UUID
+    id: str
     email: Optional[str]
     phone: Optional[str]
     full_name: Optional[str]
-    is_active: bool
-    is_superuser: bool
+    is_active: bool = True
+    is_superuser: bool = False
     supabase_id: Optional[str] = None
     last_login: Optional[datetime] = None
+    metadata: Optional[Dict[str, Any]] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "id": self.id,
+            "email": self.email,
+            "phone": self.phone,
+            "full_name": self.full_name,
+            "is_active": self.is_active,
+            "is_superuser": self.is_superuser,
+            "supabase_id": self.supabase_id,
+            "last_login": self.last_login,
+            "metadata": self.metadata or {}
+        }
 
 
 @dataclass

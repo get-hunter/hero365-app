@@ -33,6 +33,8 @@ from ...application.use_cases.auth.authenticate_user import AuthenticateUserUseC
 from ...application.use_cases.auth.register_user import RegisterUserUseCase
 from ...application.use_cases.auth.reset_password import ResetPasswordUseCase
 
+from ...application.use_cases.user.manage_onboarding import ManageOnboardingUseCase
+
 from ...application.use_cases.business.create_business import CreateBusinessUseCase
 from ...application.use_cases.business.invite_team_member import InviteTeamMemberUseCase
 from ...application.use_cases.business.accept_invitation import AcceptInvitationUseCase
@@ -108,6 +110,9 @@ class DependencyContainer:
         self._use_cases['authenticate_user'] = AuthenticateUserUseCase()
         self._use_cases['register_user'] = RegisterUserUseCase()
         self._use_cases['reset_password'] = ResetPasswordUseCase()
+        
+        # User use cases
+        self._use_cases['manage_onboarding'] = ManageOnboardingUseCase()
         
         # Business use cases
         self._use_cases['create_business'] = CreateBusinessUseCase(
@@ -197,6 +202,10 @@ class DependencyContainer:
     def get_reset_password_use_case(self) -> ResetPasswordUseCase:
         """Get reset password use case."""
         return self.get_use_case('reset_password')
+
+    def get_manage_onboarding_use_case(self) -> ManageOnboardingUseCase:
+        """Get manage onboarding use case."""
+        return self.get_use_case('manage_onboarding')
 
     def get_business_repository(self) -> BusinessRepository:
         """Get business repository."""
