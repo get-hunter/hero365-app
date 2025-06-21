@@ -117,7 +117,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         """
         try:
             # Decode and verify token
-            payload = decode_token(token)
+            payload = await decode_token(token)
             if not payload:
                 return None
             
