@@ -43,7 +43,7 @@ check_prerequisites() {
     # Check production config
     if [ ! -f "$PROJECT_ROOT/environments/production.env" ]; then
         echo "❌ Production config not found"
-        echo "Please run: ./scripts/setup-environment.sh setup-prod"
+        echo "Please run: ./aws/deployment/setup-environment.sh setup-prod"
         exit 1
     fi
     

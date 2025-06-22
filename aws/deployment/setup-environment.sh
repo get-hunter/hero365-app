@@ -6,7 +6,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 echo "🔧 Hero365 Environment Setup"
 echo "Project Root: $PROJECT_ROOT"
@@ -122,8 +122,7 @@ setup_production() {
     echo "📋 Next steps:"
     echo "1. Edit environments/production.env with your values"
     echo "2. Run: $0 validate production"
-    echo "3. Run: ./aws/deploy.sh"
-    echo "4. Run: ./aws/custom-domain-setup.sh"
+    echo "3. Run: ./aws/deployment/deploy-production.sh"
 }
 
 # Function to validate environment
