@@ -7,10 +7,12 @@ clean architecture principles by delegating to proper use cases and services.
 
 from typing import Optional, Dict, Any, List
 import uuid
-from datetime import datetime
+import jwt
+from datetime import datetime, timedelta
 
 from ..infrastructure.config.dependency_injection import get_container
 from ..application.exceptions.application_exceptions import UserNotFoundError
+from ..core.config import settings
 
 
 class AuthFacade:
@@ -26,21 +28,134 @@ class AuthFacade:
     
     # Authentication Operations
     async def verify_token(self, token: str) -> Optional[Dict]:
-        """Verify a JWT token and return user data."""
+        """Verify a JWT token and return user data with business context."""
         auth_service = self.container.get_auth_service()
         result = await auth_service.verify_token(token)
         
         if result.success and result.user:
+            # Get user's business memberships
+            business_memberships = await self._get_user_business_memberships(result.user.id)
+            
             user_data = {
+                "sub": result.user.id,  # Standard JWT subject claim
                 "id": result.user.id,
                 "email": result.user.email,
                 "phone": getattr(result.user, 'phone', None),
                 "user_metadata": getattr(result.user, 'metadata', {}),
                 "app_metadata": {},  # Can be extracted from metadata if needed
+                "business_memberships": business_memberships,
+                "current_business_id": self._get_current_business_id_from_metadata(
+                    getattr(result.user, 'metadata', {}), business_memberships
+                )
             }
             return user_data
         return None
-    
+
+    async def create_enhanced_jwt_token(self, user_id: str, current_business_id: Optional[str] = None) -> str:
+        """Create an enhanced JWT token with business context."""
+        # Get user's business memberships
+        business_memberships = await self._get_user_business_memberships(user_id)
+        
+        # If no current business specified, use the first one or None
+        if not current_business_id and business_memberships:
+            current_business_id = business_memberships[0]["business_id"]
+        
+        # Create JWT payload with business context
+        payload = {
+            "sub": user_id,
+            "user_id": user_id,
+            "current_business_id": current_business_id,
+            "business_memberships": business_memberships,
+            "iat": datetime.utcnow(),
+            "exp": datetime.utcnow() + timedelta(hours=24),  # 24 hour expiry
+        }
+        
+        # Generate JWT token
+        token = jwt.encode(
+            payload,
+            settings.SECRET_KEY,
+            algorithm="HS256"
+        )
+        
+        return token
+
+    async def verify_enhanced_jwt_token(self, token: str) -> Optional[Dict]:
+        """Verify enhanced JWT token and return decoded payload."""
+        try:
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=["HS256"]
+            )
+            
+            # Validate business memberships are still active
+            user_id = payload.get("sub") or payload.get("user_id")
+            current_memberships = await self._get_user_business_memberships(user_id)
+            
+            # Update token data with current membership status
+            payload["business_memberships"] = current_memberships
+            
+            return payload
+            
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception:
+            return None
+
+    async def switch_business_context(self, user_id: str, new_business_id: str) -> str:
+        """Switch user's business context and return new JWT token."""
+        # Verify user is member of the target business
+        business_memberships = await self._get_user_business_memberships(user_id)
+        
+        valid_business_ids = [membership["business_id"] for membership in business_memberships]
+        
+        if new_business_id not in valid_business_ids:
+            raise ValueError(f"User is not a member of business {new_business_id}")
+        
+        # Create new token with updated business context
+        return await self.create_enhanced_jwt_token(user_id, new_business_id)
+
+    async def _get_user_business_memberships(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get user's business memberships with roles and permissions."""
+        try:
+            membership_repo = self.container.get_business_membership_repository()
+            memberships = await membership_repo.get_user_memberships(user_id)
+            
+            membership_data = []
+            for membership in memberships:
+                if membership.is_active:
+                    membership_data.append({
+                        "business_id": str(membership.business_id),
+                        "role": membership.role.value,
+                        "permissions": membership.permissions,
+                        "role_level": membership.get_role_level()
+                    })
+            
+            return membership_data
+            
+        except Exception:
+            return []
+
+    def _get_current_business_id_from_metadata(self, metadata: Dict, memberships: List[Dict]) -> Optional[str]:
+        """Extract current business ID from user metadata or default to first membership."""
+        # Check if user has a preferred business in metadata
+        current_business = metadata.get("current_business_id")
+        
+        if current_business and memberships:
+            # Verify the preferred business is in user's memberships
+            valid_business_ids = [m["business_id"] for m in memberships]
+            if current_business in valid_business_ids:
+                return current_business
+        
+        # Default to first membership if available
+        if memberships:
+            return memberships[0]["business_id"]
+        
+        return None
+
+    # Authentication Operations
     async def create_user(self, email: str, password: str, user_metadata: Dict = None) -> Dict:
         """Create a new user with email and password."""
         auth_service = self.container.get_auth_service()

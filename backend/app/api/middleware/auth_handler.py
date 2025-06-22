@@ -24,9 +24,10 @@ security = HTTPBearer(auto_error=False)
 
 class AuthMiddleware(BaseHTTPMiddleware):
     """
-    Authentication middleware for JWT token validation.
+    Authentication middleware for JWT token validation with business context support.
     
-    This middleware validates JWT tokens and adds user information to the request.
+    This middleware validates both legacy Supabase tokens and new enhanced JWT tokens
+    with business context information.
     """
     
     def __init__(self, app, skip_paths: list = None):
@@ -124,6 +125,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
         """
         Validate JWT token and return user information.
         
+        Supports both enhanced JWT tokens and legacy Supabase tokens.
+        
         Args:
             token: JWT token to validate
             
@@ -131,16 +134,21 @@ class AuthMiddleware(BaseHTTPMiddleware):
             User information dict if valid, None otherwise
         """
         try:
-            logger.info("Validating token with auth facade")
-            # Verify token with Supabase
-            user_data = await auth_facade.verify_token(token)
-            if not user_data:
-                logger.warning("Auth facade returned no user data")
-                return None
+            # First, try to validate as enhanced JWT token
+            enhanced_payload = await auth_facade.verify_enhanced_jwt_token(token)
+            if enhanced_payload:
+                logger.info("Enhanced JWT token validated successfully")
+                return enhanced_payload
             
-            logger.info(f"Token validation successful for user: {user_data.get('sub', 'unknown')}")
-            # Return user information in expected format
-            return user_data
+            # Fallback to Supabase token validation
+            logger.info("Falling back to Supabase token validation")
+            user_data = await auth_facade.verify_token(token)
+            if user_data:
+                logger.info(f"Supabase token validation successful for user: {user_data.get('sub', 'unknown')}")
+                return user_data
+            
+            logger.warning("All token validation methods failed")
+            return None
             
         except jwt.ExpiredSignatureError:
             logger.warning("Token has expired")
@@ -279,6 +287,11 @@ class RoleBasedAccessMiddleware(BaseHTTPMiddleware):
         if isinstance(user_roles, list):
             roles.extend(user_roles)
         
+        # Add business roles if available
+        business_memberships = user.get('business_memberships', [])
+        for membership in business_memberships:
+            roles.append(membership.get('role', ''))
+        
         return roles
 
 
@@ -293,6 +306,41 @@ def get_current_user_from_request(request: Request) -> Optional[Dict[str, Any]]:
         User information dict or None
     """
     return getattr(request.state, 'user', None)
+
+
+def get_current_business_context(request: Request) -> Optional[Dict[str, Any]]:
+    """
+    Extract current business context from authenticated user.
+    
+    Args:
+        request: FastAPI request object
+        
+    Returns:
+        Business context dict or None
+    """
+    user = get_current_user_from_request(request)
+    if not user:
+        return None
+    
+    current_business_id = user.get('current_business_id')
+    business_memberships = user.get('business_memberships', [])
+    
+    # Find current business membership
+    current_membership = None
+    for membership in business_memberships:
+        if membership.get('business_id') == current_business_id:
+            current_membership = membership
+            break
+    
+    if current_membership:
+        return {
+            "business_id": current_business_id,
+            "role": current_membership.get('role'),
+            "permissions": current_membership.get('permissions', []),
+            "role_level": current_membership.get('role_level', 0)
+        }
+    
+    return None
 
 
 def require_authenticated_user(request: Request) -> Dict[str, Any]:
@@ -322,6 +370,41 @@ def require_authenticated_user(request: Request) -> Dict[str, Any]:
         )
     
     return user
+
+
+def require_business_permission(request: Request, permission: str) -> bool:
+    """
+    Check if authenticated user has specific business permission.
+    
+    Args:
+        request: FastAPI request object
+        permission: Required permission string
+        
+    Returns:
+        True if user has permission, False otherwise
+        
+    Raises:
+        HTTPException: If user is not authenticated or lacks business context
+    """
+    user = require_authenticated_user(request)
+    business_context = get_current_business_context(request)
+    
+    if not business_context:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Business context required for this operation"
+        )
+    
+    user_permissions = business_context.get('permissions', [])
+    has_permission = permission in user_permissions
+    
+    if not has_permission:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Permission '{permission}' required for this operation"
+        )
+    
+    return True
 
 
 def require_superuser(request: Request) -> Dict[str, Any]:

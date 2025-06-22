@@ -1,19 +1,18 @@
 import sentry_sdk
 import logging
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from fastapi.routing import APIRoute
-from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.main import api_router
-from app.api.middleware.error_handler import ErrorHandlerMiddleware
-from app.api.middleware.cors_handler import add_cors_middleware
-from app.api.middleware.auth_handler import AuthMiddleware
+from app.api.middleware.middleware_manager import middleware_manager
 from app.core.config import settings
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 def custom_generate_unique_id(route: APIRoute) -> str:
+    """Generate unique IDs for API routes."""
     if route.tags:
         return f"{route.tags[0]}-{route.name}"
     return route.name
@@ -22,8 +21,11 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 def create_application() -> FastAPI:
     """Create and configure the FastAPI application with clean architecture."""
     
+    logger.info(f"🚀 Creating Hero365 application in {settings.ENVIRONMENT} environment")
+    
     # Initialize Sentry if configured
     if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
+        logger.info("📊 Initializing Sentry monitoring")
         sentry_sdk.init(dsn=str(settings.SENTRY_DSN), enable_tracing=True)
 
     # Create FastAPI application
@@ -42,45 +44,26 @@ def create_application() -> FastAPI:
         ] if settings.ENVIRONMENT == "production" else None
     )
 
-    # Add middleware in correct order (last added = first executed)
-    
-    # 1. Error handling middleware (outermost - catches all exceptions)
-    application.add_middleware(ErrorHandlerMiddleware)
-    
-    # 2. CORS middleware
-    add_cors_middleware(application)
-    
-    # 3. Authentication middleware (innermost - sets user context)
-    application.add_middleware(
-        AuthMiddleware,
-        skip_paths=[
-            "/docs",
-            "/redoc", 
-            "/openapi.json",
-            "/health",
-            f"{settings.API_V1_STR}/auth/signup",
-            f"{settings.API_V1_STR}/auth/signup/phone",
-            f"{settings.API_V1_STR}/auth/signin",
-            f"{settings.API_V1_STR}/auth/signin/phone",
-            f"{settings.API_V1_STR}/auth/otp/send",
-            f"{settings.API_V1_STR}/auth/otp/verify",
-            f"{settings.API_V1_STR}/auth/oauth/google",
-            f"{settings.API_V1_STR}/auth/oauth/apple",
-            f"{settings.API_V1_STR}/auth/apple/signin",
-            f"{settings.API_V1_STR}/auth/google/signin",
-            f"{settings.API_V1_STR}/auth/password-recovery",
-            f"{settings.API_V1_STR}/auth/refresh",
-        ]
-    )
+    # Apply all middlewares using the middleware manager
+    logger.info("🔧 Applying middleware stack...")
+    middleware_manager.apply_all_middlewares(application)
 
     # Include API router
+    logger.info("🛣️  Including API routes...")
     application.include_router(api_router, prefix=settings.API_V1_STR)
     
     # Add health check endpoint (outside of API versioning for infrastructure)
     @application.get("/health", tags=["health"])
     async def health_check():
-        return {"status": "healthy", "environment": settings.ENVIRONMENT}
+        """Health check endpoint for infrastructure monitoring."""
+        return {
+            "status": "healthy", 
+            "environment": settings.ENVIRONMENT,
+            "version": "2.0.0",
+            "middleware_info": middleware_manager.get_middleware_info()
+        }
     
+    logger.info("✅ Hero365 application created successfully!")
     return application
 
 
