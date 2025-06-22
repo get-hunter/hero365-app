@@ -31,7 +31,7 @@ def create_application() -> FastAPI:
         title=settings.PROJECT_NAME,
         openapi_url=f"{settings.API_V1_STR}/openapi.json",
         generate_unique_id_function=custom_generate_unique_id,
-        description="Hero365 App - the AI-powered business management platform for home service businesses",
+        description="Hero365 App - the AI-native business management platform for home service businesses",
         version="2.0.0",
         redirect_slashes=False,  # Prevent automatic redirects that strip auth headers
         servers=[
