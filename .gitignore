@@ -10,3 +10,5 @@ node_modules/
 /environments/local.env
 environments/production.env*
 *.env.bak
+.env.bak
+environments/production.env*
