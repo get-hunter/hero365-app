@@ -1,14 +1,24 @@
-.env
 .vscode
 node_modules/
 /test-results/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
-/environments/production.env
-/environments/staging.env
-/environments/local.env
-environments/production.env*
+
+# Environment files
+.env
+.env.*
+*.env
 *.env.bak
-.env.bak
-environments/production.env*
+environments/production.env
+environments/staging.env
+environments/local.env
+
+# AWS credentials
+.aws/
+
+# Secrets
+secrets/
+*.key
+*.pem
+EOF
