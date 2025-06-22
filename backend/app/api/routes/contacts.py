@@ -1,0 +1,567 @@
+"""
+Contact API Routes
+
+REST API endpoints for contact management operations.
+"""
+
+import uuid
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
+
+from ..deps import get_current_user, get_business_context
+from ..schemas.contact_schemas import (
+    ContactCreateRequest, ContactUpdateRequest, ContactSearchRequest,
+    ContactBulkUpdateRequest, ContactConversionRequest, ContactAssignmentRequest,
+    ContactTagOperationRequest, ContactResponse, ContactListResponse,
+    ContactStatisticsResponse, ContactBulkOperationResponse, MessageResponse
+)
+from ...application.use_cases.contact.manage_contacts import ManageContactsUseCase
+from ...application.dto.contact_dto import (
+    ContactCreateDTO, ContactUpdateDTO, ContactSearchDTO, ContactBulkUpdateDTO,
+    ContactConversionDTO, ContactAssignmentDTO, ContactTagOperationDTO,
+    ContactAddressDTO
+)
+from ...domain.entities.contact import ContactType, ContactStatus, ContactPriority, ContactSource
+from ...infrastructure.config.dependency_injection import get_manage_contacts_use_case
+
+
+router = APIRouter(prefix="/contacts", tags=["contacts"])
+
+
+@router.post("/", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
+async def create_contact(
+    request: ContactCreateRequest,
+    business_id: uuid.UUID = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Create a new contact.
+    
+    Creates a new contact for the current business with the provided information.
+    Requires 'edit_contacts' permission.
+    """
+    # Convert address if provided
+    address_dto = None
+    if request.address:
+        address_dto = ContactAddressDTO(
+            street_address=request.address.street_address,
+            city=request.address.city,
+            state=request.address.state,
+            postal_code=request.address.postal_code,
+            country=request.address.country
+        )
+    
+    # Create DTO
+    create_dto = ContactCreateDTO(
+        business_id=business_id,
+        contact_type=ContactType(request.contact_type.value),
+        first_name=request.first_name,
+        last_name=request.last_name,
+        company_name=request.company_name,
+        job_title=request.job_title,
+        email=request.email,
+        phone=request.phone,
+        mobile_phone=request.mobile_phone,
+        website=request.website,
+        address=address_dto,
+        priority=ContactPriority(request.priority.value),
+        source=ContactSource(request.source.value) if request.source else None,
+        tags=request.tags,
+        notes=request.notes,
+        estimated_value=request.estimated_value,
+        currency=request.currency,
+        assigned_to=request.assigned_to,
+        created_by=current_user["sub"],
+        custom_fields=request.custom_fields
+    )
+    
+    try:
+        contact_dto = await use_case.create_contact(create_dto, current_user["sub"])
+        return _contact_dto_to_response(contact_dto)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.get("/{contact_id}", response_model=ContactResponse)
+async def get_contact(
+    contact_id: uuid.UUID = Path(..., description="Contact ID"),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Get a contact by ID.
+    
+    Retrieves detailed information about a specific contact.
+    Requires 'view_contacts' permission.
+    """
+    try:
+        contact_dto = await use_case.get_contact(contact_id, current_user["sub"])
+        return _contact_dto_to_response(contact_dto)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+
+
+@router.put("/{contact_id}", response_model=ContactResponse)
+async def update_contact(
+    contact_id: uuid.UUID = Path(..., description="Contact ID"),
+    request: ContactUpdateRequest = Body(...),
+    business_id: uuid.UUID = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Update a contact.
+    
+    Updates an existing contact with the provided information.
+    Requires 'edit_contacts' permission.
+    """
+    # Convert address if provided
+    address_dto = None
+    if request.address:
+        address_dto = ContactAddressDTO(
+            street_address=request.address.street_address,
+            city=request.address.city,
+            state=request.address.state,
+            postal_code=request.address.postal_code,
+            country=request.address.country
+        )
+    
+    # Create update DTO
+    update_dto = ContactUpdateDTO(
+        contact_id=contact_id,
+        business_id=business_id,
+        first_name=request.first_name,
+        last_name=request.last_name,
+        company_name=request.company_name,
+        job_title=request.job_title,
+        email=request.email,
+        phone=request.phone,
+        mobile_phone=request.mobile_phone,
+        website=request.website,
+        address=address_dto,
+        priority=ContactPriority(request.priority.value) if request.priority else None,
+        source=ContactSource(request.source.value) if request.source else None,
+        tags=request.tags,
+        notes=request.notes,
+        estimated_value=request.estimated_value,
+        currency=request.currency,
+        assigned_to=request.assigned_to,
+        custom_fields=request.custom_fields
+    )
+    
+    try:
+        contact_dto = await use_case.update_contact(update_dto, current_user["sub"])
+        return _contact_dto_to_response(contact_dto)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.delete("/{contact_id}", response_model=MessageResponse)
+async def delete_contact(
+    contact_id: uuid.UUID = Path(..., description="Contact ID"),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Delete a contact.
+    
+    Permanently deletes a contact and all associated data.
+    Requires 'delete_contacts' permission.
+    """
+    try:
+        success = await use_case.delete_contact(contact_id, current_user["sub"])
+        if success:
+            return MessageResponse(message="Contact deleted successfully")
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Contact not found"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.get("/", response_model=ContactListResponse)
+async def list_contacts(
+    business_id: uuid.UUID = Depends(get_business_context),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    List contacts for the business.
+    
+    Retrieves a paginated list of contacts for the current business.
+    Requires 'view_contacts' permission.
+    """
+    try:
+        contact_list_dto = await use_case.get_business_contacts(
+            business_id, current_user["sub"], skip, limit
+        )
+        
+        return ContactListResponse(
+            contacts=[_contact_dto_to_response(contact) for contact in contact_list_dto.contacts],
+            total_count=contact_list_dto.total_count,
+            page=contact_list_dto.page,
+            per_page=contact_list_dto.per_page,
+            has_next=contact_list_dto.has_next,
+            has_previous=contact_list_dto.has_previous
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/search", response_model=ContactListResponse)
+async def search_contacts(
+    request: ContactSearchRequest,
+    business_id: uuid.UUID = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Search contacts with advanced filtering.
+    
+    Performs advanced search and filtering on contacts.
+    Requires 'view_contacts' permission.
+    """
+    # Create search DTO
+    search_dto = ContactSearchDTO(
+        business_id=business_id,
+        search_term=request.search_term,
+        contact_type=ContactType(request.contact_type.value) if request.contact_type else None,
+        status=ContactStatus(request.status.value) if request.status else None,
+        priority=ContactPriority(request.priority.value) if request.priority else None,
+        source=ContactSource(request.source.value) if request.source else None,
+        assigned_to=request.assigned_to,
+        tags=request.tags,
+        has_email=request.has_email,
+        has_phone=request.has_phone,
+        min_estimated_value=request.min_estimated_value,
+        max_estimated_value=request.max_estimated_value,
+        created_after=request.created_after,
+        created_before=request.created_before,
+        last_contacted_after=request.last_contacted_after,
+        last_contacted_before=request.last_contacted_before,
+        never_contacted=request.never_contacted,
+        skip=request.skip,
+        limit=request.limit,
+        sort_by=request.sort_by,
+        sort_order=request.sort_order
+    )
+    
+    try:
+        contact_list_dto = await use_case.search_contacts(search_dto, current_user["sub"])
+        
+        return ContactListResponse(
+            contacts=[_contact_dto_to_response(contact) for contact in contact_list_dto.contacts],
+            total_count=contact_list_dto.total_count,
+            page=contact_list_dto.page,
+            per_page=contact_list_dto.per_page,
+            has_next=contact_list_dto.has_next,
+            has_previous=contact_list_dto.has_previous
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/bulk-update", response_model=ContactBulkOperationResponse)
+async def bulk_update_contacts(
+    request: ContactBulkUpdateRequest,
+    business_id: uuid.UUID = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Perform bulk updates on multiple contacts.
+    
+    Updates multiple contacts with the same changes.
+    Requires 'edit_contacts' permission.
+    """
+    # Create bulk update DTO
+    bulk_update_dto = ContactBulkUpdateDTO(
+        business_id=business_id,
+        contact_ids=request.contact_ids,
+        status=ContactStatus(request.status.value) if request.status else None,
+        priority=ContactPriority(request.priority.value) if request.priority else None,
+        assigned_to=request.assigned_to,
+        tags_to_add=request.tags_to_add,
+        tags_to_remove=request.tags_to_remove,
+        custom_fields=request.custom_fields
+    )
+    
+    try:
+        updated_count = await use_case.bulk_update_contacts(bulk_update_dto, current_user["sub"])
+        
+        return ContactBulkOperationResponse(
+            updated_count=updated_count,
+            success=True,
+            message=f"Successfully updated {updated_count} contacts"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/{contact_id}/convert", response_model=ContactResponse)
+async def convert_contact_type(
+    contact_id: uuid.UUID = Path(..., description="Contact ID"),
+    request: ContactConversionRequest = Body(...),
+    business_id: uuid.UUID = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Convert a contact from one type to another.
+    
+    Changes the contact type (e.g., lead to customer) with business rule validation.
+    Requires 'edit_contacts' permission.
+    """
+    # Get current contact to determine from_type
+    try:
+        current_contact = await use_case.get_contact(contact_id, current_user["sub"])
+        
+        conversion_dto = ContactConversionDTO(
+            contact_id=contact_id,
+            business_id=business_id,
+            from_type=current_contact.contact_type,
+            to_type=ContactType(request.to_type.value),
+            notes=request.notes
+        )
+        
+        contact_dto = await use_case.convert_contact_type(conversion_dto, current_user["sub"])
+        return _contact_dto_to_response(contact_dto)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/assign", response_model=ContactBulkOperationResponse)
+async def assign_contacts(
+    request: ContactAssignmentRequest,
+    business_id: uuid.UUID = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Assign multiple contacts to a user.
+    
+    Assigns or unassigns multiple contacts to/from a team member.
+    Requires 'edit_contacts' permission.
+    """
+    assignment_dto = ContactAssignmentDTO(
+        business_id=business_id,
+        contact_ids=request.contact_ids,
+        assigned_to=request.assigned_to,
+        notes=request.notes
+    )
+    
+    try:
+        # Use bulk assignment functionality
+        bulk_update_dto = ContactBulkUpdateDTO(
+            business_id=business_id,
+            contact_ids=request.contact_ids,
+            assigned_to=request.assigned_to
+        )
+        
+        updated_count = await use_case.bulk_update_contacts(bulk_update_dto, current_user["sub"])
+        
+        action = "assigned" if request.assigned_to else "unassigned"
+        return ContactBulkOperationResponse(
+            updated_count=updated_count,
+            success=True,
+            message=f"Successfully {action} {updated_count} contacts"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/tags", response_model=ContactBulkOperationResponse)
+async def manage_contact_tags(
+    request: ContactTagOperationRequest,
+    business_id: uuid.UUID = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Add, remove, or replace tags on multiple contacts.
+    
+    Performs tag operations on multiple contacts.
+    Requires 'edit_contacts' permission.
+    """
+    try:
+        # Convert to bulk update based on operation
+        bulk_update_dto = ContactBulkUpdateDTO(
+            business_id=business_id,
+            contact_ids=request.contact_ids
+        )
+        
+        if request.operation == "add":
+            bulk_update_dto.tags_to_add = request.tags
+        elif request.operation == "remove":
+            bulk_update_dto.tags_to_remove = request.tags
+        elif request.operation == "replace":
+            # For replace, we need to handle this differently
+            # This would require a more sophisticated implementation
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Tag replacement not yet implemented"
+            )
+        
+        updated_count = await use_case.bulk_update_contacts(bulk_update_dto, current_user["sub"])
+        
+        return ContactBulkOperationResponse(
+            updated_count=updated_count,
+            success=True,
+            message=f"Successfully {request.operation}ed tags on {updated_count} contacts"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/{contact_id}/mark-contacted", response_model=ContactResponse)
+async def mark_contact_contacted(
+    contact_id: uuid.UUID = Path(..., description="Contact ID"),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Mark a contact as contacted.
+    
+    Updates the last_contacted timestamp for the contact.
+    Requires 'edit_contacts' permission.
+    """
+    try:
+        contact_dto = await use_case.mark_contact_contacted(contact_id, current_user["sub"])
+        return _contact_dto_to_response(contact_dto)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.get("/statistics/overview", response_model=ContactStatisticsResponse)
+async def get_contact_statistics(
+    business_id: uuid.UUID = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Get comprehensive contact statistics.
+    
+    Retrieves detailed statistics about contacts for the business.
+    Requires 'view_contacts' permission.
+    """
+    try:
+        stats_dto = await use_case.get_contact_statistics(business_id, current_user["sub"])
+        
+        return ContactStatisticsResponse(
+            total_contacts=stats_dto.total_contacts,
+            active_contacts=stats_dto.active_contacts,
+            inactive_contacts=stats_dto.inactive_contacts,
+            archived_contacts=stats_dto.archived_contacts,
+            blocked_contacts=stats_dto.blocked_contacts,
+            customers=stats_dto.customers,
+            leads=stats_dto.leads,
+            prospects=stats_dto.prospects,
+            vendors=stats_dto.vendors,
+            partners=stats_dto.partners,
+            contractors=stats_dto.contractors,
+            high_priority=stats_dto.high_priority,
+            medium_priority=stats_dto.medium_priority,
+            low_priority=stats_dto.low_priority,
+            urgent_priority=stats_dto.urgent_priority,
+            with_email=stats_dto.with_email,
+            with_phone=stats_dto.with_phone,
+            assigned_contacts=stats_dto.assigned_contacts,
+            unassigned_contacts=stats_dto.unassigned_contacts,
+            never_contacted=stats_dto.never_contacted,
+            recently_contacted=stats_dto.recently_contacted,
+            high_value_contacts=stats_dto.high_value_contacts,
+            total_estimated_value=stats_dto.total_estimated_value,
+            average_estimated_value=stats_dto.average_estimated_value
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+# Helper function to convert DTO to response
+def _contact_dto_to_response(contact_dto) -> ContactResponse:
+    """Convert ContactResponseDTO to ContactResponse schema."""
+    # Convert address if present
+    address_schema = None
+    if contact_dto.address:
+        address_schema = {
+            "street_address": contact_dto.address.street_address,
+            "city": contact_dto.address.city,
+            "state": contact_dto.address.state,
+            "postal_code": contact_dto.address.postal_code,
+            "country": contact_dto.address.country
+        }
+    
+    return ContactResponse(
+        id=contact_dto.id,
+        business_id=contact_dto.business_id,
+        contact_type=contact_dto.contact_type.value,
+        status=contact_dto.status.value,
+        first_name=contact_dto.first_name,
+        last_name=contact_dto.last_name,
+        company_name=contact_dto.company_name,
+        job_title=contact_dto.job_title,
+        email=contact_dto.email,
+        phone=contact_dto.phone,
+        mobile_phone=contact_dto.mobile_phone,
+        website=contact_dto.website,
+        address=address_schema,
+        priority=contact_dto.priority.value,
+        source=contact_dto.source.value if contact_dto.source else None,
+        tags=contact_dto.tags,
+        notes=contact_dto.notes,
+        estimated_value=contact_dto.estimated_value,
+        currency=contact_dto.currency,
+        assigned_to=contact_dto.assigned_to,
+        created_by=contact_dto.created_by,
+        custom_fields=contact_dto.custom_fields,
+        created_date=contact_dto.created_date,
+        last_modified=contact_dto.last_modified,
+        last_contacted=contact_dto.last_contacted,
+        display_name=contact_dto.display_name,
+        primary_contact_method=contact_dto.primary_contact_method,
+        type_display=contact_dto.type_display,
+        status_display=contact_dto.status_display,
+        priority_display=contact_dto.priority_display,
+        source_display=contact_dto.source_display
+    ) 

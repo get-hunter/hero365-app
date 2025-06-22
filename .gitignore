@@ -7,7 +7,6 @@ node_modules/
 
 # Environment files
 .env
-.env.*
 *.env
 *.env.bak
 environments/production.env

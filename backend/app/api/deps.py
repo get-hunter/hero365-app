@@ -1,9 +1,9 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Optional
 import logging
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
@@ -125,3 +125,47 @@ def get_current_active_superuser(current_user: CurrentUser) -> dict:
             detail="Not enough permissions"
         )
     return current_user
+
+
+def get_business_context(request: Request) -> Optional[dict]:
+    """
+    Get business context from request.
+    
+    This function extracts business context that was set by the BusinessContextMiddleware.
+    The middleware validates business access and sets the context in request.state.
+    
+    Args:
+        request: FastAPI request object
+        
+    Returns:
+        dict: Business context containing business_id and user permissions
+        
+    Raises:
+        HTTPException: If business context is not available
+    """
+    try:
+        # Get business context from request state (set by BusinessContextMiddleware)
+        if hasattr(request.state, "business_context"):
+            return request.state.business_context
+        
+        # Fallback: try to extract business_id from path parameters
+        if hasattr(request, "path_params") and "business_id" in request.path_params:
+            business_id = request.path_params["business_id"]
+            return {
+                "business_id": uuid.UUID(business_id),
+                "permissions": [],  # Empty permissions - will be validated by use cases
+                "role": None
+            }
+        
+        # If no business context available, this endpoint doesn't require business scope
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error getting business context: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid business context: {str(e)}"
+        )
+
+
+BusinessContext = Annotated[Optional[dict], Depends(get_business_context)]

@@ -14,6 +14,7 @@ from ...core.config import settings
 from ...domain.repositories.business_repository import BusinessRepository
 from ...domain.repositories.business_membership_repository import BusinessMembershipRepository
 from ...domain.repositories.business_invitation_repository import BusinessInvitationRepository
+from ...domain.repositories.contact_repository import ContactRepository
 
 # Application Ports
 from ...application.ports.auth_service import AuthServicePort
@@ -24,6 +25,7 @@ from ...application.ports.sms_service import SMSServicePort
 from ..database.repositories.supabase_business_repository import SupabaseBusinessRepository
 from ..database.repositories.supabase_business_membership_repository import SupabaseBusinessMembershipRepository
 from ..database.repositories.supabase_business_invitation_repository import SupabaseBusinessInvitationRepository
+from ..database.repositories.supabase_contact_repository import SupabaseContactRepository
 from ..external_services.supabase_auth_adapter import SupabaseAuthAdapter
 from ..external_services.smtp_email_adapter import SMTPEmailAdapter
 from ..external_services.twilio_sms_adapter import TwilioSMSAdapter
@@ -43,6 +45,9 @@ from ...application.use_cases.business.get_business_detail import GetBusinessDet
 from ...application.use_cases.business.update_business import UpdateBusinessUseCase
 from ...application.use_cases.business.manage_team_member import ManageTeamMemberUseCase
 from ...application.use_cases.business.manage_invitations import ManageInvitationsUseCase
+
+# Contact Use Cases
+from ...application.use_cases.contact.manage_contacts import ManageContactsUseCase
 
 
 class DependencyContainer:
@@ -70,6 +75,7 @@ class DependencyContainer:
         self._repositories['business_repository'] = SupabaseBusinessRepository(supabase_client=supabase_client)
         self._repositories['business_membership_repository'] = SupabaseBusinessMembershipRepository(supabase_client=supabase_client)
         self._repositories['business_invitation_repository'] = SupabaseBusinessInvitationRepository(supabase_client=supabase_client)
+        self._repositories['contact_repository'] = SupabaseContactRepository(client=supabase_client)
     
     def _setup_services(self):
         """Initialize external service adapters."""
@@ -159,6 +165,13 @@ class DependencyContainer:
             business_repository=self.get_repository('business_repository'),
             membership_repository=self.get_repository('business_membership_repository'),
             invitation_repository=self.get_repository('business_invitation_repository')
+        )
+        
+        # Contact use cases
+        self._use_cases['manage_contacts'] = ManageContactsUseCase(
+            contact_repository=self.get_repository('contact_repository'),
+            business_repository=self.get_repository('business_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
         )
 
     def _get_supabase_client(self) -> Client:
@@ -252,6 +265,14 @@ class DependencyContainer:
         """Get manage invitations use case."""
         return self.get_use_case('manage_invitations')
 
+    def get_contact_repository(self) -> ContactRepository:
+        """Get contact repository."""
+        return self.get_repository('contact_repository')
+
+    def get_manage_contacts_use_case(self) -> ManageContactsUseCase:
+        """Get manage contacts use case."""
+        return self.get_use_case('manage_contacts')
+
     def close(self):
         """Close all connections and cleanup resources."""
         # Close Supabase connection if exists
@@ -297,4 +318,15 @@ def get_email_service() -> EmailServicePort:
 
 def get_sms_service() -> Optional[SMSServicePort]:
     """Get SMS service from container."""
-    return get_container().get_sms_service() 
+    return get_container().get_sms_service()
+
+
+# Contact dependencies
+def get_contact_repository() -> ContactRepository:
+    """Get contact repository from container."""
+    return get_container().get_contact_repository()
+
+
+def get_manage_contacts_use_case() -> ManageContactsUseCase:
+    """Get manage contacts use case from container."""
+    return get_container().get_manage_contacts_use_case() 
