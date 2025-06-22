@@ -1,0 +1,154 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "CostExplorerAccess",
+            "Effect": "Allow",
+            "Action": [
+                "ce:GetCostAndUsage",
+                "ce:GetDimensionValues",
+                "ce:GetReservationCoverage",
+                "ce:GetReservationPurchaseRecommendation",
+                "ce:GetReservationUtilization",
+                "ce:GetUsageReport",
+                "ce:ListCostCategoryDefinitions",
+                "ce:GetRightsizingRecommendation",
+                "ce:GetSavingsPlansUtilization",
+                "ce:GetSavingsPlansUtilizationDetails",
+                "ce:GetSavingsPlansPurchaseRecommendation",
+                "ce:GetCostForecast",
+                "ce:GetUsageForecast",
+                "ce:CreateAnomalyDetector",
+                "ce:GetAnomalyDetectors",
+                "ce:GetAnomalySubscriptions",
+                "ce:CreateAnomalySubscription",
+                "ce:UpdateAnomalyDetector",
+                "ce:UpdateAnomalySubscription",
+                "ce:DeleteAnomalyDetector",
+                "ce:DeleteAnomalySubscription",
+                "ce:GetAnomalies"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "BudgetsFullAccess",
+            "Effect": "Allow",
+            "Action": [
+                "budgets:ViewBudget",
+                "budgets:ViewBudgets",
+                "budgets:CreateBudget",
+                "budgets:ModifyBudget",
+                "budgets:DeleteBudget",
+                "budgets:CreateBudgetAction",
+                "budgets:UpdateBudgetAction",
+                "budgets:DeleteBudgetAction",
+                "budgets:ExecuteBudgetAction",
+                "budgets:DescribeBudgetAction",
+                "budgets:DescribeBudgetActions",
+                "budgets:DescribeBudgetActionsForAccount",
+                "budgets:DescribeBudgetActionsForBudget",
+                "budgets:CreateSubscriber",
+                "budgets:DeleteSubscriber",
+                "budgets:UpdateSubscriber",
+                "budgets:DescribeSubscribersForNotification"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "CloudWatchBillingAccess",
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:PutMetricAlarm",
+                "cloudwatch:PutMetricData",
+                "cloudwatch:GetMetricStatistics",
+                "cloudwatch:GetMetricData",
+                "cloudwatch:ListMetrics",
+                "cloudwatch:DescribeAlarms",
+                "cloudwatch:DescribeAlarmsForMetric",
+                "cloudwatch:DeleteAlarms",
+                "cloudwatch:EnableAlarmActions",
+                "cloudwatch:DisableAlarmActions"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "SNSForCostAlerts",
+            "Effect": "Allow",
+            "Action": [
+                "sns:CreateTopic",
+                "sns:DeleteTopic",
+                "sns:ListTopics",
+                "sns:GetTopicAttributes",
+                "sns:SetTopicAttributes",
+                "sns:Subscribe",
+                "sns:Unsubscribe",
+                "sns:ListSubscriptions",
+                "sns:ListSubscriptionsByTopic",
+                "sns:Publish"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "IAMForBudgetActions",
+            "Effect": "Allow",
+            "Action": [
+                "iam:PassRole"
+            ],
+            "Resource": "arn:aws:iam::886436939429:role/aws-budgets-*"
+        },
+        {
+            "Sid": "BillingAccess",
+            "Effect": "Allow",
+            "Action": [
+                "aws-portal:ViewBilling",
+                "aws-portal:ViewUsage",
+                "aws-portal:ViewAccount",
+                "aws-portal:ViewPaymentMethods",
+                "aws-portal:ViewBillingDocuments"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "SupportForCredits",
+            "Effect": "Allow",
+            "Action": [
+                "support:DescribeCases",
+                "support:DescribeServices",
+                "support:DescribeSeverityLevels"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "OrganizationsForConsolidatedBilling",
+            "Effect": "Allow",
+            "Action": [
+                "organizations:ListAccounts",
+                "organizations:DescribeOrganization",
+                "organizations:DescribeAccount"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "ECSManagementForCostOptimization",
+            "Effect": "Allow",
+            "Action": [
+                "ecs:UpdateService",
+                "ecs:DescribeServices",
+                "ecs:DescribeClusters",
+                "ecs:ListServices",
+                "ecs:ListClusters"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "LogsManagementForCostOptimization",
+            "Effect": "Allow",
+            "Action": [
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutRetentionPolicy"
+            ],
+            "Resource": "*"
+        }
+    ]
+} 
