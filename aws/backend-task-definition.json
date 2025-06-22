@@ -1,0 +1,57 @@
+{
+  "family": "hero365-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::886436939429:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::886436939429:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "886436939429.dkr.ecr.us-east-1.amazonaws.com/hero365-backend:latest",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {"name": "ENVIRONMENT", "value": "production"},
+        {"name": "PROJECT_NAME", "value": "Hero365"},
+        {"name": "API_DOMAIN", "value": "api.hero365.ai"},
+        {"name": "FRONTEND_HOST", "value": "https://app.hero365.ai"},
+        {"name": "BACKEND_CORS_ORIGINS", "value": "https://api.hero365.ai,https://hero365.ai,https://www.hero365.ai,https://app.hero365.ai"},
+        {"name": "FIRST_SUPERUSER", "value": "andre@hero365.ai"},
+        {"name": "FIRST_SUPERUSER_PASSWORD", "value": "Hero365Admin2024!"},
+        {"name": "SMTP_HOST", "value": "smtp.gmail.com"},
+        {"name": "SMTP_USER", "value": "noreply@hero365.ai"},
+        {"name": "SMTP_PASSWORD", "value": ""},
+        {"name": "EMAILS_FROM_EMAIL", "value": "noreply@hero365.ai"},
+        {"name": "SENTRY_DSN", "value": "https://fe6001548602f1709e74e54c3816b66c@o4509541390024704.ingest.us.sentry.io/4509541391663104"}
+      ],
+      "secrets": [
+        {"name": "SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-1:886436939429:secret:hero365/secret-key"},
+        {"name": "SUPABASE_URL", "valueFrom": "arn:aws:secretsmanager:us-east-1:886436939429:secret:hero365/supabase-url"},
+        {"name": "SUPABASE_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-1:886436939429:secret:hero365/supabase-key"},
+        {"name": "SUPABASE_SERVICE_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-1:886436939429:secret:hero365/supabase-service-key"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/hero365-backend",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "essential": true
+    }
+  ]
+} 

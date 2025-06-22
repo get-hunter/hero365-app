@@ -1,0 +1,66 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY_BACKEND: hero365-backend
+  ECR_REPOSITORY_FRONTEND: hero365-frontend
+  ECS_CLUSTER: hero365-cluster
+  ECS_SERVICE_BACKEND: hero365-backend
+  ECS_SERVICE_FRONTEND: hero365-frontend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      
+    - name: Build and push backend image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG ./backend
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG
+        
+    - name: Build and push frontend image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG ./frontend
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG
+        
+    - name: Update ECS services
+      run: |
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE_BACKEND --force-new-deployment
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE_FRONTEND --force-new-deployment
+        
+    - name: Wait for deployment to complete
+      run: |
+        aws ecs wait services-stable --cluster $ECS_CLUSTER --services $ECS_SERVICE_BACKEND $ECS_SERVICE_FRONTEND
+        
+    - name: Health check
+      run: |
+        echo "Checking backend health..."
+        curl -f https://api.yourdomain.com/api/v1/utils/health-check/ || exit 1
+        echo "Checking frontend health..."
+        curl -f https://yourdomain.com/ || exit 1 

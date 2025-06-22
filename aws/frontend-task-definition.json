@@ -1,0 +1,42 @@
+{
+  "family": "hero365-frontend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::886436939429:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::886436939429:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "frontend",
+      "image": "886436939429.dkr.ecr.us-east-1.amazonaws.com/hero365-frontend:latest",
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {"name": "VITE_API_URL", "value": "https://api.hero365.ai/v1"},
+        {"name": "VITE_SUPABASE_URL", "value": "https://xflkldekhpqjpdrpeupg.supabase.co"},
+        {"name": "VITE_SUPABASE_ANON_KEY", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmbGtsZGVraHBxanBkcnBldXBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxNDEyNTQsImV4cCI6MjA2NTcxNzI1NH0.7cAttra5Wn_xz1jSkzR1lhbGc7vWG35tFGOKLjQ0_vM"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/hero365-frontend",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost/ || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "essential": true
+    }
+  ]
+} 

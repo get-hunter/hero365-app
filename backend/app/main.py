@@ -14,7 +14,9 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 def custom_generate_unique_id(route: APIRoute) -> str:
-    return f"{route.tags[0]}-{route.name}"
+    if route.tags:
+        return f"{route.tags[0]}-{route.name}"
+    return route.name
 
 
 def create_application() -> FastAPI:
@@ -32,6 +34,12 @@ def create_application() -> FastAPI:
         description="Hero365 App - Clean Architecture Implementation",
         version="2.0.0",
         redirect_slashes=False,  # Prevent automatic redirects that strip auth headers
+        servers=[
+            {
+                "url": settings.API_BASE_URL,
+                "description": f"{settings.ENVIRONMENT.title()} environment"
+            }
+        ] if settings.ENVIRONMENT == "production" else None
     )
 
     # Add middleware in correct order (last added = first executed)
@@ -67,6 +75,11 @@ def create_application() -> FastAPI:
 
     # Include API router
     application.include_router(api_router, prefix=settings.API_V1_STR)
+    
+    # Add health check endpoint (outside of API versioning for infrastructure)
+    @application.get("/health", tags=["health"])
+    async def health_check():
+        return {"status": "healthy", "environment": settings.ENVIRONMENT}
     
     return application
 
