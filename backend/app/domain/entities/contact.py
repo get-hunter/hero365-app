@@ -31,6 +31,27 @@ class ContactStatus(Enum):
     BLOCKED = "blocked"
 
 
+class RelationshipStatus(Enum):
+    """Enumeration for relationship status in sales/client lifecycle."""
+    PROSPECT = "prospect"
+    QUALIFIED_LEAD = "qualified_lead"
+    OPPORTUNITY = "opportunity"
+    ACTIVE_CLIENT = "active_client"
+    PAST_CLIENT = "past_client"
+    LOST_LEAD = "lost_lead"
+    INACTIVE = "inactive"
+
+
+class LifecycleStage(Enum):
+    """Enumeration for customer lifecycle stage."""
+    AWARENESS = "awareness"
+    INTEREST = "interest"
+    CONSIDERATION = "consideration"
+    DECISION = "decision"
+    RETENTION = "retention"
+    CUSTOMER = "customer"
+
+
 class ContactSource(Enum):
     """Enumeration for how the contact was acquired."""
     WEBSITE = "website"
@@ -51,6 +72,19 @@ class ContactPriority(Enum):
     MEDIUM = "medium"
     HIGH = "high"
     URGENT = "urgent"
+
+
+class InteractionType(Enum):
+    """Enumeration for interaction types."""
+    CALL = "call"
+    EMAIL = "email"
+    MEETING = "meeting"
+    PROPOSAL = "proposal"
+    QUOTE = "quote"
+    CONTRACT = "contract"
+    SERVICE = "service"
+    FOLLOW_UP = "follow_up"
+    NOTE = "note"
 
 
 @dataclass
@@ -83,6 +117,33 @@ class ContactAddress:
 
 
 @dataclass
+class StatusHistoryEntry:
+    """Value object for status history entry."""
+    id: uuid.UUID
+    from_status: Optional[RelationshipStatus]
+    to_status: RelationshipStatus
+    timestamp: datetime
+    changed_by: str
+    changed_by_id: Optional[str] = None
+    reason: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@dataclass
+class InteractionHistoryEntry:
+    """Value object for interaction history entry."""
+    id: uuid.UUID
+    type: InteractionType
+    description: str
+    timestamp: datetime
+    performed_by: str
+    performed_by_id: Optional[str] = None
+    outcome: Optional[str] = None
+    next_action: Optional[str] = None
+    scheduled_follow_up: Optional[datetime] = None
+
+
+@dataclass
 class Contact:
     """
     Contact entity representing a business contact (customer, lead, prospect, etc.).
@@ -96,6 +157,10 @@ class Contact:
     business_id: uuid.UUID
     contact_type: ContactType
     status: ContactStatus = ContactStatus.ACTIVE
+    
+    # Enhanced relationship tracking
+    relationship_status: RelationshipStatus = RelationshipStatus.PROSPECT
+    lifecycle_stage: LifecycleStage = LifecycleStage.AWARENESS
     
     # Personal Information
     first_name: Optional[str] = None
@@ -129,6 +194,10 @@ class Contact:
     # Custom Fields
     custom_fields: Dict[str, Any] = field(default_factory=dict)
     
+    # Enhanced tracking fields
+    status_history: List[StatusHistoryEntry] = field(default_factory=list)
+    interaction_history: List[InteractionHistoryEntry] = field(default_factory=list)
+    
     # Metadata
     created_date: Optional[datetime] = None
     last_modified: Optional[datetime] = None
@@ -140,6 +209,10 @@ class Contact:
             self.tags = []
         if self.custom_fields is None:
             self.custom_fields = {}
+        if self.status_history is None:
+            self.status_history = []
+        if self.interaction_history is None:
+            self.interaction_history = []
         self._validate_contact_rules()
     
     def _validate_contact_rules(self) -> None:
@@ -177,6 +250,26 @@ class Contact:
         # Validate currency format
         if self.currency and len(self.currency) != 3:
             raise DomainValidationError("Currency must be a 3-letter ISO code")
+        
+        # Validate relationship status and lifecycle stage alignment
+        self._validate_status_alignment()
+    
+    def _validate_status_alignment(self) -> None:
+        """Validate that relationship status and lifecycle stage are aligned."""
+        valid_combinations = {
+            RelationshipStatus.PROSPECT: [LifecycleStage.AWARENESS, LifecycleStage.INTEREST],
+            RelationshipStatus.QUALIFIED_LEAD: [LifecycleStage.INTEREST, LifecycleStage.CONSIDERATION],
+            RelationshipStatus.OPPORTUNITY: [LifecycleStage.CONSIDERATION, LifecycleStage.DECISION],
+            RelationshipStatus.ACTIVE_CLIENT: [LifecycleStage.CUSTOMER, LifecycleStage.RETENTION],
+            RelationshipStatus.PAST_CLIENT: [LifecycleStage.RETENTION],
+            RelationshipStatus.LOST_LEAD: [LifecycleStage.CONSIDERATION, LifecycleStage.DECISION],
+            RelationshipStatus.INACTIVE: [LifecycleStage.RETENTION]
+        }
+        
+        valid_stages = valid_combinations.get(self.relationship_status, [])
+        if valid_stages and self.lifecycle_stage not in valid_stages:
+            # Auto-correct lifecycle stage based on relationship status
+            self.lifecycle_stage = valid_stages[0]
     
     def _is_valid_email(self, email: str) -> bool:
         """Basic email validation."""
@@ -197,6 +290,8 @@ class Contact:
                       first_name: Optional[str] = None, last_name: Optional[str] = None,
                       company_name: Optional[str] = None, email: Optional[str] = None,
                       phone: Optional[str] = None, created_by: Optional[str] = None,
+                      relationship_status: Optional[RelationshipStatus] = None,
+                      lifecycle_stage: Optional[LifecycleStage] = None,
                       **kwargs) -> 'Contact':
         """
         Create a new contact with validation.
@@ -210,6 +305,8 @@ class Contact:
             email: Email address
             phone: Phone number
             created_by: User ID who created the contact
+            relationship_status: Relationship status in sales lifecycle
+            lifecycle_stage: Stage in customer lifecycle
             **kwargs: Additional contact fields
             
         Returns:
@@ -218,10 +315,35 @@ class Contact:
         Raises:
             DomainValidationError: If validation fails
         """
-        return cls(
+        # Set default relationship status based on contact type
+        if not relationship_status:
+            relationship_status = {
+                ContactType.CUSTOMER: RelationshipStatus.ACTIVE_CLIENT,
+                ContactType.LEAD: RelationshipStatus.QUALIFIED_LEAD,
+                ContactType.PROSPECT: RelationshipStatus.PROSPECT,
+                ContactType.VENDOR: RelationshipStatus.ACTIVE_CLIENT,
+                ContactType.PARTNER: RelationshipStatus.ACTIVE_CLIENT,
+                ContactType.CONTRACTOR: RelationshipStatus.ACTIVE_CLIENT
+            }.get(contact_type, RelationshipStatus.PROSPECT)
+        
+        # Set default lifecycle stage based on relationship status
+        if not lifecycle_stage:
+            lifecycle_stage = {
+                RelationshipStatus.PROSPECT: LifecycleStage.AWARENESS,
+                RelationshipStatus.QUALIFIED_LEAD: LifecycleStage.INTEREST,
+                RelationshipStatus.OPPORTUNITY: LifecycleStage.CONSIDERATION,
+                RelationshipStatus.ACTIVE_CLIENT: LifecycleStage.CUSTOMER,
+                RelationshipStatus.PAST_CLIENT: LifecycleStage.RETENTION,
+                RelationshipStatus.LOST_LEAD: LifecycleStage.CONSIDERATION,
+                RelationshipStatus.INACTIVE: LifecycleStage.RETENTION
+            }.get(relationship_status, LifecycleStage.AWARENESS)
+        
+        contact = cls(
             id=uuid.uuid4(),
             business_id=business_id,
             contact_type=contact_type,
+            relationship_status=relationship_status,
+            lifecycle_stage=lifecycle_stage,
             first_name=first_name,
             last_name=last_name,
             company_name=company_name,
@@ -232,6 +354,11 @@ class Contact:
             created_date=datetime.utcnow(),
             **{k: v for k, v in kwargs.items() if k not in ['mobile_phone']}
         )
+        
+        # Initialize status history
+        contact.add_status_history_entry(None, relationship_status, created_by, "Initial status")
+        
+        return contact
     
     def get_display_name(self) -> str:
         """Get the display name for the contact."""
@@ -251,6 +378,146 @@ class Contact:
             return self.last_name
         else:
             return "Unknown Contact"
+    
+    def update_relationship_status(self, new_status: RelationshipStatus, 
+                                 changed_by: str, reason: Optional[str] = None) -> None:
+        """Update relationship status with history tracking."""
+        if self.relationship_status == new_status:
+            return
+        
+        old_status = self.relationship_status
+        self.relationship_status = new_status
+        self.last_modified = datetime.utcnow()
+        
+        # Auto-update lifecycle stage if needed
+        self._validate_status_alignment()
+        
+        # Add to status history
+        self.add_status_history_entry(old_status, new_status, changed_by, reason)
+    
+    def add_status_history_entry(self, from_status: Optional[RelationshipStatus], 
+                               to_status: RelationshipStatus, changed_by: str, 
+                               reason: Optional[str] = None) -> None:
+        """Add entry to status history."""
+        entry = StatusHistoryEntry(
+            id=uuid.uuid4(),
+            from_status=from_status,
+            to_status=to_status,
+            timestamp=datetime.utcnow(),
+            changed_by=changed_by,
+            reason=reason
+        )
+        self.status_history.append(entry)
+        
+        # Keep only last 20 entries to prevent unbounded growth
+        if len(self.status_history) > 20:
+            self.status_history = self.status_history[-20:]
+    
+    def add_interaction(self, interaction_type: InteractionType, description: str,
+                       performed_by: str, outcome: Optional[str] = None,
+                       next_action: Optional[str] = None,
+                       scheduled_follow_up: Optional[datetime] = None) -> None:
+        """Add interaction to history and update last_contacted."""
+        interaction = InteractionHistoryEntry(
+            id=uuid.uuid4(),
+            type=interaction_type,
+            description=description,
+            timestamp=datetime.utcnow(),
+            performed_by=performed_by,
+            outcome=outcome,
+            next_action=next_action,
+            scheduled_follow_up=scheduled_follow_up
+        )
+        
+        self.interaction_history.append(interaction)
+        
+        # Keep only last 10 interactions for quick access
+        if len(self.interaction_history) > 10:
+            self.interaction_history = self.interaction_history[-10:]
+        
+        # Update last contacted for communication interactions
+        if interaction_type in [InteractionType.CALL, InteractionType.EMAIL, InteractionType.MEETING]:
+            self.update_last_contacted()
+    
+    def get_relationship_status_display(self) -> str:
+        """Get human-readable relationship status."""
+        status_names = {
+            RelationshipStatus.PROSPECT: "Prospect",
+            RelationshipStatus.QUALIFIED_LEAD: "Qualified Lead",
+            RelationshipStatus.OPPORTUNITY: "Opportunity",
+            RelationshipStatus.ACTIVE_CLIENT: "Active Client",
+            RelationshipStatus.PAST_CLIENT: "Past Client",
+            RelationshipStatus.LOST_LEAD: "Lost Lead",
+            RelationshipStatus.INACTIVE: "Inactive"
+        }
+        return status_names.get(self.relationship_status, "Unknown")
+    
+    def get_lifecycle_stage_display(self) -> str:
+        """Get human-readable lifecycle stage."""
+        stage_names = {
+            LifecycleStage.AWARENESS: "Awareness",
+            LifecycleStage.INTEREST: "Interest", 
+            LifecycleStage.CONSIDERATION: "Consideration",
+            LifecycleStage.DECISION: "Decision",
+            LifecycleStage.RETENTION: "Retention",
+            LifecycleStage.CUSTOMER: "Customer"
+        }
+        return stage_names.get(self.lifecycle_stage, "Unknown")
+    
+    def can_progress_to_lead(self) -> bool:
+        """Check if contact can be progressed to qualified lead."""
+        return self.relationship_status == RelationshipStatus.PROSPECT
+    
+    def can_progress_to_opportunity(self) -> bool:
+        """Check if contact can be progressed to opportunity."""
+        return self.relationship_status == RelationshipStatus.QUALIFIED_LEAD
+    
+    def can_convert_to_client(self) -> bool:
+        """Check if contact can be converted to active client."""
+        return self.relationship_status in [
+            RelationshipStatus.OPPORTUNITY,
+            RelationshipStatus.QUALIFIED_LEAD
+        ]
+    
+    def progress_to_qualified_lead(self, changed_by: str, reason: Optional[str] = None) -> None:
+        """Progress prospect to qualified lead."""
+        if not self.can_progress_to_lead():
+            raise DomainValidationError(f"Cannot progress {self.relationship_status.value} to qualified lead")
+        
+        self.update_relationship_status(RelationshipStatus.QUALIFIED_LEAD, changed_by, reason)
+        self.lifecycle_stage = LifecycleStage.INTEREST
+    
+    def progress_to_opportunity(self, changed_by: str, reason: Optional[str] = None) -> None:
+        """Progress qualified lead to opportunity."""
+        if not self.can_progress_to_opportunity():
+            raise DomainValidationError(f"Cannot progress {self.relationship_status.value} to opportunity")
+        
+        self.update_relationship_status(RelationshipStatus.OPPORTUNITY, changed_by, reason)
+        self.lifecycle_stage = LifecycleStage.CONSIDERATION
+    
+    def convert_to_client(self, changed_by: str, reason: Optional[str] = None) -> None:
+        """Convert lead/opportunity to active client."""
+        if not self.can_convert_to_client():
+            raise DomainValidationError(f"Cannot convert {self.relationship_status.value} to client")
+        
+        self.update_relationship_status(RelationshipStatus.ACTIVE_CLIENT, changed_by, reason)
+        self.lifecycle_stage = LifecycleStage.CUSTOMER
+        self.contact_type = ContactType.CUSTOMER  # Also update contact type
+    
+    def mark_as_lost_lead(self, changed_by: str, reason: Optional[str] = None) -> None:
+        """Mark as lost lead."""
+        if self.relationship_status not in [RelationshipStatus.QUALIFIED_LEAD, RelationshipStatus.OPPORTUNITY]:
+            raise DomainValidationError(f"Cannot mark {self.relationship_status.value} as lost lead")
+        
+        self.update_relationship_status(RelationshipStatus.LOST_LEAD, changed_by, reason)
+    
+    def reactivate_contact(self, changed_by: str, reason: Optional[str] = None) -> None:
+        """Reactivate inactive or lost contact."""
+        if self.relationship_status in [RelationshipStatus.INACTIVE, RelationshipStatus.LOST_LEAD]:
+            self.update_relationship_status(RelationshipStatus.PROSPECT, changed_by, reason)
+            self.lifecycle_stage = LifecycleStage.AWARENESS
+        else:
+            raise DomainValidationError(f"Cannot reactivate contact with status {self.relationship_status.value}")
     
     def get_primary_contact_method(self) -> str:
         """Get the primary contact method."""
@@ -327,6 +594,10 @@ class Contact:
         """Convert lead/prospect to customer."""
         if self.contact_type in [ContactType.LEAD, ContactType.PROSPECT]:
             self.contact_type = ContactType.CUSTOMER
+            # Also update relationship status
+            if self.relationship_status in [RelationshipStatus.PROSPECT, RelationshipStatus.QUALIFIED_LEAD]:
+                self.relationship_status = RelationshipStatus.ACTIVE_CLIENT
+                self.lifecycle_stage = LifecycleStage.CUSTOMER
             self.last_modified = datetime.utcnow()
         else:
             raise DomainValidationError(f"Cannot convert {self.contact_type.value} to customer")
@@ -335,6 +606,8 @@ class Contact:
         """Convert prospect to lead."""
         if self.contact_type == ContactType.PROSPECT:
             self.contact_type = ContactType.LEAD
+            self.relationship_status = RelationshipStatus.QUALIFIED_LEAD
+            self.lifecycle_stage = LifecycleStage.INTEREST
             self.last_modified = datetime.utcnow()
         else:
             raise DomainValidationError(f"Cannot convert {self.contact_type.value} to lead")
@@ -425,6 +698,8 @@ class Contact:
             "business_id": str(self.business_id),
             "contact_type": self.contact_type.value,
             "status": self.status.value,
+            "relationship_status": self.relationship_status.value,
+            "lifecycle_stage": self.lifecycle_stage.value,
             "first_name": self.first_name,
             "last_name": self.last_name,
             "company_name": self.company_name,
@@ -449,6 +724,28 @@ class Contact:
             "assigned_to": self.assigned_to,
             "created_by": self.created_by,
             "custom_fields": self.custom_fields,
+            "status_history": [
+                {
+                    "id": str(entry.id),
+                    "from_status": entry.from_status.value if entry.from_status else None,
+                    "to_status": entry.to_status.value,
+                    "timestamp": entry.timestamp.isoformat(),
+                    "changed_by": entry.changed_by,
+                    "reason": entry.reason
+                }
+                for entry in self.status_history
+            ],
+            "interaction_history": [
+                {
+                    "id": str(entry.id),
+                    "type": entry.type.value,
+                    "description": entry.description,
+                    "timestamp": entry.timestamp.isoformat(),
+                    "performed_by": entry.performed_by,
+                    "outcome": entry.outcome
+                }
+                for entry in self.interaction_history
+            ],
             "created_date": self.created_date.isoformat() if self.created_date else None,
             "last_modified": self.last_modified.isoformat() if self.last_modified else None,
             "last_contacted": self.last_contacted.isoformat() if self.last_contacted else None,
@@ -457,13 +754,15 @@ class Contact:
             "type_display": self.get_type_display(),
             "status_display": self.get_status_display(),
             "priority_display": self.get_priority_display(),
-            "source_display": self.get_source_display()
+            "source_display": self.get_source_display(),
+            "relationship_status_display": self.get_relationship_status_display(),
+            "lifecycle_stage_display": self.get_lifecycle_stage_display()
         }
     
     def __str__(self) -> str:
-        return f"Contact({self.get_display_name()} - {self.get_type_display()})"
+        return f"Contact({self.get_display_name()} - {self.get_relationship_status_display()})"
     
     def __repr__(self) -> str:
         return (f"Contact(id={self.id}, business_id={self.business_id}, "
                 f"name='{self.get_display_name()}', type={self.contact_type}, "
-                f"status={self.status})") 
+                f"status={self.status}, relationship_status={self.relationship_status})") 

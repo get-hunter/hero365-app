@@ -9,11 +9,14 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 
 from ..deps import get_current_user, get_business_context
+from ..middleware.permissions import require_view_contacts, require_edit_contacts
 from ..schemas.contact_schemas import (
     ContactCreateRequest, ContactUpdateRequest, ContactSearchRequest,
     ContactBulkUpdateRequest, ContactConversionRequest, ContactAssignmentRequest,
     ContactTagOperationRequest, ContactResponse, ContactListResponse,
-    ContactStatisticsResponse, ContactBulkOperationResponse, MessageResponse
+    ContactStatisticsResponse, ContactBulkOperationResponse, MessageResponse,
+    ContactInteractionCreateRequest, ContactInteractionResponse, ContactInteractionListResponse,
+    ContactStatusUpdateRequest, ContactStatusUpdateResponse
 )
 from ...application.use_cases.contact.manage_contacts import ManageContactsUseCase
 from ...application.dto.contact_dto import (
@@ -518,6 +521,150 @@ async def get_contact_statistics(
         )
 
 
+@router.post("/{contact_id}/interactions", response_model=ContactInteractionResponse, status_code=status.HTTP_201_CREATED)
+@require_edit_contacts
+async def add_contact_interaction(
+    contact_id: uuid.UUID = Path(..., description="Contact ID"),
+    request: ContactInteractionCreateRequest = Body(...),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Add an interaction record to a contact.
+    
+    Creates a new interaction record for the specified contact.
+    Requires 'edit_contacts' permission.
+    """
+    interaction_data = {
+        "type": request.type.value,
+        "description": request.description,
+        "outcome": request.outcome,
+        "next_action": request.next_action,
+        "scheduled_follow_up": request.scheduled_follow_up
+    }
+    
+    try:
+        interaction_id = await use_case.add_contact_interaction(
+            contact_id, interaction_data, current_user["sub"]
+        )
+        
+        # Return the interaction response
+        from datetime import datetime
+        return ContactInteractionResponse(
+            id=interaction_id,
+            contact_id=contact_id,
+            type=request.type,
+            description=request.description,
+            timestamp=datetime.utcnow(),
+            outcome=request.outcome,
+            next_action=request.next_action,
+            scheduled_follow_up=request.scheduled_follow_up,
+            performed_by=current_user.get("name", "Unknown"),
+            performed_by_id=current_user["sub"]
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.get("/{contact_id}/interactions", response_model=ContactInteractionListResponse)
+@require_view_contacts
+async def get_contact_interactions(
+    contact_id: uuid.UUID = Path(..., description="Contact ID"),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(50, ge=1, le=100, description="Maximum number of records to return"),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Get interaction history for a contact.
+    
+    Retrieves paginated list of interactions for the specified contact.
+    Requires 'view_contacts' permission.
+    """
+    try:
+        result = await use_case.get_contact_interactions(
+            contact_id, current_user["sub"], skip, limit
+        )
+        
+        # Convert domain objects to response schemas
+        interaction_responses = []
+        for interaction in result["interactions"]:
+            interaction_responses.append(ContactInteractionResponse(
+                id=interaction.id,
+                contact_id=contact_id,
+                type=interaction.interaction_type.value,
+                description=interaction.description,
+                timestamp=interaction.timestamp,
+                outcome=interaction.outcome,
+                next_action=interaction.next_action,
+                scheduled_follow_up=interaction.scheduled_follow_up,
+                performed_by=interaction.performed_by,
+                performed_by_id=interaction.performed_by_id
+            ))
+        
+        return ContactInteractionListResponse(
+            interactions=interaction_responses,
+            total=result["total"],
+            skip=result["skip"],
+            limit=result["limit"]
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.put("/{contact_id}/status", response_model=ContactStatusUpdateResponse)
+@require_edit_contacts
+async def update_contact_status(
+    contact_id: uuid.UUID = Path(..., description="Contact ID"),
+    request: ContactStatusUpdateRequest = Body(...),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+):
+    """
+    Update contact relationship status and lifecycle stage.
+    
+    Updates the relationship status and optionally the lifecycle stage for the specified contact.
+    Automatically tracks status change history.
+    Requires 'edit_contacts' permission.
+    """
+    status_data = {
+        "relationship_status": request.relationship_status.value,
+        "lifecycle_stage": request.lifecycle_stage.value if request.lifecycle_stage else None,
+        "reason": request.reason,
+        "notes": request.notes
+    }
+    
+    try:
+        result = await use_case.update_contact_status(
+            contact_id, status_data, current_user["sub"]
+        )
+        
+        return ContactStatusUpdateResponse(
+            contact_id=result["contact_id"],
+            old_status=result["old_status"],
+            new_status=result["new_status"],
+            old_lifecycle_stage=result["old_lifecycle_stage"],
+            new_lifecycle_stage=result["new_lifecycle_stage"],
+            changed_by=current_user.get("name", "Unknown"),
+            timestamp=result["timestamp"],
+            reason=result["reason"]
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
 # Helper function to convert DTO to response
 def _contact_dto_to_response(contact_dto) -> ContactResponse:
     """Convert ContactResponseDTO to ContactResponse schema."""
@@ -537,6 +684,8 @@ def _contact_dto_to_response(contact_dto) -> ContactResponse:
         business_id=contact_dto.business_id,
         contact_type=contact_dto.contact_type.value,
         status=contact_dto.status.value,
+        relationship_status=contact_dto.relationship_status.value if hasattr(contact_dto, 'relationship_status') and contact_dto.relationship_status else "prospect",
+        lifecycle_stage=contact_dto.lifecycle_stage.value if hasattr(contact_dto, 'lifecycle_stage') and contact_dto.lifecycle_stage else "awareness",
         first_name=contact_dto.first_name,
         last_name=contact_dto.last_name,
         company_name=contact_dto.company_name,
@@ -555,6 +704,8 @@ def _contact_dto_to_response(contact_dto) -> ContactResponse:
         assigned_to=contact_dto.assigned_to,
         created_by=contact_dto.created_by,
         custom_fields=contact_dto.custom_fields,
+        status_history=getattr(contact_dto, 'status_history', []),
+        interaction_history=getattr(contact_dto, 'interaction_history', []),
         created_date=contact_dto.created_date,
         last_modified=contact_dto.last_modified,
         last_contacted=contact_dto.last_contacted,
@@ -563,5 +714,7 @@ def _contact_dto_to_response(contact_dto) -> ContactResponse:
         type_display=contact_dto.type_display,
         status_display=contact_dto.status_display,
         priority_display=contact_dto.priority_display,
-        source_display=contact_dto.source_display
+        source_display=contact_dto.source_display,
+        relationship_status_display=getattr(contact_dto, 'relationship_status_display', contact_dto.relationship_status.value if hasattr(contact_dto, 'relationship_status') and contact_dto.relationship_status else "Prospect"),
+        lifecycle_stage_display=getattr(contact_dto, 'lifecycle_stage_display', contact_dto.lifecycle_stage.value if hasattr(contact_dto, 'lifecycle_stage') and contact_dto.lifecycle_stage else "Awareness")
     ) 

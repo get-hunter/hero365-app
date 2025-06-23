@@ -32,12 +32,25 @@ class ContactStatusSchema(str, Enum):
     BLOCKED = "blocked"
 
 
-class ContactPrioritySchema(str, Enum):
-    """Schema for contact priority."""
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    URGENT = "urgent"
+class RelationshipStatusSchema(str, Enum):
+    """Schema for relationship status in sales/client lifecycle."""
+    PROSPECT = "prospect"
+    QUALIFIED_LEAD = "qualified_lead"
+    OPPORTUNITY = "opportunity"
+    ACTIVE_CLIENT = "active_client"
+    PAST_CLIENT = "past_client"
+    LOST_LEAD = "lost_lead"
+    INACTIVE = "inactive"
+
+
+class LifecycleStageSchema(str, Enum):
+    """Schema for customer lifecycle stage."""
+    AWARENESS = "awareness"
+    INTEREST = "interest"
+    CONSIDERATION = "consideration"
+    DECISION = "decision"
+    RETENTION = "retention"
+    CUSTOMER = "customer"
 
 
 class ContactSourceSchema(str, Enum):
@@ -54,6 +67,27 @@ class ContactSourceSchema(str, Enum):
     OTHER = "other"
 
 
+class ContactPrioritySchema(str, Enum):
+    """Schema for contact priority."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
+
+
+class InteractionTypeSchema(str, Enum):
+    """Schema for interaction types."""
+    CALL = "call"
+    EMAIL = "email"
+    MEETING = "meeting"
+    PROPOSAL = "proposal"
+    QUOTE = "quote"
+    CONTRACT = "contract"
+    SERVICE = "service"
+    FOLLOW_UP = "follow_up"
+    NOTE = "note"
+
+
 # Address schema
 class ContactAddressSchema(BaseModel):
     """Schema for contact address."""
@@ -64,15 +98,100 @@ class ContactAddressSchema(BaseModel):
     country: Optional[str] = Field(None, max_length=100, description="Country")
 
 
+# Status history schema
+class StatusHistoryEntrySchema(BaseModel):
+    """Schema for status history entry."""
+    id: uuid.UUID = Field(..., description="Status history entry ID")
+    from_status: Optional[RelationshipStatusSchema] = Field(None, description="Previous status")
+    to_status: RelationshipStatusSchema = Field(..., description="New status")
+    timestamp: datetime = Field(..., description="Change timestamp")
+    changed_by: str = Field(..., description="User who made the change")
+    reason: Optional[str] = Field(None, description="Reason for status change")
+    
+    @field_serializer('timestamp')
+    def serialize_datetime(self, value: datetime) -> str:
+        return format_datetime_utc(value)
+
+
+# Interaction schemas
+class ContactInteractionCreateRequest(BaseModel):
+    """Request schema for creating contact interaction."""
+    type: InteractionTypeSchema = Field(..., description="Type of interaction")
+    description: str = Field(..., min_length=1, max_length=1000, description="Interaction description")
+    outcome: Optional[str] = Field(None, max_length=200, description="Interaction outcome")
+    next_action: Optional[str] = Field(None, max_length=500, description="Next action to take")
+    scheduled_follow_up: Optional[datetime] = Field(None, description="Scheduled follow-up date")
+
+
+class ContactInteractionUpdateRequest(BaseModel):
+    """Request schema for updating contact interaction."""
+    type: Optional[InteractionTypeSchema] = Field(None, description="Type of interaction")
+    description: Optional[str] = Field(None, min_length=1, max_length=1000, description="Interaction description")
+    outcome: Optional[str] = Field(None, max_length=200, description="Interaction outcome")
+    next_action: Optional[str] = Field(None, max_length=500, description="Next action to take")
+    scheduled_follow_up: Optional[datetime] = Field(None, description="Scheduled follow-up date")
+
+
+class ContactInteractionResponse(BaseModel):
+    """Response schema for contact interaction."""
+    id: uuid.UUID = Field(..., description="Interaction ID")
+    contact_id: uuid.UUID = Field(..., description="Contact ID")
+    type: InteractionTypeSchema = Field(..., description="Type of interaction")
+    description: str = Field(..., description="Interaction description")
+    timestamp: datetime = Field(..., description="Interaction timestamp")
+    outcome: Optional[str] = Field(None, description="Interaction outcome")
+    next_action: Optional[str] = Field(None, description="Next action to take")
+    scheduled_follow_up: Optional[datetime] = Field(None, description="Scheduled follow-up date")
+    performed_by: str = Field(..., description="User who performed the interaction")
+    performed_by_id: Optional[str] = Field(None, description="User ID who performed the interaction")
+    
+    @field_serializer('timestamp', 'scheduled_follow_up')
+    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
+        return format_datetime_utc(value) if value else None
+
+
+class ContactInteractionListResponse(BaseModel):
+    """Response schema for contact interaction list."""
+    interactions: List[ContactInteractionResponse] = Field(default_factory=list)
+    total: int = Field(..., description="Total number of interactions")
+    skip: int = Field(..., description="Number of items skipped")
+    limit: int = Field(..., description="Number of items per page")
+
+
+# Status update schemas
+class ContactStatusUpdateRequest(BaseModel):
+    """Request schema for updating contact relationship status."""
+    relationship_status: RelationshipStatusSchema = Field(..., description="New relationship status")
+    lifecycle_stage: Optional[LifecycleStageSchema] = Field(None, description="New lifecycle stage (optional, will be auto-set if not provided)")
+    reason: Optional[str] = Field(None, max_length=500, description="Reason for status change")
+    notes: Optional[str] = Field(None, max_length=1000, description="Additional notes")
+
+
+class ContactStatusUpdateResponse(BaseModel):
+    """Response schema for contact status update."""
+    contact_id: uuid.UUID = Field(..., description="Contact ID")
+    old_status: RelationshipStatusSchema = Field(..., description="Previous relationship status")
+    new_status: RelationshipStatusSchema = Field(..., description="New relationship status")
+    old_lifecycle_stage: LifecycleStageSchema = Field(..., description="Previous lifecycle stage")
+    new_lifecycle_stage: LifecycleStageSchema = Field(..., description="New lifecycle stage")
+    changed_by: str = Field(..., description="User who made the change")
+    timestamp: datetime = Field(..., description="Change timestamp")
+    reason: Optional[str] = Field(None, description="Reason for status change")
+    
+    @field_serializer('timestamp')
+    def serialize_datetime(self, value: datetime) -> str:
+        return format_datetime_utc(value)
+
+
 # Request schemas
 class ContactCreateRequest(BaseModel):
-    """Request schema for creating a contact."""
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
-    
+    """Request schema for creating a new contact."""
     contact_type: ContactTypeSchema = Field(..., description="Type of contact")
-    first_name: Optional[str] = Field(None, max_length=100, description="First name")
-    last_name: Optional[str] = Field(None, max_length=100, description="Last name")
-    company_name: Optional[str] = Field(None, max_length=200, description="Company name")
+    relationship_status: Optional[RelationshipStatusSchema] = Field(None, description="Relationship status (auto-set based on contact_type if not provided)")
+    lifecycle_stage: Optional[LifecycleStageSchema] = Field(None, description="Lifecycle stage (auto-set based on relationship_status if not provided)")
+    first_name: Optional[str] = Field(None, min_length=1, max_length=100, description="First name")
+    last_name: Optional[str] = Field(None, min_length=1, max_length=100, description="Last name")
+    company_name: Optional[str] = Field(None, min_length=1, max_length=200, description="Company name")
     job_title: Optional[str] = Field(None, max_length=100, description="Job title")
     email: Optional[EmailStr] = Field(None, description="Email address")
     phone: Optional[str] = Field(None, max_length=20, description="Phone number")
@@ -80,52 +199,28 @@ class ContactCreateRequest(BaseModel):
     website: Optional[str] = Field(None, max_length=200, description="Website URL")
     address: Optional[ContactAddressSchema] = Field(None, description="Contact address")
     priority: ContactPrioritySchema = Field(ContactPrioritySchema.MEDIUM, description="Contact priority")
-    source: Optional[ContactSourceSchema] = Field(None, description="How contact was acquired")
+    source: Optional[ContactSourceSchema] = Field(None, description="Contact source")
     tags: List[str] = Field(default_factory=list, description="Contact tags")
-    notes: Optional[str] = Field(None, max_length=5000, description="Additional notes")
-    estimated_value: Optional[float] = Field(None, ge=0, description="Estimated value in USD")
-    currency: str = Field("USD", max_length=3, description="Currency code")
-    assigned_to: Optional[str] = Field(None, description="User ID of assigned team member")
+    notes: Optional[str] = Field(None, description="Additional notes")
+    estimated_value: Optional[float] = Field(None, ge=0, description="Estimated value")
+    currency: str = Field("USD", min_length=3, max_length=3, description="Currency code")
+    assigned_to: Optional[str] = Field(None, description="Assigned user ID")
     custom_fields: Dict[str, Any] = Field(default_factory=dict, description="Custom fields")
     
-    @field_validator('website')
+    @field_validator('email')
     @classmethod
-    def validate_website(cls, v):
-        if v and not (v.startswith(('http://', 'https://')) or '.' in v):
-            raise ValueError('Website must be a valid URL or domain')
+    def validate_email_or_phone_required(cls, v, info):
+        """At least one contact method (email or phone) must be provided."""
+        # Note: This validation will be enhanced in the use case layer
         return v
-    
-    @field_validator('currency')
-    @classmethod
-    def validate_currency(cls, v):
-        if len(v) != 3:
-            raise ValueError('Currency must be a 3-letter ISO code')
-        return v.upper()
-    
-    @field_validator('tags')
-    @classmethod
-    def validate_tags(cls, v):
-        # Remove empty tags and duplicates
-        return list(set([tag.strip().lower() for tag in v if tag.strip()]))
-    
-    def model_validate(cls, values):
-        """Validate that at least one name or company name is provided."""
-        if not any([values.get('first_name'), values.get('last_name'), values.get('company_name')]):
-            raise ValueError('At least one of first_name, last_name, or company_name is required')
-        
-        if not any([values.get('email'), values.get('phone'), values.get('mobile_phone')]):
-            raise ValueError('At least one contact method (email, phone, or mobile_phone) is required')
-        
-        return values
 
 
 class ContactUpdateRequest(BaseModel):
     """Request schema for updating a contact."""
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
-    
-    first_name: Optional[str] = Field(None, max_length=100, description="First name")
-    last_name: Optional[str] = Field(None, max_length=100, description="Last name")
-    company_name: Optional[str] = Field(None, max_length=200, description="Company name")
+    contact_type: Optional[ContactTypeSchema] = Field(None, description="Type of contact")
+    first_name: Optional[str] = Field(None, min_length=1, max_length=100, description="First name")
+    last_name: Optional[str] = Field(None, min_length=1, max_length=100, description="Last name")
+    company_name: Optional[str] = Field(None, min_length=1, max_length=200, description="Company name")
     job_title: Optional[str] = Field(None, max_length=100, description="Job title")
     email: Optional[EmailStr] = Field(None, description="Email address")
     phone: Optional[str] = Field(None, max_length=20, description="Phone number")
@@ -133,35 +228,13 @@ class ContactUpdateRequest(BaseModel):
     website: Optional[str] = Field(None, max_length=200, description="Website URL")
     address: Optional[ContactAddressSchema] = Field(None, description="Contact address")
     priority: Optional[ContactPrioritySchema] = Field(None, description="Contact priority")
-    source: Optional[ContactSourceSchema] = Field(None, description="How contact was acquired")
+    source: Optional[ContactSourceSchema] = Field(None, description="Contact source")
     tags: Optional[List[str]] = Field(None, description="Contact tags")
-    notes: Optional[str] = Field(None, max_length=5000, description="Additional notes")
-    estimated_value: Optional[float] = Field(None, ge=0, description="Estimated value in USD")
-    currency: Optional[str] = Field(None, max_length=3, description="Currency code")
-    assigned_to: Optional[str] = Field(None, description="User ID of assigned team member")
+    notes: Optional[str] = Field(None, description="Additional notes")
+    estimated_value: Optional[float] = Field(None, ge=0, description="Estimated value")
+    currency: Optional[str] = Field(None, min_length=3, max_length=3, description="Currency code")
+    assigned_to: Optional[str] = Field(None, description="Assigned user ID")
     custom_fields: Optional[Dict[str, Any]] = Field(None, description="Custom fields")
-    
-    @field_validator('website')
-    @classmethod
-    def validate_website(cls, v):
-        if v and not (v.startswith(('http://', 'https://')) or '.' in v):
-            raise ValueError('Website must be a valid URL or domain')
-        return v
-    
-    @field_validator('currency')
-    @classmethod
-    def validate_currency(cls, v):
-        if v and len(v) != 3:
-            raise ValueError('Currency must be a 3-letter ISO code')
-        return v.upper() if v else v
-    
-    @field_validator('tags')
-    @classmethod
-    def validate_tags(cls, v):
-        if v is not None:
-            # Remove empty tags and duplicates
-            return list(set([tag.strip().lower() for tag in v if tag.strip()]))
-        return v
 
 
 class ContactSearchRequest(BaseModel):
@@ -228,6 +301,8 @@ class ContactResponse(BaseModel):
     business_id: uuid.UUID = Field(..., description="Business ID")
     contact_type: ContactTypeSchema = Field(..., description="Contact type")
     status: ContactStatusSchema = Field(..., description="Contact status")
+    relationship_status: RelationshipStatusSchema = Field(..., description="Relationship status")
+    lifecycle_stage: LifecycleStageSchema = Field(..., description="Lifecycle stage")
     first_name: Optional[str] = Field(None, description="First name")
     last_name: Optional[str] = Field(None, description="Last name")
     company_name: Optional[str] = Field(None, description="Company name")
@@ -246,6 +321,12 @@ class ContactResponse(BaseModel):
     assigned_to: Optional[str] = Field(None, description="Assigned user ID")
     created_by: Optional[str] = Field(None, description="Creator user ID")
     custom_fields: Dict[str, Any] = Field(default_factory=dict, description="Custom fields")
+    
+    # Status and interaction history
+    status_history: List[StatusHistoryEntrySchema] = Field(default_factory=list, description="Status change history")
+    interaction_history: List[ContactInteractionResponse] = Field(default_factory=list, description="Recent interactions")
+    
+    # Timestamps
     created_date: Optional[datetime] = Field(None, description="Creation date")
     last_modified: Optional[datetime] = Field(None, description="Last modification date")
     last_contacted: Optional[datetime] = Field(None, description="Last contact date")
@@ -257,6 +338,8 @@ class ContactResponse(BaseModel):
     status_display: str = Field(..., description="Human-readable status")
     priority_display: str = Field(..., description="Human-readable priority")
     source_display: str = Field(..., description="Human-readable source")
+    relationship_status_display: str = Field(..., description="Human-readable relationship status")
+    lifecycle_stage_display: str = Field(..., description="Human-readable lifecycle stage")
     
     @field_serializer('created_date', 'last_modified', 'last_contacted')
     def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:

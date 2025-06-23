@@ -490,6 +490,185 @@ class ManageContactsUseCase:
         
         return self._contact_to_response_dto(updated_contact)
     
+    async def add_contact_interaction(self, contact_id: uuid.UUID, interaction_data: dict, user_id: str):
+        """
+        Add an interaction record to a contact.
+        
+        Args:
+            contact_id: ID of the contact
+            interaction_data: Interaction data containing type, description, etc.
+            user_id: ID of the user adding the interaction
+            
+        Returns:
+            Interaction record ID
+            
+        Raises:
+            EntityNotFoundError: If contact doesn't exist
+            PermissionError: If user lacks permission
+        """
+        contact = await self.contact_repository.get_by_id(contact_id)
+        if not contact:
+            raise EntityNotFoundError("Contact not found")
+        
+        # Validate user has permission to edit contacts in this business
+        await self._validate_user_permission(contact.business_id, user_id, "edit_contacts")
+        
+        # Add interaction to contact
+        from ....domain.entities.contact import InteractionType
+        interaction_id = contact.add_interaction(
+            interaction_type=InteractionType(interaction_data["type"]),
+            description=interaction_data["description"],
+            outcome=interaction_data.get("outcome"),
+            next_action=interaction_data.get("next_action"),
+            scheduled_follow_up=interaction_data.get("scheduled_follow_up"),
+            performed_by=user_id
+        )
+        
+        # Update last contacted timestamp
+        contact.update_last_contacted()
+        
+        # Save updated contact
+        await self.contact_repository.update(contact)
+        
+        return interaction_id
+    
+    async def get_contact_interactions(self, contact_id: uuid.UUID, user_id: str, skip: int = 0, limit: int = 50):
+        """
+        Get interaction history for a contact.
+        
+        Args:
+            contact_id: ID of the contact
+            user_id: ID of the user requesting interactions
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            
+        Returns:
+            List of interaction records
+            
+        Raises:
+            EntityNotFoundError: If contact doesn't exist
+            PermissionError: If user lacks permission
+        """
+        contact = await self.contact_repository.get_by_id(contact_id)
+        if not contact:
+            raise EntityNotFoundError("Contact not found")
+        
+        # Validate user has permission to view contacts in this business
+        await self._validate_user_permission(contact.business_id, user_id, "view_contacts")
+        
+        # Get interactions from contact (sorted by timestamp, newest first)
+        interactions = sorted(
+            contact.interaction_history or [],
+            key=lambda x: x.timestamp,
+            reverse=True
+        )
+        
+        # Apply pagination
+        paginated_interactions = interactions[skip:skip + limit]
+        
+        return {
+            "interactions": paginated_interactions,
+            "total": len(interactions),
+            "skip": skip,
+            "limit": limit
+        }
+    
+    async def update_contact_status(self, contact_id: uuid.UUID, status_data: dict, user_id: str):
+        """
+        Update contact relationship status and lifecycle stage.
+        
+        Args:
+            contact_id: ID of the contact
+            status_data: Status update data containing relationship_status, lifecycle_stage, etc.
+            user_id: ID of the user updating the status
+            
+        Returns:
+            Status update result with old and new status
+            
+        Raises:
+            EntityNotFoundError: If contact doesn't exist
+            PermissionError: If user lacks permission
+        """
+        contact = await self.contact_repository.get_by_id(contact_id)
+        if not contact:
+            raise EntityNotFoundError("Contact not found")
+        
+        # Validate user has permission to edit contacts in this business
+        await self._validate_user_permission(contact.business_id, user_id, "edit_contacts")
+        
+        # Store old status for response
+        from ....domain.entities.contact import RelationshipStatus, LifecycleStage
+        old_status = contact.relationship_status
+        old_lifecycle = contact.lifecycle_stage
+        
+        # Update status based on provided data
+        new_status = RelationshipStatus(status_data["relationship_status"])
+        new_lifecycle = None
+        
+        if status_data.get("lifecycle_stage"):
+            new_lifecycle = LifecycleStage(status_data["lifecycle_stage"])
+        
+        # Use domain method to update status (handles business logic)
+        if new_status == RelationshipStatus.QUALIFIED_LEAD:
+            contact.progress_to_qualified_lead(
+                reason=status_data.get("reason"),
+                notes=status_data.get("notes"),
+                changed_by=user_id
+            )
+        elif new_status == RelationshipStatus.OPPORTUNITY:
+            contact.progress_to_opportunity(
+                reason=status_data.get("reason"),
+                notes=status_data.get("notes"),
+                changed_by=user_id
+            )
+        elif new_status == RelationshipStatus.ACTIVE_CLIENT:
+            contact.convert_to_client(
+                reason=status_data.get("reason"),
+                notes=status_data.get("notes"),
+                changed_by=user_id
+            )
+        elif new_status == RelationshipStatus.LOST_LEAD:
+            contact.mark_as_lost_lead(
+                reason=status_data.get("reason"),
+                notes=status_data.get("notes"),
+                changed_by=user_id
+            )
+        elif new_status == RelationshipStatus.INACTIVE:
+            contact.mark_as_inactive(
+                reason=status_data.get("reason"),
+                notes=status_data.get("notes"),
+                changed_by=user_id
+            )
+        elif new_status == RelationshipStatus.PAST_CLIENT:
+            contact.mark_as_past_client(
+                reason=status_data.get("reason"),
+                notes=status_data.get("notes"),
+                changed_by=user_id
+            )
+        else:
+            # Direct status update for other cases
+            contact.update_relationship_status(
+                new_status=new_status,
+                lifecycle_stage=new_lifecycle,
+                reason=status_data.get("reason"),
+                notes=status_data.get("notes"),
+                changed_by=user_id
+            )
+        
+        # Save updated contact
+        await self.contact_repository.update(contact)
+        
+        return {
+            "contact_id": contact_id,
+            "old_status": old_status,
+            "new_status": contact.relationship_status,
+            "old_lifecycle_stage": old_lifecycle,
+            "new_lifecycle_stage": contact.lifecycle_stage,
+            "changed_by": user_id,
+            "timestamp": datetime.utcnow(),
+            "reason": status_data.get("reason")
+        }
+    
     # Helper methods
     
     async def _validate_user_permission(self, business_id: uuid.UUID, user_id: str, permission: str) -> None:
