@@ -146,5 +146,27 @@ class BusinessLogicError(ApplicationException):
         self.rule = rule
 
 
+class NotFoundError(ApplicationException):
+    """Raised when a requested resource is not found."""
+    
+    def __init__(self, resource_type: str, identifier: str = None):
+        if identifier:
+            message = f"{resource_type} not found: {identifier}"
+        else:
+            message = f"{resource_type} not found"
+        super().__init__(message, "NOT_FOUND")
+        self.resource_type = resource_type
+        self.identifier = identifier
+
+
+class BusinessRuleViolationError(ApplicationException):
+    """Raised when business rules are violated."""
+    
+    def __init__(self, message: str, rule: str = None):
+        super().__init__(message, "BUSINESS_RULE_VIOLATION")
+        self.rule = rule
+
+
 # Aliases for backwards compatibility
-ApplicationError = ApplicationException 
+ApplicationError = ApplicationException
+BusinessLogicViolationError = BusinessLogicError  # Alias for consistency 
