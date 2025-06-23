@@ -21,97 +21,52 @@ logger = logging.getLogger(__name__)
 security = HTTPBearer()
 
 
-def require_permission(
-    permission: Union[BusinessPermission, str, List[Union[BusinessPermission, str]]]
-) -> Callable:
+def create_permission_dependency(required_permissions: List[str]):
     """
-    Decorator to enforce permission requirements on API endpoints.
+    Create a FastAPI dependency that checks for required permissions.
     
     Args:
-        permission: Single permission or list of permissions required.
-                   Can be BusinessPermission enum or string values.
-    
+        required_permissions: List of permissions required
+        
     Returns:
-        Decorator function
-        
-    Usage:
-        @require_permission(BusinessPermission.VIEW_CONTACTS)
-        async def get_contacts(...):
-            pass
-            
-        @require_permission([BusinessPermission.EDIT_CONTACTS, BusinessPermission.CREATE_CONTACTS])
-        async def update_contact(...):
-            pass
+        Dependency function
     """
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        async def wrapper(*args, **kwargs) -> Any:
-            # Extract request from function arguments
-            request = None
-            for arg in args:
-                if isinstance(arg, Request):
-                    request = arg
-                    break
-            
-            # Extract request from kwargs if not found in args
-            if not request:
-                request = kwargs.get('request')
-            
-            if not request:
-                logger.error("No request object found in function arguments")
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Internal server error: Request object not found"
-                )
-            
-            # Get authenticated user
-            user = getattr(request.state, 'user', None)
-            if not user:
-                logger.warning("No authenticated user found in request state")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
-                )
-            
-            # Get business context
-            business_id = getattr(request.state, 'business_id', None)
-            if not business_id:
-                # Try to extract from path parameters or kwargs
-                business_id = request.path_params.get('business_id')
-                if not business_id:
-                    business_id = kwargs.get('business_id')
-            
-            if not business_id:
-                logger.warning("No business context found for permission check")
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Business context required for this operation"
-                )
-            
-            # Normalize permissions to list of strings
-            required_permissions = normalize_permissions(permission)
-            
-            # Check if user has required permissions
-            user_id = user.get('id') or user.get('sub')
-            has_permission = await check_user_business_permissions(
-                user_id, business_id, required_permissions
+    async def check_permissions(request: Request) -> bool:
+        # Get user from request state (set by auth middleware)
+        user = getattr(request.state, 'user', None)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required"
             )
-            
-            if not has_permission:
-                logger.warning(
-                    f"User {user_id} lacks required permissions {required_permissions} "
-                    f"for business {business_id}"
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Insufficient permissions: {', '.join(required_permissions)} required"
-                )
-            
-            # Permission check passed, execute the function
-            return await func(*args, **kwargs)
         
-        return wrapper
-    return decorator
+        # Get business context from request state (set by business context middleware)
+        business_context_id = getattr(request.state, 'business_id', None)
+        if not business_context_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Business context required for this operation"
+            )
+        
+        # Check if user has required permissions
+        user_id = user.get('id') or user.get('sub')
+        has_permission = await check_user_business_permissions(
+            user_id, str(business_context_id), required_permissions
+        )
+        
+        if not has_permission:
+            logger.warning(
+                f"User {user_id} lacks required permissions {required_permissions} "
+                f"for business {business_context_id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Insufficient permissions: {', '.join(required_permissions)} required"
+            )
+        
+        return True
+    
+    return check_permissions
 
 
 def normalize_permissions(
@@ -177,6 +132,11 @@ async def check_user_business_permissions(
         
         # Check if user has all required permissions
         user_permissions = current_membership.get("permissions", [])
+        
+        # Special case: if user has "*" permission (owner), they have all permissions
+        if "*" in user_permissions:
+            logger.debug(f"User {user_id} has wildcard permissions (owner) for business {business_id}")
+            return True
         
         # Check each required permission
         for required_permission in required_permissions:
@@ -257,127 +217,34 @@ async def get_user_business_permissions(
         }
 
 
-def require_any_permission(*permissions: Union[BusinessPermission, str]) -> Callable:
-    """
-    Decorator to enforce that user has ANY of the specified permissions.
-    
-    Args:
-        *permissions: Variable number of permissions (user needs any one of them)
-        
-    Returns:
-        Decorator function
-    """
-    async def permission_checker(user_id: str, business_id: str) -> bool:
-        required_permissions = normalize_permissions(list(permissions))
-        
-        try:
-            # Get user's business memberships
-            business_memberships = await auth_facade._get_user_business_memberships(user_id)
-            
-            if not business_memberships:
-                return False
-            
-            # Find membership for the specific business
-            current_membership = None
-            for membership in business_memberships:
-                if membership["business_id"] == business_id:
-                    current_membership = membership
-                    break
-            
-            if not current_membership:
-                return False
-            
-            # Check if user has any of the required permissions
-            user_permissions = current_membership.get("permissions", [])
-            
-            for required_permission in required_permissions:
-                if required_permission in user_permissions:
-                    return True
-            
-            return False
-            
-        except Exception as e:
-            logger.error(f"Error checking any permission: {str(e)}")
-            return False
-    
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        async def wrapper(*args, **kwargs) -> Any:
-            # Extract request and business context
-            request = None
-            for arg in args:
-                if isinstance(arg, Request):
-                    request = arg
-                    break
-            
-            if not request:
-                request = kwargs.get('request')
-            
-            if not request:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Internal server error: Request object not found"
-                )
-            
-            user = getattr(request.state, 'user', None)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
-                )
-            
-            business_id = getattr(request.state, 'business_id', None)
-            if not business_id:
-                business_id = request.path_params.get('business_id') or kwargs.get('business_id')
-            
-            if not business_id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Business context required for this operation"
-                )
-            
-            user_id = user.get('id') or user.get('sub')
-            has_permission = await permission_checker(user_id, business_id)
-            
-            if not has_permission:
-                required_permissions = normalize_permissions(list(permissions))
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Insufficient permissions: any of {', '.join(required_permissions)} required"
-                )
-            
-            return await func(*args, **kwargs)
-        
-        return wrapper
-    return decorator
+# Create permission dependency functions
+require_view_contacts_dep = create_permission_dependency([BusinessPermission.VIEW_CONTACTS.value])
+require_edit_contacts_dep = create_permission_dependency([BusinessPermission.EDIT_CONTACTS.value])
+require_create_contacts_dep = create_permission_dependency([BusinessPermission.CREATE_CONTACTS.value])
+require_delete_contacts_dep = create_permission_dependency([BusinessPermission.DELETE_CONTACTS.value])
 
 
-# Convenience decorators for common permissions
+# Keep the old decorator functions for backward compatibility but make them no-ops
 def require_view_contacts(func: Callable) -> Callable:
-    """Decorator to require VIEW_CONTACTS permission."""
-    return require_permission(BusinessPermission.VIEW_CONTACTS)(func)
+    """Decorator to require VIEW_CONTACTS permission. (Deprecated - use dependencies instead)"""
+    return func
 
 
 def require_edit_contacts(func: Callable) -> Callable:
-    """Decorator to require EDIT_CONTACTS permission."""
-    return require_permission(BusinessPermission.EDIT_CONTACTS)(func)
+    """Decorator to require EDIT_CONTACTS permission. (Deprecated - use dependencies instead)"""
+    return func
 
 
 def require_create_contacts(func: Callable) -> Callable:
-    """Decorator to require CREATE_CONTACTS permission."""
-    return require_permission(BusinessPermission.CREATE_CONTACTS)(func)
+    """Decorator to require CREATE_CONTACTS permission. (Deprecated - use dependencies instead)"""
+    return func
 
 
 def require_delete_contacts(func: Callable) -> Callable:
-    """Decorator to require DELETE_CONTACTS permission."""
-    return require_permission(BusinessPermission.DELETE_CONTACTS)(func)
+    """Decorator to require DELETE_CONTACTS permission. (Deprecated - use dependencies instead)"""
+    return func
 
 
 def require_contact_management(func: Callable) -> Callable:
-    """Decorator to require any contact management permission."""
-    return require_any_permission(
-        BusinessPermission.VIEW_CONTACTS,
-        BusinessPermission.CREATE_CONTACTS,
-        BusinessPermission.EDIT_CONTACTS,
-        BusinessPermission.DELETE_CONTACTS
-    )(func) 
+    """Decorator to require any contact management permission. (Deprecated - use dependencies instead)"""
+    return func 

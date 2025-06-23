@@ -9,7 +9,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 
 from ..deps import get_current_user, get_business_context
-from ..middleware.permissions import require_view_contacts, require_edit_contacts
+from ..middleware.permissions import (
+    require_view_contacts_dep, require_edit_contacts_dep, require_delete_contacts_dep
+)
 from ..schemas.contact_schemas import (
     ContactCreateRequest, ContactUpdateRequest, ContactSearchRequest,
     ContactBulkUpdateRequest, ContactConversionRequest, ContactAssignmentRequest,
@@ -36,7 +38,8 @@ async def create_contact(
     request: ContactCreateRequest,
     business_id: uuid.UUID = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_edit_contacts_dep)
 ):
     """
     Create a new contact.
@@ -93,7 +96,8 @@ async def create_contact(
 async def get_contact(
     contact_id: uuid.UUID = Path(..., description="Contact ID"),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_view_contacts_dep)
 ):
     """
     Get a contact by ID.
@@ -117,7 +121,8 @@ async def update_contact(
     request: ContactUpdateRequest = Body(...),
     business_id: uuid.UUID = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_edit_contacts_dep)
 ):
     """
     Update a contact.
@@ -173,7 +178,8 @@ async def update_contact(
 async def delete_contact(
     contact_id: uuid.UUID = Path(..., description="Contact ID"),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_delete_contacts_dep)
 ):
     """
     Delete a contact.
@@ -203,7 +209,8 @@ async def list_contacts(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_view_contacts_dep)
 ):
     """
     List contacts for the business.
@@ -236,7 +243,8 @@ async def search_contacts(
     request: ContactSearchRequest,
     business_id: uuid.UUID = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_view_contacts_dep)
 ):
     """
     Search contacts with advanced filtering.
@@ -292,7 +300,8 @@ async def bulk_update_contacts(
     request: ContactBulkUpdateRequest,
     business_id: uuid.UUID = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_edit_contacts_dep)
 ):
     """
     Perform bulk updates on multiple contacts.
@@ -333,7 +342,8 @@ async def convert_contact_type(
     request: ContactConversionRequest = Body(...),
     business_id: uuid.UUID = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_edit_contacts_dep)
 ):
     """
     Convert a contact from one type to another.
@@ -367,7 +377,8 @@ async def assign_contacts(
     request: ContactAssignmentRequest,
     business_id: uuid.UUID = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_edit_contacts_dep)
 ):
     """
     Assign multiple contacts to a user.
@@ -410,7 +421,8 @@ async def manage_contact_tags(
     request: ContactTagOperationRequest,
     business_id: uuid.UUID = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_edit_contacts_dep)
 ):
     """
     Add, remove, or replace tags on multiple contacts.
@@ -455,7 +467,8 @@ async def manage_contact_tags(
 async def mark_contact_contacted(
     contact_id: uuid.UUID = Path(..., description="Contact ID"),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_edit_contacts_dep)
 ):
     """
     Mark a contact as contacted.
@@ -477,7 +490,8 @@ async def mark_contact_contacted(
 async def get_contact_statistics(
     business_id: uuid.UUID = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_view_contacts_dep)
 ):
     """
     Get comprehensive contact statistics.
@@ -522,12 +536,12 @@ async def get_contact_statistics(
 
 
 @router.post("/{contact_id}/interactions", response_model=ContactInteractionResponse, status_code=status.HTTP_201_CREATED)
-@require_edit_contacts
 async def add_contact_interaction(
     contact_id: uuid.UUID = Path(..., description="Contact ID"),
     request: ContactInteractionCreateRequest = Body(...),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_edit_contacts_dep)
 ):
     """
     Add an interaction record to a contact.
@@ -571,13 +585,13 @@ async def add_contact_interaction(
 
 
 @router.get("/{contact_id}/interactions", response_model=ContactInteractionListResponse)
-@require_view_contacts
 async def get_contact_interactions(
     contact_id: uuid.UUID = Path(..., description="Contact ID"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(50, ge=1, le=100, description="Maximum number of records to return"),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_view_contacts_dep)
 ):
     """
     Get interaction history for a contact.
@@ -621,12 +635,12 @@ async def get_contact_interactions(
 
 
 @router.put("/{contact_id}/status", response_model=ContactStatusUpdateResponse)
-@require_edit_contacts
 async def update_contact_status(
     contact_id: uuid.UUID = Path(..., description="Contact ID"),
     request: ContactStatusUpdateRequest = Body(...),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case)
+    use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
+    _: bool = Depends(require_edit_contacts_dep)
 ):
     """
     Update contact relationship status and lifecycle stage.

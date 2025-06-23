@@ -127,39 +127,45 @@ def get_current_active_superuser(current_user: CurrentUser) -> dict:
     return current_user
 
 
-def get_business_context(request: Request) -> Optional[dict]:
+def get_business_context(request: Request) -> uuid.UUID:
     """
-    Get business context from request.
+    Get business ID from request context.
     
-    This function extracts business context that was set by the BusinessContextMiddleware.
-    The middleware validates business access and sets the context in request.state.
+    This function extracts business_id that was set by the BusinessContextMiddleware.
+    The middleware validates business access and sets the business_id in request.state.
     
     Args:
         request: FastAPI request object
         
     Returns:
-        dict: Business context containing business_id and user permissions
+        uuid.UUID: Business ID from the validated business context
         
     Raises:
         HTTPException: If business context is not available
     """
     try:
-        # Get business context from request state (set by BusinessContextMiddleware)
-        if hasattr(request.state, "business_context"):
-            return request.state.business_context
+        # Get business_id from request state (set by BusinessContextMiddleware)
+        business_id = getattr(request.state, "business_id", None)
+        if business_id:
+            return uuid.UUID(business_id)
         
         # Fallback: try to extract business_id from path parameters
         if hasattr(request, "path_params") and "business_id" in request.path_params:
             business_id = request.path_params["business_id"]
-            return {
-                "business_id": uuid.UUID(business_id),
-                "permissions": [],  # Empty permissions - will be validated by use cases
-                "role": None
-            }
+            return uuid.UUID(business_id)
         
-        # If no business context available, this endpoint doesn't require business scope
-        return None
+        # If no business context available, raise error
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Business context required for this operation"
+        )
         
+    except ValueError as e:
+        logger.error(f"Invalid business ID format: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid business ID format: {str(e)}"
+        )
     except Exception as e:
         logger.error(f"Error getting business context: {str(e)}")
         raise HTTPException(
@@ -168,4 +174,4 @@ def get_business_context(request: Request) -> Optional[dict]:
         )
 
 
-BusinessContext = Annotated[Optional[dict], Depends(get_business_context)]
+BusinessContext = Annotated[uuid.UUID, Depends(get_business_context)]
