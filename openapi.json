@@ -1,0 +1,957 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Hero365 App",
+    "description": "Hero365 App - the AI-native business management platform for home service businesses. This API provides comprehensive functionality for managing businesses, contacts, jobs, authentication, and team collaboration with multi-tenant architecture and role-based access control.",
+    "version": "2.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000/api/v1",
+      "description": "Development environment"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication and authorization endpoints including OAuth, JWT tokens, and business context management"
+    },
+    {
+      "name": "Business Management", 
+      "description": "Business creation, management, team invitations, and multi-tenant operations"
+    },
+    {
+      "name": "Business Context",
+      "description": "Business context switching and permission management for multi-tenant operations"
+    },
+    {
+      "name": "Contact Management",
+      "description": "Comprehensive contact management including customers, leads, vendors, partners with advanced search and categorization"
+    },
+    {
+      "name": "Job Management",
+      "description": "Job and project management including scheduling, status tracking, and service delivery"
+    },
+    {
+      "name": "User Management",
+      "description": "User profile management and account operations"
+    },
+    {
+      "name": "Utilities",
+      "description": "Health checks, testing utilities, and system operations"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Utilities"],
+        "summary": "Health Check",
+        "description": "Health check endpoint for infrastructure monitoring",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {"type": "string", "example": "healthy"},
+                    "environment": {"type": "string", "example": "development"},
+                    "version": {"type": "string", "example": "2.0.0"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/signup": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User Registration",
+        "description": "Register a new user with email and password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {"type": "string", "format": "email"},
+                  "password": {"type": "string", "minLength": 8},
+                  "first_name": {"type": "string"},
+                  "last_name": {"type": "string"}
+                },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {"description": "User created successfully"},
+          "400": {"description": "Invalid input data"},
+          "409": {"description": "User already exists"}
+        }
+      }
+    },
+    "/auth/signin": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User Login",
+        "description": "Authenticate user and return JWT token with business context",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {"type": "string", "format": "email"},
+                  "password": {"type": "string"}
+                },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {"type": "string"},
+                    "token_type": {"type": "string", "example": "bearer"},
+                    "user_id": {"type": "string", "format": "uuid"},
+                    "current_business_id": {"type": "string", "format": "uuid"}
+                  }
+                }
+              }
+            }
+          },
+          "401": {"description": "Invalid credentials"}
+        }
+      }
+    },
+    "/auth/oauth/google": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Google OAuth Login",
+        "description": "Authenticate using Google OAuth",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id_token": {"type": "string"},
+                  "access_token": {"type": "string"}
+                },
+                "required": ["id_token"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "OAuth login successful"},
+          "401": {"description": "Invalid OAuth token"}
+        }
+      }
+    },
+    "/auth/oauth/apple": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Apple OAuth Login",
+        "description": "Authenticate using Apple Sign In",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id_token": {"type": "string"},
+                  "authorization_code": {"type": "string"}
+                },
+                "required": ["id_token"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Apple OAuth login successful"},
+          "401": {"description": "Invalid Apple token"}
+        }
+      }
+    },
+    "/business-context/current": {
+      "get": {
+        "tags": ["Business Context"],
+        "summary": "Get Current Business Context",
+        "description": "Get current business context information for the authenticated user",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Current business context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "current_business_id": {"type": "string", "format": "uuid"},
+                    "available_businesses": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "business_id": {"type": "string", "format": "uuid"},
+                          "business_name": {"type": "string"},
+                          "role": {"type": "string", "enum": ["owner", "admin", "manager", "employee", "contractor", "viewer"]},
+                          "permissions": {"type": "array", "items": {"type": "string"}},
+                          "role_level": {"type": "integer"}
+                        }
+                      }
+                    },
+                    "user_id": {"type": "string", "format": "uuid"}
+                  }
+                }
+              }
+            }
+          },
+          "401": {"description": "Authentication required"}
+        }
+      }
+    },
+    "/business-context/switch": {
+      "post": {
+        "tags": ["Business Context"],
+        "summary": "Switch Business Context",
+        "description": "Switch user's current business context",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "business_id": {"type": "string", "format": "uuid"}
+                },
+                "required": ["business_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Business context switched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "current_business_id": {"type": "string", "format": "uuid"},
+                    "new_token": {"type": "string"},
+                    "user_id": {"type": "string", "format": "uuid"}
+                  }
+                }
+              }
+            }
+          },
+          "403": {"description": "User is not a member of the target business"}
+        }
+      }
+    },
+    "/businesses": {
+      "get": {
+        "tags": ["Business Management"],
+        "summary": "Get User Businesses",
+        "description": "Get all businesses the current user is a member of",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "List of businesses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/Business"}
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Business Management"],
+        "summary": "Create Business",
+        "description": "Create a new business",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/BusinessCreate"}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Business created successfully",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Business"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/businesses/{business_id}": {
+      "get": {
+        "tags": ["Business Management"],
+        "summary": "Get Business Details",
+        "description": "Get detailed information about a specific business",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "business_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Business details",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Business"}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Business Management"],
+        "summary": "Update Business",
+        "description": "Update business information",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "business_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/BusinessUpdate"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Business updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Business"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contacts": {
+      "get": {
+        "tags": ["Contact Management"],
+        "summary": "List Contacts",
+        "description": "Get paginated list of contacts for the current business",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": {"type": "integer", "default": 0}
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {"type": "integer", "default": 100, "maximum": 1000}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of contacts with pagination",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contacts": {
+                      "type": "array",
+                      "items": {"$ref": "#/components/schemas/Contact"}
+                    },
+                    "total_count": {"type": "integer"},
+                    "page": {"type": "integer"},
+                    "per_page": {"type": "integer"},
+                    "has_next": {"type": "boolean"},
+                    "has_previous": {"type": "boolean"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Contact Management"],
+        "summary": "Create Contact",
+        "description": "Create a new contact for the business",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/ContactCreate"}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Contact created successfully",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Contact"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contacts/{contact_id}": {
+      "get": {
+        "tags": ["Contact Management"],
+        "summary": "Get Contact",
+        "description": "Get detailed information about a specific contact",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "contact_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contact details",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Contact"}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Contact Management"],
+        "summary": "Update Contact",
+        "description": "Update contact information",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "contact_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/ContactUpdate"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contact updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Contact"}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Contact Management"],
+        "summary": "Delete Contact",
+        "description": "Delete a contact",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "contact_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contact deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"},
+                    "success": {"type": "boolean"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contacts/search": {
+      "post": {
+        "tags": ["Contact Management"],
+        "summary": "Search Contacts",
+        "description": "Advanced search for contacts with filtering and sorting",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/ContactSearchRequest"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contacts": {
+                      "type": "array",
+                      "items": {"$ref": "#/components/schemas/Contact"}
+                    },
+                    "total_count": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs": {
+      "get": {
+        "tags": ["Job Management"],
+        "summary": "List Jobs",
+        "description": "Get paginated list of jobs for the current business",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": {"type": "integer", "default": 0}
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {"type": "integer", "default": 100}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of jobs with pagination",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jobs": {
+                      "type": "array",
+                      "items": {"$ref": "#/components/schemas/Job"}
+                    },
+                    "total_count": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Job Management"],
+        "summary": "Create Job",
+        "description": "Create a new job or project",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/JobCreate"}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Job created successfully",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Job"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}": {
+      "get": {
+        "tags": ["Job Management"],
+        "summary": "Get Job",
+        "description": "Get detailed information about a specific job",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job details",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Job"}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Job Management"],
+        "summary": "Update Job",
+        "description": "Update job information and status",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/JobUpdate"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Job updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Job"}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Job Management"],
+        "summary": "Delete Job",
+        "description": "Delete a job",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job deleted successfully"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enhanced JWT token with business context information"
+      }
+    },
+    "schemas": {
+      "Business": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "business_name": {"type": "string"},
+          "industry": {"type": "string"},
+          "company_size": {"type": "string", "enum": ["solo", "small", "medium", "large"]},
+          "website": {"type": "string", "format": "uri"},
+          "phone": {"type": "string"},
+          "email": {"type": "string", "format": "email"},
+          "address": {"$ref": "#/components/schemas/Address"},
+          "is_active": {"type": "boolean"},
+          "created_date": {"type": "string", "format": "date-time"},
+          "settings": {"type": "object"}
+        }
+      },
+      "BusinessCreate": {
+        "type": "object",
+        "properties": {
+          "business_name": {"type": "string"},
+          "industry": {"type": "string"},
+          "company_size": {"type": "string", "enum": ["solo", "small", "medium", "large"]},
+          "website": {"type": "string", "format": "uri"},
+          "phone": {"type": "string"},
+          "email": {"type": "string", "format": "email"},
+          "address": {"$ref": "#/components/schemas/Address"}
+        },
+        "required": ["business_name", "industry"]
+      },
+      "BusinessUpdate": {
+        "type": "object",
+        "properties": {
+          "business_name": {"type": "string"},
+          "industry": {"type": "string"},
+          "company_size": {"type": "string", "enum": ["solo", "small", "medium", "large"]},
+          "website": {"type": "string", "format": "uri"},
+          "phone": {"type": "string"},
+          "email": {"type": "string", "format": "email"},
+          "address": {"$ref": "#/components/schemas/Address"}
+        }
+      },
+      "Contact": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "business_id": {"type": "string", "format": "uuid"},
+          "contact_type": {"type": "string", "enum": ["customer", "lead", "prospect", "vendor", "partner", "contractor"]},
+          "status": {"type": "string", "enum": ["active", "inactive", "archived", "blocked"]},
+          "first_name": {"type": "string"},
+          "last_name": {"type": "string"},
+          "company_name": {"type": "string"},
+          "job_title": {"type": "string"},
+          "email": {"type": "string", "format": "email"},
+          "phone": {"type": "string"},
+          "mobile_phone": {"type": "string"},
+          "website": {"type": "string", "format": "uri"},
+          "address": {"$ref": "#/components/schemas/Address"},
+          "priority": {"type": "string", "enum": ["low", "medium", "high", "urgent"]},
+          "source": {"type": "string", "enum": ["website", "referral", "social_media", "advertising", "cold_outreach", "event", "partner", "existing_customer", "direct", "other"]},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "notes": {"type": "string"},
+          "estimated_value": {"type": "number", "format": "decimal"},
+          "currency": {"type": "string", "default": "USD"},
+          "assigned_to": {"type": "string", "format": "uuid"},
+          "created_by": {"type": "string", "format": "uuid"},
+          "custom_fields": {"type": "object"},
+          "created_date": {"type": "string", "format": "date-time"},
+          "last_modified": {"type": "string", "format": "date-time"},
+          "last_contacted": {"type": "string", "format": "date-time"},
+          "display_name": {"type": "string"},
+          "primary_contact_method": {"type": "string"}
+        }
+      },
+      "ContactCreate": {
+        "type": "object",
+        "properties": {
+          "contact_type": {"type": "string", "enum": ["customer", "lead", "prospect", "vendor", "partner", "contractor"]},
+          "first_name": {"type": "string"},
+          "last_name": {"type": "string"},
+          "company_name": {"type": "string"},
+          "job_title": {"type": "string"},
+          "email": {"type": "string", "format": "email"},
+          "phone": {"type": "string"},
+          "mobile_phone": {"type": "string"},
+          "website": {"type": "string", "format": "uri"},
+          "address": {"$ref": "#/components/schemas/Address"},
+          "priority": {"type": "string", "enum": ["low", "medium", "high", "urgent"], "default": "medium"},
+          "source": {"type": "string", "enum": ["website", "referral", "social_media", "advertising", "cold_outreach", "event", "partner", "existing_customer", "direct", "other"]},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "notes": {"type": "string"},
+          "estimated_value": {"type": "number", "format": "decimal"},
+          "currency": {"type": "string", "default": "USD"},
+          "assigned_to": {"type": "string", "format": "uuid"},
+          "custom_fields": {"type": "object"}
+        },
+        "required": ["contact_type"]
+      },
+      "ContactUpdate": {
+        "type": "object",
+        "properties": {
+          "contact_type": {"type": "string", "enum": ["customer", "lead", "prospect", "vendor", "partner", "contractor"]},
+          "status": {"type": "string", "enum": ["active", "inactive", "archived", "blocked"]},
+          "first_name": {"type": "string"},
+          "last_name": {"type": "string"},
+          "company_name": {"type": "string"},
+          "job_title": {"type": "string"},
+          "email": {"type": "string", "format": "email"},
+          "phone": {"type": "string"},
+          "mobile_phone": {"type": "string"},
+          "website": {"type": "string", "format": "uri"},
+          "address": {"$ref": "#/components/schemas/Address"},
+          "priority": {"type": "string", "enum": ["low", "medium", "high", "urgent"]},
+          "source": {"type": "string", "enum": ["website", "referral", "social_media", "advertising", "cold_outreach", "event", "partner", "existing_customer", "direct", "other"]},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "notes": {"type": "string"},
+          "estimated_value": {"type": "number", "format": "decimal"},
+          "currency": {"type": "string"},
+          "assigned_to": {"type": "string", "format": "uuid"},
+          "custom_fields": {"type": "object"}
+        }
+      },
+      "ContactSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search_term": {"type": "string"},
+          "contact_type": {"type": "string", "enum": ["customer", "lead", "prospect", "vendor", "partner", "contractor"]},
+          "status": {"type": "string", "enum": ["active", "inactive", "archived", "blocked"]},
+          "priority": {"type": "string", "enum": ["low", "medium", "high", "urgent"]},
+          "source": {"type": "string"},
+          "assigned_to": {"type": "string", "format": "uuid"},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "has_email": {"type": "boolean"},
+          "has_phone": {"type": "boolean"},
+          "min_estimated_value": {"type": "number"},
+          "max_estimated_value": {"type": "number"},
+          "created_after": {"type": "string", "format": "date-time"},
+          "created_before": {"type": "string", "format": "date-time"},
+          "skip": {"type": "integer", "default": 0},
+          "limit": {"type": "integer", "default": 100},
+          "sort_by": {"type": "string", "default": "created_date"},
+          "sort_order": {"type": "string", "enum": ["asc", "desc"], "default": "desc"}
+        }
+      },
+      "Job": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "business_id": {"type": "string", "format": "uuid"},
+          "contact_id": {"type": "string", "format": "uuid"},
+          "job_type": {"type": "string", "enum": ["service", "installation", "maintenance", "repair", "inspection", "consultation", "emergency", "project", "other"]},
+          "status": {"type": "string", "enum": ["draft", "scheduled", "in_progress", "completed", "cancelled", "on_hold", "requires_followup"]},
+          "priority": {"type": "string", "enum": ["low", "medium", "high", "urgent", "emergency"]},
+          "title": {"type": "string"},
+          "description": {"type": "string"},
+          "location_address": {"$ref": "#/components/schemas/Address"},
+          "estimated_hours": {"type": "number"},
+          "actual_hours": {"type": "number"},
+          "estimated_cost": {"type": "number", "format": "decimal"},
+          "actual_cost": {"type": "number", "format": "decimal"},
+          "currency": {"type": "string", "default": "USD"},
+          "scheduled_start": {"type": "string", "format": "date-time"},
+          "scheduled_end": {"type": "string", "format": "date-time"},
+          "actual_start": {"type": "string", "format": "date-time"},
+          "actual_end": {"type": "string", "format": "date-time"},
+          "assigned_to": {"type": "string", "format": "uuid"},
+          "created_by": {"type": "string", "format": "uuid"},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "notes": {"type": "string"},
+          "materials_needed": {"type": "array", "items": {"type": "string"}},
+          "equipment_needed": {"type": "array", "items": {"type": "string"}},
+          "special_instructions": {"type": "string"},
+          "source": {"type": "string", "enum": ["website", "phone", "referral", "walk_in", "repeat_customer", "emergency_call", "social_media", "advertising", "partner", "other"]},
+          "recurring_schedule": {"type": "string"},
+          "parent_job_id": {"type": "string", "format": "uuid"},
+          "requires_permit": {"type": "boolean"},
+          "permit_number": {"type": "string"},
+          "warranty_period_months": {"type": "integer"},
+          "custom_fields": {"type": "object"},
+          "created_date": {"type": "string", "format": "date-time"},
+          "last_modified": {"type": "string", "format": "date-time"}
+        }
+      },
+      "JobCreate": {
+        "type": "object",
+        "properties": {
+          "contact_id": {"type": "string", "format": "uuid"},
+          "job_type": {"type": "string", "enum": ["service", "installation", "maintenance", "repair", "inspection", "consultation", "emergency", "project", "other"]},
+          "priority": {"type": "string", "enum": ["low", "medium", "high", "urgent", "emergency"], "default": "medium"},
+          "title": {"type": "string"},
+          "description": {"type": "string"},
+          "location_address": {"$ref": "#/components/schemas/Address"},
+          "estimated_hours": {"type": "number"},
+          "estimated_cost": {"type": "number", "format": "decimal"},
+          "currency": {"type": "string", "default": "USD"},
+          "scheduled_start": {"type": "string", "format": "date-time"},
+          "scheduled_end": {"type": "string", "format": "date-time"},
+          "assigned_to": {"type": "string", "format": "uuid"},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "notes": {"type": "string"},
+          "materials_needed": {"type": "array", "items": {"type": "string"}},
+          "equipment_needed": {"type": "array", "items": {"type": "string"}},
+          "special_instructions": {"type": "string"},
+          "source": {"type": "string", "enum": ["website", "phone", "referral", "walk_in", "repeat_customer", "emergency_call", "social_media", "advertising", "partner", "other"]},
+          "recurring_schedule": {"type": "string"},
+          "parent_job_id": {"type": "string", "format": "uuid"},
+          "requires_permit": {"type": "boolean"},
+          "permit_number": {"type": "string"},
+          "warranty_period_months": {"type": "integer"},
+          "custom_fields": {"type": "object"}
+        },
+        "required": ["contact_id", "job_type", "title"]
+      },
+      "JobUpdate": {
+        "type": "object",
+        "properties": {
+          "job_type": {"type": "string", "enum": ["service", "installation", "maintenance", "repair", "inspection", "consultation", "emergency", "project", "other"]},
+          "status": {"type": "string", "enum": ["draft", "scheduled", "in_progress", "completed", "cancelled", "on_hold", "requires_followup"]},
+          "priority": {"type": "string", "enum": ["low", "medium", "high", "urgent", "emergency"]},
+          "title": {"type": "string"},
+          "description": {"type": "string"},
+          "location_address": {"$ref": "#/components/schemas/Address"},
+          "estimated_hours": {"type": "number"},
+          "actual_hours": {"type": "number"},
+          "estimated_cost": {"type": "number", "format": "decimal"},
+          "actual_cost": {"type": "number", "format": "decimal"},
+          "currency": {"type": "string"},
+          "scheduled_start": {"type": "string", "format": "date-time"},
+          "scheduled_end": {"type": "string", "format": "date-time"},
+          "actual_start": {"type": "string", "format": "date-time"},
+          "actual_end": {"type": "string", "format": "date-time"},
+          "assigned_to": {"type": "string", "format": "uuid"},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "notes": {"type": "string"},
+          "materials_needed": {"type": "array", "items": {"type": "string"}},
+          "equipment_needed": {"type": "array", "items": {"type": "string"}},
+          "special_instructions": {"type": "string"},
+          "source": {"type": "string", "enum": ["website", "phone", "referral", "walk_in", "repeat_customer", "emergency_call", "social_media", "advertising", "partner", "other"]},
+          "recurring_schedule": {"type": "string"},
+          "requires_permit": {"type": "boolean"},
+          "permit_number": {"type": "string"},
+          "warranty_period_months": {"type": "integer"},
+          "custom_fields": {"type": "object"}
+        }
+      },
+      "Address": {
+        "type": "object",
+        "properties": {
+          "street_address": {"type": "string"},
+          "city": {"type": "string"},
+          "state": {"type": "string"},
+          "postal_code": {"type": "string"},
+          "country": {"type": "string", "default": "USA"}
+        }
+      }
+    }
+  }
+}

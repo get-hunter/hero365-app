@@ -3,4 +3,4 @@ description:
 globs: 
 alwaysApply: true
 ---
-Every time there is an API change, we should generate a separated .md file with the API documented to help the app client make the implementation and changes. 
+Every time there is a new feature or code implemented, if there is changes on the API we need to notify other AI agents so you need to update the openapi.json file in root directory.
