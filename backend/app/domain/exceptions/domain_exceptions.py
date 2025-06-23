@@ -71,4 +71,11 @@ class DatabaseError(DomainException):
     """Raised when database operations fail."""
     
     def __init__(self, message: str):
-        super().__init__(message, "DATABASE_ERROR") 
+        super().__init__(message, "DATABASE_ERROR")
+
+
+class RepositoryError(DomainException):
+    """Raised when repository operations fail."""
+    
+    def __init__(self, message: str):
+        super().__init__(message, "REPOSITORY_ERROR")

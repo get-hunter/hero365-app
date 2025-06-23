@@ -16,6 +16,7 @@ from ...domain.repositories.business_membership_repository import BusinessMember
 from ...domain.repositories.business_invitation_repository import BusinessInvitationRepository
 from ...domain.repositories.contact_repository import ContactRepository
 from ...domain.repositories.job_repository import JobRepository
+from ...domain.repositories.activity_repository import ActivityRepository
 
 # Application Ports
 from ...application.ports.auth_service import AuthServicePort
@@ -28,6 +29,7 @@ from ..database.repositories.supabase_business_membership_repository import Supa
 from ..database.repositories.supabase_business_invitation_repository import SupabaseBusinessInvitationRepository
 from ..database.repositories.supabase_contact_repository import SupabaseContactRepository
 from ..database.repositories.supabase_job_repository import SupabaseJobRepository
+from ..database.repositories.supabase_activity_repository import SupabaseActivityRepository, SupabaseActivityTemplateRepository
 from ..external_services.supabase_auth_adapter import SupabaseAuthAdapter
 from ..external_services.smtp_email_adapter import SMTPEmailAdapter
 from ..external_services.twilio_sms_adapter import TwilioSMSAdapter
@@ -53,6 +55,9 @@ from ...application.use_cases.contact.manage_contacts import ManageContactsUseCa
 
 # Job Use Cases
 from ...application.use_cases.job.manage_jobs import ManageJobsUseCase
+
+# Activity Use Cases
+from ...application.use_cases.activity.manage_activities import ManageActivitiesUseCase
 
 
 class DependencyContainer:
@@ -82,6 +87,8 @@ class DependencyContainer:
         self._repositories['business_invitation_repository'] = SupabaseBusinessInvitationRepository(supabase_client=supabase_client)
         self._repositories['contact_repository'] = SupabaseContactRepository(client=supabase_client)
         self._repositories['job_repository'] = SupabaseJobRepository(client=supabase_client)
+        self._repositories['activity_repository'] = SupabaseActivityRepository(client=supabase_client)
+        self._repositories['activity_template_repository'] = SupabaseActivityTemplateRepository(client=supabase_client)
     
     def _setup_services(self):
         """Initialize external service adapters."""
@@ -185,6 +192,14 @@ class DependencyContainer:
             job_repository=self.get_repository('job_repository'),
             business_membership_repository=self.get_repository('business_membership_repository'),
             contact_repository=self.get_repository('contact_repository')
+        )
+        
+        # Activity use cases
+        self._use_cases['manage_activities'] = ManageActivitiesUseCase(
+            activity_repository=self.get_repository('activity_repository'),
+            template_repository=self.get_repository('activity_template_repository'),
+            contact_repository=self.get_repository('contact_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
         )
 
     def _get_supabase_client(self) -> Client:
@@ -361,4 +376,15 @@ def get_job_repository() -> JobRepository:
 
 def get_manage_jobs_use_case() -> ManageJobsUseCase:
     """Get manage jobs use case from container."""
-    return get_container().get_manage_jobs_use_case() 
+    return get_container().get_manage_jobs_use_case()
+
+
+# Activity dependencies
+def get_activity_repository() -> ActivityRepository:
+    """Get activity repository from container."""
+    return get_container().get_repository('activity_repository')
+
+
+def get_manage_activities_use_case() -> ManageActivitiesUseCase:
+    """Get manage activities use case from container."""
+    return get_container().get_use_case('manage_activities')

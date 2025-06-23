@@ -4,66 +4,1036 @@ import type { CancelablePromise } from "./core/CancelablePromise"
 import { OpenAPI } from "./core/OpenAPI"
 import { request as __request } from "./core/request"
 import type {
-  ItemsReadItemsData,
-  ItemsReadItemsResponse,
-  ItemsCreateItemData,
-  ItemsCreateItemResponse,
-  ItemsReadItemData,
-  ItemsReadItemResponse,
-  ItemsUpdateItemData,
-  ItemsUpdateItemResponse,
-  ItemsDeleteItemData,
-  ItemsDeleteItemResponse,
-  LoginLoginAccessTokenData,
-  LoginLoginAccessTokenResponse,
-  LoginTestTokenResponse,
-  LoginRecoverPasswordData,
-  LoginRecoverPasswordResponse,
-  LoginResetPasswordData,
-  LoginResetPasswordResponse,
-  LoginRecoverPasswordHtmlContentData,
-  LoginRecoverPasswordHtmlContentResponse,
-  PrivateCreateUserData,
-  PrivateCreateUserResponse,
-  UsersReadUsersData,
-  UsersReadUsersResponse,
-  UsersCreateUserData,
-  UsersCreateUserResponse,
-  UsersReadUserMeResponse,
-  UsersDeleteUserMeResponse,
-  UsersUpdateUserMeData,
-  UsersUpdateUserMeResponse,
-  UsersUpdatePasswordMeData,
-  UsersUpdatePasswordMeResponse,
-  UsersRegisterUserData,
-  UsersRegisterUserResponse,
-  UsersReadUserByIdData,
-  UsersReadUserByIdResponse,
-  UsersUpdateUserData,
-  UsersUpdateUserResponse,
-  UsersDeleteUserData,
-  UsersDeleteUserResponse,
+  ActivitiesCreateActivityData,
+  ActivitiesCreateActivityResponse,
+  ActivitiesGetActivityData,
+  ActivitiesGetActivityResponse,
+  ActivitiesUpdateActivityData,
+  ActivitiesUpdateActivityResponse,
+  ActivitiesDeleteActivityData,
+  ActivitiesDeleteActivityResponse,
+  ActivitiesSearchActivitiesData,
+  ActivitiesSearchActivitiesResponse,
+  ActivitiesGetUserActivitiesData,
+  ActivitiesGetUserActivitiesResponse,
+  ActivitiesGetOverdueActivitiesData,
+  ActivitiesGetOverdueActivitiesResponse,
+  ActivitiesGetUpcomingActivitiesData,
+  ActivitiesGetUpcomingActivitiesResponse,
+  ActivitiesGetContactTimelineData,
+  ActivitiesGetContactTimelineResponse,
+  ActivitiesBulkUpdateActivitiesData,
+  ActivitiesBulkUpdateActivitiesResponse,
+  ActivitiesCreateActivityTemplateData,
+  ActivitiesCreateActivityTemplateResponse,
+  ActivitiesGetActivityTemplatesData,
+  ActivitiesGetActivityTemplatesResponse,
+  ActivitiesGetActivityStatisticsData,
+  ActivitiesGetActivityStatisticsResponse,
+  ActivitiesGetContactActivitySummaryData,
+  ActivitiesGetContactActivitySummaryResponse,
+  ActivitiesGetPendingRemindersResponse,
+  ActivitiesMarkReminderSentData,
+  ActivitiesMarkReminderSentResponse,
+  ActivitiesGetDashboardActivitiesResponse,
+  AuthSignUpData,
+  AuthSignUpResponse,
+  AuthSignUpWithPhoneData,
+  AuthSignUpWithPhoneResponse,
+  AuthSignInData,
+  AuthSignInResponse,
+  AuthSignInWithPhoneData,
+  AuthSignInWithPhoneResponse,
+  AuthSendOtpData,
+  AuthSendOtpResponse,
+  AuthVerifyOtpData,
+  AuthVerifyOtpResponse,
+  AuthOauthLoginData,
+  AuthOauthLoginResponse,
+  AuthSignOutResponse,
+  AuthRefreshTokenData,
+  AuthRefreshTokenResponse,
+  AuthPasswordRecoveryData,
+  AuthPasswordRecoveryResponse,
+  AuthAppleSignInData,
+  AuthAppleSignInResponse,
+  AuthGoogleSignInData,
+  AuthGoogleSignInResponse,
+  BusinessContextGetCurrentBusinessContextResponse,
+  BusinessContextSwitchBusinessContextData,
+  BusinessContextSwitchBusinessContextResponse,
+  BusinessContextGetAvailableBusinessesResponse,
+  BusinessContextRefreshBusinessContextTokenResponse,
+  BusinessesDebugEndpointResponse,
+  BusinessesCreateBusinessData,
+  BusinessesCreateBusinessResponse,
+  BusinessesGetMyBusinessesData,
+  BusinessesGetMyBusinessesResponse,
+  BusinessesInviteTeamMemberData,
+  BusinessesInviteTeamMemberResponse,
+  BusinessesAcceptInvitationData,
+  BusinessesAcceptInvitationResponse,
+  BusinessesGetBusinessDetailData,
+  BusinessesGetBusinessDetailResponse,
+  BusinessesUpdateBusinessData,
+  BusinessesUpdateBusinessResponse,
+  BusinessesGetBusinessMembersData,
+  BusinessesGetBusinessMembersResponse,
+  BusinessesUpdateMemberRoleData,
+  BusinessesUpdateMemberRoleResponse,
+  BusinessesRemoveTeamMemberData,
+  BusinessesRemoveTeamMemberResponse,
+  BusinessesGetBusinessInvitationsData,
+  BusinessesGetBusinessInvitationsResponse,
+  BusinessesCancelInvitationData,
+  BusinessesCancelInvitationResponse,
+  BusinessesDeclineInvitationData,
+  BusinessesDeclineInvitationResponse,
+  ContactsCreateContactData,
+  ContactsCreateContactResponse,
+  ContactsListContactsData,
+  ContactsListContactsResponse,
+  ContactsGetContactData,
+  ContactsGetContactResponse,
+  ContactsUpdateContactData,
+  ContactsUpdateContactResponse,
+  ContactsDeleteContactData,
+  ContactsDeleteContactResponse,
+  ContactsSearchContactsData,
+  ContactsSearchContactsResponse,
+  ContactsBulkUpdateContactsData,
+  ContactsBulkUpdateContactsResponse,
+  ContactsConvertContactTypeData,
+  ContactsConvertContactTypeResponse,
+  ContactsAssignContactsData,
+  ContactsAssignContactsResponse,
+  ContactsManageContactTagsData,
+  ContactsManageContactTagsResponse,
+  ContactsMarkContactContactedData,
+  ContactsMarkContactContactedResponse,
+  ContactsGetContactStatisticsResponse,
+  ContactsAddContactInteractionData,
+  ContactsAddContactInteractionResponse,
+  ContactsGetContactInteractionsData,
+  ContactsGetContactInteractionsResponse,
+  ContactsUpdateContactStatusData,
+  ContactsUpdateContactStatusResponse,
+  HealthHealthCheckResponse,
+  JobsCreateJobData,
+  JobsCreateJobResponse,
+  JobsCreateJob1Data,
+  JobsCreateJob1Response,
+  JobsListJobsData,
+  JobsListJobsResponse,
+  JobsListJobs1Data,
+  JobsListJobs1Response,
+  JobsGetJobData,
+  JobsGetJobResponse,
+  JobsGetJob1Data,
+  JobsGetJob1Response,
+  JobsUpdateJobData,
+  JobsUpdateJobResponse,
+  JobsUpdateJob1Data,
+  JobsUpdateJob1Response,
+  JobsDeleteJobData,
+  JobsDeleteJobResponse,
+  JobsDeleteJob1Data,
+  JobsDeleteJob1Response,
+  JobsSearchJobsData,
+  JobsSearchJobsResponse,
+  JobsSearchJobs1Data,
+  JobsSearchJobs1Response,
+  JobsUpdateJobStatusData,
+  JobsUpdateJobStatusResponse,
+  JobsUpdateJobStatus1Data,
+  JobsUpdateJobStatus1Response,
+  JobsAssignJobData,
+  JobsAssignJobResponse,
+  JobsAssignJob1Data,
+  JobsAssignJob1Response,
+  JobsBulkUpdateJobsData,
+  JobsBulkUpdateJobsResponse,
+  JobsBulkUpdateJobs1Data,
+  JobsBulkUpdateJobs1Response,
+  JobsGetJobStatisticsResponse,
+  JobsGetJobStatistics1Response,
+  JobsGetUserWorkloadData,
+  JobsGetUserWorkloadResponse,
+  JobsGetUserWorkload1Data,
+  JobsGetUserWorkload1Response,
+  JobsGetDailyScheduleData,
+  JobsGetDailyScheduleResponse,
+  JobsGetDailySchedule1Data,
+  JobsGetDailySchedule1Response,
+  JobsStartJobData,
+  JobsStartJobResponse,
+  JobsStartJob1Data,
+  JobsStartJob1Response,
+  JobsCompleteJobData,
+  JobsCompleteJobResponse,
+  JobsCompleteJob1Data,
+  JobsCompleteJob1Response,
+  JobsCancelJobData,
+  JobsCancelJobResponse,
+  JobsCancelJob1Data,
+  JobsCancelJob1Response,
+  MiddlewareHealthGetMiddlewareHealthResponse,
+  MiddlewareHealthTestMiddlewareStackResponse,
+  MiddlewareHealthGetMiddlewareConfigResponse,
+  MiddlewareHealthTestAuthenticationRequiredResponse,
+  MiddlewareHealthTestBusinessContextRequiredResponse,
+  UsersGetCurrentUserProfileResponse,
   UtilsTestEmailData,
   UtilsTestEmailResponse,
-  UtilsHealthCheckResponse,
 } from "./types.gen"
 
-export class ItemsService {
+export class ActivitiesService {
   /**
-   * Read Items
-   * Retrieve items.
+   * Create Activity
+   * Create a new activity.
+   *
+   * Creates a new activity for a contact with optional template-based creation,
+   * participants, and reminders. Requires 'edit_contacts' permission.
    * @param data The data for the request.
-   * @param data.skip
-   * @param data.limit
-   * @returns ItemsPublic Successful Response
+   * @param data.requestBody
+   * @returns ActivityResponse Successful Response
    * @throws ApiError
    */
-  public static readItems(
-    data: ItemsReadItemsData = {},
-  ): CancelablePromise<ItemsReadItemsResponse> {
+  public static createActivity(
+    data: ActivitiesCreateActivityData,
+  ): CancelablePromise<ActivitiesCreateActivityResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/activities",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Activity
+   * Get an activity by ID.
+   *
+   * Retrieves detailed information about a specific activity.
+   * Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.activityId Activity ID
+   * @returns ActivityResponse Successful Response
+   * @throws ApiError
+   */
+  public static getActivity(
+    data: ActivitiesGetActivityData,
+  ): CancelablePromise<ActivitiesGetActivityResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/items/",
+      url: "/api/v1/activities/{activity_id}",
+      path: {
+        activity_id: data.activityId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Activity
+   * Update an existing activity.
+   *
+   * Updates activity details, status, scheduling, and assignments.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.activityId Activity ID
+   * @param data.requestBody
+   * @returns ActivityResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateActivity(
+    data: ActivitiesUpdateActivityData,
+  ): CancelablePromise<ActivitiesUpdateActivityResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/activities/{activity_id}",
+      path: {
+        activity_id: data.activityId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Activity
+   * Delete an activity.
+   *
+   * Permanently deletes an activity and all associated data.
+   * Requires 'delete_contacts' permission.
+   * @param data The data for the request.
+   * @param data.activityId Activity ID
+   * @returns app__api__schemas__activity_schemas__MessageResponse Successful Response
+   * @throws ApiError
+   */
+  public static deleteActivity(
+    data: ActivitiesDeleteActivityData,
+  ): CancelablePromise<ActivitiesDeleteActivityResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/activities/{activity_id}",
+      path: {
+        activity_id: data.activityId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search Activities
+   * Search activities with advanced filtering.
+   *
+   * Provides comprehensive search and filtering capabilities for activities
+   * including date ranges, status, priority, assignment, and text search.
+   * Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @param data.skip
+   * @param data.limit
+   * @returns ActivityListResponse Successful Response
+   * @throws ApiError
+   */
+  public static searchActivities(
+    data: ActivitiesSearchActivitiesData,
+  ): CancelablePromise<ActivitiesSearchActivitiesResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/activities/search",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get User Activities
+   * Get activities assigned to the current user.
+   *
+   * Retrieves activities assigned to the authenticated user with optional filtering.
+   * Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.statuses Filter by activity statuses
+   * @param data.startDate Filter activities after this date
+   * @param data.endDate Filter activities before this date
+   * @param data.skip
+   * @param data.limit
+   * @returns ActivityListResponse Successful Response
+   * @throws ApiError
+   */
+  public static getUserActivities(
+    data: ActivitiesGetUserActivitiesData = {},
+  ): CancelablePromise<ActivitiesGetUserActivitiesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activities/user/assigned",
+      query: {
+        statuses: data.statuses,
+        start_date: data.startDate,
+        end_date: data.endDate,
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Overdue Activities
+   * Get overdue activities.
+   *
+   * Retrieves all overdue activities for the business or a specific user.
+   * Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.assignedTo Filter by assigned user
+   * @returns ActivityResponse Successful Response
+   * @throws ApiError
+   */
+  public static getOverdueActivities(
+    data: ActivitiesGetOverdueActivitiesData = {},
+  ): CancelablePromise<ActivitiesGetOverdueActivitiesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activities/overdue",
+      query: {
+        assigned_to: data.assignedTo,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Upcoming Activities
+   * Get upcoming activities.
+   *
+   * Retrieves activities scheduled within the specified number of days.
+   * Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.daysAhead Number of days to look ahead
+   * @param data.assignedTo Filter by assigned user
+   * @returns ActivityResponse Successful Response
+   * @throws ApiError
+   */
+  public static getUpcomingActivities(
+    data: ActivitiesGetUpcomingActivitiesData = {},
+  ): CancelablePromise<ActivitiesGetUpcomingActivitiesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activities/upcoming",
+      query: {
+        days_ahead: data.daysAhead,
+        assigned_to: data.assignedTo,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Contact Timeline
+   * Get activity timeline for a contact.
+   *
+   * Retrieves a chronological timeline of all activities for a specific contact
+   * with optional filtering by date range and activity types.
+   * Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @param data.skip
+   * @param data.limit
+   * @returns TimelineResponse Successful Response
+   * @throws ApiError
+   */
+  public static getContactTimeline(
+    data: ActivitiesGetContactTimelineData,
+  ): CancelablePromise<ActivitiesGetContactTimelineResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/activities/timeline",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Bulk Update Activities
+   * Bulk update multiple activities.
+   *
+   * Updates multiple activities at once with the same changes.
+   * Useful for batch operations like status changes or reassignments.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BulkOperationResponse Successful Response
+   * @throws ApiError
+   */
+  public static bulkUpdateActivities(
+    data: ActivitiesBulkUpdateActivitiesData,
+  ): CancelablePromise<ActivitiesBulkUpdateActivitiesResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/activities/bulk-update",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Activity Template
+   * Create a new activity template.
+   *
+   * Creates a reusable template for standardizing activity creation.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ActivityTemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static createActivityTemplate(
+    data: ActivitiesCreateActivityTemplateData,
+  ): CancelablePromise<ActivitiesCreateActivityTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/activities/templates",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Activity Templates
+   * Get activity templates for the business.
+   *
+   * Retrieves all active templates with optional filtering by activity type.
+   * Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.activityType Filter by activity type
+   * @returns ActivityTemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static getActivityTemplates(
+    data: ActivitiesGetActivityTemplatesData = {},
+  ): CancelablePromise<ActivitiesGetActivityTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activities/templates",
+      query: {
+        activity_type: data.activityType,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Activity Statistics
+   * Get activity statistics for the business.
+   *
+   * Provides comprehensive analytics including completion rates, activity distributions,
+   * and performance metrics. Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.startDate Statistics start date
+   * @param data.endDate Statistics end date
+   * @param data.userFilter Filter statistics for specific user
+   * @returns ActivityStatisticsResponse Successful Response
+   * @throws ApiError
+   */
+  public static getActivityStatistics(
+    data: ActivitiesGetActivityStatisticsData = {},
+  ): CancelablePromise<ActivitiesGetActivityStatisticsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activities/statistics",
+      query: {
+        start_date: data.startDate,
+        end_date: data.endDate,
+        user_filter: data.userFilter,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Contact Activity Summary
+   * Get activity summary for a specific contact.
+   *
+   * Provides engagement metrics and activity overview for a contact.
+   * Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.contactId Contact ID
+   * @returns ContactActivitySummaryResponse Successful Response
+   * @throws ApiError
+   */
+  public static getContactActivitySummary(
+    data: ActivitiesGetContactActivitySummaryData,
+  ): CancelablePromise<ActivitiesGetContactActivitySummaryResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activities/contacts/{contact_id}/summary",
+      path: {
+        contact_id: data.contactId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Pending Reminders
+   * Get pending reminders for activities.
+   *
+   * Retrieves all reminders that are due to be sent within the next hour.
+   * Requires 'view_contacts' permission.
+   * @returns ActivityReminderResponse Successful Response
+   * @throws ApiError
+   */
+  public static getPendingReminders(): CancelablePromise<ActivitiesGetPendingRemindersResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activities/reminders/pending",
+    })
+  }
+
+  /**
+   * Mark Reminder Sent
+   * Mark a reminder as sent.
+   *
+   * Updates the reminder status to indicate it has been delivered.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.reminderId Reminder ID
+   * @param data.activityId Activity ID
+   * @returns app__api__schemas__activity_schemas__MessageResponse Successful Response
+   * @throws ApiError
+   */
+  public static markReminderSent(
+    data: ActivitiesMarkReminderSentData,
+  ): CancelablePromise<ActivitiesMarkReminderSentResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/activities/reminders/{reminder_id}/mark-sent",
+      path: {
+        reminder_id: data.reminderId,
+      },
+      query: {
+        activity_id: data.activityId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Dashboard Activities
+   * Get dashboard overview of activities.
+   *
+   * Provides a comprehensive overview including overdue activities, upcoming tasks,
+   * recent activities, statistics, and pending reminders for dashboard display.
+   * Requires 'view_contacts' permission.
+   * @returns DashboardActivitiesResponse Successful Response
+   * @throws ApiError
+   */
+  public static getDashboardActivities(): CancelablePromise<ActivitiesGetDashboardActivitiesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activities/dashboard",
+    })
+  }
+}
+
+export class AuthService {
+  /**
+   * Sign Up
+   * Sign up with email and password using Supabase Auth
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns Message Successful Response
+   * @throws ApiError
+   */
+  public static signUp(
+    data: AuthSignUpData,
+  ): CancelablePromise<AuthSignUpResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/auth/signup",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Sign Up With Phone
+   * Sign up with phone number using Supabase Auth
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns Message Successful Response
+   * @throws ApiError
+   */
+  public static signUpWithPhone(
+    data: AuthSignUpWithPhoneData,
+  ): CancelablePromise<AuthSignUpWithPhoneResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/auth/signup/phone",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Sign In
+   * Sign in with email and password using Supabase Auth
+   * Note: This endpoint is mainly for documentation.
+   * Frontend should use Supabase client directly for sign in.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static signIn(
+    data: AuthSignInData,
+  ): CancelablePromise<AuthSignInResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/auth/signin",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Sign In With Phone
+   * Sign in with phone number and password using Supabase Auth
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static signInWithPhone(
+    data: AuthSignInWithPhoneData,
+  ): CancelablePromise<AuthSignInWithPhoneResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/auth/signin/phone",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Send Otp
+   * Send OTP to phone number for passwordless authentication
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns Message Successful Response
+   * @throws ApiError
+   */
+  public static sendOtp(
+    data: AuthSendOtpData,
+  ): CancelablePromise<AuthSendOtpResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/auth/otp/send",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Verify Otp
+   * Verify OTP for phone number authentication
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static verifyOtp(
+    data: AuthVerifyOtpData,
+  ): CancelablePromise<AuthVerifyOtpResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/auth/otp/verify",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Oauth Login
+   * OAuth login endpoint - returns redirect URL for OAuth flow
+   * @param data The data for the request.
+   * @param data.provider
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static oauthLogin(
+    data: AuthOauthLoginData,
+  ): CancelablePromise<AuthOauthLoginResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/auth/oauth/{provider}",
+      path: {
+        provider: data.provider,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Sign Out
+   * Sign out endpoint - client should handle token cleanup
+   * @returns Message Successful Response
+   * @throws ApiError
+   */
+  public static signOut(): CancelablePromise<AuthSignOutResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/auth/signout",
+    })
+  }
+
+  /**
+   * Refresh Token
+   * Refresh access token using refresh token
+   * @param data The data for the request.
+   * @param data.refreshToken
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static refreshToken(
+    data: AuthRefreshTokenData,
+  ): CancelablePromise<AuthRefreshTokenResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/auth/refresh",
+      query: {
+        refresh_token: data.refreshToken,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Password Recovery
+   * Request password recovery email
+   * @param data The data for the request.
+   * @param data.email
+   * @returns Message Successful Response
+   * @throws ApiError
+   */
+  public static passwordRecovery(
+    data: AuthPasswordRecoveryData,
+  ): CancelablePromise<AuthPasswordRecoveryResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/auth/password-recovery",
+      query: {
+        email: data.email,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Apple Sign In
+   * Handle Apple Sign-In using ID token from iOS app
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns OAuthSignInResponse Successful Response
+   * @throws ApiError
+   */
+  public static appleSignIn(
+    data: AuthAppleSignInData,
+  ): CancelablePromise<AuthAppleSignInResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/auth/apple/signin",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Google Sign In
+   * Handle Google Sign-In using ID token from iOS app
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns OAuthSignInResponse Successful Response
+   * @throws ApiError
+   */
+  public static googleSignIn(
+    data: AuthGoogleSignInData,
+  ): CancelablePromise<AuthGoogleSignInResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/auth/google/signin",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class BusinessContextService {
+  /**
+   * Get Current Business Context
+   * Get current business context information.
+   *
+   * Returns the user's current business context and list of available businesses.
+   * @returns BusinessContextInfoResponse Successful Response
+   * @throws ApiError
+   */
+  public static getCurrentBusinessContext(): CancelablePromise<BusinessContextGetCurrentBusinessContextResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/business-context/current",
+    })
+  }
+
+  /**
+   * Switch Business Context
+   * Switch user's current business context.
+   *
+   * Changes the user's active business context and returns a new JWT token
+   * with the updated business context.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BusinessContextResponse Successful Response
+   * @throws ApiError
+   */
+  public static switchBusinessContext(
+    data: BusinessContextSwitchBusinessContextData,
+  ): CancelablePromise<BusinessContextSwitchBusinessContextResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/business-context/switch",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Available Businesses
+   * Get list of businesses the current user can access.
+   *
+   * Returns a list of businesses the authenticated user is a member of.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getAvailableBusinesses(): CancelablePromise<BusinessContextGetAvailableBusinessesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/business-context/available-businesses",
+    })
+  }
+
+  /**
+   * Refresh Business Context Token
+   * Refresh the current JWT token with updated business context.
+   *
+   * Useful when business memberships or permissions have changed.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static refreshBusinessContextToken(): CancelablePromise<BusinessContextRefreshBusinessContextTokenResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/business-context/refresh-token",
+    })
+  }
+}
+
+export class BusinessesService {
+  /**
+   * Debug Endpoint
+   * Debug endpoint to test if business routes are working.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static debugEndpoint(): CancelablePromise<BusinessesDebugEndpointResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/businesses/debug",
+    })
+  }
+
+  /**
+   * Create Business
+   * Create a new business.
+   *
+   * Creates a new business with the current user as the owner.
+   * Automatically creates an owner membership for the user.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BusinessResponse Successful Response
+   * @throws ApiError
+   */
+  public static createBusiness(
+    data: BusinessesCreateBusinessData,
+  ): CancelablePromise<BusinessesCreateBusinessResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/businesses",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get My Businesses
+   * Get all businesses for the current user.
+   *
+   * Returns businesses where the user is a member (owner, admin, employee, etc.)
+   * with their membership information and business summaries.
+   * @param data The data for the request.
+   * @param data.skip Number of businesses to skip
+   * @param data.limit Maximum number of businesses to return
+   * @returns UserBusinessSummaryResponse Successful Response
+   * @throws ApiError
+   */
+  public static getMyBusinesses(
+    data: BusinessesGetMyBusinessesData = {},
+  ): CancelablePromise<BusinessesGetMyBusinessesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/businesses/me",
       query: {
         skip: data.skip,
         limit: data.limit,
@@ -75,19 +1045,26 @@ export class ItemsService {
   }
 
   /**
-   * Create Item
-   * Create new item.
+   * Invite Team Member
+   * Invite a team member to join a business.
+   *
+   * Sends an invitation to the specified email or phone number.
+   * Requires the user to have team:invite permission for the business.
    * @param data The data for the request.
+   * @param data.businessId
    * @param data.requestBody
-   * @returns ItemPublic Successful Response
+   * @returns BusinessInvitationResponse Successful Response
    * @throws ApiError
    */
-  public static createItem(
-    data: ItemsCreateItemData,
-  ): CancelablePromise<ItemsCreateItemResponse> {
+  public static inviteTeamMember(
+    data: BusinessesInviteTeamMemberData,
+  ): CancelablePromise<BusinessesInviteTeamMemberResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/items/",
+      url: "/api/v1/businesses/{business_id}/invite",
+      path: {
+        business_id: data.businessId,
+      },
       body: data.requestBody,
       mediaType: "application/json",
       errors: {
@@ -97,21 +1074,49 @@ export class ItemsService {
   }
 
   /**
-   * Read Item
-   * Get item by ID.
+   * Accept Invitation
+   * Accept a business invitation.
+   *
+   * Accepts a pending invitation and creates a business membership for the user.
+   * The invitation must be valid and not expired.
    * @param data The data for the request.
-   * @param data.id
-   * @returns ItemPublic Successful Response
+   * @param data.requestBody
+   * @returns BusinessMembershipResponse Successful Response
    * @throws ApiError
    */
-  public static readItem(
-    data: ItemsReadItemData,
-  ): CancelablePromise<ItemsReadItemResponse> {
+  public static acceptInvitation(
+    data: BusinessesAcceptInvitationData,
+  ): CancelablePromise<BusinessesAcceptInvitationResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/businesses/invitations/accept",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Business Detail
+   * Get detailed business information.
+   *
+   * Returns comprehensive business information including team members,
+   * statistics, and user's role within the business.
+   * @param data The data for the request.
+   * @param data.businessId
+   * @returns BusinessDetailResponse Successful Response
+   * @throws ApiError
+   */
+  public static getBusinessDetail(
+    data: BusinessesGetBusinessDetailData,
+  ): CancelablePromise<BusinessesGetBusinessDetailResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/items/{id}",
+      url: "/api/v1/businesses/{business_id}",
       path: {
-        id: data.id,
+        business_id: data.businessId,
       },
       errors: {
         422: "Validation Error",
@@ -120,22 +1125,25 @@ export class ItemsService {
   }
 
   /**
-   * Update Item
-   * Update an item.
+   * Update Business
+   * Update business information.
+   *
+   * Allows business owners and admins with proper permissions
+   * to update business details.
    * @param data The data for the request.
-   * @param data.id
+   * @param data.businessId
    * @param data.requestBody
-   * @returns ItemPublic Successful Response
+   * @returns BusinessResponse Successful Response
    * @throws ApiError
    */
-  public static updateItem(
-    data: ItemsUpdateItemData,
-  ): CancelablePromise<ItemsUpdateItemResponse> {
+  public static updateBusiness(
+    data: BusinessesUpdateBusinessData,
+  ): CancelablePromise<BusinessesUpdateBusinessResponse> {
     return __request(OpenAPI, {
       method: "PUT",
-      url: "/api/v1/items/{id}",
+      url: "/api/v1/businesses/{business_id}",
       path: {
-        id: data.id,
+        business_id: data.businessId,
       },
       body: data.requestBody,
       mediaType: "application/json",
@@ -146,21 +1154,171 @@ export class ItemsService {
   }
 
   /**
-   * Delete Item
-   * Delete an item.
+   * Get Business Members
+   * Get business team members.
+   *
+   * Returns a list of all active team members for the business.
    * @param data The data for the request.
-   * @param data.id
+   * @param data.businessId
+   * @param data.skip Number of members to skip
+   * @param data.limit Maximum number of members to return
+   * @returns BusinessMembershipResponse Successful Response
+   * @throws ApiError
+   */
+  public static getBusinessMembers(
+    data: BusinessesGetBusinessMembersData,
+  ): CancelablePromise<BusinessesGetBusinessMembersResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/businesses/{business_id}/members",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Member Role
+   * Update team member role and permissions.
+   *
+   * Allows business owners and admins to update team member
+   * roles, permissions, and other membership details.
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.membershipId
+   * @param data.requestBody
+   * @returns BusinessMembershipResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateMemberRole(
+    data: BusinessesUpdateMemberRoleData,
+  ): CancelablePromise<BusinessesUpdateMemberRoleResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/businesses/{business_id}/members/{membership_id}",
+      path: {
+        business_id: data.businessId,
+        membership_id: data.membershipId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Remove Team Member
+   * Remove a team member from the business.
+   *
+   * Deactivates the team member's access to the business.
+   * Business owners cannot remove themselves.
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.membershipId
    * @returns Message Successful Response
    * @throws ApiError
    */
-  public static deleteItem(
-    data: ItemsDeleteItemData,
-  ): CancelablePromise<ItemsDeleteItemResponse> {
+  public static removeTeamMember(
+    data: BusinessesRemoveTeamMemberData,
+  ): CancelablePromise<BusinessesRemoveTeamMemberResponse> {
     return __request(OpenAPI, {
       method: "DELETE",
-      url: "/api/v1/items/{id}",
+      url: "/api/v1/businesses/{business_id}/members/{membership_id}",
       path: {
-        id: data.id,
+        business_id: data.businessId,
+        membership_id: data.membershipId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Business Invitations
+   * Get business invitations.
+   *
+   * Returns all invitations sent for the business.
+   * Requires appropriate permissions to view invitations.
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.skip Number of invitations to skip
+   * @param data.limit Maximum number of invitations to return
+   * @returns BusinessInvitationResponse Successful Response
+   * @throws ApiError
+   */
+  public static getBusinessInvitations(
+    data: BusinessesGetBusinessInvitationsData,
+  ): CancelablePromise<BusinessesGetBusinessInvitationsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/businesses/{business_id}/invitations",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Cancel Invitation
+   * Cancel a pending invitation.
+   *
+   * Allows business owners, admins, or the invitation sender
+   * to cancel a pending invitation.
+   * @param data The data for the request.
+   * @param data.invitationId
+   * @returns Message Successful Response
+   * @throws ApiError
+   */
+  public static cancelInvitation(
+    data: BusinessesCancelInvitationData,
+  ): CancelablePromise<BusinessesCancelInvitationResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/businesses/invitations/{invitation_id}",
+      path: {
+        invitation_id: data.invitationId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Decline Invitation
+   * Decline a business invitation.
+   *
+   * Allows the invitation recipient to decline a pending invitation.
+   * @param data The data for the request.
+   * @param data.invitationId
+   * @returns Message Successful Response
+   * @throws ApiError
+   */
+  public static declineInvitation(
+    data: BusinessesDeclineInvitationData,
+  ): CancelablePromise<BusinessesDeclineInvitationResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/businesses/invitations/{invitation_id}/decline",
+      path: {
+        invitation_id: data.invitationId,
       },
       errors: {
         422: "Validation Error",
@@ -169,79 +1327,24 @@ export class ItemsService {
   }
 }
 
-export class LoginService {
+export class ContactsService {
   /**
-   * Login Access Token
-   * OAuth2 compatible token login, get an access token for future requests
-   * @param data The data for the request.
-   * @param data.formData
-   * @returns Token Successful Response
-   * @throws ApiError
-   */
-  public static loginAccessToken(
-    data: LoginLoginAccessTokenData,
-  ): CancelablePromise<LoginLoginAccessTokenResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/login/access-token",
-      formData: data.formData,
-      mediaType: "application/x-www-form-urlencoded",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Test Token
-   * Test access token
-   * @returns UserPublic Successful Response
-   * @throws ApiError
-   */
-  public static testToken(): CancelablePromise<LoginTestTokenResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/login/test-token",
-    })
-  }
-
-  /**
-   * Recover Password
-   * Password Recovery
-   * @param data The data for the request.
-   * @param data.email
-   * @returns Message Successful Response
-   * @throws ApiError
-   */
-  public static recoverPassword(
-    data: LoginRecoverPasswordData,
-  ): CancelablePromise<LoginRecoverPasswordResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/password-recovery/{email}",
-      path: {
-        email: data.email,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Reset Password
-   * Reset password
+   * Create Contact
+   * Create a new contact.
+   *
+   * Creates a new contact for the current business with the provided information.
+   * Requires 'edit_contacts' permission.
    * @param data The data for the request.
    * @param data.requestBody
-   * @returns Message Successful Response
+   * @returns ContactResponse Successful Response
    * @throws ApiError
    */
-  public static resetPassword(
-    data: LoginResetPasswordData,
-  ): CancelablePromise<LoginResetPasswordResponse> {
+  public static createContact(
+    data: ContactsCreateContactData,
+  ): CancelablePromise<ContactsCreateContactResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/reset-password/",
+      url: "/api/v1/contacts/",
       body: data.requestBody,
       mediaType: "application/json",
       errors: {
@@ -251,21 +1354,1092 @@ export class LoginService {
   }
 
   /**
-   * Recover Password Html Content
-   * HTML Content for Password Recovery
+   * List Contacts
+   * List contacts for the business.
+   *
+   * Retrieves a paginated list of contacts for the current business.
+   * Requires 'view_contacts' permission.
    * @param data The data for the request.
-   * @param data.email
-   * @returns string Successful Response
+   * @param data.skip Number of records to skip
+   * @param data.limit Maximum number of records to return
+   * @returns ContactListResponse Successful Response
    * @throws ApiError
    */
-  public static recoverPasswordHtmlContent(
-    data: LoginRecoverPasswordHtmlContentData,
-  ): CancelablePromise<LoginRecoverPasswordHtmlContentResponse> {
+  public static listContacts(
+    data: ContactsListContactsData = {},
+  ): CancelablePromise<ContactsListContactsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/contacts/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Contact
+   * Get a contact by ID.
+   *
+   * Retrieves detailed information about a specific contact.
+   * Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.contactId Contact ID
+   * @returns ContactResponse Successful Response
+   * @throws ApiError
+   */
+  public static getContact(
+    data: ContactsGetContactData,
+  ): CancelablePromise<ContactsGetContactResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/contacts/{contact_id}",
+      path: {
+        contact_id: data.contactId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Contact
+   * Update a contact.
+   *
+   * Updates an existing contact with the provided information.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.contactId Contact ID
+   * @param data.requestBody
+   * @returns ContactResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateContact(
+    data: ContactsUpdateContactData,
+  ): CancelablePromise<ContactsUpdateContactResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/contacts/{contact_id}",
+      path: {
+        contact_id: data.contactId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Contact
+   * Delete a contact.
+   *
+   * Permanently deletes a contact and all associated data.
+   * Requires 'delete_contacts' permission.
+   * @param data The data for the request.
+   * @param data.contactId Contact ID
+   * @returns app__api__schemas__contact_schemas__MessageResponse Successful Response
+   * @throws ApiError
+   */
+  public static deleteContact(
+    data: ContactsDeleteContactData,
+  ): CancelablePromise<ContactsDeleteContactResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/contacts/{contact_id}",
+      path: {
+        contact_id: data.contactId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search Contacts
+   * Search contacts with advanced filtering.
+   *
+   * Performs advanced search and filtering on contacts.
+   * Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ContactListResponse Successful Response
+   * @throws ApiError
+   */
+  public static searchContacts(
+    data: ContactsSearchContactsData,
+  ): CancelablePromise<ContactsSearchContactsResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/password-recovery-html-content/{email}",
+      url: "/api/v1/contacts/search",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Bulk Update Contacts
+   * Perform bulk updates on multiple contacts.
+   *
+   * Updates multiple contacts with the same changes.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ContactBulkOperationResponse Successful Response
+   * @throws ApiError
+   */
+  public static bulkUpdateContacts(
+    data: ContactsBulkUpdateContactsData,
+  ): CancelablePromise<ContactsBulkUpdateContactsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/contacts/bulk-update",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Convert Contact Type
+   * Convert a contact from one type to another.
+   *
+   * Changes the contact type (e.g., lead to customer) with business rule validation.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.contactId Contact ID
+   * @param data.requestBody
+   * @returns ContactResponse Successful Response
+   * @throws ApiError
+   */
+  public static convertContactType(
+    data: ContactsConvertContactTypeData,
+  ): CancelablePromise<ContactsConvertContactTypeResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/contacts/{contact_id}/convert",
       path: {
-        email: data.email,
+        contact_id: data.contactId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Assign Contacts
+   * Assign multiple contacts to a user.
+   *
+   * Assigns or unassigns multiple contacts to/from a team member.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ContactBulkOperationResponse Successful Response
+   * @throws ApiError
+   */
+  public static assignContacts(
+    data: ContactsAssignContactsData,
+  ): CancelablePromise<ContactsAssignContactsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/contacts/assign",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Manage Contact Tags
+   * Add, remove, or replace tags on multiple contacts.
+   *
+   * Performs tag operations on multiple contacts.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ContactBulkOperationResponse Successful Response
+   * @throws ApiError
+   */
+  public static manageContactTags(
+    data: ContactsManageContactTagsData,
+  ): CancelablePromise<ContactsManageContactTagsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/contacts/tags",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Mark Contact Contacted
+   * Mark a contact as contacted.
+   *
+   * Updates the last_contacted timestamp for the contact.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.contactId Contact ID
+   * @returns ContactResponse Successful Response
+   * @throws ApiError
+   */
+  public static markContactContacted(
+    data: ContactsMarkContactContactedData,
+  ): CancelablePromise<ContactsMarkContactContactedResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/contacts/{contact_id}/mark-contacted",
+      path: {
+        contact_id: data.contactId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Contact Statistics
+   * Get comprehensive contact statistics.
+   *
+   * Retrieves detailed statistics about contacts for the business.
+   * Requires 'view_contacts' permission.
+   * @returns ContactStatisticsResponse Successful Response
+   * @throws ApiError
+   */
+  public static getContactStatistics(): CancelablePromise<ContactsGetContactStatisticsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/contacts/statistics/overview",
+    })
+  }
+
+  /**
+   * Add Contact Interaction
+   * Add an interaction record to a contact.
+   *
+   * Creates a new interaction record for the specified contact.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.contactId Contact ID
+   * @param data.requestBody
+   * @returns ContactInteractionResponse Successful Response
+   * @throws ApiError
+   */
+  public static addContactInteraction(
+    data: ContactsAddContactInteractionData,
+  ): CancelablePromise<ContactsAddContactInteractionResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/contacts/{contact_id}/interactions",
+      path: {
+        contact_id: data.contactId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Contact Interactions
+   * Get interaction history for a contact.
+   *
+   * Retrieves paginated list of interactions for the specified contact.
+   * Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.contactId Contact ID
+   * @param data.skip Number of records to skip
+   * @param data.limit Maximum number of records to return
+   * @returns ContactInteractionListResponse Successful Response
+   * @throws ApiError
+   */
+  public static getContactInteractions(
+    data: ContactsGetContactInteractionsData,
+  ): CancelablePromise<ContactsGetContactInteractionsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/contacts/{contact_id}/interactions",
+      path: {
+        contact_id: data.contactId,
+      },
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Contact Status
+   * Update contact relationship status and lifecycle stage.
+   *
+   * Updates the relationship status and optionally the lifecycle stage for the specified contact.
+   * Automatically tracks status change history.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.contactId Contact ID
+   * @param data.requestBody
+   * @returns ContactStatusUpdateResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateContactStatus(
+    data: ContactsUpdateContactStatusData,
+  ): CancelablePromise<ContactsUpdateContactStatusResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/contacts/{contact_id}/status",
+      path: {
+        contact_id: data.contactId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class HealthService {
+  /**
+   * Health Check
+   * Health check endpoint for infrastructure monitoring.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static healthCheck(): CancelablePromise<HealthHealthCheckResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/health",
+    })
+  }
+}
+
+export class JobsService {
+  /**
+   * Create a new job
+   * Create a new job with the provided details. Job number will be auto-generated if not provided.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static createJob(
+    data: JobsCreateJobData,
+  ): CancelablePromise<JobsCreateJobResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create a new job
+   * Create a new job with the provided details. Job number will be auto-generated if not provided.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static createJob1(
+    data: JobsCreateJob1Data,
+  ): CancelablePromise<JobsCreateJob1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List jobs
+   * Get a paginated list of jobs for the current business.
+   * @param data The data for the request.
+   * @param data.skip Number of jobs to skip
+   * @param data.limit Number of jobs to return
+   * @returns JobListPaginatedResponse Successful Response
+   * @throws ApiError
+   */
+  public static listJobs(
+    data: JobsListJobsData = {},
+  ): CancelablePromise<JobsListJobsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List jobs
+   * Get a paginated list of jobs for the current business.
+   * @param data The data for the request.
+   * @param data.skip Number of jobs to skip
+   * @param data.limit Number of jobs to return
+   * @returns JobListPaginatedResponse Successful Response
+   * @throws ApiError
+   */
+  public static listJobs1(
+    data: JobsListJobs1Data = {},
+  ): CancelablePromise<JobsListJobs1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get job by ID
+   * Retrieve a specific job by its ID.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static getJob(
+    data: JobsGetJobData,
+  ): CancelablePromise<JobsGetJobResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs/{job_id}",
+      path: {
+        job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get job by ID
+   * Retrieve a specific job by its ID.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static getJob1(
+    data: JobsGetJob1Data,
+  ): CancelablePromise<JobsGetJob1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs/{job_id}",
+      path: {
+        job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update job
+   * Update an existing job with the provided details.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @param data.requestBody
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateJob(
+    data: JobsUpdateJobData,
+  ): CancelablePromise<JobsUpdateJobResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/jobs/{job_id}",
+      path: {
+        job_id: data.jobId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update job
+   * Update an existing job with the provided details.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @param data.requestBody
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateJob1(
+    data: JobsUpdateJob1Data,
+  ): CancelablePromise<JobsUpdateJob1Response> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/jobs/{job_id}",
+      path: {
+        job_id: data.jobId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete job
+   * Delete a job. Cannot delete completed or invoiced jobs.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @returns JobActionResponse Successful Response
+   * @throws ApiError
+   */
+  public static deleteJob(
+    data: JobsDeleteJobData,
+  ): CancelablePromise<JobsDeleteJobResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/jobs/{job_id}",
+      path: {
+        job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete job
+   * Delete a job. Cannot delete completed or invoiced jobs.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @returns JobActionResponse Successful Response
+   * @throws ApiError
+   */
+  public static deleteJob1(
+    data: JobsDeleteJob1Data,
+  ): CancelablePromise<JobsDeleteJob1Response> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/jobs/{job_id}",
+      path: {
+        job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search jobs
+   * Search jobs with various filters and criteria.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns JobListPaginatedResponse Successful Response
+   * @throws ApiError
+   */
+  public static searchJobs(
+    data: JobsSearchJobsData,
+  ): CancelablePromise<JobsSearchJobsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/search",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search jobs
+   * Search jobs with various filters and criteria.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns JobListPaginatedResponse Successful Response
+   * @throws ApiError
+   */
+  public static searchJobs1(
+    data: JobsSearchJobs1Data,
+  ): CancelablePromise<JobsSearchJobs1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/search",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update job status
+   * Update the status of a job with optional notes.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @param data.requestBody
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateJobStatus(
+    data: JobsUpdateJobStatusData,
+  ): CancelablePromise<JobsUpdateJobStatusResponse> {
+    return __request(OpenAPI, {
+      method: "PATCH",
+      url: "/api/v1/jobs/{job_id}/status",
+      path: {
+        job_id: data.jobId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update job status
+   * Update the status of a job with optional notes.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @param data.requestBody
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateJobStatus1(
+    data: JobsUpdateJobStatus1Data,
+  ): CancelablePromise<JobsUpdateJobStatus1Response> {
+    return __request(OpenAPI, {
+      method: "PATCH",
+      url: "/api/v1/jobs/{job_id}/status",
+      path: {
+        job_id: data.jobId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Assign job to users
+   * Assign a job to one or more users.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @param data.requestBody
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static assignJob(
+    data: JobsAssignJobData,
+  ): CancelablePromise<JobsAssignJobResponse> {
+    return __request(OpenAPI, {
+      method: "PATCH",
+      url: "/api/v1/jobs/{job_id}/assign",
+      path: {
+        job_id: data.jobId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Assign job to users
+   * Assign a job to one or more users.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @param data.requestBody
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static assignJob1(
+    data: JobsAssignJob1Data,
+  ): CancelablePromise<JobsAssignJob1Response> {
+    return __request(OpenAPI, {
+      method: "PATCH",
+      url: "/api/v1/jobs/{job_id}/assign",
+      path: {
+        job_id: data.jobId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Bulk update jobs
+   * Update multiple jobs at once with the same changes.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns JobBulkActionResponse Successful Response
+   * @throws ApiError
+   */
+  public static bulkUpdateJobs(
+    data: JobsBulkUpdateJobsData,
+  ): CancelablePromise<JobsBulkUpdateJobsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/bulk-update",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Bulk update jobs
+   * Update multiple jobs at once with the same changes.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns JobBulkActionResponse Successful Response
+   * @throws ApiError
+   */
+  public static bulkUpdateJobs1(
+    data: JobsBulkUpdateJobs1Data,
+  ): CancelablePromise<JobsBulkUpdateJobs1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/bulk-update",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get job statistics
+   * Get comprehensive job statistics for the current business.
+   * @returns JobStatisticsResponse Successful Response
+   * @throws ApiError
+   */
+  public static getJobStatistics(): CancelablePromise<JobsGetJobStatisticsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs/statistics",
+    })
+  }
+
+  /**
+   * Get job statistics
+   * Get comprehensive job statistics for the current business.
+   * @returns JobStatisticsResponse Successful Response
+   * @throws ApiError
+   */
+  public static getJobStatistics1(): CancelablePromise<JobsGetJobStatistics1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs/statistics",
+    })
+  }
+
+  /**
+   * Get user workload
+   * Get workload statistics for a specific user.
+   * @param data The data for the request.
+   * @param data.targetUserId
+   * @returns JobWorkloadResponse Successful Response
+   * @throws ApiError
+   */
+  public static getUserWorkload(
+    data: JobsGetUserWorkloadData,
+  ): CancelablePromise<JobsGetUserWorkloadResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs/workload/{user_id}",
+      query: {
+        target_user_id: data.targetUserId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get user workload
+   * Get workload statistics for a specific user.
+   * @param data The data for the request.
+   * @param data.targetUserId
+   * @returns JobWorkloadResponse Successful Response
+   * @throws ApiError
+   */
+  public static getUserWorkload1(
+    data: JobsGetUserWorkload1Data,
+  ): CancelablePromise<JobsGetUserWorkload1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs/workload/{user_id}",
+      query: {
+        target_user_id: data.targetUserId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get daily schedule
+   * Get jobs scheduled for a specific day.
+   * @param data The data for the request.
+   * @param data.date Date to get schedule for
+   * @param data.userId Filter by specific user
+   * @returns JobScheduleResponse Successful Response
+   * @throws ApiError
+   */
+  public static getDailySchedule(
+    data: JobsGetDailyScheduleData,
+  ): CancelablePromise<JobsGetDailyScheduleResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs/schedule/daily",
+      query: {
+        date: data.date,
+        user_id: data.userId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get daily schedule
+   * Get jobs scheduled for a specific day.
+   * @param data The data for the request.
+   * @param data.date Date to get schedule for
+   * @param data.userId Filter by specific user
+   * @returns JobScheduleResponse Successful Response
+   * @throws ApiError
+   */
+  public static getDailySchedule1(
+    data: JobsGetDailySchedule1Data,
+  ): CancelablePromise<JobsGetDailySchedule1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs/schedule/daily",
+      query: {
+        date: data.date,
+        user_id: data.userId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Start job
+   * Start a job (convenience endpoint for status update to in_progress).
+   * @param data The data for the request.
+   * @param data.jobId
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static startJob(
+    data: JobsStartJobData,
+  ): CancelablePromise<JobsStartJobResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/{job_id}/start",
+      path: {
+        job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Start job
+   * Start a job (convenience endpoint for status update to in_progress).
+   * @param data The data for the request.
+   * @param data.jobId
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static startJob1(
+    data: JobsStartJob1Data,
+  ): CancelablePromise<JobsStartJob1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/{job_id}/start",
+      path: {
+        job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Complete job
+   * Complete a job with optional completion notes.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @param data.completionNotes Notes about job completion
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static completeJob(
+    data: JobsCompleteJobData,
+  ): CancelablePromise<JobsCompleteJobResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/{job_id}/complete",
+      path: {
+        job_id: data.jobId,
+      },
+      query: {
+        completion_notes: data.completionNotes,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Complete job
+   * Complete a job with optional completion notes.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @param data.completionNotes Notes about job completion
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static completeJob1(
+    data: JobsCompleteJob1Data,
+  ): CancelablePromise<JobsCompleteJob1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/{job_id}/complete",
+      path: {
+        job_id: data.jobId,
+      },
+      query: {
+        completion_notes: data.completionNotes,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Cancel job
+   * Cancel a job with a reason.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @param data.reason Reason for cancellation
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static cancelJob(
+    data: JobsCancelJobData,
+  ): CancelablePromise<JobsCancelJobResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/{job_id}/cancel",
+      path: {
+        job_id: data.jobId,
+      },
+      query: {
+        reason: data.reason,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Cancel job
+   * Cancel a job with a reason.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @param data.reason Reason for cancellation
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static cancelJob1(
+    data: JobsCancelJob1Data,
+  ): CancelablePromise<JobsCancelJob1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/{job_id}/cancel",
+      path: {
+        job_id: data.jobId,
+      },
+      query: {
+        reason: data.reason,
       },
       errors: {
         422: "Validation Error",
@@ -274,239 +2448,105 @@ export class LoginService {
   }
 }
 
-export class PrivateService {
+export class MiddlewareHealthService {
   /**
-   * Create User
-   * Create a new user.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns UserPublic Successful Response
+   * Get Middleware Health
+   * Get middleware health and configuration information.
+   *
+   * This endpoint provides information about the current middleware stack,
+   * configuration, and request processing status.
+   * @returns MiddlewareHealthResponse Successful Response
    * @throws ApiError
    */
-  public static createUser(
-    data: PrivateCreateUserData,
-  ): CancelablePromise<PrivateCreateUserResponse> {
+  public static getMiddlewareHealth(): CancelablePromise<MiddlewareHealthGetMiddlewareHealthResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/middleware/health",
+    })
+  }
+
+  /**
+   * Test Middleware Stack
+   * Test the middleware stack functionality.
+   *
+   * This endpoint tests authentication and business context middleware
+   * to ensure they are working correctly.
+   * @returns MiddlewareTestResponse Successful Response
+   * @throws ApiError
+   */
+  public static testMiddlewareStack(): CancelablePromise<MiddlewareHealthTestMiddlewareStackResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/middleware/test",
+    })
+  }
+
+  /**
+   * Get Middleware Config
+   * Get detailed middleware configuration.
+   *
+   * This endpoint provides detailed configuration information
+   * for debugging and monitoring purposes.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getMiddlewareConfig(): CancelablePromise<MiddlewareHealthGetMiddlewareConfigResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/middleware/config",
+    })
+  }
+
+  /**
+   * Test Authentication Required
+   * Test endpoint that requires authentication.
+   *
+   * This endpoint will return 401 if authentication middleware is not working.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static testAuthenticationRequired(): CancelablePromise<MiddlewareHealthTestAuthenticationRequiredResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/private/users/",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
+      url: "/api/v1/middleware/test-auth",
+    })
+  }
+
+  /**
+   * Test Business Context Required
+   * Test endpoint that requires business context.
+   *
+   * This endpoint will return 400 if business context middleware is not working.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static testBusinessContextRequired(): CancelablePromise<MiddlewareHealthTestBusinessContextRequiredResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/middleware/test-business-context",
     })
   }
 }
 
 export class UsersService {
   /**
-   * Read Users
-   * Retrieve users.
-   * @param data The data for the request.
-   * @param data.skip
-   * @param data.limit
-   * @returns UsersPublic Successful Response
+   * Get Current User Profile
+   * Get current user profile with simplified onboarding status.
+   *
+   * Onboarding completion is determined solely by business membership:
+   * - User has active business membership = onboarding complete
+   * - User has no active business membership = needs onboarding
+   *
+   * This handles both cases:
+   * 1. User creates business during onboarding (becomes owner)
+   * 2. User joins existing business (becomes member)
+   * @returns UserProfileResponse Successful Response
    * @throws ApiError
    */
-  public static readUsers(
-    data: UsersReadUsersData = {},
-  ): CancelablePromise<UsersReadUsersResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/users/",
-      query: {
-        skip: data.skip,
-        limit: data.limit,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Create User
-   * Create new user.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns UserPublic Successful Response
-   * @throws ApiError
-   */
-  public static createUser(
-    data: UsersCreateUserData,
-  ): CancelablePromise<UsersCreateUserResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/users/",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Read User Me
-   * Get current user.
-   * @returns UserPublic Successful Response
-   * @throws ApiError
-   */
-  public static readUserMe(): CancelablePromise<UsersReadUserMeResponse> {
+  public static getCurrentUserProfile(): CancelablePromise<UsersGetCurrentUserProfileResponse> {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/users/me",
-    })
-  }
-
-  /**
-   * Delete User Me
-   * Delete own user.
-   * @returns Message Successful Response
-   * @throws ApiError
-   */
-  public static deleteUserMe(): CancelablePromise<UsersDeleteUserMeResponse> {
-    return __request(OpenAPI, {
-      method: "DELETE",
-      url: "/api/v1/users/me",
-    })
-  }
-
-  /**
-   * Update User Me
-   * Update own user.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns UserPublic Successful Response
-   * @throws ApiError
-   */
-  public static updateUserMe(
-    data: UsersUpdateUserMeData,
-  ): CancelablePromise<UsersUpdateUserMeResponse> {
-    return __request(OpenAPI, {
-      method: "PATCH",
-      url: "/api/v1/users/me",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Update Password Me
-   * Update own password.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns Message Successful Response
-   * @throws ApiError
-   */
-  public static updatePasswordMe(
-    data: UsersUpdatePasswordMeData,
-  ): CancelablePromise<UsersUpdatePasswordMeResponse> {
-    return __request(OpenAPI, {
-      method: "PATCH",
-      url: "/api/v1/users/me/password",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Register User
-   * Create new user without the need to be logged in.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns UserPublic Successful Response
-   * @throws ApiError
-   */
-  public static registerUser(
-    data: UsersRegisterUserData,
-  ): CancelablePromise<UsersRegisterUserResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/users/signup",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Read User By Id
-   * Get a specific user by id.
-   * @param data The data for the request.
-   * @param data.userId
-   * @returns UserPublic Successful Response
-   * @throws ApiError
-   */
-  public static readUserById(
-    data: UsersReadUserByIdData,
-  ): CancelablePromise<UsersReadUserByIdResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/users/{user_id}",
-      path: {
-        user_id: data.userId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Update User
-   * Update a user.
-   * @param data The data for the request.
-   * @param data.userId
-   * @param data.requestBody
-   * @returns UserPublic Successful Response
-   * @throws ApiError
-   */
-  public static updateUser(
-    data: UsersUpdateUserData,
-  ): CancelablePromise<UsersUpdateUserResponse> {
-    return __request(OpenAPI, {
-      method: "PATCH",
-      url: "/api/v1/users/{user_id}",
-      path: {
-        user_id: data.userId,
-      },
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Delete User
-   * Delete a user.
-   * @param data The data for the request.
-   * @param data.userId
-   * @returns Message Successful Response
-   * @throws ApiError
-   */
-  public static deleteUser(
-    data: UsersDeleteUserData,
-  ): CancelablePromise<UsersDeleteUserResponse> {
-    return __request(OpenAPI, {
-      method: "DELETE",
-      url: "/api/v1/users/{user_id}",
-      path: {
-        user_id: data.userId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
     })
   }
 }
@@ -532,18 +2572,6 @@ export class UtilsService {
       errors: {
         422: "Validation Error",
       },
-    })
-  }
-
-  /**
-   * Health Check
-   * @returns boolean Successful Response
-   * @throws ApiError
-   */
-  public static healthCheck(): CancelablePromise<UtilsHealthCheckResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/utils/health-check/",
     })
   }
 }
