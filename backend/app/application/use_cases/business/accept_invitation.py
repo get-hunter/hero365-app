@@ -133,16 +133,18 @@ class AcceptInvitationUseCase:
     async def _create_membership_from_invitation(self, invitation, user_id: str) -> BusinessMembership:
         """Create membership from accepted invitation."""
         try:
-            membership = BusinessMembership(
-                id=uuid.uuid4(),
+            # Create membership with default permissions for the role
+            membership = BusinessMembership.create_with_default_permissions(
                 business_id=invitation.business_id,
                 user_id=user_id,
                 role=invitation.role,
-                permissions=invitation.permissions.copy(),
-                joined_date=datetime.utcnow(),
                 invited_date=invitation.invitation_date,
                 invited_by=invitation.invited_by
             )
+            
+            # If invitation has custom permissions, use those instead
+            if invitation.permissions and invitation.permissions != membership.permissions:
+                membership.permissions = invitation.permissions.copy()
             
             return await self.membership_repository.create(membership)
             

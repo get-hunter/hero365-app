@@ -1,6 +1,0 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-Always use MCP to check the data model of Hero365 on Supabase, propose migrations and write it on the folder /backend/migrations

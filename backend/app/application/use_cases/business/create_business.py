@@ -13,7 +13,7 @@ from ...dto.business_dto import BusinessCreateDTO, BusinessResponseDTO
 from ....domain.repositories.business_repository import BusinessRepository
 from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
 from ....domain.entities.business import Business, CompanySize, ReferralSource
-from ....domain.entities.business_membership import BusinessMembership, BusinessRole, DEFAULT_ROLE_PERMISSIONS
+from ....domain.entities.business_membership import BusinessMembership, BusinessRole, get_default_permissions_for_role
 from ....domain.exceptions.domain_exceptions import DomainValidationError, DuplicateEntityError
 from ...exceptions.application_exceptions import (
     ApplicationError, ValidationError, BusinessLogicError
@@ -171,13 +171,10 @@ class CreateBusinessUseCase:
         logger.info(f"Creating owner membership for business: {business.id}, owner: {owner_id}")
         
         try:
-            membership = BusinessMembership(
-                id=uuid.uuid4(),
+            membership = BusinessMembership.create_with_default_permissions(
                 business_id=business.id,
                 user_id=owner_id,
-                role=BusinessRole.OWNER,
-                permissions=DEFAULT_ROLE_PERMISSIONS[BusinessRole.OWNER].copy(),
-                joined_date=datetime.utcnow()
+                role=BusinessRole.OWNER
             )
             
             logger.info(f"Owner membership entity created: {membership.id}")

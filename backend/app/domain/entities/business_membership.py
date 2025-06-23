@@ -191,7 +191,53 @@ class BusinessMembership:
     
     def __post_init__(self):
         """Validate business rules after initialization."""
+        # Auto-assign default permissions if none provided
+        if not self.permissions:
+            self.permissions = get_default_permissions_for_role(self.role)
+        
         self._validate_membership_rules()
+    
+    @classmethod
+    def create_with_default_permissions(
+        cls,
+        business_id: uuid.UUID,
+        user_id: str,
+        role: BusinessRole,
+        invited_date: Optional[datetime] = None,
+        invited_by: Optional[str] = None,
+        department_id: Optional[uuid.UUID] = None,
+        job_title: Optional[str] = None
+    ) -> 'BusinessMembership':
+        """
+        Create a new BusinessMembership with default permissions for the role.
+        
+        Args:
+            business_id: ID of the business
+            user_id: ID of the user
+            role: Business role to assign
+            invited_date: When the user was invited (optional)
+            invited_by: Who invited the user (optional)
+            department_id: Department assignment (optional)
+            job_title: Job title (optional)
+            
+        Returns:
+            BusinessMembership with role-appropriate default permissions
+        """
+        # Get default permissions for the role
+        default_permissions = get_default_permissions_for_role(role)
+        
+        return cls(
+            id=uuid.uuid4(),
+            business_id=business_id,
+            user_id=user_id,
+            role=role,
+            permissions=default_permissions,
+            joined_date=datetime.utcnow(),
+            invited_date=invited_date,
+            invited_by=invited_by,
+            department_id=department_id,
+            job_title=job_title
+        )
     
     def _validate_membership_rules(self) -> None:
         """Validate core membership business rules."""
@@ -373,4 +419,17 @@ class BusinessMembership:
     def __repr__(self) -> str:
         return (f"BusinessMembership(id={self.id}, business_id={self.business_id}, "
                 f"user_id='{self.user_id}', role={self.role.value}, "
-                f"is_active={self.is_active})") 
+                f"is_active={self.is_active})")
+
+
+def get_default_permissions_for_role(role: BusinessRole) -> List[str]:
+    """
+    Get default permissions for a given business role.
+    
+    Args:
+        role: The business role
+        
+    Returns:
+        List of permission strings for the role
+    """
+    return DEFAULT_ROLE_PERMISSIONS.get(role, []).copy() 

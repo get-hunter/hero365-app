@@ -790,6 +790,20 @@ export type AppleSignInRequest = {
 }
 
 /**
+ * Request to approve/deny time off.
+ */
+export type ApproveTimeOffRequest = {
+  /**
+   * New status (approved/denied)
+   */
+  status: TimeOffStatus
+  /**
+   * Reason for denial
+   */
+  denial_reason?: string | null
+}
+
+/**
  * Schema for authenticated user information.
  */
 export type AuthUserResponse = {
@@ -801,6 +815,136 @@ export type AuthUserResponse = {
   is_superuser: boolean
   supabase_id?: string | null
   last_login?: string | null
+}
+
+/**
+ * Request to check user availability.
+ */
+export type AvailabilityCheckRequest = {
+  /**
+   * User IDs to check
+   */
+  user_ids: Array<string>
+  /**
+   * Start of time period
+   */
+  start_datetime: string
+  /**
+   * End of time period
+   */
+  end_datetime: string
+  /**
+   * Include time off information
+   */
+  include_time_off?: boolean
+  /**
+   * Include calendar events
+   */
+  include_calendar_events?: boolean
+  /**
+   * Include working hours
+   */
+  include_working_hours?: boolean
+}
+
+/**
+ * Response for availability check.
+ */
+export type AvailabilityCheckResponse = {
+  /**
+   * Request ID for tracking
+   */
+  request_id?: string | null
+  /**
+   * When the check was performed
+   */
+  check_datetime: string
+  /**
+   * User availability details
+   */
+  user_availability: Array<UserAvailability>
+  /**
+   * Summary information
+   */
+  summary?: {
+    [key: string]: unknown
+  }
+}
+
+/**
+ * Request for available time slots.
+ */
+export type AvailableTimeSlotRequest = {
+  /**
+   * Type of job/service
+   */
+  job_type: string
+  /**
+   * Estimated job duration in hours
+   */
+  estimated_duration_hours: number
+  /**
+   * Required skills for the job
+   */
+  required_skills?: Array<string>
+  /**
+   * Job location details
+   */
+  job_address?: {
+    [key: string]: unknown
+  } | null
+  /**
+   * Customer's preferred date range
+   */
+  preferred_date_range: TimeWindow
+  /**
+   * Customer scheduling preferences
+   */
+  customer_preferences?: {
+    [key: string]: unknown
+  } | null
+  /**
+   * Job priority level
+   */
+  priority?: string
+}
+
+/**
+ * Response with available time slots.
+ */
+export type AvailableTimeSlotsResponse = {
+  /**
+   * Unique request identifier
+   */
+  request_id: string
+  /**
+   * List of available time slots
+   */
+  available_slots: Array<TimeSlot>
+  /**
+   * Total number of slots found
+   */
+  total_slots_found: number
+  /**
+   * Applied search criteria
+   */
+  search_criteria: {
+    [key: string]: unknown
+  }
+  /**
+   * Scheduling recommendations
+   */
+  recommendations?: Array<string>
+  /**
+   * Alternative options
+   */
+  alternative_suggestions?: Array<{
+    [key: string]: unknown
+  }>
+  /**
+   * Deadline to book these slots
+   */
+  booking_deadline?: string | null
 }
 
 /**
@@ -843,6 +987,13 @@ export type BusinessContextInfoResponse = {
    * User ID
    */
   user_id: string
+}
+
+/**
+ * Request model for updating business context.
+ */
+export type BusinessContextRequest = {
+  business_id: string
 }
 
 /**
@@ -1154,6 +1305,197 @@ export type BusinessUpdateRequest = {
   max_team_members?: number | null
   subscription_tier?: string | null
   enabled_features?: Array<string> | null
+}
+
+/**
+ * Calendar event schema.
+ */
+export type CalendarEvent = {
+  /**
+   * Event ID
+   */
+  id?: string | null
+  /**
+   * Event title
+   */
+  title: string
+  /**
+   * Event description
+   */
+  description?: string | null
+  /**
+   * Event type
+   */
+  event_type?: CalendarEventType
+  /**
+   * Event start time
+   */
+  start_datetime: string
+  /**
+   * Event end time
+   */
+  end_datetime: string
+  /**
+   * All-day event
+   */
+  is_all_day?: boolean
+  /**
+   * Event timezone
+   */
+  timezone?: string
+  /**
+   * Recurrence pattern
+   */
+  recurrence_type?: RecurrenceType
+  /**
+   * Recurrence end date
+   */
+  recurrence_end_date?: string | null
+  /**
+   * Number of occurrences
+   */
+  recurrence_count?: number | null
+  /**
+   * Recurrence interval
+   */
+  recurrence_interval?: number
+  /**
+   * Days of week (0=Monday)
+   */
+  recurrence_days_of_week?: Array<number>
+  /**
+   * Blocks job scheduling
+   */
+  blocks_scheduling?: boolean
+  /**
+   * Allow emergency override
+   */
+  allows_emergency_override?: boolean
+  created_date?: string | null
+  last_modified?: string | null
+  is_active?: boolean
+}
+
+/**
+ * Calendar event response.
+ */
+export type CalendarEventResponse = {
+  /**
+   * Response message
+   */
+  message: string
+  /**
+   * Calendar event
+   */
+  event?: CalendarEvent | null
+}
+
+export type CalendarEventType =
+  | "work_schedule"
+  | "time_off"
+  | "break"
+  | "meeting"
+  | "training"
+  | "personal"
+
+/**
+ * Calendar preferences schema.
+ */
+export type CalendarPreferences = {
+  /**
+   * User timezone
+   */
+  timezone?: string
+  /**
+   * Preferred date format
+   */
+  date_format?: string
+  /**
+   * Time format (12h/24h)
+   */
+  time_format?: string
+  /**
+   * Week start day (0=Monday)
+   */
+  week_start_day?: number
+  /**
+   * Preferred template ID
+   */
+  preferred_working_hours_template_id?: string | null
+  /**
+   * Min time between jobs
+   */
+  min_time_between_jobs_minutes?: number
+  /**
+   * Max commute time
+   */
+  max_commute_time_minutes?: number
+  /**
+   * Allow back-to-back jobs
+   */
+  allows_back_to_back_jobs?: boolean
+  /**
+   * Required prep time
+   */
+  requires_prep_time_minutes?: number
+  /**
+   * Reminder times
+   */
+  job_reminder_minutes_before?: Array<number>
+  /**
+   * Schedule change notifications
+   */
+  schedule_change_notifications?: boolean
+  /**
+   * New job notifications
+   */
+  new_job_notifications?: boolean
+  /**
+   * Cancellation notifications
+   */
+  cancellation_notifications?: boolean
+  /**
+   * Auto-accept jobs during working hours
+   */
+  auto_accept_jobs_in_hours?: boolean
+  /**
+   * Auto-decline jobs outside hours
+   */
+  auto_decline_outside_hours?: boolean
+  /**
+   * Emergency availability
+   */
+  emergency_availability_outside_hours?: boolean
+  /**
+   * Weekend availability
+   */
+  weekend_availability?: boolean
+  /**
+   * Holiday availability
+   */
+  holiday_availability?: boolean
+  /**
+   * Travel time buffer
+   */
+  travel_buffer_percentage?: number
+  /**
+   * Job buffer time
+   */
+  job_buffer_minutes?: number
+}
+
+/**
+ * Calendar preferences response.
+ */
+export type CalendarPreferencesResponse = {
+  /**
+   * Response message
+   */
+  message: string
+  /**
+   * Calendar preferences
+   */
+  preferences?: CalendarPreferences | null
 }
 
 /**
@@ -2066,13 +2408,144 @@ export type ContactUpdateRequest = {
 }
 
 /**
+ * Request to create calendar event.
+ */
+export type CreateCalendarEventRequest = {
+  /**
+   * Event title
+   */
+  title: string
+  /**
+   * Event description
+   */
+  description?: string | null
+  /**
+   * Event type
+   */
+  event_type?: CalendarEventType
+  /**
+   * Event start time
+   */
+  start_datetime: string
+  /**
+   * Event end time
+   */
+  end_datetime: string
+  /**
+   * All-day event
+   */
+  is_all_day?: boolean
+  /**
+   * Event timezone
+   */
+  timezone?: string
+  /**
+   * Recurrence pattern
+   */
+  recurrence_type?: RecurrenceType
+  /**
+   * Recurrence end date
+   */
+  recurrence_end_date?: string | null
+  /**
+   * Number of occurrences
+   */
+  recurrence_count?: number | null
+  /**
+   * Recurrence interval
+   */
+  recurrence_interval?: number
+  /**
+   * Days of week (0=Monday)
+   */
+  recurrence_days_of_week?: Array<number>
+  /**
+   * Blocks job scheduling
+   */
+  blocks_scheduling?: boolean
+  /**
+   * Allow emergency override
+   */
+  allows_emergency_override?: boolean
+}
+
+/**
+ * Request to create time off.
+ */
+export type CreateTimeOffRequest = {
+  /**
+   * Type of time off
+   */
+  time_off_type: TimeOffType
+  /**
+   * Start date
+   */
+  start_date: string
+  /**
+   * End date
+   */
+  end_date: string
+  /**
+   * Reason for time off
+   */
+  reason?: string | null
+  /**
+   * Additional notes
+   */
+  notes?: string | null
+  /**
+   * Affects job scheduling
+   */
+  affects_scheduling?: boolean
+  /**
+   * Allow emergency contact
+   */
+  emergency_contact_allowed?: boolean
+}
+
+/**
+ * Request to create working hours template.
+ */
+export type CreateWorkingHoursTemplateRequest = {
+  /**
+   * Template name
+   */
+  name: string
+  /**
+   * Template description
+   */
+  description?: string | null
+  monday_start?: string | null
+  monday_end?: string | null
+  tuesday_start?: string | null
+  tuesday_end?: string | null
+  wednesday_start?: string | null
+  wednesday_end?: string | null
+  thursday_start?: string | null
+  thursday_end?: string | null
+  friday_start?: string | null
+  friday_end?: string | null
+  saturday_start?: string | null
+  saturday_end?: string | null
+  sunday_start?: string | null
+  sunday_end?: string | null
+  break_duration_minutes?: number
+  lunch_start_time?: string | null
+  lunch_duration_minutes?: number
+  allows_flexible_start?: boolean
+  flexible_start_window_minutes?: number
+  allows_overtime?: boolean
+  max_overtime_hours_per_day?: number
+}
+
+/**
  * Daily performance metrics.
  */
 export type DailyPerformance = {
   /**
    * Performance date
    */
-  date: string
+  performance_date: string
   /**
    * Jobs completed
    */
@@ -3019,6 +3492,14 @@ export type RealTimeScheduleStatusResponse = {
   system_health: string
 }
 
+export type RecurrenceType =
+  | "none"
+  | "daily"
+  | "weekly"
+  | "biweekly"
+  | "monthly"
+  | "custom"
+
 /**
  * Referral source options for API.
  */
@@ -3214,6 +3695,33 @@ export type SendOTPRequest = {
   phone: string
 }
 
+/**
+ * Request to set user working hours.
+ */
+export type SetUserWorkingHoursRequest = {
+  /**
+   * Use existing template
+   */
+  template_id?: string | null
+  monday_start?: string | null
+  monday_end?: string | null
+  tuesday_start?: string | null
+  tuesday_end?: string | null
+  wednesday_start?: string | null
+  wednesday_end?: string | null
+  thursday_start?: string | null
+  thursday_end?: string | null
+  friday_start?: string | null
+  friday_end?: string | null
+  saturday_start?: string | null
+  saturday_end?: string | null
+  sunday_start?: string | null
+  sunday_end?: string | null
+  break_duration_minutes?: number
+  lunch_start_time?: string | null
+  lunch_duration_minutes?: number
+}
+
 export type SignInRequest = {
   email: string
   password: string
@@ -3263,6 +3771,62 @@ export type SwitchBusinessContextRequest = {
    * Business ID to switch to
    */
   business_id: string
+}
+
+/**
+ * Team availability summary.
+ */
+export type TeamAvailabilitySummary = {
+  /**
+   * Business ID
+   */
+  business_id: string
+  /**
+   * Period start date
+   */
+  start_date: string
+  /**
+   * Period end date
+   */
+  end_date: string
+  /**
+   * Total team members
+   */
+  total_team_members?: number
+  /**
+   * Available members
+   */
+  available_members?: number
+  /**
+   * Members on time off
+   */
+  members_on_time_off?: number
+  /**
+   * Members with limited availability
+   */
+  members_with_limited_availability?: number
+  /**
+   * Daily breakdown
+   */
+  daily_availability?: Array<{
+    [key: string]: unknown
+  }>
+  /**
+   * Individual summaries
+   */
+  member_summaries?: Array<UserAvailability>
+  /**
+   * Peak hours
+   */
+  peak_availability_hours?: Array<{
+    [key: string]: unknown
+  }>
+  /**
+   * Coverage gaps
+   */
+  coverage_gaps?: Array<{
+    [key: string]: unknown
+  }>
 }
 
 /**
@@ -3398,6 +3962,219 @@ export type TimelineResponse = {
 }
 
 /**
+ * Time off request schema.
+ */
+export type TimeOffRequest = {
+  /**
+   * Request ID
+   */
+  id?: string | null
+  /**
+   * Type of time off
+   */
+  time_off_type: TimeOffType
+  /**
+   * Start date
+   */
+  start_date: string
+  /**
+   * End date
+   */
+  end_date: string
+  /**
+   * Reason for time off
+   */
+  reason?: string | null
+  /**
+   * Additional notes
+   */
+  notes?: string | null
+  /**
+   * Request status
+   */
+  status?: TimeOffStatus
+  /**
+   * User who requested
+   */
+  requested_by?: string | null
+  /**
+   * User who approved/denied
+   */
+  approved_by?: string | null
+  /**
+   * Approval/denial date
+   */
+  approval_date?: string | null
+  /**
+   * Reason for denial
+   */
+  denial_reason?: string | null
+  /**
+   * Affects job scheduling
+   */
+  affects_scheduling?: boolean
+  /**
+   * Allow emergency contact
+   */
+  emergency_contact_allowed?: boolean
+  /**
+   * Duration in days (calculated)
+   */
+  duration_days?: number | null
+  created_date?: string | null
+  last_modified?: string | null
+}
+
+/**
+ * Time off response.
+ */
+export type TimeOffResponse = {
+  /**
+   * Response message
+   */
+  message: string
+  /**
+   * Time off request
+   */
+  time_off_request?: TimeOffRequest | null
+}
+
+export type TimeOffStatus = "pending" | "approved" | "denied" | "cancelled"
+
+export type TimeOffType =
+  | "vacation"
+  | "sick_leave"
+  | "personal"
+  | "holiday"
+  | "training"
+  | "emergency"
+  | "unpaid"
+
+/**
+ * Individual time slot option.
+ */
+export type TimeSlot = {
+  /**
+   * Unique slot identifier
+   */
+  slot_id: string
+  /**
+   * Slot start time
+   */
+  start_time: string
+  /**
+   * Slot end time
+   */
+  end_time: string
+  /**
+   * Available technicians for this slot
+   */
+  available_technicians: Array<{
+    [key: string]: unknown
+  }>
+  /**
+   * Confidence in slot availability
+   */
+  confidence_score: number
+  /**
+   * Estimated travel time to location
+   */
+  estimated_travel_time_minutes: number
+  /**
+   * Pricing information for this slot
+   */
+  pricing_info?: {
+    [key: string]: unknown
+  } | null
+  /**
+   * Weather conditions impact
+   */
+  weather_impact?: {
+    [key: string]: unknown
+  } | null
+  /**
+   * Overall slot quality score
+   */
+  slot_quality_score: number
+  /**
+   * Additional notes about this slot
+   */
+  notes?: string | null
+}
+
+/**
+ * Request to book a specific time slot.
+ */
+export type TimeSlotBookingRequest = {
+  /**
+   * Selected time slot ID
+   */
+  slot_id: string
+  /**
+   * Customer contact information
+   */
+  customer_contact: {
+    [key: string]: unknown
+  }
+  /**
+   * Detailed job information
+   */
+  job_details: {
+    [key: string]: unknown
+  }
+  /**
+   * Special instructions for technician
+   */
+  special_instructions?: string | null
+  /**
+   * Confirm the booking
+   */
+  confirm_booking?: boolean
+}
+
+/**
+ * Response for time slot booking.
+ */
+export type TimeSlotBookingResponse = {
+  /**
+   * Unique booking identifier
+   */
+  booking_id: string
+  /**
+   * Created job ID
+   */
+  job_id: string
+  /**
+   * Booking status
+   */
+  status: string
+  /**
+   * Confirmed time slot details
+   */
+  scheduled_slot: TimeSlot
+  /**
+   * Assigned technician information
+   */
+  assigned_technician: {
+    [key: string]: unknown
+  }
+  /**
+   * Booking confirmation details
+   */
+  confirmation_details: {
+    [key: string]: unknown
+  }
+  /**
+   * Next steps for customer
+   */
+  next_steps: Array<string>
+  /**
+   * Cancellation policy information
+   */
+  cancellation_policy: string
+}
+
+/**
  * Time window specification.
  */
 export type TimeWindow = {
@@ -3438,6 +4215,52 @@ export type TrendAnalysis = {
 }
 
 /**
+ * User availability information.
+ */
+export type UserAvailability = {
+  /**
+   * User ID
+   */
+  user_id: string
+  /**
+   * Date
+   */
+  availability_date: string
+  /**
+   * Available time slots
+   */
+  available_slots?: Array<{
+    [key: string]: string
+  }>
+  /**
+   * Total available hours
+   */
+  total_available_hours?: number
+  /**
+   * Working hours for the day
+   */
+  working_hours?: {
+    [key: string]: string
+  } | null
+  /**
+   * Time off on this date
+   */
+  time_off?: Array<TimeOffRequest>
+  /**
+   * Calendar events
+   */
+  calendar_events?: Array<CalendarEvent>
+  /**
+   * Overall availability
+   */
+  is_available?: boolean
+  /**
+   * Reason if unavailable
+   */
+  unavailable_reason?: string | null
+}
+
+/**
  * Response schema for user's business summary.
  */
 export type UserBusinessSummaryResponse = {
@@ -3466,6 +4289,126 @@ export type ValidationError = {
   loc: Array<string | number>
   msg: string
   type: string
+}
+
+/**
+ * Working hours response.
+ */
+export type WorkingHoursResponse = {
+  /**
+   * Response message
+   */
+  message: string
+  /**
+   * Working hours template
+   */
+  template?: WorkingHoursTemplate | null
+}
+
+/**
+ * Working hours template schema.
+ */
+export type WorkingHoursTemplate = {
+  /**
+   * Template ID
+   */
+  id?: string | null
+  /**
+   * Template name
+   */
+  name: string
+  /**
+   * Template description
+   */
+  description?: string | null
+  /**
+   * Monday start time
+   */
+  monday_start?: string | null
+  /**
+   * Monday end time
+   */
+  monday_end?: string | null
+  /**
+   * Tuesday start time
+   */
+  tuesday_start?: string | null
+  /**
+   * Tuesday end time
+   */
+  tuesday_end?: string | null
+  /**
+   * Wednesday start time
+   */
+  wednesday_start?: string | null
+  /**
+   * Wednesday end time
+   */
+  wednesday_end?: string | null
+  /**
+   * Thursday start time
+   */
+  thursday_start?: string | null
+  /**
+   * Thursday end time
+   */
+  thursday_end?: string | null
+  /**
+   * Friday start time
+   */
+  friday_start?: string | null
+  /**
+   * Friday end time
+   */
+  friday_end?: string | null
+  /**
+   * Saturday start time
+   */
+  saturday_start?: string | null
+  /**
+   * Saturday end time
+   */
+  saturday_end?: string | null
+  /**
+   * Sunday start time
+   */
+  sunday_start?: string | null
+  /**
+   * Sunday end time
+   */
+  sunday_end?: string | null
+  /**
+   * Break duration in minutes
+   */
+  break_duration_minutes?: number
+  /**
+   * Lunch start time
+   */
+  lunch_start_time?: string | null
+  /**
+   * Lunch duration in minutes
+   */
+  lunch_duration_minutes?: number
+  /**
+   * Allow flexible start time
+   */
+  allows_flexible_start?: boolean
+  /**
+   * Flexible start window
+   */
+  flexible_start_window_minutes?: number
+  /**
+   * Allow overtime
+   */
+  allows_overtime?: boolean
+  /**
+   * Max overtime hours per day
+   */
+  max_overtime_hours_per_day?: number
+  /**
+   * Total weekly hours (calculated)
+   */
+  total_weekly_hours?: number | null
 }
 
 export type ActivitiesCreateActivityData = {
@@ -4052,6 +4995,146 @@ export type IntelligentSchedulingCancelOptimizationData = {
 
 export type IntelligentSchedulingCancelOptimizationResponse = void
 
+export type IntelligentSchedulingGetAvailableTimeSlotsData = {
+  requestBody: AvailableTimeSlotRequest
+}
+
+export type IntelligentSchedulingGetAvailableTimeSlotsResponse =
+  AvailableTimeSlotsResponse
+
+export type IntelligentSchedulingBookTimeSlotData = {
+  requestBody: TimeSlotBookingRequest
+}
+
+export type IntelligentSchedulingBookTimeSlotResponse = TimeSlotBookingResponse
+
+export type IntelligentSchedulingCheckSlotAvailabilityData = {
+  slotId: string
+}
+
+export type IntelligentSchedulingCheckSlotAvailabilityResponse = {
+  [key: string]: unknown
+}
+
+export type IntelligentSchedulingBulkCheckSlotAvailabilityData = {
+  requestBody: Array<string>
+}
+
+export type IntelligentSchedulingBulkCheckSlotAvailabilityResponse = Array<{
+  [key: string]: unknown
+}>
+
+export type IntelligentSchedulingGetWorkingHoursTemplatesResponse =
+  Array<WorkingHoursTemplate>
+
+export type IntelligentSchedulingCreateWorkingHoursTemplateData = {
+  requestBody: CreateWorkingHoursTemplateRequest
+}
+
+export type IntelligentSchedulingCreateWorkingHoursTemplateResponse =
+  WorkingHoursResponse
+
+export type IntelligentSchedulingSetUserWorkingHoursData = {
+  requestBody: SetUserWorkingHoursRequest
+  userId: string
+}
+
+export type IntelligentSchedulingSetUserWorkingHoursResponse =
+  WorkingHoursResponse
+
+export type IntelligentSchedulingCreateCalendarEventData = {
+  requestBody: CreateCalendarEventRequest
+  userId: string
+}
+
+export type IntelligentSchedulingCreateCalendarEventResponse =
+  CalendarEventResponse
+
+export type IntelligentSchedulingGetCalendarEventsData = {
+  /**
+   * End date
+   */
+  endDate: string
+  /**
+   * Start date
+   */
+  startDate: string
+  userId: string
+}
+
+export type IntelligentSchedulingGetCalendarEventsResponse =
+  Array<CalendarEvent>
+
+export type IntelligentSchedulingDeleteCalendarEventData = {
+  eventId: string
+}
+
+export type IntelligentSchedulingDeleteCalendarEventResponse = unknown
+
+export type IntelligentSchedulingCreateTimeOffRequestData = {
+  requestBody: CreateTimeOffRequest
+  userId: string
+}
+
+export type IntelligentSchedulingCreateTimeOffRequestResponse = TimeOffResponse
+
+export type IntelligentSchedulingApproveTimeOffRequestData = {
+  requestBody: ApproveTimeOffRequest
+  timeOffId: string
+}
+
+export type IntelligentSchedulingApproveTimeOffRequestResponse = TimeOffResponse
+
+export type IntelligentSchedulingGetTimeOffRequestsData = {
+  /**
+   * Filter by status
+   */
+  status?: string | null
+  /**
+   * Filter by user ID
+   */
+  userId?: string | null
+}
+
+export type IntelligentSchedulingGetTimeOffRequestsResponse =
+  Array<TimeOffRequest>
+
+export type IntelligentSchedulingCheckUserAvailabilityData = {
+  requestBody: AvailabilityCheckRequest
+}
+
+export type IntelligentSchedulingCheckUserAvailabilityResponse =
+  AvailabilityCheckResponse
+
+export type IntelligentSchedulingGetTeamAvailabilitySummaryData = {
+  /**
+   * End date
+   */
+  endDate: string
+  /**
+   * Start date
+   */
+  startDate: string
+}
+
+export type IntelligentSchedulingGetTeamAvailabilitySummaryResponse =
+  TeamAvailabilitySummary
+
+export type IntelligentSchedulingUpdateCalendarPreferencesData = {
+  requestBody: CalendarPreferences
+  userId: string
+}
+
+export type IntelligentSchedulingUpdateCalendarPreferencesResponse =
+  CalendarPreferencesResponse
+
+export type IntelligentSchedulingGetCalendarPreferencesData = {
+  userId: string
+}
+
+export type IntelligentSchedulingGetCalendarPreferencesResponse =
+  CalendarPreferences
+
 export type JobsCreateJobData = {
   requestBody: JobCreateRequest
 }
@@ -4292,6 +5375,12 @@ export type MiddlewareHealthTestBusinessContextRequiredResponse = {
 }
 
 export type UsersGetCurrentUserProfileResponse = UserProfileResponse
+
+export type UsersUpdateUserBusinessContextData = {
+  requestBody: BusinessContextRequest
+}
+
+export type UsersUpdateUserBusinessContextResponse = Message
 
 export type UtilsTestEmailData = {
   emailTo: string

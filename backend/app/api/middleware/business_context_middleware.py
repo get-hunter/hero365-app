@@ -148,7 +148,11 @@ class BusinessContextMiddleware(BaseHTTPMiddleware):
             
             valid_business_ids = [membership["business_id"] for membership in business_memberships]
             
-            return business_id in valid_business_ids
+            # Normalize UUIDs to lowercase for case-insensitive comparison
+            business_id_normalized = business_id.lower()
+            valid_business_ids_normalized = [bid.lower() for bid in valid_business_ids]
+            
+            return business_id_normalized in valid_business_ids_normalized
             
         except Exception as e:
             logger.error(f"Error validating business access: {str(e)}")

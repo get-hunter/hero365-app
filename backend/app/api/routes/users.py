@@ -14,6 +14,7 @@ from ..deps import get_current_user, get_business_controller
 from app.api.schemas.common_schemas import Message
 from app.api.controllers.business_controller import BusinessController
 from app.utils import format_datetime_utc
+from fastapi import Request
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -163,4 +164,48 @@ async def get_current_user_profile(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get user profile: {str(e)}"
+        )
+
+
+class BusinessContextRequest(BaseModel):
+    """Request model for updating business context."""
+    business_id: str
+
+
+@router.put("/me/business-context", response_model=Message)
+async def update_user_business_context(
+    request: BusinessContextRequest,
+    current_request: Request,
+    current_user: dict = Depends(get_current_user)
+) -> Message:
+    """
+    Update the user's current business context.
+    
+    This endpoint allows switching the user's active business context.
+    It redirects to the business context switch endpoint.
+    """
+    try:
+        # Import here to avoid circular imports
+        from ...core.auth_facade import auth_facade
+        
+        user_id = current_user["sub"]
+        
+        # Switch business context using the auth facade
+        new_token = await auth_facade.switch_business_context(user_id, request.business_id)
+        
+        logger.info(f"User {user_id} switched to business context {request.business_id}")
+        
+        return Message(message=f"Business context updated to {request.business_id}")
+        
+    except ValueError as e:
+        logger.warning(f"Business context switch validation error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error updating business context: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update business context"
         ) 

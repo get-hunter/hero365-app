@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 
 from ..exceptions.domain_exceptions import DomainValidationError
-from .business_membership import BusinessRole, DEFAULT_ROLE_PERMISSIONS
+from .business_membership import BusinessRole, get_default_permissions_for_role
 
 
 class InvitationStatus(Enum):
@@ -88,7 +88,7 @@ class BusinessInvitation:
         
         # Validate permissions are appropriate for role
         if not self.permissions:
-            self.permissions = DEFAULT_ROLE_PERMISSIONS.get(self.role, []).copy()
+            self.permissions = get_default_permissions_for_role(self.role)
     
     def _is_valid_email(self, email: str) -> bool:
         """Basic email validation."""
@@ -135,7 +135,7 @@ class BusinessInvitation:
             invited_by=invited_by,
             invited_by_name=invited_by_name,
             role=role,
-            permissions=permissions or DEFAULT_ROLE_PERMISSIONS.get(role, []).copy(),
+            permissions=permissions or get_default_permissions_for_role(role),
             invitation_date=now,
             expiry_date=now + timedelta(days=expiry_days),
             invited_email=invited_email,

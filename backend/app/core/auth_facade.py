@@ -111,11 +111,22 @@ class AuthFacade:
         
         valid_business_ids = [membership["business_id"] for membership in business_memberships]
         
-        if new_business_id not in valid_business_ids:
+        # Normalize UUIDs to lowercase for case-insensitive comparison
+        new_business_id_normalized = new_business_id.lower()
+        valid_business_ids_normalized = [bid.lower() for bid in valid_business_ids]
+        
+        if new_business_id_normalized not in valid_business_ids_normalized:
             raise ValueError(f"User is not a member of business {new_business_id}")
         
-        # Create new token with updated business context
-        return await self.create_enhanced_jwt_token(user_id, new_business_id)
+        # Create new token with updated business context (use original case from database)
+        # Find the original business ID from the valid list
+        matching_business_id = None
+        for original_id in valid_business_ids:
+            if original_id.lower() == new_business_id_normalized:
+                matching_business_id = original_id
+                break
+        
+        return await self.create_enhanced_jwt_token(user_id, matching_business_id or new_business_id)
 
     async def _get_user_business_memberships(self, user_id: str) -> List[Dict[str, Any]]:
         """Get user's business memberships with roles and permissions."""
@@ -144,10 +155,16 @@ class AuthFacade:
         current_business = metadata.get("current_business_id")
         
         if current_business and memberships:
-            # Verify the preferred business is in user's memberships
+            # Verify the preferred business is in user's memberships with case-insensitive comparison
             valid_business_ids = [m["business_id"] for m in memberships]
-            if current_business in valid_business_ids:
-                return current_business
+            current_business_normalized = current_business.lower()
+            valid_business_ids_normalized = [bid.lower() for bid in valid_business_ids]
+            
+            if current_business_normalized in valid_business_ids_normalized:
+                # Find the original business ID with correct case
+                for original_id in valid_business_ids:
+                    if original_id.lower() == current_business_normalized:
+                        return original_id
         
         # Default to first membership if available
         if memberships:

@@ -134,6 +134,39 @@ import type {
   IntelligentSchedulingGetOptimizationHistoryResponse,
   IntelligentSchedulingCancelOptimizationData,
   IntelligentSchedulingCancelOptimizationResponse,
+  IntelligentSchedulingGetAvailableTimeSlotsData,
+  IntelligentSchedulingGetAvailableTimeSlotsResponse,
+  IntelligentSchedulingBookTimeSlotData,
+  IntelligentSchedulingBookTimeSlotResponse,
+  IntelligentSchedulingCheckSlotAvailabilityData,
+  IntelligentSchedulingCheckSlotAvailabilityResponse,
+  IntelligentSchedulingBulkCheckSlotAvailabilityData,
+  IntelligentSchedulingBulkCheckSlotAvailabilityResponse,
+  IntelligentSchedulingGetWorkingHoursTemplatesResponse,
+  IntelligentSchedulingCreateWorkingHoursTemplateData,
+  IntelligentSchedulingCreateWorkingHoursTemplateResponse,
+  IntelligentSchedulingSetUserWorkingHoursData,
+  IntelligentSchedulingSetUserWorkingHoursResponse,
+  IntelligentSchedulingCreateCalendarEventData,
+  IntelligentSchedulingCreateCalendarEventResponse,
+  IntelligentSchedulingGetCalendarEventsData,
+  IntelligentSchedulingGetCalendarEventsResponse,
+  IntelligentSchedulingDeleteCalendarEventData,
+  IntelligentSchedulingDeleteCalendarEventResponse,
+  IntelligentSchedulingCreateTimeOffRequestData,
+  IntelligentSchedulingCreateTimeOffRequestResponse,
+  IntelligentSchedulingApproveTimeOffRequestData,
+  IntelligentSchedulingApproveTimeOffRequestResponse,
+  IntelligentSchedulingGetTimeOffRequestsData,
+  IntelligentSchedulingGetTimeOffRequestsResponse,
+  IntelligentSchedulingCheckUserAvailabilityData,
+  IntelligentSchedulingCheckUserAvailabilityResponse,
+  IntelligentSchedulingGetTeamAvailabilitySummaryData,
+  IntelligentSchedulingGetTeamAvailabilitySummaryResponse,
+  IntelligentSchedulingUpdateCalendarPreferencesData,
+  IntelligentSchedulingUpdateCalendarPreferencesResponse,
+  IntelligentSchedulingGetCalendarPreferencesData,
+  IntelligentSchedulingGetCalendarPreferencesResponse,
   JobsCreateJobData,
   JobsCreateJobResponse,
   JobsCreateJob1Data,
@@ -198,6 +231,8 @@ import type {
   MiddlewareHealthTestAuthenticationRequiredResponse,
   MiddlewareHealthTestBusinessContextRequiredResponse,
   UsersGetCurrentUserProfileResponse,
+  UsersUpdateUserBusinessContextData,
+  UsersUpdateUserBusinessContextResponse,
   UtilsTestEmailData,
   UtilsTestEmailResponse,
 } from "./types.gen"
@@ -1940,6 +1975,407 @@ export class IntelligentSchedulingService {
       },
     })
   }
+
+  /**
+   * Get available time slots
+   * Get available time slots for customer booking based on job requirements and preferences.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns AvailableTimeSlotsResponse Successful Response
+   * @throws ApiError
+   */
+  public static getAvailableTimeSlots(
+    data: IntelligentSchedulingGetAvailableTimeSlotsData,
+  ): CancelablePromise<IntelligentSchedulingGetAvailableTimeSlotsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/available-slots",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Book a time slot
+   * Book a specific time slot for a customer and create a scheduled job.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns TimeSlotBookingResponse Successful Response
+   * @throws ApiError
+   */
+  public static bookTimeSlot(
+    data: IntelligentSchedulingBookTimeSlotData,
+  ): CancelablePromise<IntelligentSchedulingBookTimeSlotResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/book-slot",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Check slot availability
+   * Check if a specific time slot is still available for booking.
+   * @param data The data for the request.
+   * @param data.slotId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static checkSlotAvailability(
+    data: IntelligentSchedulingCheckSlotAvailabilityData,
+  ): CancelablePromise<IntelligentSchedulingCheckSlotAvailabilityResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/scheduling/slots/{slot_id}/availability",
+      path: {
+        slot_id: data.slotId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Bulk check slot availability
+   * Check availability for multiple time slots at once.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static bulkCheckSlotAvailability(
+    data: IntelligentSchedulingBulkCheckSlotAvailabilityData,
+  ): CancelablePromise<IntelligentSchedulingBulkCheckSlotAvailabilityResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/slots/bulk-check",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get working hours templates
+   * Get all working hours templates for the business.
+   * @returns WorkingHoursTemplate Successful Response
+   * @throws ApiError
+   */
+  public static getWorkingHoursTemplates(): CancelablePromise<IntelligentSchedulingGetWorkingHoursTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/scheduling/working-hours/templates",
+    })
+  }
+
+  /**
+   * Create working hours template
+   * Create a new working hours template for the business.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns WorkingHoursResponse Successful Response
+   * @throws ApiError
+   */
+  public static createWorkingHoursTemplate(
+    data: IntelligentSchedulingCreateWorkingHoursTemplateData,
+  ): CancelablePromise<IntelligentSchedulingCreateWorkingHoursTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/working-hours/templates",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Set user working hours
+   * Set working hours for a specific user.
+   * @param data The data for the request.
+   * @param data.userId
+   * @param data.requestBody
+   * @returns WorkingHoursResponse Successful Response
+   * @throws ApiError
+   */
+  public static setUserWorkingHours(
+    data: IntelligentSchedulingSetUserWorkingHoursData,
+  ): CancelablePromise<IntelligentSchedulingSetUserWorkingHoursResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/users/{user_id}/working-hours",
+      path: {
+        user_id: data.userId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create calendar event
+   * Create a calendar event for a user.
+   * @param data The data for the request.
+   * @param data.userId
+   * @param data.requestBody
+   * @returns CalendarEventResponse Successful Response
+   * @throws ApiError
+   */
+  public static createCalendarEvent(
+    data: IntelligentSchedulingCreateCalendarEventData,
+  ): CancelablePromise<IntelligentSchedulingCreateCalendarEventResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/users/{user_id}/calendar/events",
+      path: {
+        user_id: data.userId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get calendar events
+   * Get calendar events for a user within a date range.
+   * @param data The data for the request.
+   * @param data.userId
+   * @param data.startDate Start date
+   * @param data.endDate End date
+   * @returns CalendarEvent Successful Response
+   * @throws ApiError
+   */
+  public static getCalendarEvents(
+    data: IntelligentSchedulingGetCalendarEventsData,
+  ): CancelablePromise<IntelligentSchedulingGetCalendarEventsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/scheduling/users/{user_id}/calendar/events",
+      path: {
+        user_id: data.userId,
+      },
+      query: {
+        start_date: data.startDate,
+        end_date: data.endDate,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete calendar event
+   * Delete a calendar event.
+   * @param data The data for the request.
+   * @param data.eventId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static deleteCalendarEvent(
+    data: IntelligentSchedulingDeleteCalendarEventData,
+  ): CancelablePromise<IntelligentSchedulingDeleteCalendarEventResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/scheduling/calendar/events/{event_id}",
+      path: {
+        event_id: data.eventId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create time off request
+   * Create a time off request for a user.
+   * @param data The data for the request.
+   * @param data.userId
+   * @param data.requestBody
+   * @returns TimeOffResponse Successful Response
+   * @throws ApiError
+   */
+  public static createTimeOffRequest(
+    data: IntelligentSchedulingCreateTimeOffRequestData,
+  ): CancelablePromise<IntelligentSchedulingCreateTimeOffRequestResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/users/{user_id}/time-off",
+      path: {
+        user_id: data.userId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Approve/deny time off request
+   * Approve or deny a time off request.
+   * @param data The data for the request.
+   * @param data.timeOffId
+   * @param data.requestBody
+   * @returns TimeOffResponse Successful Response
+   * @throws ApiError
+   */
+  public static approveTimeOffRequest(
+    data: IntelligentSchedulingApproveTimeOffRequestData,
+  ): CancelablePromise<IntelligentSchedulingApproveTimeOffRequestResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/time-off/{time_off_id}/approve",
+      path: {
+        time_off_id: data.timeOffId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get time off requests
+   * Get time off requests for the business or specific user.
+   * @param data The data for the request.
+   * @param data.userId Filter by user ID
+   * @param data.status Filter by status
+   * @returns TimeOffRequest Successful Response
+   * @throws ApiError
+   */
+  public static getTimeOffRequests(
+    data: IntelligentSchedulingGetTimeOffRequestsData = {},
+  ): CancelablePromise<IntelligentSchedulingGetTimeOffRequestsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/scheduling/time-off",
+      query: {
+        user_id: data.userId,
+        status: data.status,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Check user availability
+   * Check availability for multiple users within a time period.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns AvailabilityCheckResponse Successful Response
+   * @throws ApiError
+   */
+  public static checkUserAvailability(
+    data: IntelligentSchedulingCheckUserAvailabilityData,
+  ): CancelablePromise<IntelligentSchedulingCheckUserAvailabilityResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/availability/check",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get team availability summary
+   * Get comprehensive team availability summary for a date range.
+   * @param data The data for the request.
+   * @param data.startDate Start date
+   * @param data.endDate End date
+   * @returns TeamAvailabilitySummary Successful Response
+   * @throws ApiError
+   */
+  public static getTeamAvailabilitySummary(
+    data: IntelligentSchedulingGetTeamAvailabilitySummaryData,
+  ): CancelablePromise<IntelligentSchedulingGetTeamAvailabilitySummaryResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/scheduling/availability/team-summary",
+      query: {
+        start_date: data.startDate,
+        end_date: data.endDate,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update calendar preferences
+   * Update user calendar and scheduling preferences.
+   * @param data The data for the request.
+   * @param data.userId
+   * @param data.requestBody
+   * @returns CalendarPreferencesResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateCalendarPreferences(
+    data: IntelligentSchedulingUpdateCalendarPreferencesData,
+  ): CancelablePromise<IntelligentSchedulingUpdateCalendarPreferencesResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/users/{user_id}/calendar/preferences",
+      path: {
+        user_id: data.userId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get calendar preferences
+   * Get user calendar and scheduling preferences.
+   * @param data The data for the request.
+   * @param data.userId
+   * @returns CalendarPreferences Successful Response
+   * @throws ApiError
+   */
+  public static getCalendarPreferences(
+    data: IntelligentSchedulingGetCalendarPreferencesData,
+  ): CancelablePromise<IntelligentSchedulingGetCalendarPreferencesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/scheduling/users/{user_id}/calendar/preferences",
+      path: {
+        user_id: data.userId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
 }
 
 export class JobsService {
@@ -2749,6 +3185,31 @@ export class UsersService {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/users/me",
+    })
+  }
+
+  /**
+   * Update User Business Context
+   * Update the user's current business context.
+   *
+   * This endpoint allows switching the user's active business context.
+   * It redirects to the business context switch endpoint.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns Message Successful Response
+   * @throws ApiError
+   */
+  public static updateUserBusinessContext(
+    data: UsersUpdateUserBusinessContextData,
+  ): CancelablePromise<UsersUpdateUserBusinessContextResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/users/me/business-context",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
     })
   }
 }

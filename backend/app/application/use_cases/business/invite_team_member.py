@@ -13,7 +13,7 @@ from ....domain.repositories.business_repository import BusinessRepository
 from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
 from ....domain.repositories.business_invitation_repository import BusinessInvitationRepository
 from ....domain.entities.business_invitation import BusinessInvitation, InvitationStatus
-from ....domain.entities.business_membership import BusinessRole, DEFAULT_ROLE_PERMISSIONS
+from ....domain.entities.business_membership import BusinessRole, get_default_permissions_for_role
 from ....domain.exceptions.domain_exceptions import EntityNotFoundError, DuplicateEntityError
 from ...exceptions.application_exceptions import (
     ApplicationError, ValidationError, BusinessLogicError
@@ -173,7 +173,7 @@ class InviteTeamMemberUseCase:
         expiry_date = now + timedelta(days=dto.expiry_days)
         
         # Get permissions for the role
-        permissions = dto.permissions or DEFAULT_ROLE_PERMISSIONS.get(dto.role, [])
+        permissions = dto.permissions or get_default_permissions_for_role(dto.role)
         
         return BusinessInvitation(
             id=uuid.uuid4(),
