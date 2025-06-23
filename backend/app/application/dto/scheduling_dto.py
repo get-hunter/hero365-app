@@ -282,4 +282,66 @@ class RouteOptimizationResultDTO:
     waypoints_order: List[int]
     route_legs: List[Dict[str, Any]]
     estimated_fuel_cost: Optional[Decimal]
-    traffic_warnings: List[str] 
+    traffic_warnings: List[str]
+
+
+@dataclass
+class AvailableTimeSlotRequestDTO:
+    """DTO for available time slots request."""
+    job_type: str
+    estimated_duration_hours: float
+    required_skills: List[str] = field(default_factory=list)
+    job_address: Optional[Dict[str, Any]] = None
+    preferred_date_range: TimeWindowDTO = None
+    customer_preferences: Optional[Dict[str, Any]] = None
+    priority: str = "medium"
+
+
+@dataclass
+class TimeSlotDTO:
+    """DTO for individual time slot."""
+    slot_id: str
+    start_time: datetime
+    end_time: datetime
+    available_technicians: List[Dict[str, Any]]
+    confidence_score: float
+    estimated_travel_time_minutes: int
+    pricing_info: Optional[Dict[str, Any]] = None
+    weather_impact: Optional[Dict[str, Any]] = None
+    slot_quality_score: float = 0.8
+    notes: Optional[str] = None
+
+
+@dataclass
+class AvailableTimeSlotsResponseDTO:
+    """DTO for available time slots response."""
+    request_id: str
+    available_slots: List[TimeSlotDTO]
+    total_slots_found: int
+    search_criteria: Dict[str, Any]
+    recommendations: List[str] = field(default_factory=list)
+    alternative_suggestions: List[Dict[str, Any]] = field(default_factory=list)
+    booking_deadline: Optional[datetime] = None
+
+
+@dataclass
+class TimeSlotBookingRequestDTO:
+    """DTO for time slot booking request."""
+    slot_id: str
+    customer_contact: Dict[str, Any]
+    job_details: Dict[str, Any]
+    special_instructions: Optional[str] = None
+    confirm_booking: bool = True
+
+
+@dataclass
+class TimeSlotBookingResponseDTO:
+    """DTO for time slot booking response."""
+    booking_id: str
+    job_id: str
+    status: str
+    scheduled_slot: TimeSlotDTO
+    assigned_technician: Dict[str, Any]
+    confirmation_details: Dict[str, Any]
+    next_steps: List[str]
+    cancellation_policy: str 

@@ -15,7 +15,10 @@ import logging
 from ...dto.scheduling_dto import (
     SchedulingOptimizationRequestDTO, SchedulingOptimizationResponseDTO,
     RealTimeAdaptationRequestDTO, RealTimeAdaptationResponseDTO,
-    SchedulingAnalyticsRequestDTO, SchedulingAnalyticsResponseDTO
+    SchedulingAnalyticsRequestDTO, SchedulingAnalyticsResponseDTO,
+    AvailableTimeSlotRequestDTO, AvailableTimeSlotsResponseDTO,
+    TimeSlotBookingRequestDTO, TimeSlotBookingResponseDTO,
+    TimeSlotDTO
 )
 from ...exceptions.application_exceptions import (
     ValidationError, NotFoundError, BusinessLogicError
@@ -219,6 +222,135 @@ class IntelligentSchedulingUseCase:
         except Exception as e:
             logger.error(f"Error getting scheduling analytics: {str(e)}")
             raise BusinessLogicError(f"Analytics generation failed: {str(e)}")
+    
+    async def get_available_time_slots(self,
+                                     business_id: uuid.UUID,
+                                     request: AvailableTimeSlotRequestDTO,
+                                     user_id: Optional[str] = None) -> AvailableTimeSlotsResponseDTO:
+        """
+        Get available time slots for customer booking.
+        
+        Args:
+            business_id: Business context
+            request: Time slot request with job requirements
+            user_id: Optional user making the request
+            
+        Returns:
+            Available time slots with technician assignments
+        """
+        try:
+            # Get available users with capabilities
+            available_users = await self._get_available_users(business_id, request.preferred_date_range)
+            
+            if not available_users:
+                return AvailableTimeSlotsResponseDTO(
+                    request_id=str(uuid.uuid4()),
+                    available_slots=[],
+                    total_slots_found=0,
+                    search_criteria=self._build_search_criteria(request),
+                    recommendations=["No technicians available in the requested time range. Please try a different date range."],
+                    alternative_suggestions=[{
+                        "type": "extend_date_range",
+                        "description": "Extend your search to the next week for more options"
+                    }]
+                )
+            
+            # Generate time slots based on availability
+            time_slots = await self._generate_available_time_slots(
+                business_id, request, available_users
+            )
+            
+            # Enhance slots with real-time data
+            enhanced_slots = await self._enhance_slots_with_realtime_data(
+                time_slots, request
+            )
+            
+            # Rank and filter slots
+            ranked_slots = self._rank_time_slots(enhanced_slots, request.customer_preferences)
+            
+            # Generate recommendations
+            recommendations = self._generate_slot_recommendations(ranked_slots, request)
+            
+            # Generate alternative suggestions
+            alternatives = await self._generate_alternative_suggestions(
+                business_id, request, len(ranked_slots)
+            )
+            
+            return AvailableTimeSlotsResponseDTO(
+                request_id=str(uuid.uuid4()),
+                available_slots=ranked_slots,
+                total_slots_found=len(ranked_slots),
+                search_criteria=self._build_search_criteria(request),
+                recommendations=recommendations,
+                alternative_suggestions=alternatives,
+                booking_deadline=datetime.utcnow() + timedelta(hours=24)  # 24-hour booking window
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting available time slots: {str(e)}")
+            raise BusinessLogicError(f"Failed to get available time slots: {str(e)}")
+
+    async def book_time_slot(self,
+                           business_id: uuid.UUID,
+                           request: TimeSlotBookingRequestDTO,
+                           user_id: Optional[str] = None) -> TimeSlotBookingResponseDTO:
+        """
+        Book a specific time slot for a customer.
+        
+        Args:
+            business_id: Business context
+            request: Booking request with slot and customer details
+            user_id: Optional user making the booking
+            
+        Returns:
+            Booking confirmation with job details
+        """
+        try:
+            # Validate slot availability
+            slot_valid = await self._validate_slot_availability(
+                business_id, request.slot_id
+            )
+            
+            if not slot_valid:
+                raise BusinessLogicError("Selected time slot is no longer available")
+            
+            # Create job from booking request
+            job = await self._create_job_from_booking(business_id, request)
+            
+            # Assign technician to the job
+            assignment_result = await self._assign_technician_to_slot(
+                business_id, request.slot_id, job.id
+            )
+            
+            # Send confirmation notifications
+            await self._send_booking_confirmations(
+                business_id, job, assignment_result, request.customer_contact
+            )
+            
+            # Build response
+            return TimeSlotBookingResponseDTO(
+                booking_id=str(uuid.uuid4()),
+                job_id=str(job.id),
+                status="confirmed",
+                scheduled_slot=assignment_result["slot"],
+                assigned_technician=assignment_result["technician"],
+                confirmation_details={
+                    "booking_time": datetime.utcnow().isoformat(),
+                    "confirmation_number": f"HERO-{str(uuid.uuid4())[:8].upper()}",
+                    "customer_email": request.customer_contact.get("email"),
+                    "customer_phone": request.customer_contact.get("phone")
+                },
+                next_steps=[
+                    "You will receive a confirmation email shortly",
+                    "The technician will call 30 minutes before arrival",
+                    "Prepare the work area and ensure access to the job location"
+                ],
+                cancellation_policy="Free cancellation up to 2 hours before scheduled time"
+            )
+            
+        except Exception as e:
+            logger.error(f"Error booking time slot: {str(e)}")
+            raise BusinessLogicError(f"Failed to book time slot: {str(e)}")
     
     async def _enhance_jobs_with_realtime_data(self, jobs: List[Job]) -> List[Dict[str, Any]]:
         """Enhance job data with real-time weather and traffic information."""
@@ -545,4 +677,456 @@ class IntelligentSchedulingUseCase:
             job = await self.job_repository.get_by_id(uuid.UUID(job_id))
             if job and job.business_id == business_id:
                 jobs.append(job)
-        return jobs 
+        return jobs
+
+    async def _generate_available_time_slots(self,
+                                           business_id: uuid.UUID,
+                                           request: AvailableTimeSlotRequestDTO,
+                                           available_users: List[UserCapabilities]) -> List[TimeSlotDTO]:
+        """Generate available time slots based on user availability and job requirements."""
+        time_slots = []
+        slot_duration = timedelta(hours=request.estimated_duration_hours)
+        
+        # Define time slot intervals (e.g., every 30 minutes)
+        slot_interval = timedelta(minutes=30)
+        
+        # Get date range
+        start_date = request.preferred_date_range.start_time
+        end_date = request.preferred_date_range.end_time
+        
+        current_time = start_date
+        
+        while current_time + slot_duration <= end_date:
+            # Check if this time slot is viable
+            slot_end_time = current_time + slot_duration
+            
+            # Find available technicians for this slot
+            available_technicians = []
+            
+            for user in available_users:
+                if await self._is_user_available_for_slot(
+                    user, current_time, slot_end_time, request.required_skills
+                ):
+                    # Calculate travel time
+                    travel_time = await self._calculate_travel_time_for_slot(
+                        user, request.job_address
+                    )
+                    
+                    # Check if user matches job requirements
+                    if user.matches_job_requirements(request.required_skills):
+                        available_technicians.append({
+                            "technician_id": user.user_id,
+                            "name": f"Technician {user.user_id}",  # Would get from user profile
+                            "rating": float(user.average_job_rating or 4.5),
+                            "specialties": [skill.name for skill in user.skills],
+                            "travel_time_minutes": travel_time,
+                            "experience_years": sum(skill.years_experience for skill in user.skills) / max(len(user.skills), 1)
+                        })
+            
+            # Create time slot if technicians are available
+            if available_technicians:
+                slot_id = f"slot_{int(current_time.timestamp())}_{len(time_slots)}"
+                
+                # Calculate slot quality score
+                quality_score = self._calculate_slot_quality_score(
+                    current_time, available_technicians, request
+                )
+                
+                time_slot = TimeSlotDTO(
+                    slot_id=slot_id,
+                    start_time=current_time,
+                    end_time=slot_end_time,
+                    available_technicians=available_technicians,
+                    confidence_score=min(0.95, len(available_technicians) * 0.3 + 0.5),
+                    estimated_travel_time_minutes=min(tech["travel_time_minutes"] for tech in available_technicians),
+                    slot_quality_score=quality_score,
+                    notes=self._generate_slot_notes(current_time, available_technicians)
+                )
+                
+                time_slots.append(time_slot)
+            
+            current_time += slot_interval
+        
+        return time_slots
+
+    async def _enhance_slots_with_realtime_data(self,
+                                              time_slots: List[TimeSlotDTO],
+                                              request: AvailableTimeSlotRequestDTO) -> List[TimeSlotDTO]:
+        """Enhance time slots with real-time data like weather and pricing."""
+        enhanced_slots = []
+        
+        for slot in time_slots:
+            enhanced_slot = slot
+            
+            # Add weather impact if job address is provided
+            if request.job_address and "latitude" in request.job_address:
+                try:
+                    weather_data = await self.weather_service.get_weather_impact(
+                        request.job_address["latitude"],
+                        request.job_address["longitude"],
+                        request.job_type,
+                        slot.start_time
+                    )
+                    enhanced_slot.weather_impact = {
+                        "conditions": weather_data.get("conditions", "unknown"),
+                        "impact_score": float(weather_data.get("impact_score", 0.8)),
+                        "recommendations": weather_data.get("recommendations", [])
+                    }
+                except Exception as e:
+                    logger.warning(f"Could not get weather data for slot {slot.slot_id}: {str(e)}")
+            
+            # Add pricing information
+            try:
+                pricing = await self._calculate_slot_pricing(slot, request)
+                enhanced_slot.pricing_info = pricing
+            except Exception as e:
+                logger.warning(f"Could not calculate pricing for slot {slot.slot_id}: {str(e)}")
+            
+            enhanced_slots.append(enhanced_slot)
+        
+        return enhanced_slots
+
+    def _rank_time_slots(self, time_slots: List[TimeSlotDTO], customer_preferences: Optional[Dict]) -> List[TimeSlotDTO]:
+        """Rank time slots based on quality score and customer preferences."""
+        def slot_score(slot: TimeSlotDTO) -> float:
+            base_score = slot.slot_quality_score
+            
+            # Apply customer preferences
+            if customer_preferences:
+                if customer_preferences.get("avoid_early_morning") and slot.start_time.hour < 9:
+                    base_score -= 0.2
+                
+                if customer_preferences.get("preferred_technician"):
+                    preferred_tech = customer_preferences["preferred_technician"]
+                    if any(tech["technician_id"] == preferred_tech for tech in slot.available_technicians):
+                        base_score += 0.3
+                
+                if not customer_preferences.get("allow_weekend", True):
+                    if slot.start_time.weekday() >= 5:  # Saturday = 5, Sunday = 6
+                        base_score -= 0.3
+            
+            # Weather impact
+            if slot.weather_impact:
+                base_score += slot.weather_impact.get("impact_score", 0) * 0.1
+            
+            return base_score
+        
+        # Sort by score (highest first) and return top 10
+        ranked_slots = sorted(time_slots, key=slot_score, reverse=True)
+        return ranked_slots[:10]
+
+    def _generate_slot_recommendations(self, time_slots: List[TimeSlotDTO], request: AvailableTimeSlotRequestDTO) -> List[str]:
+        """Generate recommendations based on available slots."""
+        recommendations = []
+        
+        if not time_slots:
+            recommendations.append("No slots available in the requested time range")
+            return recommendations
+        
+        # Analyze time patterns
+        morning_slots = [s for s in time_slots if 6 <= s.start_time.hour < 12]
+        afternoon_slots = [s for s in time_slots if 12 <= s.start_time.hour < 18]
+        
+        if len(morning_slots) > len(afternoon_slots):
+            recommendations.append("Morning slots have higher availability")
+        elif len(afternoon_slots) > len(morning_slots):
+            recommendations.append("Afternoon slots have better availability")
+        
+        # Analyze day patterns
+        weekday_slots = [s for s in time_slots if s.start_time.weekday() < 5]
+        weekend_slots = [s for s in time_slots if s.start_time.weekday() >= 5]
+        
+        if len(weekday_slots) > len(weekend_slots):
+            recommendations.append("Weekday slots offer more options")
+        
+        # Find best quality slots
+        best_slots = [s for s in time_slots if s.slot_quality_score > 0.8]
+        if best_slots:
+            best_day = max(set(s.start_time.strftime("%A") for s in best_slots), 
+                          key=lambda day: len([s for s in best_slots if s.start_time.strftime("%A") == day]))
+            recommendations.append(f"{best_day} has the most experienced technicians available")
+        
+        return recommendations
+
+    async def _generate_alternative_suggestions(self,
+                                              business_id: uuid.UUID,
+                                              request: AvailableTimeSlotRequestDTO,
+                                              current_slots_count: int) -> List[Dict[str, Any]]:
+        """Generate alternative suggestions if few slots are available."""
+        suggestions = []
+        
+        if current_slots_count < 3:
+            # Suggest extending date range
+            suggestions.append({
+                "type": "extend_date_range",
+                "description": "Extend search to next week for more options",
+                "impact": "Could provide 10-15 additional time slots"
+            })
+            
+            # Suggest flexible timing
+            suggestions.append({
+                "type": "flexible_timing",
+                "description": "Consider flexible start times (±1 hour)",
+                "impact": "Could double available options"
+            })
+        
+        if current_slots_count < 5:
+            # Suggest skill flexibility
+            if request.required_skills:
+                suggestions.append({
+                    "type": "skill_flexibility",
+                    "description": "Consider technicians with related skills",
+                    "impact": "Could provide 5-8 additional qualified technicians"
+                })
+        
+        return suggestions
+
+    def _build_search_criteria(self, request: AvailableTimeSlotRequestDTO) -> Dict[str, Any]:
+        """Build search criteria summary."""
+        return {
+            "job_type": request.job_type,
+            "duration_hours": request.estimated_duration_hours,
+            "required_skills": request.required_skills,
+            "date_range": f"{request.preferred_date_range.start_time.strftime('%Y-%m-%d')} to {request.preferred_date_range.end_time.strftime('%Y-%m-%d')}",
+            "priority": request.priority,
+            "location": request.job_address.get("city", "Not specified") if request.job_address else "Not specified"
+        }
+
+    async def _is_user_available_for_slot(self,
+                                        user: UserCapabilities,
+                                        start_time: datetime,
+                                        end_time: datetime,
+                                        required_skills: List[str]) -> bool:
+        """Check if user is available for a specific time slot."""
+        # Check day of week availability
+        day_of_week = start_time.weekday()
+        if not user.is_available_on_day(day_of_week):
+            return False
+        
+        # Check if user has required skills
+        if not user.matches_job_requirements(required_skills):
+            return False
+        
+        # Check availability windows
+        for window in user.availability_windows:
+            if window.day_of_week == day_of_week:
+                window_start = datetime.combine(start_time.date(), window.start_time)
+                window_end = datetime.combine(start_time.date(), window.end_time)
+                
+                # Check if slot fits within availability window
+                if window_start <= start_time and end_time <= window_end:
+                    return True
+        
+        return False
+
+    async def _calculate_travel_time_for_slot(self,
+                                            user: UserCapabilities,
+                                            job_address: Optional[Dict[str, Any]]) -> int:
+        """Calculate travel time from user's location to job location."""
+        if not job_address or not user.home_base_latitude or not user.home_base_longitude:
+            return 30  # Default travel time
+        
+        try:
+            user_location = {
+                "latitude": user.home_base_latitude,
+                "longitude": user.home_base_longitude
+            }
+            
+            job_location = {
+                "latitude": job_address.get("latitude"),
+                "longitude": job_address.get("longitude")
+            }
+            
+            if not job_location["latitude"] or not job_location["longitude"]:
+                return 30  # Default if coordinates missing
+            
+            travel_result = await self.travel_time_service.get_travel_time(
+                user_location, job_location
+            )
+            
+            return travel_result.get("duration_minutes", 30)
+            
+        except Exception as e:
+            logger.warning(f"Could not calculate travel time: {str(e)}")
+            return 30  # Default fallback
+
+    def _calculate_slot_quality_score(self,
+                                    slot_time: datetime,
+                                    available_technicians: List[Dict],
+                                    request: AvailableTimeSlotRequestDTO) -> float:
+        """Calculate quality score for a time slot."""
+        base_score = 0.5
+        
+        # Time of day bonus
+        hour = slot_time.hour
+        if 9 <= hour <= 17:  # Business hours
+            base_score += 0.2
+        elif 8 <= hour <= 18:  # Extended hours
+            base_score += 0.1
+        
+        # Technician quality bonus
+        if available_technicians:
+            avg_rating = sum(tech.get("rating", 4.0) for tech in available_technicians) / len(available_technicians)
+            base_score += (avg_rating - 4.0) * 0.2  # Bonus for ratings above 4.0
+            
+            # Experience bonus
+            avg_experience = sum(tech.get("experience_years", 2) for tech in available_technicians) / len(available_technicians)
+            base_score += min(0.2, avg_experience * 0.05)  # Up to 0.2 bonus for experience
+        
+        # Day of week adjustment
+        if slot_time.weekday() < 5:  # Weekday
+            base_score += 0.1
+        
+        # Priority adjustment
+        if request.priority == "high":
+            base_score += 0.1
+        elif request.priority == "urgent":
+            base_score += 0.2
+        
+        return min(1.0, max(0.0, base_score))
+
+    def _generate_slot_notes(self, slot_time: datetime, available_technicians: List[Dict]) -> Optional[str]:
+        """Generate descriptive notes for a time slot."""
+        notes = []
+        
+        # Time-based notes
+        hour = slot_time.hour
+        if 9 <= hour <= 11:
+            notes.append("Optimal morning slot")
+        elif 14 <= hour <= 16:
+            notes.append("Prime afternoon slot")
+        
+        # Technician-based notes
+        if available_technicians:
+            best_tech = max(available_technicians, key=lambda t: t.get("rating", 0))
+            if best_tech.get("rating", 0) >= 4.8:
+                notes.append("Highly rated technician available")
+            
+            if best_tech.get("experience_years", 0) >= 5:
+                notes.append("Experienced technician available")
+        
+        return "; ".join(notes) if notes else None
+
+    async def _calculate_slot_pricing(self, slot: TimeSlotDTO, request: AvailableTimeSlotRequestDTO) -> Dict[str, Any]:
+        """Calculate pricing information for a time slot."""
+        # Base pricing logic (would be more sophisticated in production)
+        base_rate = 120.0  # Base hourly rate
+        duration_hours = request.estimated_duration_hours
+        
+        # Time-based pricing adjustments
+        hour = slot.start_time.hour
+        if hour < 8 or hour > 18:  # After hours
+            base_rate *= 1.25
+        elif slot.start_time.weekday() >= 5:  # Weekend
+            base_rate *= 1.15
+        
+        # Travel fee
+        travel_fee = max(10.0, slot.estimated_travel_time_minutes * 0.5)
+        
+        # Priority surcharge
+        priority_multiplier = {
+            "low": 1.0,
+            "medium": 1.0,
+            "high": 1.1,
+            "urgent": 1.25,
+            "emergency": 1.5
+        }.get(request.priority, 1.0)
+        
+        subtotal = (base_rate * duration_hours) * priority_multiplier
+        total = subtotal + travel_fee
+        
+        return {
+            "base_rate": base_rate,
+            "duration_hours": duration_hours,
+            "subtotal": round(subtotal, 2),
+            "travel_fee": round(travel_fee, 2),
+            "priority_surcharge": round(subtotal * (priority_multiplier - 1), 2),
+            "total_estimate": round(total, 2),
+            "currency": "USD"
+        }
+
+    # Additional helper methods for booking functionality
+    async def _validate_slot_availability(self, business_id: uuid.UUID, slot_id: str) -> bool:
+        """Validate that a time slot is still available for booking."""
+        # In production, this would check against current bookings
+        # For now, return True (assuming slots are still available)
+        return True
+
+    async def _create_job_from_booking(self, business_id: uuid.UUID, request: TimeSlotBookingRequestDTO) -> Job:
+        """Create a job from a booking request."""
+        # This would create a new job using the job repository
+        # For now, return a mock job
+        from ...domain.entities.job import Job, JobStatus, JobType
+        
+        job = Job(
+            id=uuid.uuid4(),
+            business_id=business_id,
+            title=request.job_details.get("description", "Service Request"),
+            description=request.job_details.get("description", ""),
+            job_type=JobType.SERVICE,  # Default to service
+            status=JobStatus.SCHEDULED,
+            priority="medium",
+            estimated_duration_hours=2.0,  # Would get from slot data
+            customer_contact=request.customer_contact
+        )
+        
+        return job
+
+    async def _assign_technician_to_slot(self, business_id: uuid.UUID, slot_id: str, job_id: uuid.UUID) -> Dict[str, Any]:
+        """Assign a technician to a booked time slot."""
+        # This would handle the actual assignment logic
+        # For now, return mock assignment data
+        return {
+            "slot": TimeSlotDTO(
+                slot_id=slot_id,
+                start_time=datetime.utcnow() + timedelta(hours=24),
+                end_time=datetime.utcnow() + timedelta(hours=26),
+                available_technicians=[],
+                confidence_score=0.95,
+                estimated_travel_time_minutes=25,
+                slot_quality_score=0.9
+            ),
+            "technician": {
+                "technician_id": "tech_123",
+                "name": "John Smith",
+                "phone": "+1234567890",
+                "rating": 4.8,
+                "specialties": ["plumbing", "electrical"]
+            }
+        }
+
+    async def _send_booking_confirmations(self,
+                                        business_id: uuid.UUID,
+                                        job: Job,
+                                        assignment_result: Dict[str, Any],
+                                        customer_contact: Dict[str, Any]) -> None:
+        """Send booking confirmation notifications."""
+        try:
+            # Send customer confirmation
+            if customer_contact.get("email"):
+                await self.notification_service.send_email_notification({
+                    "to": customer_contact["email"],
+                    "subject": "Booking Confirmation - Hero365",
+                    "template": "booking_confirmation",
+                    "data": {
+                        "customer_name": customer_contact.get("name"),
+                        "job_details": job.title,
+                        "technician_name": assignment_result["technician"]["name"],
+                        "scheduled_time": assignment_result["slot"].start_time.isoformat()
+                    }
+                })
+            
+            # Send technician notification
+            technician_id = assignment_result["technician"]["technician_id"]
+            await self.notification_service.send_notification({
+                "user_id": technician_id,
+                "message": f"New job assignment: {job.title}",
+                "type": "job_assignment",
+                "data": {
+                    "job_id": str(job.id),
+                    "customer_contact": customer_contact
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Error sending booking confirmations: {str(e)}") 

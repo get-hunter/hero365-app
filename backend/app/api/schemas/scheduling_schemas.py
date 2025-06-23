@@ -371,4 +371,158 @@ class SchedulingAnalyticsRequest(BaseModel):
     user_id: Optional[str] = Field(None, description="Filter by user ID")
     job_type: Optional[str] = Field(None, description="Filter by job type")
     include_predictions: bool = Field(True, description="Include predictions")
-    include_recommendations: bool = Field(True, description="Include recommendations") 
+    include_recommendations: bool = Field(True, description="Include recommendations")
+
+
+class AvailableTimeSlotRequest(BaseModel):
+    """Request for available time slots."""
+    job_type: str = Field(..., description="Type of job/service")
+    estimated_duration_hours: float = Field(..., ge=0.5, le=8, description="Estimated job duration in hours")
+    required_skills: List[str] = Field(default_factory=list, description="Required skills for the job")
+    job_address: Optional[Dict[str, Any]] = Field(None, description="Job location details")
+    preferred_date_range: TimeWindow = Field(..., description="Customer's preferred date range")
+    customer_preferences: Optional[Dict[str, Any]] = Field(None, description="Customer scheduling preferences")
+    priority: str = Field("medium", description="Job priority level")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "job_type": "plumbing_repair",
+                "estimated_duration_hours": 2.0,
+                "required_skills": ["plumbing", "pipe_repair"],
+                "job_address": {
+                    "street_address": "123 Main St",
+                    "city": "Boston",
+                    "state": "MA",
+                    "latitude": 42.3601,
+                    "longitude": -71.0589
+                },
+                "preferred_date_range": {
+                    "start_time": "2024-01-15T08:00:00Z",
+                    "end_time": "2024-01-17T18:00:00Z"
+                },
+                "customer_preferences": {
+                    "avoid_early_morning": True,
+                    "preferred_technician": "tech_123",
+                    "allow_weekend": False
+                },
+                "priority": "high"
+            }
+        }
+
+
+class TimeSlot(BaseModel):
+    """Individual time slot option."""
+    slot_id: str = Field(..., description="Unique slot identifier")
+    start_time: datetime = Field(..., description="Slot start time")
+    end_time: datetime = Field(..., description="Slot end time")
+    available_technicians: List[Dict[str, Any]] = Field(..., description="Available technicians for this slot")
+    confidence_score: float = Field(..., ge=0, le=1, description="Confidence in slot availability")
+    estimated_travel_time_minutes: int = Field(..., ge=0, description="Estimated travel time to location")
+    pricing_info: Optional[Dict[str, Any]] = Field(None, description="Pricing information for this slot")
+    weather_impact: Optional[Dict[str, Any]] = Field(None, description="Weather conditions impact")
+    slot_quality_score: float = Field(..., ge=0, le=1, description="Overall slot quality score")
+    notes: Optional[str] = Field(None, description="Additional notes about this slot")
+
+
+class AvailableTimeSlotsResponse(BaseModel):
+    """Response with available time slots."""
+    request_id: str = Field(..., description="Unique request identifier")
+    available_slots: List[TimeSlot] = Field(..., description="List of available time slots")
+    total_slots_found: int = Field(..., ge=0, description="Total number of slots found")
+    search_criteria: Dict[str, Any] = Field(..., description="Applied search criteria")
+    recommendations: List[str] = Field(default_factory=list, description="Scheduling recommendations")
+    alternative_suggestions: List[Dict[str, Any]] = Field(default_factory=list, description="Alternative options")
+    booking_deadline: Optional[datetime] = Field(None, description="Deadline to book these slots")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "request_id": "req_789",
+                "available_slots": [
+                    {
+                        "slot_id": "slot_001",
+                        "start_time": "2024-01-15T09:00:00Z",
+                        "end_time": "2024-01-15T11:00:00Z",
+                        "available_technicians": [
+                            {
+                                "technician_id": "tech_123",
+                                "name": "John Smith",
+                                "rating": 4.8,
+                                "specialties": ["plumbing", "pipe_repair"]
+                            }
+                        ],
+                        "confidence_score": 0.95,
+                        "estimated_travel_time_minutes": 25,
+                        "pricing_info": {
+                            "base_rate": 120.00,
+                            "travel_fee": 15.00,
+                            "total_estimate": 135.00
+                        },
+                        "weather_impact": {
+                            "conditions": "clear",
+                            "impact_score": 0.9
+                        },
+                        "slot_quality_score": 0.92,
+                        "notes": "Optimal slot with experienced technician"
+                    }
+                ],
+                "total_slots_found": 5,
+                "search_criteria": {
+                    "job_type": "plumbing_repair",
+                    "duration_hours": 2.0,
+                    "date_range": "2024-01-15 to 2024-01-17"
+                },
+                "recommendations": [
+                    "Morning slots have higher availability",
+                    "Tuesday has the most experienced technicians available"
+                ],
+                "alternative_suggestions": [
+                    {
+                        "type": "extend_date_range",
+                        "description": "Extend search to next week for 15 more options"
+                    }
+                ],
+                "booking_deadline": "2024-01-14T18:00:00Z"
+            }
+        }
+
+
+class TimeSlotBookingRequest(BaseModel):
+    """Request to book a specific time slot."""
+    slot_id: str = Field(..., description="Selected time slot ID")
+    customer_contact: Dict[str, Any] = Field(..., description="Customer contact information")
+    job_details: Dict[str, Any] = Field(..., description="Detailed job information")
+    special_instructions: Optional[str] = Field(None, description="Special instructions for technician")
+    confirm_booking: bool = Field(True, description="Confirm the booking")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "slot_id": "slot_001",
+                "customer_contact": {
+                    "name": "Jane Doe",
+                    "phone": "+1234567890",
+                    "email": "jane@example.com"
+                },
+                "job_details": {
+                    "description": "Kitchen sink pipe leak repair",
+                    "urgency_level": "medium",
+                    "access_instructions": "Use side entrance"
+                },
+                "special_instructions": "Please call 30 minutes before arrival",
+                "confirm_booking": True
+            }
+        }
+
+
+class TimeSlotBookingResponse(BaseModel):
+    """Response for time slot booking."""
+    booking_id: str = Field(..., description="Unique booking identifier")
+    job_id: str = Field(..., description="Created job ID")
+    status: str = Field(..., description="Booking status")
+    scheduled_slot: TimeSlot = Field(..., description="Confirmed time slot details")
+    assigned_technician: Dict[str, Any] = Field(..., description="Assigned technician information")
+    confirmation_details: Dict[str, Any] = Field(..., description="Booking confirmation details")
+    next_steps: List[str] = Field(..., description="Next steps for customer")
+    cancellation_policy: str = Field(..., description="Cancellation policy information") 

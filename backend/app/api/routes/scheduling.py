@@ -7,7 +7,7 @@ Handles schedule optimization, real-time adaptation, and analytics endpoints.
 
 import uuid
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, status
@@ -19,12 +19,15 @@ from ..schemas.scheduling_schemas import (
     RealTimeAdaptationRequest, RealTimeAdaptationResponse,
     SchedulingAnalyticsRequest, SchedulingAnalyticsResponse,
     RealTimeScheduleStatusResponse, LocationUpdateRequest,
-    SchedulingErrorResponse
+    SchedulingErrorResponse,
+    AvailableTimeSlotRequest, AvailableTimeSlotsResponse,
+    TimeSlotBookingRequest, TimeSlotBookingResponse
 )
 from ...application.use_cases.scheduling.intelligent_scheduling_use_case import IntelligentSchedulingUseCase
 from ...application.dto.scheduling_dto import (
     SchedulingOptimizationRequestDTO, RealTimeAdaptationRequestDTO,
-    SchedulingAnalyticsRequestDTO, TimeWindowDTO, LocationUpdateDTO
+    SchedulingAnalyticsRequestDTO, TimeWindowDTO, LocationUpdateDTO,
+    AvailableTimeSlotRequestDTO, TimeSlotBookingRequestDTO
 )
 from ...application.exceptions.application_exceptions import (
     ValidationError, NotFoundError, BusinessLogicError
@@ -447,6 +450,200 @@ async def cancel_optimization(
         raise HTTPException(status_code=500, detail=f"Cancellation failed: {str(e)}")
 
 
+@router.post(
+    "/available-slots",
+    response_model=AvailableTimeSlotsResponse,
+    summary="Get available time slots",
+    description="Get available time slots for customer booking based on job requirements and preferences."
+)
+async def get_available_time_slots(
+    request: AvailableTimeSlotRequest,
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    scheduling_use_case: IntelligentSchedulingUseCase = Depends(get_intelligent_scheduling_use_case)
+) -> AvailableTimeSlotsResponse:
+    """
+    Get available time slots for customer booking.
+    
+    Features:
+    - Real-time technician availability
+    - Skill-based matching
+    - Travel time calculations
+    - Weather impact analysis
+    - Dynamic pricing
+    - Quality scoring
+    """
+    try:
+        business_id = business_context["business_id"]
+        current_user_id = current_user.get("user_id")
+        
+        # Convert request to DTO
+        request_dto = AvailableTimeSlotRequestDTO(
+            job_type=request.job_type,
+            estimated_duration_hours=request.estimated_duration_hours,
+            required_skills=request.required_skills,
+            job_address=request.job_address,
+            preferred_date_range=TimeWindowDTO(
+                start_time=request.preferred_date_range.start_time,
+                end_time=request.preferred_date_range.end_time
+            ),
+            customer_preferences=request.customer_preferences,
+            priority=request.priority
+        )
+        
+        # Get available time slots
+        result = await scheduling_use_case.get_available_time_slots(
+            business_id, request_dto, current_user_id
+        )
+        
+        return AvailableTimeSlotsResponse.model_validate(result)
+        
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except BusinessLogicError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get available slots: {str(e)}")
+
+
+@router.post(
+    "/book-slot",
+    response_model=TimeSlotBookingResponse,
+    summary="Book a time slot",
+    description="Book a specific time slot for a customer and create a scheduled job."
+)
+async def book_time_slot(
+    request: TimeSlotBookingRequest,
+    background_tasks: BackgroundTasks,
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    scheduling_use_case: IntelligentSchedulingUseCase = Depends(get_intelligent_scheduling_use_case)
+) -> TimeSlotBookingResponse:
+    """
+    Book a specific time slot for a customer.
+    
+    Features:
+    - Slot availability validation
+    - Job creation and assignment
+    - Automatic notifications
+    - Confirmation details
+    - Booking policies
+    """
+    try:
+        business_id = business_context["business_id"]
+        current_user_id = current_user.get("user_id")
+        
+        # Convert request to DTO
+        request_dto = TimeSlotBookingRequestDTO(
+            slot_id=request.slot_id,
+            customer_contact=request.customer_contact,
+            job_details=request.job_details,
+            special_instructions=request.special_instructions,
+            confirm_booking=request.confirm_booking
+        )
+        
+        # Book the time slot
+        result = await scheduling_use_case.book_time_slot(
+            business_id, request_dto, current_user_id
+        )
+        
+        # Schedule background task for additional processing
+        background_tasks.add_task(
+            _process_booking_analytics,
+            business_id, result.booking_id
+        )
+        
+        return TimeSlotBookingResponse.model_validate(result)
+        
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except BusinessLogicError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to book time slot: {str(e)}")
+
+
+@router.get(
+    "/slots/{slot_id}/availability",
+    response_model=Dict[str, Any],
+    summary="Check slot availability",
+    description="Check if a specific time slot is still available for booking."
+)
+async def check_slot_availability(
+    slot_id: str,
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    scheduling_use_case: IntelligentSchedulingUseCase = Depends(get_intelligent_scheduling_use_case)
+) -> Dict[str, Any]:
+    """
+    Check if a specific time slot is still available.
+    
+    Returns:
+    - Availability status
+    - Expiration time
+    - Alternative slots if unavailable
+    """
+    try:
+        business_id = business_context["business_id"]
+        
+        # Validate slot availability
+        is_available = await scheduling_use_case._validate_slot_availability(
+            business_id, slot_id
+        )
+        
+        return {
+            "slot_id": slot_id,
+            "is_available": is_available,
+            "checked_at": datetime.utcnow().isoformat(),
+            "expires_at": (datetime.utcnow() + timedelta(minutes=15)).isoformat(),
+            "message": "Slot is available" if is_available else "Slot is no longer available"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to check slot availability: {str(e)}")
+
+
+@router.post(
+    "/slots/bulk-check",
+    response_model=List[Dict[str, Any]],
+    summary="Bulk check slot availability",
+    description="Check availability for multiple time slots at once."
+)
+async def bulk_check_slot_availability(
+    slot_ids: List[str],
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    scheduling_use_case: IntelligentSchedulingUseCase = Depends(get_intelligent_scheduling_use_case)
+) -> List[Dict[str, Any]]:
+    """
+    Check availability for multiple time slots.
+    
+    Useful for:
+    - Refreshing slot lists
+    - Validating cart items
+    - Real-time availability updates
+    """
+    try:
+        business_id = business_context["business_id"]
+        results = []
+        
+        for slot_id in slot_ids[:20]:  # Limit to 20 slots per request
+            is_available = await scheduling_use_case._validate_slot_availability(
+                business_id, slot_id
+            )
+            
+            results.append({
+                "slot_id": slot_id,
+                "is_available": is_available,
+                "checked_at": datetime.utcnow().isoformat()
+            })
+        
+        return results
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to check slots availability: {str(e)}")
+
+
 # Background task functions
 async def _update_optimization_analytics(business_id: uuid.UUID, optimization_id: str):
     """Background task to update optimization analytics."""
@@ -455,6 +652,16 @@ async def _update_optimization_analytics(business_id: uuid.UUID, optimization_id
         pass
     except Exception as e:
         logger.error(f"Failed to update optimization analytics: {str(e)}")
+
+
+async def _process_booking_analytics(business_id: uuid.UUID, booking_id: str):
+    """Process booking analytics in the background."""
+    try:
+        # This would update booking analytics, send follow-up emails, etc.
+        logger.info(f"Processing booking analytics for booking {booking_id}")
+        # Implementation would go here
+    except Exception as e:
+        logger.error(f"Error processing booking analytics: {str(e)}")
 
 
 # Note: Exception handlers would be added at the main app level, not router level
