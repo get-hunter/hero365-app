@@ -119,6 +119,21 @@ import type {
   ContactsUpdateContactStatusData,
   ContactsUpdateContactStatusResponse,
   HealthHealthCheckResponse,
+  IntelligentSchedulingOptimizeScheduleData,
+  IntelligentSchedulingOptimizeScheduleResponse,
+  IntelligentSchedulingAdaptScheduleRealtimeData,
+  IntelligentSchedulingAdaptScheduleRealtimeResponse,
+  IntelligentSchedulingGetSchedulingAnalyticsData,
+  IntelligentSchedulingGetSchedulingAnalyticsResponse,
+  IntelligentSchedulingGetSchedulingPredictionsData,
+  IntelligentSchedulingGetSchedulingPredictionsResponse,
+  IntelligentSchedulingGetRealtimeScheduleStatusResponse,
+  IntelligentSchedulingUpdateUserLocationData,
+  IntelligentSchedulingUpdateUserLocationResponse,
+  IntelligentSchedulingGetOptimizationHistoryData,
+  IntelligentSchedulingGetOptimizationHistoryResponse,
+  IntelligentSchedulingCancelOptimizationData,
+  IntelligentSchedulingCancelOptimizationResponse,
   JobsCreateJobData,
   JobsCreateJobResponse,
   JobsCreateJob1Data,
@@ -1736,6 +1751,193 @@ export class HealthService {
     return __request(OpenAPI, {
       method: "GET",
       url: "/health",
+    })
+  }
+}
+
+export class IntelligentSchedulingService {
+  /**
+   * Optimize job scheduling
+   * Optimize job scheduling using intelligent algorithms with real-time data integration.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns SchedulingOptimizationResponse Successful Response
+   * @throws ApiError
+   */
+  public static optimizeSchedule(
+    data: IntelligentSchedulingOptimizeScheduleData,
+  ): CancelablePromise<IntelligentSchedulingOptimizeScheduleResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/optimize",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Adapt schedule in real-time
+   * Adapt existing schedules based on real-time disruptions and conditions.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns RealTimeAdaptationResponse Successful Response
+   * @throws ApiError
+   */
+  public static adaptScheduleRealtime(
+    data: IntelligentSchedulingAdaptScheduleRealtimeData,
+  ): CancelablePromise<IntelligentSchedulingAdaptScheduleRealtimeResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/real-time-adapt",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get scheduling analytics
+   * Get comprehensive scheduling performance analytics and insights.
+   * @param data The data for the request.
+   * @param data.startDate Analytics period start date
+   * @param data.endDate Analytics period end date
+   * @param data.userId Filter by specific user
+   * @param data.jobType Filter by job type
+   * @param data.includePredictions Include predictive insights
+   * @param data.includeRecommendations Include improvement recommendations
+   * @returns SchedulingAnalyticsResponse Successful Response
+   * @throws ApiError
+   */
+  public static getSchedulingAnalytics(
+    data: IntelligentSchedulingGetSchedulingAnalyticsData,
+  ): CancelablePromise<IntelligentSchedulingGetSchedulingAnalyticsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/scheduling/analytics",
+      query: {
+        start_date: data.startDate,
+        end_date: data.endDate,
+        user_id: data.userId,
+        job_type: data.jobType,
+        include_predictions: data.includePredictions,
+        include_recommendations: data.includeRecommendations,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get scheduling predictions
+   * Get predictive analytics for upcoming scheduling needs and capacity planning.
+   * @param data The data for the request.
+   * @param data.forecastDays Number of days to forecast
+   * @param data.jobTypes Filter by job types
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getSchedulingPredictions(
+    data: IntelligentSchedulingGetSchedulingPredictionsData = {},
+  ): CancelablePromise<IntelligentSchedulingGetSchedulingPredictionsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/scheduling/analytics/predictions",
+      query: {
+        forecast_days: data.forecastDays,
+        job_types: data.jobTypes,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get real-time schedule status
+   * Get current status of all active jobs and real-time performance metrics.
+   * @returns RealTimeScheduleStatusResponse Successful Response
+   * @throws ApiError
+   */
+  public static getRealtimeScheduleStatus(): CancelablePromise<IntelligentSchedulingGetRealtimeScheduleStatusResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/scheduling/real-time/status",
+    })
+  }
+
+  /**
+   * Update user location
+   * Update user location for real-time tracking and optimization.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static updateUserLocation(
+    data: IntelligentSchedulingUpdateUserLocationData,
+  ): CancelablePromise<IntelligentSchedulingUpdateUserLocationResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/scheduling/real-time/update-location",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get optimization history
+   * Get history of schedule optimizations and their performance.
+   * @param data The data for the request.
+   * @param data.days Number of days of history
+   * @param data.limit Maximum number of results
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getOptimizationHistory(
+    data: IntelligentSchedulingGetOptimizationHistoryData = {},
+  ): CancelablePromise<IntelligentSchedulingGetOptimizationHistoryResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/scheduling/optimization-history",
+      query: {
+        days: data.days,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Cancel optimization
+   * Cancel a running optimization process.
+   * @param data The data for the request.
+   * @param data.optimizationId
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static cancelOptimization(
+    data: IntelligentSchedulingCancelOptimizationData,
+  ): CancelablePromise<IntelligentSchedulingCancelOptimizationResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/scheduling/optimization/{optimization_id}",
+      path: {
+        optimization_id: data.optimizationId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
     })
   }
 }

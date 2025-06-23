@@ -654,6 +654,92 @@ export type ActivityUpdateRequest = {
 }
 
 /**
+ * Adaptation impact summary.
+ */
+export type AdaptationImpactSummary = {
+  /**
+   * Number of jobs rescheduled
+   */
+  jobs_rescheduled: number
+  /**
+   * Number of users affected
+   */
+  users_affected: number
+  /**
+   * Customer notifications sent
+   */
+  customer_notifications_sent: number
+  /**
+   * Total delay in minutes
+   */
+  total_delay_minutes: number
+  /**
+   * Adaptation success rate
+   */
+  adaptation_success_rate: string
+}
+
+/**
+ * Schedule adaptation preferences.
+ */
+export type AdaptationPreferences = {
+  /**
+   * Allow overtime to handle disruption
+   */
+  allow_overtime?: boolean
+  /**
+   * Maximum acceptable delay
+   */
+  max_schedule_delay_minutes?: number
+  /**
+   * Send notifications to customers
+   */
+  notify_customers?: boolean
+  /**
+   * Send notifications to technicians
+   */
+  notify_technicians?: boolean
+  /**
+   * Prefer keeping same technician when possible
+   */
+  prefer_same_technician?: boolean
+  /**
+   * Maximum number of job reassignments
+   */
+  max_reassignments?: number
+}
+
+/**
+ * Adapted job information.
+ */
+export type AdaptedJob = {
+  /**
+   * Job ID
+   */
+  job_id: string
+  /**
+   * Original schedule
+   */
+  original_schedule: {
+    [key: string]: unknown
+  }
+  /**
+   * New schedule
+   */
+  new_schedule: {
+    [key: string]: unknown
+  }
+  /**
+   * Reason for adaptation
+   */
+  adaptation_reason: string
+  /**
+   * Impact score
+   */
+  impact_score: string
+}
+
+/**
  * Schema for simple message responses.
  */
 export type app__api__schemas__activity_schemas__MessageResponse = {
@@ -1980,6 +2066,44 @@ export type ContactUpdateRequest = {
 }
 
 /**
+ * Daily performance metrics.
+ */
+export type DailyPerformance = {
+  /**
+   * Performance date
+   */
+  date: string
+  /**
+   * Jobs completed
+   */
+  jobs_completed: number
+  /**
+   * Jobs in progress
+   */
+  jobs_in_progress: number
+  /**
+   * Jobs delayed
+   */
+  jobs_delayed: number
+  /**
+   * Average delay in minutes
+   */
+  average_delay_minutes: string
+  /**
+   * On-time percentage
+   */
+  on_time_percentage: string
+  /**
+   * Total travel time
+   */
+  total_travel_time_minutes: string
+  /**
+   * Utilization rate
+   */
+  utilization_rate_percent: string
+}
+
+/**
  * Schema for dashboard activities overview.
  */
 export type DashboardActivitiesResponse = {
@@ -2012,6 +2136,58 @@ export type DashboardActivitiesResponse = {
    */
   completion_rate: number
 }
+
+/**
+ * Schedule disruption information.
+ */
+export type Disruption = {
+  /**
+   * Type of disruption
+   */
+  type: DisruptionType
+  /**
+   * Job IDs affected by disruption
+   */
+  affected_job_ids: Array<string>
+  /**
+   * User IDs affected by disruption
+   */
+  affected_user_ids?: Array<string>
+  /**
+   * Severity of disruption
+   */
+  severity: DisruptionSeverity
+  /**
+   * Expected duration in minutes
+   */
+  expected_duration_minutes?: number | null
+  /**
+   * Location coordinates (lat, lng)
+   */
+  location?: {
+    [key: string]: number
+  } | null
+  /**
+   * Disruption description
+   */
+  description?: string | null
+}
+
+/**
+ * Severity levels for disruptions.
+ */
+export type DisruptionSeverity = "low" | "medium" | "high" | "critical"
+
+/**
+ * Types of schedule disruptions.
+ */
+export type DisruptionType =
+  | "traffic_delay"
+  | "weather"
+  | "emergency_job"
+  | "resource_unavailable"
+  | "customer_reschedule"
+  | "equipment_failure"
 
 /**
  * Schema for Google Sign-In with ID token from iOS app.
@@ -2049,6 +2225,36 @@ export type GoogleSignInRequest = {
 
 export type HTTPValidationError = {
   detail?: Array<ValidationError>
+}
+
+/**
+ * Improvement recommendation.
+ */
+export type ImprovementRecommendation = {
+  /**
+   * Recommendation type
+   */
+  type: string
+  /**
+   * Recommendation description
+   */
+  description: string
+  /**
+   * Priority level
+   */
+  priority: string
+  /**
+   * Expected impact
+   */
+  expected_impact: string
+  /**
+   * Implementation effort
+   */
+  implementation_effort: string
+  /**
+   * Estimated ROI percentage
+   */
+  estimated_roi_percent?: string | null
 }
 
 /**
@@ -2457,6 +2663,46 @@ export type LifecycleStageSchema =
   | "customer"
 
 /**
+ * Location data for tracking.
+ */
+export type LocationData = {
+  /**
+   * Latitude coordinate
+   */
+  latitude: number
+  /**
+   * Longitude coordinate
+   */
+  longitude: number
+  /**
+   * Location accuracy in meters
+   */
+  accuracy_meters: number
+  /**
+   * Location timestamp
+   */
+  timestamp: string
+}
+
+/**
+ * Request to update user location.
+ */
+export type LocationUpdateRequest = {
+  /**
+   * User ID
+   */
+  user_id: string
+  /**
+   * Location data
+   */
+  location: LocationData
+  /**
+   * User status
+   */
+  status: string
+}
+
+/**
  * Generic message response (legacy compatibility).
  */
 export type Message = {
@@ -2524,6 +2770,95 @@ export type OAuthSignInResponse = {
   is_new_user: boolean
 }
 
+/**
+ * Available optimization algorithms.
+ */
+export type OptimizationAlgorithm =
+  | "intelligent"
+  | "genetic"
+  | "local_search"
+  | "greedy"
+
+/**
+ * Optimization performance metrics.
+ */
+export type OptimizationMetrics = {
+  /**
+   * Total jobs processed
+   */
+  total_jobs: number
+  /**
+   * Successfully scheduled jobs
+   */
+  successfully_scheduled: number
+  /**
+   * Scheduling success rate
+   */
+  scheduling_success_rate: string
+  /**
+   * Total travel time
+   */
+  total_travel_time_minutes: string
+  /**
+   * Average travel time per job
+   */
+  average_travel_time_per_job: string
+  /**
+   * Average confidence score
+   */
+  average_confidence_score: string
+  /**
+   * Travel time savings percentage
+   */
+  travel_time_savings_percent?: string | null
+  /**
+   * Utilization improvement percentage
+   */
+  utilization_improvement_percent?: string | null
+  /**
+   * Optimization timestamp
+   */
+  optimization_timestamp: string
+}
+
+/**
+ * Optimized job assignment result.
+ */
+export type OptimizedJobAssignment = {
+  /**
+   * Job ID
+   */
+  job_id: string
+  /**
+   * Assigned user ID
+   */
+  assigned_user_id?: string | null
+  /**
+   * Scheduled start time
+   */
+  scheduled_start?: string | null
+  /**
+   * Scheduled end time
+   */
+  scheduled_end?: string | null
+  /**
+   * Estimated travel time
+   */
+  estimated_travel_time_minutes: string
+  /**
+   * Assignment confidence score
+   */
+  confidence_score: string
+  /**
+   * Alternative candidate user IDs
+   */
+  alternative_candidates?: Array<string>
+  /**
+   * Optimization notes
+   */
+  optimization_notes?: string | null
+}
+
 export type OTPVerificationRequest = {
   phone: string
   token: string
@@ -2538,6 +2873,150 @@ export type PhoneSignUpRequest = {
   phone: string
   password: string
   full_name?: string | null
+}
+
+/**
+ * Predictive scheduling insight.
+ */
+export type PredictiveInsight = {
+  /**
+   * Prediction type
+   */
+  prediction_type: string
+  /**
+   * Forecast date
+   */
+  forecast_date: string
+  /**
+   * Prediction confidence
+   */
+  prediction_confidence: string
+  /**
+   * Impact description
+   */
+  impact_description: string
+  /**
+   * Recommended actions
+   */
+  recommended_actions: Array<string>
+}
+
+/**
+ * Request for real-time schedule adaptation.
+ */
+export type RealTimeAdaptationRequest = {
+  /**
+   * Disruption information
+   */
+  disruption: Disruption
+  /**
+   * Adaptation preferences
+   */
+  adaptation_preferences?: AdaptationPreferences
+}
+
+/**
+ * Response for real-time adaptation.
+ */
+export type RealTimeAdaptationResponse = {
+  /**
+   * Adaptation ID
+   */
+  adaptation_id: string
+  /**
+   * Adaptation status
+   */
+  status: string
+  /**
+   * Adapted job assignments
+   */
+  adapted_assignments: Array<AdaptedJob>
+  /**
+   * Impact summary
+   */
+  impact_summary: AdaptationImpactSummary
+  /**
+   * Notifications sent
+   */
+  notifications_sent: Array<string>
+  /**
+   * Response message
+   */
+  message: string
+  /**
+   * Recommendations
+   */
+  recommendations?: Array<string>
+}
+
+/**
+ * Real-time job status.
+ */
+export type RealTimeJobStatus = {
+  /**
+   * Job ID
+   */
+  job_id: string
+  /**
+   * Assigned user ID
+   */
+  assigned_user_id: string
+  /**
+   * Current status
+   */
+  status: string
+  /**
+   * Scheduled start time
+   */
+  scheduled_start: string
+  /**
+   * Actual start time
+   */
+  actual_start?: string | null
+  /**
+   * Estimated completion time
+   */
+  estimated_completion: string
+  /**
+   * Current location
+   */
+  current_location?: {
+    [key: string]: number
+  } | null
+  /**
+   * Delay in minutes
+   */
+  delay_minutes: number
+  /**
+   * Active alerts
+   */
+  alerts?: Array<string>
+}
+
+/**
+ * Response for real-time schedule status.
+ */
+export type RealTimeScheduleStatusResponse = {
+  /**
+   * Current timestamp
+   */
+  current_time: string
+  /**
+   * Active job statuses
+   */
+  active_jobs: Array<RealTimeJobStatus>
+  /**
+   * Daily performance metrics
+   */
+  daily_performance: DailyPerformance
+  /**
+   * System alerts
+   */
+  alerts?: Array<string>
+  /**
+   * System health status
+   */
+  system_health: string
 }
 
 /**
@@ -2562,6 +3041,174 @@ export type RelationshipStatusSchema =
   | "past_client"
   | "lost_lead"
   | "inactive"
+
+/**
+ * Response for scheduling analytics.
+ */
+export type SchedulingAnalyticsResponse = {
+  /**
+   * Analytics period
+   */
+  period: TimeWindow
+  /**
+   * Key performance indicators
+   */
+  kpis: SchedulingKPIs
+  /**
+   * Improvement recommendations
+   */
+  recommendations: Array<ImprovementRecommendation>
+  /**
+   * Predictive insights
+   */
+  predictions: Array<PredictiveInsight>
+  /**
+   * Trend analysis
+   */
+  trend_analysis: Array<TrendAnalysis>
+  /**
+   * Data quality score
+   */
+  data_quality_score?: string
+}
+
+/**
+ * Scheduling constraints configuration.
+ */
+export type SchedulingConstraints = {
+  /**
+   * Maximum travel time per job
+   */
+  max_travel_time_minutes?: number | null
+  /**
+   * Working hours start time
+   */
+  working_hours_start?: string | null
+  /**
+   * Working hours end time
+   */
+  working_hours_end?: string | null
+  /**
+   * Maximum jobs per user per day
+   */
+  max_jobs_per_user?: number | null
+  /**
+   * Require exact skill matching
+   */
+  require_skill_match?: boolean
+  /**
+   * Allow overtime scheduling
+   */
+  allow_overtime?: boolean
+  /**
+   * Optimization objectives in priority order
+   */
+  optimization_objectives?: Array<string>
+}
+
+/**
+ * Scheduling key performance indicators.
+ */
+export type SchedulingKPIs = {
+  /**
+   * Average jobs per technician per day
+   */
+  average_jobs_per_technician_per_day: string
+  /**
+   * Average travel time per job
+   */
+  average_travel_time_per_job_minutes: string
+  /**
+   * First time fix rate percentage
+   */
+  first_time_fix_rate_percent: string
+  /**
+   * Resource utilization rate
+   */
+  resource_utilization_rate_percent: string
+  /**
+   * Schedule adherence rate
+   */
+  schedule_adherence_rate_percent: string
+  /**
+   * Customer satisfaction score
+   */
+  customer_satisfaction_score?: string | null
+  /**
+   * On-time completion rate
+   */
+  on_time_completion_rate_percent: string
+  /**
+   * Emergency response time
+   */
+  emergency_response_time_minutes?: string | null
+}
+
+/**
+ * Request for schedule optimization.
+ */
+export type SchedulingOptimizationRequest = {
+  /**
+   * Specific job IDs to optimize (null for all unscheduled)
+   */
+  job_ids?: Array<string> | null
+  /**
+   * Time window for optimization
+   */
+  time_window?: TimeWindow | null
+  /**
+   * Optimization constraints
+   */
+  constraints?: SchedulingConstraints
+  /**
+   * Baseline metrics for comparison
+   */
+  baseline_metrics?: {
+    [key: string]: unknown
+  } | null
+  /**
+   * Send notifications to assigned users
+   */
+  notify_users?: boolean
+  /**
+   * Algorithm to use
+   */
+  optimization_algorithm?: OptimizationAlgorithm
+  /**
+   * Update analytics after optimization
+   */
+  update_analytics?: boolean
+}
+
+/**
+ * Response for schedule optimization.
+ */
+export type SchedulingOptimizationResponse = {
+  /**
+   * Optimization ID
+   */
+  optimization_id: string
+  /**
+   * Optimized job assignments
+   */
+  optimized_assignments: Array<OptimizedJobAssignment>
+  /**
+   * Optimization metrics
+   */
+  optimization_metrics: OptimizationMetrics
+  /**
+   * Optimization success status
+   */
+  success: boolean
+  /**
+   * Response message
+   */
+  message: string
+  /**
+   * Optimization warnings
+   */
+  warnings?: Array<string>
+}
 
 export type SendOTPRequest = {
   phone: string
@@ -2748,6 +3395,46 @@ export type TimelineResponse = {
    * Whether there are more entries
    */
   has_more: boolean
+}
+
+/**
+ * Time window specification.
+ */
+export type TimeWindow = {
+  /**
+   * Window start time
+   */
+  start_time: string
+  /**
+   * Window end time
+   */
+  end_time: string
+}
+
+/**
+ * Trend analysis data.
+ */
+export type TrendAnalysis = {
+  /**
+   * Metric name
+   */
+  metric_name: string
+  /**
+   * Trend direction
+   */
+  trend_direction: string
+  /**
+   * Change percentage
+   */
+  change_percent: string
+  /**
+   * Time period in days
+   */
+  time_period_days: number
+  /**
+   * Significance level
+   */
+  significance_level: string
 }
 
 /**
@@ -3275,6 +3962,95 @@ export type ContactsUpdateContactStatusData = {
 export type ContactsUpdateContactStatusResponse = ContactStatusUpdateResponse
 
 export type HealthHealthCheckResponse = unknown
+
+export type IntelligentSchedulingOptimizeScheduleData = {
+  requestBody: SchedulingOptimizationRequest
+}
+
+export type IntelligentSchedulingOptimizeScheduleResponse =
+  SchedulingOptimizationResponse
+
+export type IntelligentSchedulingAdaptScheduleRealtimeData = {
+  requestBody: RealTimeAdaptationRequest
+}
+
+export type IntelligentSchedulingAdaptScheduleRealtimeResponse =
+  RealTimeAdaptationResponse
+
+export type IntelligentSchedulingGetSchedulingAnalyticsData = {
+  /**
+   * Analytics period end date
+   */
+  endDate: string
+  /**
+   * Include predictive insights
+   */
+  includePredictions?: boolean
+  /**
+   * Include improvement recommendations
+   */
+  includeRecommendations?: boolean
+  /**
+   * Filter by job type
+   */
+  jobType?: string | null
+  /**
+   * Analytics period start date
+   */
+  startDate: string
+  /**
+   * Filter by specific user
+   */
+  userId?: string | null
+}
+
+export type IntelligentSchedulingGetSchedulingAnalyticsResponse =
+  SchedulingAnalyticsResponse
+
+export type IntelligentSchedulingGetSchedulingPredictionsData = {
+  /**
+   * Number of days to forecast
+   */
+  forecastDays?: number
+  /**
+   * Filter by job types
+   */
+  jobTypes?: Array<string> | null
+}
+
+export type IntelligentSchedulingGetSchedulingPredictionsResponse = {
+  [key: string]: unknown
+}
+
+export type IntelligentSchedulingGetRealtimeScheduleStatusResponse =
+  RealTimeScheduleStatusResponse
+
+export type IntelligentSchedulingUpdateUserLocationData = {
+  requestBody: LocationUpdateRequest
+}
+
+export type IntelligentSchedulingUpdateUserLocationResponse = void
+
+export type IntelligentSchedulingGetOptimizationHistoryData = {
+  /**
+   * Number of days of history
+   */
+  days?: number
+  /**
+   * Maximum number of results
+   */
+  limit?: number
+}
+
+export type IntelligentSchedulingGetOptimizationHistoryResponse = Array<{
+  [key: string]: unknown
+}>
+
+export type IntelligentSchedulingCancelOptimizationData = {
+  optimizationId: string
+}
+
+export type IntelligentSchedulingCancelOptimizationResponse = void
 
 export type JobsCreateJobData = {
   requestBody: JobCreateRequest

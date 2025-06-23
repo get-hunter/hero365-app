@@ -33,6 +33,8 @@ from ..database.repositories.supabase_activity_repository import SupabaseActivit
 from ..external_services.supabase_auth_adapter import SupabaseAuthAdapter
 from ..external_services.smtp_email_adapter import SMTPEmailAdapter
 from ..external_services.twilio_sms_adapter import TwilioSMSAdapter
+from ..external_services.google_maps_adapter import GoogleMapsAdapter
+from ..external_services.weather_service_adapter import WeatherServiceAdapter
 
 # Application Use Cases
 from ...application.use_cases.auth.authenticate_user import AuthenticateUserUseCase
@@ -58,6 +60,9 @@ from ...application.use_cases.job.manage_jobs import ManageJobsUseCase
 
 # Activity Use Cases
 from ...application.use_cases.activity.manage_activities import ManageActivitiesUseCase
+
+# Scheduling Use Cases
+from ...application.use_cases.scheduling.intelligent_scheduling_use_case import IntelligentSchedulingUseCase
 
 
 class DependencyContainer:
@@ -122,6 +127,16 @@ class DependencyContainer:
                 self._services['sms_service'] = None
         else:
             self._services['sms_service'] = None
+        
+        # Google Maps service (optional)
+        self._services['google_maps_service'] = GoogleMapsAdapter(
+            api_key=settings.GOOGLE_MAPS_API_KEY
+        )
+        
+        # Weather service (optional)
+        self._services['weather_service'] = WeatherServiceAdapter(
+            api_key=settings.WEATHER_API_KEY
+        )
     
     def _setup_use_cases(self):
         """Initialize use case implementations."""
@@ -200,6 +215,17 @@ class DependencyContainer:
             template_repository=self.get_repository('activity_template_repository'),
             contact_repository=self.get_repository('contact_repository'),
             membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        # Intelligent Scheduling use case
+        self._use_cases['intelligent_scheduling'] = IntelligentSchedulingUseCase(
+            job_repository=self.get_repository('job_repository'),
+            user_capabilities_repository=None,  # TODO: Add when user capabilities repository is implemented
+            business_membership_repository=self.get_repository('business_membership_repository'),
+            route_optimization_service=self.get_service('google_maps_service'),
+            travel_time_service=self.get_service('google_maps_service'),
+            weather_service=self.get_service('weather_service'),
+            notification_service=self.get_service('sms_service')  # Using SMS service for notifications
         )
 
     def _get_supabase_client(self) -> Client:
@@ -388,3 +414,8 @@ def get_activity_repository() -> ActivityRepository:
 def get_manage_activities_use_case() -> ManageActivitiesUseCase:
     """Get manage activities use case from container."""
     return get_container().get_use_case('manage_activities')
+
+
+def get_intelligent_scheduling_use_case() -> IntelligentSchedulingUseCase:
+    """Get intelligent scheduling use case from container."""
+    return get_container().get_use_case('intelligent_scheduling')

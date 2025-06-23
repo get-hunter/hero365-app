@@ -92,6 +92,12 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str  # Anon key for client operations
     SUPABASE_SERVICE_KEY: str  # Service key for admin operations
     
+    # External Services for Real-time Optimization
+    GOOGLE_MAPS_API_KEY: str | None = None
+    WEATHER_API_KEY: str | None = None  # OpenWeatherMap API key
+    TWILIO_ACCOUNT_SID: str | None = None
+    TWILIO_AUTH_TOKEN: str | None = None
+    
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SUPABASE_ANON_KEY(self) -> str:
