@@ -17,6 +17,7 @@ from ...domain.repositories.business_invitation_repository import BusinessInvita
 from ...domain.repositories.contact_repository import ContactRepository
 from ...domain.repositories.job_repository import JobRepository
 from ...domain.repositories.activity_repository import ActivityRepository
+from ...domain.repositories.user_capabilities_repository import UserCapabilitiesRepository
 
 # Application Ports
 from ...application.ports.auth_service import AuthServicePort
@@ -30,6 +31,7 @@ from ..database.repositories.supabase_business_invitation_repository import Supa
 from ..database.repositories.supabase_contact_repository import SupabaseContactRepository
 from ..database.repositories.supabase_job_repository import SupabaseJobRepository
 from ..database.repositories.supabase_activity_repository import SupabaseActivityRepository, SupabaseActivityTemplateRepository
+from ..database.repositories.supabase_user_capabilities_repository import SupabaseUserCapabilitiesRepository
 from ..external_services.supabase_auth_adapter import SupabaseAuthAdapter
 from ..external_services.smtp_email_adapter import SMTPEmailAdapter
 from ..external_services.twilio_sms_adapter import TwilioSMSAdapter
@@ -63,6 +65,7 @@ from ...application.use_cases.activity.manage_activities import ManageActivities
 
 # Scheduling Use Cases
 from ...application.use_cases.scheduling.intelligent_scheduling_use_case import IntelligentSchedulingUseCase
+from ...application.use_cases.scheduling.calendar_management_use_case import CalendarManagementUseCase
 
 
 class DependencyContainer:
@@ -94,6 +97,7 @@ class DependencyContainer:
         self._repositories['job_repository'] = SupabaseJobRepository(client=supabase_client)
         self._repositories['activity_repository'] = SupabaseActivityRepository(client=supabase_client)
         self._repositories['activity_template_repository'] = SupabaseActivityTemplateRepository(client=supabase_client)
+        self._repositories['user_capabilities_repository'] = SupabaseUserCapabilitiesRepository(client=supabase_client)
     
     def _setup_services(self):
         """Initialize external service adapters."""
@@ -220,12 +224,21 @@ class DependencyContainer:
         # Intelligent Scheduling use case
         self._use_cases['intelligent_scheduling'] = IntelligentSchedulingUseCase(
             job_repository=self.get_repository('job_repository'),
-            user_capabilities_repository=None,  # TODO: Add when user capabilities repository is implemented
+            user_capabilities_repository=self.get_repository('user_capabilities_repository'),
             business_membership_repository=self.get_repository('business_membership_repository'),
             route_optimization_service=self.get_service('google_maps_service'),
             travel_time_service=self.get_service('google_maps_service'),
             weather_service=self.get_service('weather_service'),
             notification_service=self.get_service('sms_service')  # Using SMS service for notifications
+        )
+        
+        # Calendar Management use case
+        self._use_cases['calendar_management'] = CalendarManagementUseCase(
+            user_capabilities_repository=self.get_repository('user_capabilities_repository'),
+            business_membership_repository=self.get_repository('business_membership_repository'),
+            auth_service=self.get_service('auth_service'),
+            sms_service=self.get_service('sms_service'),
+            email_service=self.get_service('email_service')
         )
 
     def _get_supabase_client(self) -> Client:
@@ -334,6 +347,18 @@ class DependencyContainer:
     def get_manage_jobs_use_case(self) -> ManageJobsUseCase:
         """Get manage jobs use case."""
         return self.get_use_case('manage_jobs')
+    
+    def get_user_capabilities_repository(self) -> UserCapabilitiesRepository:
+        """Get user capabilities repository."""
+        return self.get_repository('user_capabilities_repository')
+    
+    def get_intelligent_scheduling_use_case(self) -> IntelligentSchedulingUseCase:
+        """Get intelligent scheduling use case."""
+        return self.get_use_case('intelligent_scheduling')
+    
+    def get_calendar_management_use_case(self) -> CalendarManagementUseCase:
+        """Get calendar management use case."""
+        return self.get_use_case('calendar_management')
 
     def close(self):
         """Close all connections and cleanup resources."""
@@ -419,3 +444,14 @@ def get_manage_activities_use_case() -> ManageActivitiesUseCase:
 def get_intelligent_scheduling_use_case() -> IntelligentSchedulingUseCase:
     """Get intelligent scheduling use case from container."""
     return get_container().get_use_case('intelligent_scheduling')
+
+
+def get_calendar_management_use_case() -> CalendarManagementUseCase:
+    """Get calendar management use case from container."""
+    return get_container().get_use_case('calendar_management')
+
+
+# User Capabilities dependencies
+def get_user_capabilities_repository() -> UserCapabilitiesRepository:
+    """Get user capabilities repository from container."""
+    return get_container().get_user_capabilities_repository()

@@ -6,7 +6,7 @@ Pydantic schemas for intelligent scheduling API endpoints.
 
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List, Dict, Any
-from datetime import datetime, time
+from datetime import datetime, time, date
 from decimal import Decimal
 from enum import Enum
 
@@ -322,7 +322,7 @@ class RealTimeJobStatus(BaseModel):
 
 class DailyPerformance(BaseModel):
     """Daily performance metrics."""
-    date: datetime = Field(..., description="Performance date")
+    performance_date: datetime = Field(..., description="Performance date")
     jobs_completed: int = Field(..., ge=0, description="Jobs completed")
     jobs_in_progress: int = Field(..., ge=0, description="Jobs in progress")
     jobs_delayed: int = Field(..., ge=0, description="Jobs delayed")
@@ -525,4 +525,439 @@ class TimeSlotBookingResponse(BaseModel):
     assigned_technician: Dict[str, Any] = Field(..., description="Assigned technician information")
     confirmation_details: Dict[str, Any] = Field(..., description="Booking confirmation details")
     next_steps: List[str] = Field(..., description="Next steps for customer")
-    cancellation_policy: str = Field(..., description="Cancellation policy information") 
+    cancellation_policy: str = Field(..., description="Cancellation policy information")
+
+
+# Calendar Management Enums
+class RecurrenceType(str, Enum):
+    NONE = "none"
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    BIWEEKLY = "biweekly"
+    MONTHLY = "monthly"
+    CUSTOM = "custom"
+
+
+class TimeOffType(str, Enum):
+    VACATION = "vacation"
+    SICK_LEAVE = "sick_leave"
+    PERSONAL = "personal"
+    HOLIDAY = "holiday"
+    TRAINING = "training"
+    EMERGENCY = "emergency"
+    UNPAID = "unpaid"
+
+
+class CalendarEventType(str, Enum):
+    WORK_SCHEDULE = "work_schedule"
+    TIME_OFF = "time_off"
+    BREAK = "break"
+    MEETING = "meeting"
+    TRAINING = "training"
+    PERSONAL = "personal"
+
+
+class TimeOffStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    DENIED = "denied"
+    CANCELLED = "cancelled"
+
+
+# Working Hours Management
+class WorkingHoursTemplate(BaseModel):
+    """Working hours template schema."""
+    id: Optional[str] = Field(None, description="Template ID")
+    name: str = Field(..., min_length=1, max_length=100, description="Template name")
+    description: Optional[str] = Field(None, max_length=500, description="Template description")
+    
+    # Weekly schedule
+    monday_start: Optional[time] = Field(None, description="Monday start time")
+    monday_end: Optional[time] = Field(None, description="Monday end time")
+    tuesday_start: Optional[time] = Field(None, description="Tuesday start time")
+    tuesday_end: Optional[time] = Field(None, description="Tuesday end time")
+    wednesday_start: Optional[time] = Field(None, description="Wednesday start time")
+    wednesday_end: Optional[time] = Field(None, description="Wednesday end time")
+    thursday_start: Optional[time] = Field(None, description="Thursday start time")
+    thursday_end: Optional[time] = Field(None, description="Thursday end time")
+    friday_start: Optional[time] = Field(None, description="Friday start time")
+    friday_end: Optional[time] = Field(None, description="Friday end time")
+    saturday_start: Optional[time] = Field(None, description="Saturday start time")
+    saturday_end: Optional[time] = Field(None, description="Saturday end time")
+    sunday_start: Optional[time] = Field(None, description="Sunday start time")
+    sunday_end: Optional[time] = Field(None, description="Sunday end time")
+    
+    # Break configurations
+    break_duration_minutes: int = Field(30, ge=0, le=120, description="Break duration in minutes")
+    lunch_start_time: Optional[time] = Field(None, description="Lunch start time")
+    lunch_duration_minutes: int = Field(60, ge=0, le=180, description="Lunch duration in minutes")
+    
+    # Flexibility settings
+    allows_flexible_start: bool = Field(False, description="Allow flexible start time")
+    flexible_start_window_minutes: int = Field(30, ge=0, le=120, description="Flexible start window")
+    allows_overtime: bool = Field(False, description="Allow overtime")
+    max_overtime_hours_per_day: float = Field(2.0, ge=0, le=8, description="Max overtime hours per day")
+    
+    total_weekly_hours: Optional[float] = Field(None, description="Total weekly hours (calculated)")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Standard Business Hours",
+                "description": "Monday to Friday, 9 AM to 5 PM",
+                "monday_start": "09:00:00",
+                "monday_end": "17:00:00",
+                "tuesday_start": "09:00:00",
+                "tuesday_end": "17:00:00",
+                "wednesday_start": "09:00:00",
+                "wednesday_end": "17:00:00",
+                "thursday_start": "09:00:00",
+                "thursday_end": "17:00:00",
+                "friday_start": "09:00:00",
+                "friday_end": "17:00:00",
+                "break_duration_minutes": 30,
+                "lunch_start_time": "12:00:00",
+                "lunch_duration_minutes": 60,
+                "allows_flexible_start": True,
+                "flexible_start_window_minutes": 30
+            }
+        }
+
+
+class CreateWorkingHoursTemplateRequest(BaseModel):
+    """Request to create working hours template."""
+    name: str = Field(..., min_length=1, max_length=100, description="Template name")
+    description: Optional[str] = Field(None, max_length=500, description="Template description")
+    
+    # Weekly schedule
+    monday_start: Optional[time] = None
+    monday_end: Optional[time] = None
+    tuesday_start: Optional[time] = None
+    tuesday_end: Optional[time] = None
+    wednesday_start: Optional[time] = None
+    wednesday_end: Optional[time] = None
+    thursday_start: Optional[time] = None
+    thursday_end: Optional[time] = None
+    friday_start: Optional[time] = None
+    friday_end: Optional[time] = None
+    saturday_start: Optional[time] = None
+    saturday_end: Optional[time] = None
+    sunday_start: Optional[time] = None
+    sunday_end: Optional[time] = None
+    
+    # Break configurations
+    break_duration_minutes: int = Field(30, ge=0, le=120)
+    lunch_start_time: Optional[time] = None
+    lunch_duration_minutes: int = Field(60, ge=0, le=180)
+    
+    # Flexibility settings
+    allows_flexible_start: bool = False
+    flexible_start_window_minutes: int = Field(30, ge=0, le=120)
+    allows_overtime: bool = False
+    max_overtime_hours_per_day: float = Field(2.0, ge=0, le=8)
+
+
+# Calendar Events
+class CalendarEvent(BaseModel):
+    """Calendar event schema."""
+    id: Optional[str] = Field(None, description="Event ID")
+    title: str = Field(..., min_length=1, max_length=200, description="Event title")
+    description: Optional[str] = Field(None, max_length=1000, description="Event description")
+    event_type: CalendarEventType = Field(CalendarEventType.WORK_SCHEDULE, description="Event type")
+    
+    start_datetime: datetime = Field(..., description="Event start time")
+    end_datetime: datetime = Field(..., description="Event end time")
+    is_all_day: bool = Field(False, description="All-day event")
+    timezone: str = Field("UTC", description="Event timezone")
+    
+    # Recurrence
+    recurrence_type: RecurrenceType = Field(RecurrenceType.NONE, description="Recurrence pattern")
+    recurrence_end_date: Optional[date] = Field(None, description="Recurrence end date")
+    recurrence_count: Optional[int] = Field(None, ge=1, le=365, description="Number of occurrences")
+    recurrence_interval: int = Field(1, ge=1, le=30, description="Recurrence interval")
+    recurrence_days_of_week: List[int] = Field(default_factory=list, description="Days of week (0=Monday)")
+    
+    # Scheduling impact
+    blocks_scheduling: bool = Field(True, description="Blocks job scheduling")
+    allows_emergency_override: bool = Field(False, description="Allow emergency override")
+    
+    created_date: Optional[datetime] = None
+    last_modified: Optional[datetime] = None
+    is_active: bool = True
+    
+    @validator('end_datetime')
+    def validate_end_time(cls, v, values):
+        if 'start_datetime' in values and v <= values['start_datetime']:
+            raise ValueError('End time must be after start time')
+        return v
+    
+    @validator('recurrence_days_of_week')
+    def validate_days_of_week(cls, v):
+        if v and any(day < 0 or day > 6 for day in v):
+            raise ValueError('Days of week must be between 0 (Monday) and 6 (Sunday)')
+        return v
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "title": "Team Meeting",
+                "description": "Weekly team standup meeting",
+                "event_type": "meeting",
+                "start_datetime": "2024-01-15T10:00:00Z",
+                "end_datetime": "2024-01-15T11:00:00Z",
+                "recurrence_type": "weekly",
+                "recurrence_days_of_week": [0],  # Monday
+                "blocks_scheduling": True
+            }
+        }
+
+
+class CreateCalendarEventRequest(BaseModel):
+    """Request to create calendar event."""
+    title: str = Field(..., min_length=1, max_length=200, description="Event title")
+    description: Optional[str] = Field(None, max_length=1000, description="Event description")
+    event_type: CalendarEventType = Field(CalendarEventType.WORK_SCHEDULE, description="Event type")
+    
+    start_datetime: datetime = Field(..., description="Event start time")
+    end_datetime: datetime = Field(..., description="Event end time")
+    is_all_day: bool = Field(False, description="All-day event")
+    timezone: str = Field("UTC", description="Event timezone")
+    
+    # Recurrence
+    recurrence_type: RecurrenceType = Field(RecurrenceType.NONE, description="Recurrence pattern")
+    recurrence_end_date: Optional[date] = Field(None, description="Recurrence end date")
+    recurrence_count: Optional[int] = Field(None, ge=1, le=365, description="Number of occurrences")
+    recurrence_interval: int = Field(1, ge=1, le=30, description="Recurrence interval")
+    recurrence_days_of_week: List[int] = Field(default_factory=list, description="Days of week (0=Monday)")
+    
+    # Scheduling impact
+    blocks_scheduling: bool = Field(True, description="Blocks job scheduling")
+    allows_emergency_override: bool = Field(False, description="Allow emergency override")
+    
+    @validator('end_datetime')
+    def validate_end_time(cls, v, values):
+        if 'start_datetime' in values and v <= values['start_datetime']:
+            raise ValueError('End time must be after start time')
+        return v
+
+
+# Time Off Management
+class TimeOffRequest(BaseModel):
+    """Time off request schema."""
+    id: Optional[str] = Field(None, description="Request ID")
+    time_off_type: TimeOffType = Field(..., description="Type of time off")
+    start_date: date = Field(..., description="Start date")
+    end_date: date = Field(..., description="End date")
+    reason: Optional[str] = Field(None, max_length=500, description="Reason for time off")
+    notes: Optional[str] = Field(None, max_length=1000, description="Additional notes")
+    
+    status: TimeOffStatus = Field(TimeOffStatus.PENDING, description="Request status")
+    requested_by: Optional[str] = Field(None, description="User who requested")
+    approved_by: Optional[str] = Field(None, description="User who approved/denied")
+    approval_date: Optional[datetime] = Field(None, description="Approval/denial date")
+    denial_reason: Optional[str] = Field(None, max_length=500, description="Reason for denial")
+    
+    affects_scheduling: bool = Field(True, description="Affects job scheduling")
+    emergency_contact_allowed: bool = Field(False, description="Allow emergency contact")
+    
+    duration_days: Optional[int] = Field(None, description="Duration in days (calculated)")
+    created_date: Optional[datetime] = None
+    last_modified: Optional[datetime] = None
+    
+    @validator('end_date')
+    def validate_end_date(cls, v, values):
+        if 'start_date' in values and v < values['start_date']:
+            raise ValueError('End date must be after or equal to start date')
+        return v
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "time_off_type": "vacation",
+                "start_date": "2024-02-15",
+                "end_date": "2024-02-19",
+                "reason": "Family vacation",
+                "affects_scheduling": True,
+                "emergency_contact_allowed": False
+            }
+        }
+
+
+class CreateTimeOffRequest(BaseModel):
+    """Request to create time off."""
+    time_off_type: TimeOffType = Field(..., description="Type of time off")
+    start_date: date = Field(..., description="Start date")
+    end_date: date = Field(..., description="End date")
+    reason: Optional[str] = Field(None, max_length=500, description="Reason for time off")
+    notes: Optional[str] = Field(None, max_length=1000, description="Additional notes")
+    affects_scheduling: bool = Field(True, description="Affects job scheduling")
+    emergency_contact_allowed: bool = Field(False, description="Allow emergency contact")
+    
+    @validator('end_date')
+    def validate_end_date(cls, v, values):
+        if 'start_date' in values and v < values['start_date']:
+            raise ValueError('End date must be after or equal to start date')
+        return v
+
+
+class ApproveTimeOffRequest(BaseModel):
+    """Request to approve/deny time off."""
+    status: TimeOffStatus = Field(..., description="New status (approved/denied)")
+    denial_reason: Optional[str] = Field(None, max_length=500, description="Reason for denial")
+    
+    @validator('denial_reason')
+    def validate_denial_reason(cls, v, values):
+        if values.get('status') == TimeOffStatus.DENIED and not v:
+            raise ValueError('Denial reason is required when denying time off')
+        return v
+
+
+# Calendar Preferences
+class CalendarPreferences(BaseModel):
+    """Calendar preferences schema."""
+    timezone: str = Field("UTC", description="User timezone")
+    date_format: str = Field("YYYY-MM-DD", description="Preferred date format")
+    time_format: str = Field("24h", description="Time format (12h/24h)")
+    week_start_day: int = Field(0, ge=0, le=6, description="Week start day (0=Monday)")
+    
+    # Scheduling preferences
+    preferred_working_hours_template_id: Optional[str] = Field(None, description="Preferred template ID")
+    min_time_between_jobs_minutes: int = Field(30, ge=0, le=240, description="Min time between jobs")
+    max_commute_time_minutes: int = Field(60, ge=0, le=240, description="Max commute time")
+    allows_back_to_back_jobs: bool = Field(False, description="Allow back-to-back jobs")
+    requires_prep_time_minutes: int = Field(15, ge=0, le=60, description="Required prep time")
+    
+    # Notification preferences
+    job_reminder_minutes_before: List[int] = Field(default_factory=lambda: [60, 15], description="Reminder times")
+    schedule_change_notifications: bool = Field(True, description="Schedule change notifications")
+    new_job_notifications: bool = Field(True, description="New job notifications")
+    cancellation_notifications: bool = Field(True, description="Cancellation notifications")
+    
+    # Availability preferences
+    auto_accept_jobs_in_hours: bool = Field(False, description="Auto-accept jobs during working hours")
+    auto_decline_outside_hours: bool = Field(True, description="Auto-decline jobs outside hours")
+    emergency_availability_outside_hours: bool = Field(False, description="Emergency availability")
+    weekend_availability: bool = Field(False, description="Weekend availability")
+    holiday_availability: bool = Field(False, description="Holiday availability")
+    
+    # Buffer times
+    travel_buffer_percentage: float = Field(1.2, ge=1.0, le=3.0, description="Travel time buffer")
+    job_buffer_minutes: int = Field(15, ge=0, le=60, description="Job buffer time")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "timezone": "America/New_York",
+                "time_format": "12h",
+                "min_time_between_jobs_minutes": 30,
+                "max_commute_time_minutes": 45,
+                "job_reminder_minutes_before": [60, 15],
+                "auto_decline_outside_hours": True,
+                "weekend_availability": False,
+                "travel_buffer_percentage": 1.2
+            }
+        }
+
+
+# Availability Management
+class UserAvailability(BaseModel):
+    """User availability information."""
+    user_id: str = Field(..., description="User ID")
+    availability_date: date = Field(..., description="Date")
+    available_slots: List[Dict[str, datetime]] = Field(default_factory=list, description="Available time slots")
+    total_available_hours: float = Field(0.0, ge=0, description="Total available hours")
+    working_hours: Optional[Dict[str, time]] = Field(None, description="Working hours for the day")
+    time_off: List["TimeOffRequest"] = Field(default_factory=list, description="Time off on this date")
+    calendar_events: List["CalendarEvent"] = Field(default_factory=list, description="Calendar events")
+    is_available: bool = Field(True, description="Overall availability")
+    unavailable_reason: Optional[str] = Field(None, description="Reason if unavailable")
+
+
+class AvailabilityCheckRequest(BaseModel):
+    """Request to check user availability."""
+    user_ids: List[str] = Field(..., min_items=1, description="User IDs to check")
+    start_datetime: datetime = Field(..., description="Start of time period")
+    end_datetime: datetime = Field(..., description="End of time period")
+    include_time_off: bool = Field(True, description="Include time off information")
+    include_calendar_events: bool = Field(True, description="Include calendar events")
+    include_working_hours: bool = Field(True, description="Include working hours")
+    
+    @validator('end_datetime')
+    def validate_end_datetime(cls, v, values):
+        if 'start_datetime' in values and v <= values['start_datetime']:
+            raise ValueError('End datetime must be after start datetime')
+        return v
+
+
+class AvailabilityCheckResponse(BaseModel):
+    """Response for availability check."""
+    request_id: Optional[str] = Field(None, description="Request ID for tracking")
+    check_datetime: datetime = Field(..., description="When the check was performed")
+    user_availability: List[UserAvailability] = Field(..., description="User availability details")
+    summary: Dict[str, Any] = Field(default_factory=dict, description="Summary information")
+
+
+class TeamAvailabilitySummary(BaseModel):
+    """Team availability summary."""
+    business_id: str = Field(..., description="Business ID")
+    start_date: date = Field(..., description="Period start date")
+    end_date: date = Field(..., description="Period end date")
+    total_team_members: int = Field(0, ge=0, description="Total team members")
+    available_members: int = Field(0, ge=0, description="Available members")
+    members_on_time_off: int = Field(0, ge=0, description="Members on time off")
+    members_with_limited_availability: int = Field(0, ge=0, description="Members with limited availability")
+    daily_availability: List[Dict[str, Any]] = Field(default_factory=list, description="Daily breakdown")
+    member_summaries: List[UserAvailability] = Field(default_factory=list, description="Individual summaries")
+    peak_availability_hours: List[Dict[str, Any]] = Field(default_factory=list, description="Peak hours")
+    coverage_gaps: List[Dict[str, Any]] = Field(default_factory=list, description="Coverage gaps")
+
+
+# Set User Working Hours Request
+class SetUserWorkingHoursRequest(BaseModel):
+    """Request to set user working hours."""
+    template_id: Optional[str] = Field(None, description="Use existing template")
+    
+    # Or specify custom hours
+    monday_start: Optional[time] = None
+    monday_end: Optional[time] = None
+    tuesday_start: Optional[time] = None
+    tuesday_end: Optional[time] = None
+    wednesday_start: Optional[time] = None
+    wednesday_end: Optional[time] = None
+    thursday_start: Optional[time] = None
+    thursday_end: Optional[time] = None
+    friday_start: Optional[time] = None
+    friday_end: Optional[time] = None
+    saturday_start: Optional[time] = None
+    saturday_end: Optional[time] = None
+    sunday_start: Optional[time] = None
+    sunday_end: Optional[time] = None
+    
+    break_duration_minutes: int = Field(30, ge=0, le=120)
+    lunch_start_time: Optional[time] = None
+    lunch_duration_minutes: int = Field(60, ge=0, le=180)
+
+
+# Response schemas
+class WorkingHoursResponse(BaseModel):
+    """Working hours response."""
+    message: str = Field(..., description="Response message")
+    template: Optional["WorkingHoursTemplate"] = Field(None, description="Working hours template")
+
+
+class CalendarEventResponse(BaseModel):
+    """Calendar event response."""
+    message: str = Field(..., description="Response message")
+    event: Optional["CalendarEvent"] = Field(None, description="Calendar event")
+
+
+class TimeOffResponse(BaseModel):
+    """Time off response."""
+    message: str = Field(..., description="Response message")
+    time_off_request: Optional["TimeOffRequest"] = Field(None, description="Time off request")
+
+
+class CalendarPreferencesResponse(BaseModel):
+    """Calendar preferences response."""
+    message: str = Field(..., description="Response message")
+    preferences: Optional["CalendarPreferences"] = Field(None, description="Calendar preferences") 

@@ -7,195 +7,28 @@ Handles skill matching, availability windows, and workload capacity management.
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 from typing import Optional, List, Dict, Any
-from enum import Enum
 from decimal import Decimal
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
 
-
-class SkillLevel(Enum):
-    """Skill proficiency levels."""
-    BEGINNER = "beginner"
-    INTERMEDIATE = "intermediate"
-    ADVANCED = "advanced"
-    EXPERT = "expert"
-    MASTER = "master"
-
-
-class SkillCategory(Enum):
-    """Categories of skills for grouping."""
-    TECHNICAL = "technical"
-    MECHANICAL = "mechanical"
-    ELECTRICAL = "electrical"
-    PLUMBING = "plumbing"
-    HVAC = "hvac"
-    CARPENTRY = "carpentry"
-    PAINTING = "painting"
-    CLEANING = "cleaning"
-    SECURITY = "security"
-    ADMINISTRATIVE = "administrative"
-
-
-class CertificationStatus(Enum):
-    """Status of certifications."""
-    ACTIVE = "active"
-    EXPIRED = "expired"
-    PENDING = "pending"
-    SUSPENDED = "suspended"
-
-
-class AvailabilityType(Enum):
-    """Types of availability patterns."""
-    REGULAR = "regular"  # Standard weekly pattern
-    FLEXIBLE = "flexible"  # Variable availability
-    ON_CALL = "on_call"  # Emergency availability
-    PROJECT_BASED = "project_based"  # Specific project availability
-
-
-@dataclass
-class Skill:
-    """Value object representing a user skill."""
-    skill_id: str
-    name: str
-    category: SkillCategory
-    level: SkillLevel
-    years_experience: Decimal
-    last_used: Optional[datetime] = None
-    proficiency_score: Optional[Decimal] = None  # 0-100 score
-    certification_required: bool = False
-    
-    def __post_init__(self):
-        """Validate skill data."""
-        if not self.name or not self.name.strip():
-            raise DomainValidationError("Skill name is required")
-        if self.years_experience < 0:
-            raise DomainValidationError("Years of experience cannot be negative")
-        if self.proficiency_score is not None and (self.proficiency_score < 0 or self.proficiency_score > 100):
-            raise DomainValidationError("Proficiency score must be between 0 and 100")
-    
-    def is_expert_level(self) -> bool:
-        """Check if skill is at expert level or above."""
-        return self.level in [SkillLevel.EXPERT, SkillLevel.MASTER]
-    
-    def get_efficiency_multiplier(self) -> Decimal:
-        """Get efficiency multiplier based on skill level."""
-        multipliers = {
-            SkillLevel.BEGINNER: Decimal("0.7"),
-            SkillLevel.INTERMEDIATE: Decimal("0.85"),
-            SkillLevel.ADVANCED: Decimal("1.0"),
-            SkillLevel.EXPERT: Decimal("1.2"),
-            SkillLevel.MASTER: Decimal("1.4")
-        }
-        return multipliers.get(self.level, Decimal("1.0"))
-
-
-@dataclass
-class Certification:
-    """Value object representing a certification."""
-    certification_id: str
-    name: str
-    issuing_authority: str
-    issue_date: datetime
-    expiry_date: Optional[datetime] = None
-    status: CertificationStatus = CertificationStatus.ACTIVE
-    verification_number: Optional[str] = None
-    renewal_required: bool = True
-    
-    def __post_init__(self):
-        """Validate certification data."""
-        if not self.name or not self.name.strip():
-            raise DomainValidationError("Certification name is required")
-        if not self.issuing_authority or not self.issuing_authority.strip():
-            raise DomainValidationError("Issuing authority is required")
-        if self.expiry_date and self.expiry_date <= self.issue_date:
-            raise DomainValidationError("Expiry date must be after issue date")
-    
-    def is_valid(self) -> bool:
-        """Check if certification is currently valid."""
-        if self.status != CertificationStatus.ACTIVE:
-            return False
-        if self.expiry_date and self.expiry_date < datetime.utcnow():
-            return False
-        return True
-    
-    def days_until_expiry(self) -> Optional[int]:
-        """Get days until expiry."""
-        if not self.expiry_date:
-            return None
-        return (self.expiry_date - datetime.utcnow()).days
-
-
-@dataclass
-class AvailabilityWindow:
-    """Value object representing availability time windows."""
-    day_of_week: int  # 0=Monday, 6=Sunday
-    start_time: time
-    end_time: time
-    availability_type: AvailabilityType = AvailabilityType.REGULAR
-    max_hours_per_day: Optional[Decimal] = None
-    break_duration_minutes: int = 30
-    
-    def __post_init__(self):
-        """Validate availability window."""
-        if not 0 <= self.day_of_week <= 6:
-            raise DomainValidationError("Day of week must be between 0 and 6")
-        if self.end_time <= self.start_time:
-            raise DomainValidationError("End time must be after start time")
-        if self.max_hours_per_day is not None and self.max_hours_per_day <= 0:
-            raise DomainValidationError("Max hours per day must be positive")
-    
-    def get_available_duration(self) -> timedelta:
-        """Get total available duration for this window."""
-        start_dt = datetime.combine(datetime.today(), self.start_time)
-        end_dt = datetime.combine(datetime.today(), self.end_time)
-        if end_dt < start_dt:  # Handle overnight shifts
-            end_dt += timedelta(days=1)
-        
-        total_duration = end_dt - start_dt
-        break_duration = timedelta(minutes=self.break_duration_minutes)
-        
-        return total_duration - break_duration
-    
-    def overlaps_with(self, other: 'AvailabilityWindow') -> bool:
-        """Check if this window overlaps with another on the same day."""
-        if self.day_of_week != other.day_of_week:
-            return False
-        
-        return not (self.end_time <= other.start_time or other.end_time <= self.start_time)
-
-
-@dataclass
-class WorkloadCapacity:
-    """Value object representing user's workload capacity."""
-    max_concurrent_jobs: int = 3
-    max_daily_hours: Decimal = Decimal("8")
-    max_weekly_hours: Decimal = Decimal("40")
-    preferred_job_types: List[str] = field(default_factory=list)
-    max_travel_distance_km: Decimal = Decimal("50")
-    overtime_willingness: bool = False
-    emergency_availability: bool = False
-    
-    def __post_init__(self):
-        """Validate capacity settings."""
-        if self.max_concurrent_jobs <= 0:
-            raise DomainValidationError("Max concurrent jobs must be positive")
-        if self.max_daily_hours <= 0:
-            raise DomainValidationError("Max daily hours must be positive")
-        if self.max_weekly_hours <= 0:
-            raise DomainValidationError("Max weekly hours must be positive")
-        if self.max_travel_distance_km < 0:
-            raise DomainValidationError("Max travel distance cannot be negative")
+# Import from separate domain entity files
+from .skills import Skill, Certification, SkillLevel, SkillCategory
+from .availability import AvailabilityWindow, WorkloadCapacity, AvailabilityType
+from .calendar import (
+    CalendarEvent, TimeOffRequest, WorkingHoursTemplate, CalendarPreferences,
+    RecurrenceType, TimeOffType, CalendarEventType
+)
 
 
 @dataclass
 class UserCapabilities:
     """
-    User Capabilities entity representing skills, availability, and capacity.
+    Enhanced User Capabilities entity with comprehensive calendar management.
     
     This entity manages user capabilities for intelligent job scheduling,
-    including skill matching, availability windows, and workload management.
+    including skills, availability, calendar events, and scheduling preferences.
     """
     
     id: uuid.UUID
@@ -206,8 +39,14 @@ class UserCapabilities:
     skills: List[Skill] = field(default_factory=list)
     certifications: List[Certification] = field(default_factory=list)
     
-    # Availability and capacity
+    # Calendar and availability
     availability_windows: List[AvailabilityWindow] = field(default_factory=list)
+    calendar_events: List[CalendarEvent] = field(default_factory=list)
+    time_off_requests: List[TimeOffRequest] = field(default_factory=list)
+    working_hours_template: Optional[WorkingHoursTemplate] = None
+    calendar_preferences: Optional[CalendarPreferences] = None
+    
+    # Capacity and workload
     workload_capacity: WorkloadCapacity = field(default_factory=WorkloadCapacity)
     
     # Location and mobility
@@ -217,7 +56,7 @@ class UserCapabilities:
     vehicle_type: Optional[str] = None
     has_vehicle: bool = True
     
-    # Scheduling preferences
+    # Legacy scheduling preferences (maintained for backward compatibility)
     preferred_start_time: Optional[time] = None
     preferred_end_time: Optional[time] = None
     min_time_between_jobs_minutes: int = 30
@@ -236,6 +75,13 @@ class UserCapabilities:
     def __post_init__(self):
         """Validate user capabilities."""
         self._validate_capabilities()
+        
+        # Initialize calendar preferences if not provided
+        if not self.calendar_preferences:
+            self.calendar_preferences = CalendarPreferences(
+                user_id=self.user_id,
+                business_id=self.business_id
+            )
     
     def _validate_capabilities(self) -> None:
         """Validate core capabilities business rules."""
@@ -253,6 +99,7 @@ class UserCapabilities:
         if self.max_commute_time_minutes <= 0:
             raise DomainValidationError("Max commute time must be positive")
     
+    # Skills management methods
     def add_skill(self, skill: Skill) -> None:
         """Add a skill to the user's capabilities."""
         # Check if skill already exists
@@ -319,6 +166,7 @@ class UserCapabilities:
         
         return True
     
+    # Certification management methods
     def add_certification(self, certification: Certification) -> None:
         """Add a certification."""
         # Check if certification already exists
@@ -350,6 +198,7 @@ class UserCapabilities:
                     expiring.append(cert)
         return expiring
     
+    # Availability management methods
     def add_availability_window(self, window: AvailabilityWindow) -> None:
         """Add an availability window."""
         # Check for overlaps with existing windows
@@ -389,6 +238,7 @@ class UserCapabilities:
                 total_hours += Decimal(str(duration.total_seconds() / 3600))
         return total_hours
     
+    # Job matching methods
     def matches_job_requirements(self, required_skills: List[str], 
                                 required_certifications: Optional[List[str]] = None) -> bool:
         """Check if user matches job skill and certification requirements."""
@@ -453,6 +303,7 @@ class UserCapabilities:
         # For now, just check against max concurrent jobs
         return self.workload_capacity.max_concurrent_jobs >= additional_jobs
     
+    # Performance tracking methods
     def update_performance_metrics(self, job_rating: Optional[Decimal] = None,
                                  completion_status: Optional[bool] = None,
                                  was_punctual: Optional[bool] = None) -> None:
@@ -469,6 +320,7 @@ class UserCapabilities:
         
         self.last_modified = datetime.utcnow()
     
+    # Status management methods
     def activate(self) -> None:
         """Activate user capabilities."""
         self.is_active = True
@@ -477,6 +329,162 @@ class UserCapabilities:
     def deactivate(self) -> None:
         """Deactivate user capabilities."""
         self.is_active = False
+        self.last_modified = datetime.utcnow()
+    
+    # Calendar management methods
+    def add_calendar_event(self, event: CalendarEvent) -> None:
+        """Add a calendar event."""
+        # Check for conflicts with existing events
+        for existing_event in self.calendar_events:
+            if event.conflicts_with(existing_event):
+                raise BusinessRuleViolationError(
+                    f"Calendar event conflicts with existing event: {existing_event.title}"
+                )
+        
+        self.calendar_events.append(event)
+        self.last_modified = datetime.utcnow()
+    
+    def remove_calendar_event(self, event_id: uuid.UUID) -> None:
+        """Remove a calendar event."""
+        event_to_remove = None
+        for event in self.calendar_events:
+            if event.id == event_id:
+                event_to_remove = event
+                break
+        
+        if event_to_remove:
+            self.calendar_events.remove(event_to_remove)
+            self.last_modified = datetime.utcnow()
+        else:
+            raise BusinessRuleViolationError("Calendar event not found")
+    
+    def add_time_off_request(self, time_off: TimeOffRequest) -> None:
+        """Add a time off request."""
+        # Check for overlapping time off
+        for existing_time_off in self.time_off_requests:
+            if existing_time_off.is_approved():
+                for check_date in self._date_range(time_off.start_date, time_off.end_date):
+                    if existing_time_off.overlaps_with_date(check_date):
+                        raise BusinessRuleViolationError(
+                            f"Time off request overlaps with existing approved time off"
+                        )
+        
+        self.time_off_requests.append(time_off)
+        self.last_modified = datetime.utcnow()
+    
+    def is_available_on_datetime(self, check_datetime: datetime) -> bool:
+        """Check if user is available at a specific datetime."""
+        check_date = check_datetime.date()
+        check_time = check_datetime.time()
+        day_of_week = check_datetime.weekday()
+        
+        # Check time off
+        for time_off in self.time_off_requests:
+            if time_off.is_approved() and time_off.overlaps_with_date(check_date):
+                return False
+        
+        # Check calendar events that block scheduling
+        for event in self.calendar_events:
+            if (event.blocks_scheduling and event.is_active_on_date(check_date) and
+                event.start_datetime.time() <= check_time <= event.end_datetime.time()):
+                return False
+        
+        # Check working hours template
+        if self.working_hours_template:
+            working_hours = self.working_hours_template.get_working_hours_for_day(day_of_week)
+            if not working_hours:
+                return False
+            start_time, end_time = working_hours
+            if not (start_time <= check_time <= end_time):
+                return False
+        
+        # Check availability windows (legacy support)
+        if self.availability_windows:
+            for window in self.availability_windows:
+                if (window.day_of_week == day_of_week and
+                    window.start_time <= check_time <= window.end_time):
+                    return True
+            return False
+        
+        return True
+    
+    def get_available_time_slots_for_date(self, check_date: date, 
+                                        slot_duration_minutes: int = 60,
+                                        slot_interval_minutes: int = 30) -> List[tuple[datetime, datetime]]:
+        """Get available time slots for a specific date."""
+        day_of_week = check_date.weekday()
+        available_slots = []
+        
+        # Get working hours for the day
+        working_hours = None
+        if self.working_hours_template:
+            working_hours = self.working_hours_template.get_working_hours_for_day(day_of_week)
+        
+        if not working_hours:
+            # Fall back to availability windows
+            for window in self.availability_windows:
+                if window.day_of_week == day_of_week:
+                    working_hours = (window.start_time, window.end_time)
+                    break
+        
+        if not working_hours:
+            return []
+        
+        start_time, end_time = working_hours
+        
+        # Generate potential slots
+        current_time = datetime.combine(check_date, start_time)
+        end_datetime = datetime.combine(check_date, end_time)
+        slot_duration = timedelta(minutes=slot_duration_minutes)
+        slot_interval = timedelta(minutes=slot_interval_minutes)
+        
+        while current_time + slot_duration <= end_datetime:
+            slot_end = current_time + slot_duration
+            
+            # Check if this slot is available
+            if self._is_slot_available(current_time, slot_end):
+                available_slots.append((current_time, slot_end))
+            
+            current_time += slot_interval
+        
+        return available_slots
+    
+    def _is_slot_available(self, start_datetime: datetime, end_datetime: datetime) -> bool:
+        """Check if a specific time slot is available."""
+        # Check time off
+        for time_off in self.time_off_requests:
+            if time_off.is_approved():
+                for check_date in self._date_range(start_datetime.date(), end_datetime.date()):
+                    if time_off.overlaps_with_date(check_date):
+                        return False
+        
+        # Check calendar events
+        for event in self.calendar_events:
+            if event.blocks_scheduling and event.is_active_on_date(start_datetime.date()):
+                event_start = datetime.combine(start_datetime.date(), event.start_datetime.time())
+                event_end = datetime.combine(start_datetime.date(), event.end_datetime.time())
+                
+                # Check for overlap
+                if not (end_datetime <= event_start or start_datetime >= event_end):
+                    return False
+        
+        return True
+    
+    def _date_range(self, start_date: date, end_date: date):
+        """Generate date range."""
+        current_date = start_date
+        while current_date <= end_date:
+            yield current_date
+            current_date += timedelta(days=1)
+    
+    def set_working_hours_template(self, template: WorkingHoursTemplate) -> None:
+        """Set working hours template."""
+        self.working_hours_template = template
+        self.last_modified = datetime.utcnow()
+    
+    def update_calendar_preferences(self, preferences: CalendarPreferences) -> None:
+        """Update calendar preferences."""
+        self.calendar_preferences = preferences
         self.last_modified = datetime.utcnow()
     
     def to_dict(self) -> Dict[str, Any]:

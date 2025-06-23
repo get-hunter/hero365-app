@@ -18,7 +18,8 @@ from ...dto.scheduling_dto import (
     SchedulingAnalyticsRequestDTO, SchedulingAnalyticsResponseDTO,
     AvailableTimeSlotRequestDTO, AvailableTimeSlotsResponseDTO,
     TimeSlotBookingRequestDTO, TimeSlotBookingResponseDTO,
-    TimeSlotDTO
+    TimeSlotDTO, CalendarEventDTO, TimeOffRequestDTO, WorkingHoursTemplateDTO,
+    CalendarPreferencesDTO, UserAvailabilityDTO
 )
 from ...exceptions.application_exceptions import (
     ValidationError, NotFoundError, BusinessLogicError
@@ -696,54 +697,83 @@ class IntelligentSchedulingUseCase:
         
         current_time = start_date
         
-        while current_time + slot_duration <= end_date:
-            # Check if this time slot is viable
-            slot_end_time = current_time + slot_duration
+        while current_time < end_date:
+            slot_end = current_time + slot_duration
             
-            # Find available technicians for this slot
-            available_technicians = []
+            # Don't generate slots that extend beyond the requested range
+            if slot_end > end_date:
+                break
             
+            # Check each available user for this time slot
             for user in available_users:
-                if await self._is_user_available_for_slot(
-                    user, current_time, slot_end_time, request.required_skills
-                ):
-                    # Calculate travel time
-                    travel_time = await self._calculate_travel_time_for_slot(
-                        user, request.job_address
+                if await self._is_user_available_for_slot(user, current_time, slot_end, request.required_skills):
+                    # Calculate travel time if job address is provided
+                    travel_time_minutes = 0
+                    if request.job_address and user.home_base_latitude and user.home_base_longitude:
+                        try:
+                            travel_time_minutes = await self.route_optimization_service.calculate_travel_time(
+                                (user.home_base_latitude, user.home_base_longitude),
+                                (request.job_address.get("latitude", 0), request.job_address.get("longitude", 0))
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to calculate travel time: {str(e)}")
+                            travel_time_minutes = 30  # Default fallback
+                    
+                    # Calculate base quality score
+                    quality_score = self._calculate_slot_quality_score(
+                        user, current_time, slot_end, request
                     )
                     
-                    # Check if user matches job requirements
-                    if user.matches_job_requirements(request.required_skills):
-                        available_technicians.append({
+                    # Get weather impact if available
+                    weather_impact = None
+                    if self.weather_service:
+                        try:
+                            weather_data = await self.weather_service.get_weather_impact(
+                                request.job_address.get("latitude", 0) if request.job_address else 0,
+                                request.job_address.get("longitude", 0) if request.job_address else 0,
+                                current_time,
+                                request.job_type
+                            )
+                            weather_impact = weather_data
+                        except Exception as e:
+                            logger.warning(f"Failed to get weather impact: {str(e)}")
+                    
+                    # Calculate dynamic pricing
+                    base_price = 100.0  # Base price
+                    pricing_factors = self._calculate_pricing_factors(current_time, request.priority, quality_score)
+                    estimated_price = base_price * pricing_factors["total_multiplier"]
+                    
+                    # Create time slot
+                    slot = TimeSlotDTO(
+                        slot_id=str(uuid.uuid4()),
+                        start_time=current_time,
+                        end_time=slot_end,
+                        available_technicians=[{
                             "technician_id": user.user_id,
-                            "name": f"Technician {user.user_id}",  # Would get from user profile
-                            "rating": float(user.average_job_rating or 4.5),
-                            "specialties": [skill.name for skill in user.skills],
-                            "travel_time_minutes": travel_time,
-                            "experience_years": sum(skill.years_experience for skill in user.skills) / max(len(user.skills), 1)
-                        })
-            
-            # Create time slot if technicians are available
-            if available_technicians:
-                slot_id = f"slot_{int(current_time.timestamp())}_{len(time_slots)}"
-                
-                # Calculate slot quality score
-                quality_score = self._calculate_slot_quality_score(
-                    current_time, available_technicians, request
-                )
-                
-                time_slot = TimeSlotDTO(
-                    slot_id=slot_id,
-                    start_time=current_time,
-                    end_time=slot_end_time,
-                    available_technicians=available_technicians,
-                    confidence_score=min(0.95, len(available_technicians) * 0.3 + 0.5),
-                    estimated_travel_time_minutes=min(tech["travel_time_minutes"] for tech in available_technicians),
-                    slot_quality_score=quality_score,
-                    notes=self._generate_slot_notes(current_time, available_technicians)
-                )
-                
-                time_slots.append(time_slot)
+                            "name": f"Technician {user.user_id}",  # Would get from user service
+                            "skills": [skill.skill_id for skill in user.skills],
+                            "rating": float(user.average_job_rating) if user.average_job_rating else 4.5,
+                            "travel_time_minutes": travel_time_minutes
+                        }],
+                        estimated_duration_hours=request.estimated_duration_hours,
+                        slot_quality_score=quality_score,
+                        pricing_info={
+                            "base_price": base_price,
+                            "estimated_price": estimated_price,
+                            "pricing_factors": pricing_factors
+                        },
+                        weather_impact=weather_impact,
+                        travel_time_minutes=travel_time_minutes,
+                        confidence_score=0.85,  # Base confidence
+                        alternative_times=[],  # Would be populated with nearby slots
+                        booking_deadline=current_time - timedelta(hours=2),  # 2 hours before
+                        cancellation_policy="24_hours"
+                    )
+                    
+                    # Enhance slot with calendar-aware data
+                    slot = await self._enhance_time_slot_with_calendar_data(slot, user)
+                    
+                    time_slots.append(slot)
             
             current_time += slot_interval
         
@@ -898,152 +928,160 @@ class IntelligentSchedulingUseCase:
                                         end_time: datetime,
                                         required_skills: List[str]) -> bool:
         """Check if user is available for a specific time slot."""
-        # Check day of week availability
-        day_of_week = start_time.weekday()
-        if not user.is_available_on_day(day_of_week):
+        # Check day of week availability using enhanced calendar system
+        if not user.is_available_on_datetime(start_time):
             return False
         
         # Check if user has required skills
         if not user.matches_job_requirements(required_skills):
             return False
         
-        # Check availability windows
-        for window in user.availability_windows:
-            if window.day_of_week == day_of_week:
-                window_start = datetime.combine(start_time.date(), window.start_time)
-                window_end = datetime.combine(start_time.date(), window.end_time)
+        # Check working hours template
+        if user.working_hours_template:
+            day_of_week = start_time.weekday()
+            working_hours = user.working_hours_template.get_working_hours_for_day(day_of_week)
+            if not working_hours:
+                return False
+            
+            start_time_only = start_time.time()
+            end_time_only = end_time.time()
+            work_start, work_end = working_hours
+            
+            # Check if slot fits within working hours
+            if not (work_start <= start_time_only and end_time_only <= work_end):
+                return False
+        
+        # Check for time off conflicts
+        for time_off in user.time_off_requests:
+            if (time_off.is_approved() and time_off.affects_scheduling and
+                time_off.overlaps_with_date(start_time.date())):
+                return False
+        
+        # Check for calendar event conflicts
+        for event in user.calendar_events:
+            if (event.blocks_scheduling and event.is_active_on_date(start_time.date())):
+                # Check time overlap
+                event_start = datetime.combine(start_time.date(), event.start_datetime.time())
+                event_end = datetime.combine(start_time.date(), event.end_datetime.time())
                 
-                # Check if slot fits within availability window
-                if window_start <= start_time and end_time <= window_end:
-                    return True
+                # Check for overlap
+                if not (end_time <= event_start or start_time >= event_end):
+                    # Allow emergency override if configured
+                    if not event.allows_emergency_override:
+                        return False
         
-        return False
+        # Check calendar preferences
+        if user.calendar_preferences:
+            prefs = user.calendar_preferences
+            
+            # Check weekend availability
+            if start_time.weekday() >= 5 and not prefs.weekend_availability:
+                return False
+            
+            # Check auto-decline outside hours
+            if prefs.auto_decline_outside_hours:
+                if user.working_hours_template:
+                    day_of_week = start_time.weekday()
+                    working_hours = user.working_hours_template.get_working_hours_for_day(day_of_week)
+                    if working_hours:
+                        start_time_only = start_time.time()
+                        work_start, work_end = working_hours
+                        if not (work_start <= start_time_only <= work_end):
+                            return False
+        
+        return True
 
-    async def _calculate_travel_time_for_slot(self,
-                                            user: UserCapabilities,
-                                            job_address: Optional[Dict[str, Any]]) -> int:
-        """Calculate travel time from user's location to job location."""
-        if not job_address or not user.home_base_latitude or not user.home_base_longitude:
-            return 30  # Default travel time
+    async def _enhance_time_slot_with_calendar_data(self,
+                                                  slot: TimeSlotDTO,
+                                                  user: UserCapabilities) -> TimeSlotDTO:
+        """Enhance time slot with calendar-aware data."""
+        # Apply calendar preferences for better scoring
+        if user.calendar_preferences:
+            prefs = user.calendar_preferences
+            
+            # Adjust quality score based on preferences
+            quality_adjustment = 0.0
+            
+            # Prefer slots within preferred working hours
+            if user.working_hours_template:
+                day_of_week = slot.start_time.weekday()
+                working_hours = user.working_hours_template.get_working_hours_for_day(day_of_week)
+                if working_hours:
+                    work_start, work_end = working_hours
+                    slot_start = slot.start_time.time()
+                    
+                    # Bonus for being within core hours
+                    if work_start <= slot_start <= work_end:
+                        quality_adjustment += 0.1
+            
+            # Apply travel buffer preferences
+            if hasattr(slot, 'travel_time_minutes') and slot.travel_time_minutes:
+                buffered_time = slot.travel_time_minutes * float(prefs.travel_buffer_percentage)
+                slot.travel_time_minutes = int(buffered_time)
+            
+            # Apply job buffer time
+            if prefs.job_buffer_minutes > 0:
+                # Extend slot duration by buffer time
+                buffer_delta = timedelta(minutes=prefs.job_buffer_minutes)
+                slot.end_time = slot.end_time + buffer_delta
+            
+            # Update quality score
+            slot.slot_quality_score = min(1.0, slot.slot_quality_score + quality_adjustment)
         
-        try:
-            user_location = {
-                "latitude": user.home_base_latitude,
-                "longitude": user.home_base_longitude
-            }
-            
-            job_location = {
-                "latitude": job_address.get("latitude"),
-                "longitude": job_address.get("longitude")
-            }
-            
-            if not job_location["latitude"] or not job_location["longitude"]:
-                return 30  # Default if coordinates missing
-            
-            travel_result = await self.travel_time_service.get_travel_time(
-                user_location, job_location
-            )
-            
-            return travel_result.get("duration_minutes", 30)
-            
-        except Exception as e:
-            logger.warning(f"Could not calculate travel time: {str(e)}")
-            return 30  # Default fallback
+        return slot
 
     def _calculate_slot_quality_score(self,
-                                    slot_time: datetime,
-                                    available_technicians: List[Dict],
+                                    user: UserCapabilities,
+                                    start_time: datetime,
+                                    end_time: datetime,
                                     request: AvailableTimeSlotRequestDTO) -> float:
-        """Calculate quality score for a time slot."""
-        base_score = 0.5
+        """Calculate quality score for a time slot considering calendar preferences."""
+        base_score = 0.7  # Base quality score
         
-        # Time of day bonus
-        hour = slot_time.hour
-        if 9 <= hour <= 17:  # Business hours
-            base_score += 0.2
-        elif 8 <= hour <= 18:  # Extended hours
-            base_score += 0.1
-        
-        # Technician quality bonus
-        if available_technicians:
-            avg_rating = sum(tech.get("rating", 4.0) for tech in available_technicians) / len(available_technicians)
-            base_score += (avg_rating - 4.0) * 0.2  # Bonus for ratings above 4.0
-            
-            # Experience bonus
-            avg_experience = sum(tech.get("experience_years", 2) for tech in available_technicians) / len(available_technicians)
-            base_score += min(0.2, avg_experience * 0.05)  # Up to 0.2 bonus for experience
-        
-        # Day of week adjustment
-        if slot_time.weekday() < 5:  # Weekday
-            base_score += 0.1
-        
-        # Priority adjustment
-        if request.priority == "high":
-            base_score += 0.1
-        elif request.priority == "urgent":
+        # Skill match bonus
+        if user.matches_job_requirements(request.required_skills):
             base_score += 0.2
         
-        return min(1.0, max(0.0, base_score))
-
-    def _generate_slot_notes(self, slot_time: datetime, available_technicians: List[Dict]) -> Optional[str]:
-        """Generate descriptive notes for a time slot."""
-        notes = []
+        # Performance metrics bonus
+        if user.average_job_rating:
+            rating_bonus = (float(user.average_job_rating) - 3.0) / 2.0 * 0.1  # Scale 3-5 to 0-0.1
+            base_score += rating_bonus
         
-        # Time-based notes
-        hour = slot_time.hour
-        if 9 <= hour <= 11:
-            notes.append("Optimal morning slot")
-        elif 14 <= hour <= 16:
-            notes.append("Prime afternoon slot")
-        
-        # Technician-based notes
-        if available_technicians:
-            best_tech = max(available_technicians, key=lambda t: t.get("rating", 0))
-            if best_tech.get("rating", 0) >= 4.8:
-                notes.append("Highly rated technician available")
+        # Calendar preferences adjustments
+        if user.calendar_preferences:
+            prefs = user.calendar_preferences
             
-            if best_tech.get("experience_years", 0) >= 5:
-                notes.append("Experienced technician available")
+            # Preferred time bonus
+            if user.working_hours_template:
+                day_of_week = start_time.weekday()
+                working_hours = user.working_hours_template.get_working_hours_for_day(day_of_week)
+                if working_hours:
+                    work_start, work_end = working_hours
+                    slot_start = start_time.time()
+                    
+                    # Calculate how centered the slot is within working hours
+                    work_duration = datetime.combine(datetime.today(), work_end) - datetime.combine(datetime.today(), work_start)
+                    work_midpoint = datetime.combine(datetime.today(), work_start) + work_duration / 2
+                    slot_time = datetime.combine(datetime.today(), slot_start)
+                    
+                    # Closer to midpoint = higher score
+                    time_diff = abs((slot_time - work_midpoint).total_seconds())
+                    max_diff = work_duration.total_seconds() / 2
+                    centrality_score = 1.0 - (time_diff / max_diff)
+                    base_score += centrality_score * 0.1
+            
+            # Weekend penalty if not preferred
+            if start_time.weekday() >= 5 and not prefs.weekend_availability:
+                base_score -= 0.2
         
-        return "; ".join(notes) if notes else None
-
-    async def _calculate_slot_pricing(self, slot: TimeSlotDTO, request: AvailableTimeSlotRequestDTO) -> Dict[str, Any]:
-        """Calculate pricing information for a time slot."""
-        # Base pricing logic (would be more sophisticated in production)
-        base_rate = 120.0  # Base hourly rate
-        duration_hours = request.estimated_duration_hours
+        # Time of day preferences
+        hour = start_time.hour
+        if 9 <= hour <= 17:  # Business hours bonus
+            base_score += 0.05
+        elif hour < 8 or hour > 18:  # Early/late penalty
+            base_score -= 0.1
         
-        # Time-based pricing adjustments
-        hour = slot.start_time.hour
-        if hour < 8 or hour > 18:  # After hours
-            base_rate *= 1.25
-        elif slot.start_time.weekday() >= 5:  # Weekend
-            base_rate *= 1.15
-        
-        # Travel fee
-        travel_fee = max(10.0, slot.estimated_travel_time_minutes * 0.5)
-        
-        # Priority surcharge
-        priority_multiplier = {
-            "low": 1.0,
-            "medium": 1.0,
-            "high": 1.1,
-            "urgent": 1.25,
-            "emergency": 1.5
-        }.get(request.priority, 1.0)
-        
-        subtotal = (base_rate * duration_hours) * priority_multiplier
-        total = subtotal + travel_fee
-        
-        return {
-            "base_rate": base_rate,
-            "duration_hours": duration_hours,
-            "subtotal": round(subtotal, 2),
-            "travel_fee": round(travel_fee, 2),
-            "priority_surcharge": round(subtotal * (priority_multiplier - 1), 2),
-            "total_estimate": round(total, 2),
-            "currency": "USD"
-        }
+        return max(0.0, min(1.0, base_score))
 
     # Additional helper methods for booking functionality
     async def _validate_slot_availability(self, business_id: uuid.UUID, slot_id: str) -> bool:
