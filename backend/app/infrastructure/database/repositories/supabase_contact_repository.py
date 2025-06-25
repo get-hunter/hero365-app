@@ -228,7 +228,7 @@ class SupabaseContactRepository(ContactRepository):
                         skip: int = 0, limit: int = 100) -> List[Contact]:
         """Get contacts by tag within a business."""
         try:
-            # Using PostgREST array contains operator
+            # Using PostgREST JSONB contains operator for the new tags field
             response = self.client.table(self.table_name).select("*").eq(
                 "business_id", str(business_id)
             ).contains("tags", f'["{tag}"]').range(
@@ -375,8 +375,6 @@ class SupabaseContactRepository(ContactRepository):
                           tag: str) -> int:
         """Bulk add tag to contacts."""
         try:
-            # This is a simplified implementation - in practice, you'd want to 
-            # merge with existing tags rather than replace
             contact_ids_str = [str(cid) for cid in contact_ids]
             
             # Get current contacts to merge tags
@@ -389,13 +387,15 @@ class SupabaseContactRepository(ContactRepository):
                 current_tags = contact_data.get("tags", [])
                 if isinstance(current_tags, str):
                     current_tags = json.loads(current_tags)
+                elif current_tags is None:
+                    current_tags = []
                 
                 if tag not in current_tags:
                     current_tags.append(tag)
                 
                 updates.append({
                     "id": contact_data["id"],
-                    "tags": json.dumps(current_tags),
+                    "tags": current_tags,  # JSONB field, no need to json.dumps()
                     "last_modified": datetime.now().isoformat()
                 })
             
@@ -593,13 +593,13 @@ class SupabaseContactRepository(ContactRepository):
             "address": json.dumps(address_dict) if address_dict else None,
             "priority": contact.priority.value,
             "source": contact.source.value if contact.source else None,
-            "tags": json.dumps(contact.tags),
+            "tags": contact.tags,
             "notes": contact.notes,
             "estimated_value": contact.estimated_value,
             "currency": contact.currency,
             "assigned_to": contact.assigned_to,
             "created_by": contact.created_by,
-            "custom_fields": json.dumps(contact.custom_fields),
+            "custom_fields": contact.custom_fields,
             "created_date": contact.created_date.isoformat() if contact.created_date else None,
             "last_modified": contact.last_modified.isoformat() if contact.last_modified else None,
             "last_contacted": contact.last_contacted.isoformat() if contact.last_contacted else None

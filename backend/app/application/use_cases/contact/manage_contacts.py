@@ -90,6 +90,17 @@ class ManageContactsUseCase:
                 country=dto.address.country
             )
         
+        # Debug logging
+        logger.info(f"🔧 Creating contact with data:")
+        logger.info(f"    Business ID: {dto.business_id}")
+        logger.info(f"    Contact Type: {dto.contact_type}")
+        logger.info(f"    First Name: {dto.first_name}")
+        logger.info(f"    Last Name: {dto.last_name}")
+        logger.info(f"    Email: {dto.email}")
+        logger.info(f"    Phone: {dto.phone}")
+        logger.info(f"    Created By: {user_id}")
+        logger.info(f"    Custom Fields: {dto.custom_fields}")
+        
         contact = Contact.create_contact(
             business_id=dto.business_id,
             contact_type=dto.contact_type,

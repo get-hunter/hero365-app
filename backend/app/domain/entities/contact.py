@@ -362,7 +362,8 @@ class Contact:
         )
         
         # Initialize status history
-        contact.add_status_history_entry(None, relationship_status, created_by, "Initial status")
+        if created_by:  # Only add status history if created_by is provided
+            contact.add_status_history_entry(None, relationship_status, created_by, "Initial status")
         
         return contact
     
