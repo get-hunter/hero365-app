@@ -1,7 +1,10 @@
 import sentry_sdk
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.routing import APIRoute
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 
 from app.api.main import api_router
 from app.api.middleware.middleware_manager import middleware_manager
@@ -16,6 +19,34 @@ def custom_generate_unique_id(route: APIRoute) -> str:
     if route.tags:
         return f"{route.tags[0]}-{route.name}"
     return route.name
+
+
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Custom handler for validation errors to provide detailed logging."""
+    logger.error(f"🚨 Validation error on {request.method} {request.url.path}")
+    logger.error(f"🚨 Validation error details: {exc.errors()}")
+    logger.error(f"🚨 Request body: {await request.body()}")
+    
+    # Extract validation error details
+    details = []
+    for error in exc.errors():
+        details.append({
+            "field": ".".join(str(loc) for loc in error.get("loc", [])),
+            "message": error.get("msg", ""),
+            "type": error.get("type", ""),
+            "input": error.get("input", "")
+        })
+    
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": {
+                "type": "validation_error",
+                "message": "Request validation failed",
+                "details": details
+            }
+        }
+    )
 
 
 def create_application() -> FastAPI:
@@ -43,6 +74,9 @@ def create_application() -> FastAPI:
             }
         ] if settings.ENVIRONMENT == "production" else None
     )
+
+    # Add custom exception handlers
+    application.add_exception_handler(RequestValidationError, validation_exception_handler)
 
     # Apply all middlewares using the middleware manager
     logger.info("🔧 Applying middleware stack...")

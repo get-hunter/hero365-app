@@ -564,17 +564,6 @@ class SupabaseContactRepository(ContactRepository):
     
     def _contact_to_dict(self, contact: Contact) -> Dict[str, Any]:
         """Convert Contact entity to database dictionary."""
-        # Convert address to dictionary if it exists
-        address_dict = None
-        if contact.address:
-            address_dict = {
-                "street_address": contact.address.street_address,
-                "city": contact.address.city,
-                "state": contact.address.state,
-                "postal_code": contact.address.postal_code,
-                "country": contact.address.country
-            }
-        
         return {
             "id": str(contact.id),
             "business_id": str(contact.business_id),
@@ -590,7 +579,11 @@ class SupabaseContactRepository(ContactRepository):
             "phone": contact.phone,
             "mobile_phone": contact.mobile_phone,
             "website": contact.website,
-            "address": json.dumps(address_dict) if address_dict else None,
+            "street_address": contact.address.street_address if contact.address else None,
+            "city": contact.address.city if contact.address else None,
+            "state": contact.address.state if contact.address else None,
+            "postal_code": contact.address.postal_code if contact.address else None,
+            "country": contact.address.country if contact.address else None,
             "priority": contact.priority.value,
             "source": contact.source.value if contact.source else None,
             "tags": contact.tags,
@@ -607,27 +600,27 @@ class SupabaseContactRepository(ContactRepository):
     
     def _dict_to_contact(self, data: Dict[str, Any]) -> Contact:
         """Convert database dictionary to Contact entity."""
-        # Parse address
+        # Build address from individual fields
         address = None
-        if data.get("address"):
-            if isinstance(data["address"], str):
-                address_data = json.loads(data["address"])
-            else:
-                address_data = data["address"]
-            
+        if any([data.get("street_address"), data.get("city"), data.get("state"), 
+                data.get("postal_code"), data.get("country")]):
             address = ContactAddress(
-                street_address=address_data.get("street_address"),
-                city=address_data.get("city"),
-                state=address_data.get("state"),
-                postal_code=address_data.get("postal_code"),
-                country=address_data.get("country")
+                street_address=data.get("street_address"),
+                city=data.get("city"),
+                state=data.get("state"),
+                postal_code=data.get("postal_code"),
+                country=data.get("country")
             )
         
         # Parse tags
         tags = []
         if data.get("tags"):
             if isinstance(data["tags"], str):
-                tags = json.loads(data["tags"])
+                try:
+                    tags = json.loads(data["tags"])
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.warning(f"Failed to parse tags JSON: {e}")
+                    tags = []
             else:
                 tags = data["tags"]
         
@@ -635,7 +628,11 @@ class SupabaseContactRepository(ContactRepository):
         custom_fields = {}
         if data.get("custom_fields"):
             if isinstance(data["custom_fields"], str):
-                custom_fields = json.loads(data["custom_fields"])
+                try:
+                    custom_fields = json.loads(data["custom_fields"])
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.warning(f"Failed to parse custom_fields JSON: {e}")
+                    custom_fields = {}
             else:
                 custom_fields = data["custom_fields"]
         

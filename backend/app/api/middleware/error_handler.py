@@ -64,7 +64,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
         Returns:
             JSONResponse with error details
         """
-        # Log the exception
+        # Log the exception with detailed type information
         logger.error(
             f"Exception occurred: {type(exc).__name__}: {str(exc)}",
             exc_info=True,
@@ -74,6 +74,14 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
                 "client": request.client.host if request.client else None
             }
         )
+        
+        # Debug logging to understand exception type
+        logger.error(f"Exception type: {type(exc)}")
+        logger.error(f"Exception module: {type(exc).__module__}")
+        logger.error(f"Exception string representation: {repr(exc)}")
+        logger.error(f"Exception has 'errors' attribute: {hasattr(exc, 'errors')}")
+        if hasattr(exc, 'errors'):
+            logger.error(f"Exception errors: {exc.errors()}")
         
         # Handle domain exceptions
         if isinstance(exc, DomainException):
@@ -159,6 +167,12 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
                     "message": error.get("msg", ""),
                     "type": error.get("type", ""),
                 })
+        
+        # Log detailed validation error information
+        logger.error(f"Validation error details: {details}")
+        logger.error(f"Full validation error: {str(exc)}")
+        if hasattr(exc, 'errors'):
+            logger.error(f"Raw validation errors: {exc.errors()}")
         
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -3,4 +3,4 @@ description:
 globs: 
 alwaysApply: true
 ---
-We don't need code implementations with for backward compatibility because the app still on development. (don't generate legacy code)
+The app is not in production. We don't need code implementations with for backward compatibility because the app still on development. (don't generate legacy code)

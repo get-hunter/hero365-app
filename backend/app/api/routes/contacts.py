@@ -50,45 +50,58 @@ async def create_contact(
     Creates a new contact for the current business with the provided information.
     Requires 'edit_contacts' permission.
     """
-    # Convert address if provided
-    address_dto = None
-    if request.address:
-        address_dto = ContactAddressDTO(
-            street_address=request.address.street_address,
-            city=request.address.city,
-            state=request.address.state,
-            postal_code=request.address.postal_code,
-            country=request.address.country
-        )
-    
-    # Create DTO
-    create_dto = ContactCreateDTO(
-        business_id=business_id,
-        contact_type=ContactType(request.contact_type.value),
-        first_name=request.first_name,
-        last_name=request.last_name,
-        company_name=request.company_name,
-        job_title=request.job_title,
-        email=request.email,
-        phone=request.phone,
-        mobile_phone=request.mobile_phone,
-        website=request.website,
-        address=address_dto,
-        priority=ContactPriority(request.priority.value),
-        source=ContactSource(request.source.value) if request.source else None,
-        tags=request.tags,
-        notes=request.notes,
-        estimated_value=request.estimated_value,
-        currency=request.currency,
-        assigned_to=request.assigned_to,
-        created_by=current_user["sub"],
-        custom_fields=request.custom_fields
-    )
+    logger.info(f"🔧 ContactAPI: Starting contact creation for business {business_id}")
+    logger.info(f"🔧 ContactAPI: Request data: {request}")
     
     try:
+        # Convert address if provided
+        address_dto = None
+        if request.address:
+            logger.info(f"🔧 ContactAPI: Converting address: {request.address}")
+            address_dto = ContactAddressDTO(
+                street_address=request.address.street_address,
+                city=request.address.city,
+                state=request.address.state,
+                postal_code=request.address.postal_code,
+                country=request.address.country
+            )
+        
+        logger.info(f"🔧 ContactAPI: Creating DTO with contact_type: {request.contact_type}")
+        
+        # Create DTO
+        create_dto = ContactCreateDTO(
+            business_id=business_id,
+            contact_type=ContactType(request.contact_type.value),
+            first_name=request.first_name,
+            last_name=request.last_name,
+            company_name=request.company_name,
+            job_title=request.job_title,
+            email=request.email,
+            phone=request.phone,
+            mobile_phone=request.mobile_phone,
+            website=request.website,
+            address=address_dto,
+            priority=ContactPriority(request.priority.value),
+            source=ContactSource(request.source.value) if request.source else None,
+            tags=request.tags,
+            notes=request.notes,
+            estimated_value=request.estimated_value,
+            currency=request.currency,
+            assigned_to=request.assigned_to,
+            created_by=current_user["sub"],
+            custom_fields=request.custom_fields
+        )
+        
+        logger.info(f"🔧 ContactAPI: DTO created successfully, calling use case")
+        
         contact_dto = await use_case.create_contact(create_dto, current_user["sub"])
+        logger.info(f"🔧 ContactAPI: Use case completed successfully")
         return _contact_dto_to_response(contact_dto)
     except Exception as e:
+        logger.error(f"❌ ContactAPI: Error creating contact: {str(e)}")
+        logger.error(f"❌ ContactAPI: Error type: {type(e)}")
+        import traceback
+        logger.error(f"❌ ContactAPI: Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
@@ -134,44 +147,55 @@ async def update_contact(
     Updates an existing contact with the provided information.
     Requires 'edit_contacts' permission.
     """
-    # Convert address if provided
-    address_dto = None
-    if request.address:
-        address_dto = ContactAddressDTO(
-            street_address=request.address.street_address,
-            city=request.address.city,
-            state=request.address.state,
-            postal_code=request.address.postal_code,
-            country=request.address.country
-        )
-    
-    # Create update DTO
-    update_dto = ContactUpdateDTO(
-        contact_id=contact_id,
-        business_id=business_id,
-        first_name=request.first_name,
-        last_name=request.last_name,
-        company_name=request.company_name,
-        job_title=request.job_title,
-        email=request.email,
-        phone=request.phone,
-        mobile_phone=request.mobile_phone,
-        website=request.website,
-        address=address_dto,
-        priority=ContactPriority(request.priority.value) if request.priority else None,
-        source=ContactSource(request.source.value) if request.source else None,
-        tags=request.tags,
-        notes=request.notes,
-        estimated_value=request.estimated_value,
-        currency=request.currency,
-        assigned_to=request.assigned_to,
-        custom_fields=request.custom_fields
-    )
+    logger.info(f"🔧 ContactAPI: Starting contact update for contact {contact_id}")
+    logger.info(f"🔧 ContactAPI: Request data: {request}")
     
     try:
+        # Convert address if provided
+        address_dto = None
+        if request.address:
+            logger.info(f"🔧 ContactAPI: Converting address: {request.address}")
+            address_dto = ContactAddressDTO(
+                street_address=request.address.street_address,
+                city=request.address.city,
+                state=request.address.state,
+                postal_code=request.address.postal_code,
+                country=request.address.country
+            )
+        
+        # Create update DTO
+        update_dto = ContactUpdateDTO(
+            contact_id=contact_id,
+            business_id=business_id,
+            first_name=request.first_name,
+            last_name=request.last_name,
+            company_name=request.company_name,
+            job_title=request.job_title,
+            email=request.email,
+            phone=request.phone,
+            mobile_phone=request.mobile_phone,
+            website=request.website,
+            address=address_dto,
+            priority=ContactPriority(request.priority.value) if request.priority else None,
+            source=ContactSource(request.source.value) if request.source else None,
+            tags=request.tags,
+            notes=request.notes,
+            estimated_value=request.estimated_value,
+            currency=request.currency,
+            assigned_to=request.assigned_to,
+            custom_fields=request.custom_fields
+        )
+        
+        logger.info(f"🔧 ContactAPI: DTO created successfully, calling use case")
+        
         contact_dto = await use_case.update_contact(update_dto, current_user["sub"])
+        logger.info(f"🔧 ContactAPI: Use case completed successfully")
         return _contact_dto_to_response(contact_dto)
     except Exception as e:
+        logger.error(f"❌ ContactAPI: Error updating contact: {str(e)}")
+        logger.error(f"❌ ContactAPI: Error type: {type(e)}")
+        import traceback
+        logger.error(f"❌ ContactAPI: Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
