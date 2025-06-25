@@ -5,8 +5,12 @@ Handles the business logic for contact management operations including CRUD, sea
 """
 
 import uuid
+import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 from ...dto.contact_dto import (
     ContactCreateDTO, ContactUpdateDTO, ContactResponseDTO, ContactListDTO,
@@ -812,8 +816,13 @@ class ManageContactsUseCase:
         address_dto = None
         if contact_data.get("address"):
             if isinstance(contact_data["address"], str):
-                import json
-                address_data = json.loads(contact_data["address"])
+                try:
+                    import json
+                    address_data = json.loads(contact_data["address"])
+                except (json.JSONDecodeError, ValueError) as e:
+                    # If JSON parsing fails, log the error and skip address
+                    logger.warning(f"Failed to parse address JSON for contact {contact_data.get('id')}: {str(e)}")
+                    address_data = None
             else:
                 address_data = contact_data["address"]
             
@@ -826,23 +835,33 @@ class ManageContactsUseCase:
                     country=address_data.get("country")
                 )
         
-        # Handle tags
+        # Handle tags with safe JSON parsing
         tags = []
         if contact_data.get("tags"):
             if isinstance(contact_data["tags"], str):
-                import json
-                tags = json.loads(contact_data["tags"])
+                try:
+                    import json
+                    tags = json.loads(contact_data["tags"])
+                except (json.JSONDecodeError, ValueError) as e:
+                    # If JSON parsing fails, log the error and default to empty list
+                    logger.warning(f"Failed to parse tags JSON for contact {contact_data.get('id')}: {str(e)}")
+                    tags = []
             else:
-                tags = contact_data["tags"]
+                tags = contact_data["tags"] or []
         
-        # Handle custom fields
+        # Handle custom fields with safe JSON parsing
         custom_fields = {}
         if contact_data.get("custom_fields"):
             if isinstance(contact_data["custom_fields"], str):
-                import json
-                custom_fields = json.loads(contact_data["custom_fields"])
+                try:
+                    import json
+                    custom_fields = json.loads(contact_data["custom_fields"])
+                except (json.JSONDecodeError, ValueError) as e:
+                    # If JSON parsing fails, log the error and default to empty dict
+                    logger.warning(f"Failed to parse custom_fields JSON for contact {contact_data.get('id')}: {str(e)}")
+                    custom_fields = {}
             else:
-                custom_fields = contact_data["custom_fields"]
+                custom_fields = contact_data["custom_fields"] or {}
         
         # Handle dates
         created_date = None
@@ -922,22 +941,72 @@ class ManageContactsUseCase:
         relationship_status_str = contact_data.get("relationship_status", "prospect")
         lifecycle_stage_str = contact_data.get("lifecycle_stage", "awareness")
         
-        # Convert to enums if they are strings
+        # Convert to enums if they are strings with safe parsing
         if isinstance(relationship_status_str, str):
-            relationship_status_enum = RelationshipStatus(relationship_status_str)
+            try:
+                relationship_status_enum = RelationshipStatus(relationship_status_str)
+            except ValueError as e:
+                # Handle invalid enum values - map common variations or default to PROSPECT
+                status_mapping = {
+                    'active_customer': RelationshipStatus.ACTIVE_CLIENT,
+                    'customer': RelationshipStatus.ACTIVE_CLIENT,
+                    'client': RelationshipStatus.ACTIVE_CLIENT,
+                    'lead': RelationshipStatus.QUALIFIED_LEAD,
+                    'potential': RelationshipStatus.PROSPECT
+                }
+                relationship_status_enum = status_mapping.get(relationship_status_str.lower(), RelationshipStatus.PROSPECT)
+                logger.warning(f"Invalid relationship_status '{relationship_status_str}' for contact {contact_data.get('id')}, mapped to {relationship_status_enum.value}")
         else:
             relationship_status_enum = relationship_status_str or RelationshipStatus.PROSPECT
             
         if isinstance(lifecycle_stage_str, str):
-            lifecycle_stage_enum = LifecycleStage(lifecycle_stage_str)
+            try:
+                lifecycle_stage_enum = LifecycleStage(lifecycle_stage_str)
+            except ValueError as e:
+                # Handle invalid enum values - default to AWARENESS
+                stage_mapping = {
+                    'customer': LifecycleStage.CUSTOMER,
+                    'client': LifecycleStage.CUSTOMER,
+                    'new': LifecycleStage.AWARENESS,
+                    'lead': LifecycleStage.INTEREST
+                }
+                lifecycle_stage_enum = stage_mapping.get(lifecycle_stage_str.lower(), LifecycleStage.AWARENESS)
+                logger.warning(f"Invalid lifecycle_stage '{lifecycle_stage_str}' for contact {contact_data.get('id')}, mapped to {lifecycle_stage_enum.value}")
         else:
             lifecycle_stage_enum = lifecycle_stage_str or LifecycleStage.AWARENESS
         
+        # Safe enum conversions for other fields
+        try:
+            contact_type_enum = ContactType(contact_data["contact_type"])
+        except ValueError:
+            contact_type_enum = ContactType.PROSPECT
+            logger.warning(f"Invalid contact_type '{contact_data.get('contact_type')}' for contact {contact_data.get('id')}, defaulted to prospect")
+        
+        try:
+            status_enum = ContactStatus(contact_data["status"])
+        except ValueError:
+            status_enum = ContactStatus.ACTIVE
+            logger.warning(f"Invalid status '{contact_data.get('status')}' for contact {contact_data.get('id')}, defaulted to active")
+        
+        try:
+            priority_enum = ContactPriority(contact_data.get("priority", "medium"))
+        except ValueError:
+            priority_enum = ContactPriority.MEDIUM
+            logger.warning(f"Invalid priority '{contact_data.get('priority')}' for contact {contact_data.get('id')}, defaulted to medium")
+        
+        source_enum = None
+        if contact_data.get("source"):
+            try:
+                source_enum = ContactSource(contact_data["source"])
+            except ValueError:
+                source_enum = None
+                logger.warning(f"Invalid source '{contact_data.get('source')}' for contact {contact_data.get('id')}, set to None")
+
         temp_contact = Contact(
             id=uuid.UUID(contact_data["id"]),
             business_id=uuid.UUID(contact_data["business_id"]),
-            contact_type=ContactType(contact_data["contact_type"]),
-            status=ContactStatus(contact_data["status"]),
+            contact_type=contact_type_enum,
+            status=status_enum,
             relationship_status=relationship_status_enum,
             lifecycle_stage=lifecycle_stage_enum,
             first_name=contact_data.get("first_name"),
@@ -946,15 +1015,15 @@ class ManageContactsUseCase:
             email=email,
             phone=phone,
             mobile_phone=mobile_phone,
-            priority=ContactPriority(contact_data.get("priority", "medium")),
-            source=ContactSource(contact_data["source"]) if contact_data.get("source") else None,
+            priority=priority_enum,
+            source=source_enum,
         )
         
         return ContactResponseDTO(
             id=uuid.UUID(contact_data["id"]),
             business_id=uuid.UUID(contact_data["business_id"]),
-            contact_type=ContactType(contact_data["contact_type"]),
-            status=ContactStatus(contact_data["status"]),
+            contact_type=contact_type_enum,
+            status=status_enum,
             relationship_status=relationship_status_enum,
             lifecycle_stage=lifecycle_stage_enum,
             first_name=contact_data.get("first_name"),
@@ -966,8 +1035,8 @@ class ManageContactsUseCase:
             mobile_phone=contact_data.get("mobile_phone"),
             website=contact_data.get("website"),
             address=address_dto,
-            priority=ContactPriority(contact_data.get("priority", "medium")),
-            source=ContactSource(contact_data["source"]) if contact_data.get("source") else None,
+            priority=priority_enum,
+            source=source_enum,
             tags=tags,
             notes=contact_data.get("notes"),
             estimated_value=float(contact_data["estimated_value"]) if contact_data.get("estimated_value") else None,

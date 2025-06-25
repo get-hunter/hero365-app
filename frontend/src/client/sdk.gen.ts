@@ -59,6 +59,8 @@ import type {
   AuthAppleSignInResponse,
   AuthGoogleSignInData,
   AuthGoogleSignInResponse,
+  AuthRevokeUserTokensData,
+  AuthRevokeUserTokensResponse,
   BusinessContextGetCurrentBusinessContextResponse,
   BusinessContextSwitchBusinessContextData,
   BusinessContextSwitchBusinessContextResponse,
@@ -948,6 +950,33 @@ export class AuthService {
       url: "/api/v1/auth/google/signin",
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Revoke User Tokens
+   * Revoke all tokens for a specific user (force sign out).
+   *
+   * This endpoint allows admins to invalidate all JWT tokens for a user,
+   * forcing them to sign in again. Useful when a user account is compromised
+   * or when you need to force a logout.
+   * @param data The data for the request.
+   * @param data.userId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static revokeUserTokens(
+    data: AuthRevokeUserTokensData,
+  ): CancelablePromise<AuthRevokeUserTokensResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/revoke-tokens/{user_id}",
+      path: {
+        user_id: data.userId,
+      },
       errors: {
         422: "Validation Error",
       },

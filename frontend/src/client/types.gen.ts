@@ -4726,6 +4726,14 @@ export type AuthGoogleSignInData = {
 
 export type AuthGoogleSignInResponse = OAuthSignInResponse
 
+export type AuthRevokeUserTokensData = {
+  userId: string
+}
+
+export type AuthRevokeUserTokensResponse = {
+  [key: string]: unknown
+}
+
 export type BusinessContextGetCurrentBusinessContextResponse =
   BusinessContextInfoResponse
 

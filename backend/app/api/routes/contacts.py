@@ -242,7 +242,7 @@ async def list_contacts(
         logger.info(f"🔑 ContactsAPI: Current membership found:")
         logger.info(f"    Role: {current_membership.get('role')}")
         logger.info(f"    Permissions: {current_membership.get('permissions', [])}")
-        logger.info(f"    Has view_contacts: {'view_contacts' in current_membership.get('permissions', [])}")
+        # Note: The wildcard permission check is now handled correctly in the middleware and entity layer
     else:
         logger.warning(f"⚠️  ContactsAPI: No membership found for business {business_id}")
     

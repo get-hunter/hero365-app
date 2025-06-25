@@ -293,7 +293,15 @@ class BusinessMembership:
     
     def has_permission(self, permission: str) -> bool:
         """Check if membership has a specific permission."""
-        return self.is_active and permission in self.permissions
+        if not self.is_active:
+            return False
+        
+        # Special case: wildcard permission grants all permissions
+        if "*" in self.permissions:
+            return True
+            
+        # Check for specific permission
+        return permission in self.permissions
     
     def has_business_permission(self, permission: BusinessPermission) -> bool:
         """Check if membership has a specific business permission."""
