@@ -129,6 +129,29 @@ wait_for_deployment() {
     echo "⚠️  Deployment timeout. Check AWS console for details."
 }
 
+# Function to configure ALB routes
+configure_alb_routes() {
+    echo "🛣️  Configuring ALB routes for all FastAPI endpoints..."
+    
+    # Run the ALB configuration script
+    local alb_script="$SCRIPT_DIR/../configure-alb-routes.sh"
+    
+    if [ -f "$alb_script" ]; then
+        chmod +x "$alb_script"
+        if "$alb_script"; then
+            echo "✅ ALB routes configured successfully"
+        else
+            echo "⚠️  ALB route configuration encountered issues, but deployment continues"
+            echo "   You may need to configure routes manually or check AWS permissions"
+        fi
+    else
+        echo "⚠️  ALB configuration script not found at: $alb_script"
+        echo "   All endpoints may not be accessible until routes are configured"
+    fi
+    
+    echo ""
+}
+
 # Function to verify deployment
 verify_deployment() {
     echo "🔍 Verifying deployment..."
@@ -151,6 +174,14 @@ verify_deployment() {
         return 1
     fi
     
+    # Test business endpoint (previously failing)
+    echo "Testing business endpoint..."
+    if curl -s https://api.hero365.ai/v1/businesses/debug | grep -q "Business routes are working"; then
+        echo "✅ Business endpoint responding correctly"
+    else
+        echo "⚠️  Business endpoint test failed (may need authentication)"
+    fi
+    
     echo "✅ Deployment verification passed"
     echo ""
 }
@@ -164,6 +195,16 @@ show_deployment_info() {
     echo "   Main site: https://hero365.ai"
     echo "   API: https://api.hero365.ai"
     echo "   Health: https://api.hero365.ai/health"
+    echo ""
+    echo "📱 Mobile App API Endpoints:"
+    echo "   🔐 Auth: https://api.hero365.ai/v1/auth/*"
+    echo "   👥 Users: https://api.hero365.ai/v1/users/*"
+    echo "   🏢 Businesses: https://api.hero365.ai/v1/businesses/*"
+    echo "   📞 Contacts: https://api.hero365.ai/v1/contacts/*"
+    echo "   💼 Jobs: https://api.hero365.ai/v1/jobs/*"
+    echo "   📊 Activities: https://api.hero365.ai/v1/activities/*"
+    echo "   🏢 Business Context: https://api.hero365.ai/v1/business-context/*"
+    echo "   📅 Scheduling: https://api.hero365.ai/v1/scheduling/*"
     echo ""
     echo "🔧 AWS Resources:"
     echo "   Region: $AWS_REGION"
@@ -187,6 +228,7 @@ main() {
     build_and_push
     deploy_service
     wait_for_deployment
+    configure_alb_routes
     verify_deployment
     show_deployment_info
     

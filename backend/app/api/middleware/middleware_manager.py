@@ -62,6 +62,7 @@ class MiddlewareConfig:
             f"{self.api_v1_str}/users/me",
             f"{self.api_v1_str}/business-context/",
             f"{self.api_v1_str}/businesses/me",  # User needs to discover their businesses
+            f"{self.api_v1_str}/businesses/debug",  # Debug endpoint for testing
         ]
     
     @property

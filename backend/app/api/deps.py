@@ -63,6 +63,7 @@ async def get_current_user(
         
         # Fetch user details from Supabase to get email and metadata
         try:
+            logger.info(f"Making request to Supabase Auth get_user_by_id for user: {user_id}")
             user_response = supabase.auth.admin.get_user_by_id(user_id)
             if not user_response.user:
                 logger.warning(f"User {user_id} not found in auth.users - rejecting token")
@@ -82,7 +83,20 @@ async def get_current_user(
             raise
         except Exception as e:
             logger.error(f"Failed to fetch user details for {user_id}: {str(e)}")
-            # If we can't verify the user exists, reject the token
+            logger.error(f"Exception type: {type(e).__name__}")
+            logger.error(f"Exception details: {str(e)}")
+            
+            # Check if it's a Supabase auth error specifically
+            if "AuthApiError" in str(type(e)) or "invalid JWT" in str(e).lower():
+                logger.error(f"Supabase AuthApiError detected: {str(e)}")
+                # This indicates the Supabase service key or setup is the issue
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Authentication service error - invalid token signature",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            
+            # For other errors, also reject but with different message
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Unable to verify user account",
