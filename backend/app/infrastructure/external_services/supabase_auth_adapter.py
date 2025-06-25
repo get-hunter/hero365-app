@@ -371,7 +371,30 @@ class SupabaseAuthAdapter(AuthServicePort):
     async def delete_user(self, user_id: str) -> bool:
         """Delete a user account."""
         try:
+            # First, invalidate all active sessions for the user
+            await self._invalidate_user_sessions(user_id)
+            
+            # Then delete the user
             self.admin_client.auth.admin.delete_user(user_id)
+            return True
+        except Exception:
+            return False
+    
+    async def _invalidate_user_sessions(self, user_id: str) -> bool:
+        """Invalidate all active sessions for a user."""
+        try:
+            # Get all sessions for the user and revoke them
+            # Note: This requires Supabase admin privileges
+            self.admin_client.auth.admin.sign_out(user_id, scope='global')
+            return True
+        except Exception:
+            return False
+    
+    async def revoke_user_tokens(self, user_id: str) -> bool:
+        """Revoke all tokens for a specific user."""
+        try:
+            # Sign out user from all sessions
+            self.admin_client.auth.admin.sign_out(user_id, scope='global')
             return True
         except Exception:
             return False

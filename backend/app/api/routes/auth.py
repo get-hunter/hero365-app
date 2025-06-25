@@ -1,8 +1,10 @@
 from typing import Any
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, EmailStr
 
-from app.core.auth_facade import auth_facade
+from ...api.controllers.oauth_controller import OAuthController
+from ...core.auth_facade import auth_facade
+from ...api.deps import get_current_user
 from app.infrastructure.config.dependency_injection import get_container
 from app.api.schemas.common_schemas import Message
 
@@ -11,7 +13,6 @@ from app.api.schemas.auth_schemas import (
     GoogleSignInRequest, 
     OAuthSignInResponse,
 )
-from app.api.controllers.oauth_controller import OAuthController
 
 router = APIRouter(tags=["auth"])
 
@@ -362,4 +363,43 @@ async def google_sign_in(request: GoogleSignInRequest) -> OAuthSignInResponse:
     Handle Google Sign-In using ID token from iOS app
     """
     controller = OAuthController()
-    return await controller.google_sign_in(request) 
+    return await controller.google_sign_in(request)
+
+
+@router.post("/revoke-tokens/{user_id}")
+async def revoke_user_tokens(
+    user_id: str,
+    current_user: dict = Depends(get_current_user)
+) -> dict:
+    """
+    Revoke all tokens for a specific user (force sign out).
+    
+    This endpoint allows admins to invalidate all JWT tokens for a user,
+    forcing them to sign in again. Useful when a user account is compromised
+    or when you need to force a logout.
+    """
+    # Only allow admins or the user themselves to revoke tokens
+    current_user_id = current_user.get('id') or current_user.get('sub')
+    is_admin = current_user.get('is_superuser', False)
+    
+    if not is_admin and current_user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can revoke tokens for other users"
+        )
+    
+    try:
+        success = await auth_facade.revoke_user_tokens(user_id)
+        
+        if success:
+            return {"message": "All tokens revoked successfully", "user_id": user_id}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to revoke tokens"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to revoke tokens: {str(e)}"
+        ) 

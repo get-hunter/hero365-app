@@ -64,15 +64,30 @@ async def get_current_user(
         # Fetch user details from Supabase to get email and metadata
         try:
             user_response = supabase.auth.admin.get_user_by_id(user_id)
-            user_email = user_response.user.email if user_response.user else None
-            user_phone = user_response.user.phone if user_response.user else None
+            if not user_response.user:
+                logger.warning(f"User {user_id} not found in auth.users - rejecting token")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User account no longer exists",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            
+            user_email = user_response.user.email
+            user_phone = user_response.user.phone
             user_metadata = user_response.user.user_metadata if user_response.user else {}
             logger.info(f"Fetched user details: email={user_email}")
+            
+        except HTTPException:
+            # Re-raise HTTP exceptions (like user not found)
+            raise
         except Exception as e:
-            logger.warning(f"Could not fetch user details: {str(e)}")
-            user_email = None
-            user_phone = None
-            user_metadata = {}
+            logger.error(f"Failed to fetch user details for {user_id}: {str(e)}")
+            # If we can't verify the user exists, reject the token
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Unable to verify user account",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         
         # Extract user data from enhanced JWT payload with fetched user details
         user_data = {

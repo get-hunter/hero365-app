@@ -287,6 +287,11 @@ class AuthFacade:
         auth_service = self.container.get_auth_service()
         return await auth_service.delete_user(user_id)
     
+    async def revoke_user_tokens(self, user_id: str) -> bool:
+        """Revoke all tokens for a specific user (force sign out)."""
+        auth_service = self.container.get_auth_service()
+        return await auth_service.revoke_user_tokens(user_id)
+    
     async def list_users(self, page: int = 1, per_page: int = 50) -> Dict:
         """List all users."""
         auth_service = self.container.get_auth_service()

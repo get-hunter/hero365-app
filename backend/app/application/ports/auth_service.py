@@ -308,4 +308,9 @@ class AuthServicePort(ABC):
         Returns:
             Dictionary with service health information
         """
+        pass
+    
+    @abstractmethod
+    async def revoke_user_tokens(self, user_id: str) -> bool:
+        """Revoke all tokens for a specific user."""
         pass 
