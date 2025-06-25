@@ -1,6 +1,9 @@
 -- Link User IDs to auth.users table Migration
 -- This migration converts user_id fields from text to uuid and adds foreign key constraints
 
+-- Step 0: Drop problematic views before type conversion
+DROP VIEW IF EXISTS "business_membership_permissions";
+
 -- Step 1: Drop views that depend on user_id columns to allow type conversion
 DROP VIEW IF EXISTS "contact_enhanced_summary";
 DROP VIEW IF EXISTS "contact_summary";
@@ -75,6 +78,24 @@ END;
 -- Convert business_invitations.invited_by from text to uuid
 ALTER TABLE business_invitations 
 ALTER COLUMN invited_by TYPE uuid USING invited_by::uuid;
+
+-- Convert departments.manager_id from text to uuid (nullable field)
+ALTER TABLE departments 
+ALTER COLUMN manager_id TYPE uuid USING CASE 
+    WHEN manager_id IS NULL THEN NULL 
+    ELSE manager_id::uuid 
+END;
+
+-- Convert job_templates.created_by from text to uuid
+ALTER TABLE job_templates 
+ALTER COLUMN created_by TYPE uuid USING created_by::uuid;
+
+-- Convert contact_segments.created_by from text to uuid (nullable field)
+ALTER TABLE contact_segments 
+ALTER COLUMN created_by TYPE uuid USING CASE 
+    WHEN created_by IS NULL THEN NULL 
+    ELSE created_by::uuid 
+END;
 
 -- Convert contact-related user_id fields from text to uuid
 ALTER TABLE contacts 
@@ -776,4 +797,32 @@ UPDATE business_memberships
 SET permissions = get_default_permissions_for_role(role)
 WHERE permissions = '[]'::jsonb 
    OR permissions IS NULL 
-   OR jsonb_array_length(permissions) = 0; 
+   OR jsonb_array_length(permissions) = 0;
+
+-- Step 13: Recreate business_membership_permissions view with uuid support
+CREATE VIEW business_membership_permissions AS
+SELECT 
+    bm.id,
+    bm.business_id,
+    bm.user_id,
+    bm.role,
+    bm.permissions,
+    bm.is_active,
+    bm.joined_date,
+    bm.invited_by,
+    -- Extract individual permissions for easier querying
+    CASE WHEN bm.permissions @> '["view_contacts"]'::jsonb THEN true ELSE false END as can_view_contacts,
+    CASE WHEN bm.permissions @> '["create_contacts"]'::jsonb THEN true ELSE false END as can_create_contacts,
+    CASE WHEN bm.permissions @> '["edit_contacts"]'::jsonb THEN true ELSE false END as can_edit_contacts,
+    CASE WHEN bm.permissions @> '["delete_contacts"]'::jsonb THEN true ELSE false END as can_delete_contacts,
+    CASE WHEN bm.permissions @> '["view_jobs"]'::jsonb THEN true ELSE false END as can_view_jobs,
+    CASE WHEN bm.permissions @> '["create_jobs"]'::jsonb THEN true ELSE false END as can_create_jobs,
+    CASE WHEN bm.permissions @> '["edit_jobs"]'::jsonb THEN true ELSE false END as can_edit_jobs,
+    CASE WHEN bm.permissions @> '["delete_jobs"]'::jsonb THEN true ELSE false END as can_delete_jobs,
+    CASE WHEN bm.permissions @> '["invite_team_members"]'::jsonb THEN true ELSE false END as can_invite_team_members,
+    CASE WHEN bm.permissions @> '["edit_team_members"]'::jsonb THEN true ELSE false END as can_edit_team_members,
+    CASE WHEN bm.permissions @> '["remove_team_members"]'::jsonb THEN true ELSE false END as can_remove_team_members,
+    CASE WHEN bm.permissions @> '["view_business_settings"]'::jsonb THEN true ELSE false END as can_view_business_settings,
+    CASE WHEN bm.permissions @> '["edit_business_settings"]'::jsonb THEN true ELSE false END as can_edit_business_settings
+FROM business_memberships bm
+WHERE bm.is_active = true; 

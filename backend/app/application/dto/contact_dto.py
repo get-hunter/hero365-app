@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 
-from ...domain.entities.contact import ContactType, ContactStatus, ContactSource, ContactPriority, ContactAddress
+from ...domain.entities.contact import ContactType, ContactStatus, ContactSource, ContactPriority, ContactAddress, RelationshipStatus, LifecycleStage
 from ...api.schemas.contact_schemas import UserDetailLevel
 
 
@@ -106,6 +106,8 @@ class ContactResponseDTO:
     business_id: uuid.UUID
     contact_type: ContactType
     status: ContactStatus
+    relationship_status: RelationshipStatus
+    lifecycle_stage: LifecycleStage
     first_name: Optional[str]
     last_name: Optional[str]
     company_name: Optional[str]
@@ -135,6 +137,8 @@ class ContactResponseDTO:
     status_display: str
     priority_display: str
     source_display: str
+    relationship_status_display: str
+    lifecycle_stage_display: str
 
 
 @dataclass

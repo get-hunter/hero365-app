@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 from supabase import Client
 from app.domain.repositories.contact_repository import ContactRepository
-from app.domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, ContactAddress
+from app.domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, ContactAddress, RelationshipStatus, LifecycleStage
 from app.domain.exceptions.domain_exceptions import EntityNotFoundError, DuplicateEntityError, DatabaseError
 from app.api.schemas.contact_schemas import UserDetailLevel
 
@@ -580,6 +580,8 @@ class SupabaseContactRepository(ContactRepository):
             "business_id": str(contact.business_id),
             "contact_type": contact.contact_type.value,
             "status": contact.status.value,
+            "relationship_status": contact.relationship_status.value,
+            "lifecycle_stage": contact.lifecycle_stage.value,
             "first_name": contact.first_name,
             "last_name": contact.last_name,
             "company_name": contact.company_name,
@@ -655,6 +657,8 @@ class SupabaseContactRepository(ContactRepository):
             business_id=uuid.UUID(data["business_id"]),
             contact_type=ContactType(data["contact_type"]),
             status=ContactStatus(data["status"]),
+            relationship_status=RelationshipStatus(data.get("relationship_status", "prospect")),
+            lifecycle_stage=LifecycleStage(data.get("lifecycle_stage", "awareness")),
             first_name=data.get("first_name"),
             last_name=data.get("last_name"),
             company_name=data.get("company_name"),

@@ -18,7 +18,7 @@ from app.api.schemas.contact_schemas import UserDetailLevel
 from app.domain.repositories.contact_repository import ContactRepository
 from app.domain.repositories.business_repository import BusinessRepository
 from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
-from app.domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, ContactAddress
+from app.domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, ContactAddress, RelationshipStatus, LifecycleStage
 from app.domain.exceptions.domain_exceptions import EntityNotFoundError, DuplicateEntityError
 from ...exceptions.application_exceptions import (
     ApplicationError, ValidationError, BusinessLogicError, PermissionDeniedError
@@ -623,7 +623,6 @@ class ManageContactsUseCase:
         await self._validate_user_permission(contact.business_id, user_id, "edit_contacts")
         
         # Store old status for response
-        from app.domain.entities.contact import RelationshipStatus, LifecycleStage
         old_status = contact.relationship_status
         old_lifecycle = contact.lifecycle_stage
         
@@ -727,6 +726,8 @@ class ManageContactsUseCase:
             business_id=contact.business_id,
             contact_type=contact.contact_type,
             status=contact.status,
+            relationship_status=contact.relationship_status,
+            lifecycle_stage=contact.lifecycle_stage,
             first_name=contact.first_name,
             last_name=contact.last_name,
             company_name=contact.company_name,
@@ -753,7 +754,9 @@ class ManageContactsUseCase:
             type_display=contact.get_type_display(),
             status_display=contact.get_status_display(),
             priority_display=contact.get_priority_display(),
-            source_display=contact.get_source_display()
+            source_display=contact.get_source_display(),
+            relationship_status_display=contact.get_relationship_status_display(),
+            lifecycle_stage_display=contact.get_lifecycle_stage_display()
         )
     
     def _matches_search_criteria(self, contact: Contact, search_dto: ContactSearchDTO) -> bool:
@@ -904,7 +907,7 @@ class ManageContactsUseCase:
             }
         
         # Create temporary contact entity for computed fields
-        from app.domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource
+        from app.domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, RelationshipStatus, LifecycleStage
         
         # Ensure at least one contact method for validation (use placeholder if none exist)
         email = contact_data.get("email") or None
@@ -915,11 +918,28 @@ class ManageContactsUseCase:
         if not email and not phone and not mobile_phone:
             email = "placeholder@example.com"
         
+        # Handle relationship_status and lifecycle_stage with defaults
+        relationship_status_str = contact_data.get("relationship_status", "prospect")
+        lifecycle_stage_str = contact_data.get("lifecycle_stage", "awareness")
+        
+        # Convert to enums if they are strings
+        if isinstance(relationship_status_str, str):
+            relationship_status_enum = RelationshipStatus(relationship_status_str)
+        else:
+            relationship_status_enum = relationship_status_str or RelationshipStatus.PROSPECT
+            
+        if isinstance(lifecycle_stage_str, str):
+            lifecycle_stage_enum = LifecycleStage(lifecycle_stage_str)
+        else:
+            lifecycle_stage_enum = lifecycle_stage_str or LifecycleStage.AWARENESS
+        
         temp_contact = Contact(
             id=uuid.UUID(contact_data["id"]),
             business_id=uuid.UUID(contact_data["business_id"]),
             contact_type=ContactType(contact_data["contact_type"]),
             status=ContactStatus(contact_data["status"]),
+            relationship_status=relationship_status_enum,
+            lifecycle_stage=lifecycle_stage_enum,
             first_name=contact_data.get("first_name"),
             last_name=contact_data.get("last_name"),
             company_name=contact_data.get("company_name"),
@@ -935,6 +955,8 @@ class ManageContactsUseCase:
             business_id=uuid.UUID(contact_data["business_id"]),
             contact_type=ContactType(contact_data["contact_type"]),
             status=ContactStatus(contact_data["status"]),
+            relationship_status=relationship_status_enum,
+            lifecycle_stage=lifecycle_stage_enum,
             first_name=contact_data.get("first_name"),
             last_name=contact_data.get("last_name"),
             company_name=contact_data.get("company_name"),
@@ -961,5 +983,7 @@ class ManageContactsUseCase:
             type_display=temp_contact.get_type_display(),
             status_display=temp_contact.get_status_display(),
             priority_display=temp_contact.get_priority_display(),
-            source_display=temp_contact.get_source_display()
+            source_display=temp_contact.get_source_display(),
+            relationship_status_display=temp_contact.get_relationship_status_display(),
+            lifecycle_stage_display=temp_contact.get_lifecycle_stage_display()
         )
