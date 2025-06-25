@@ -135,21 +135,46 @@ class BusinessController:
     async def get_user_businesses(self, current_user_id: str, skip: int = 0, limit: int = 100) -> List[UserBusinessSummaryResponse]:
         """Get all businesses for the current user."""
         try:
+            logger.info(f"get_user_businesses called for user: {current_user_id}, skip: {skip}, limit: {limit}")
+            
             # Execute use case
             results = await self.get_user_businesses_use_case.execute(current_user_id, skip, limit)
+            logger.info(f"Use case executed successfully, found {len(results)} businesses")
             
             # Convert to response schemas
-            return [self._user_business_dto_to_response(result) for result in results]
+            response_list = []
+            for i, result in enumerate(results):
+                try:
+                    logger.info(f"Converting business {i+1}/{len(results)} to response schema")
+                    response = self._user_business_dto_to_response(result)
+                    response_list.append(response)
+                    logger.info(f"Successfully converted business {i+1}: {response.business.name}")
+                except Exception as conversion_error:
+                    logger.error(f"Error converting business {i+1} to response: {str(conversion_error)}")
+                    raise
+            
+            logger.info(f"Successfully converted all {len(response_list)} businesses to response schemas")
+            return response_list
             
         except ValidationError as e:
+            logger.error(f"ValidationError in get_user_businesses: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
         except ApplicationError as e:
+            logger.error(f"ApplicationError in get_user_businesses: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=str(e)
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error in get_user_businesses: {type(e).__name__}: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Internal server error: {str(e)}"
             )
     
     async def invite_team_member(

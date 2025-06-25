@@ -34,44 +34,60 @@ async def get_current_user(
     supabase: SupabaseDep, token: TokenDep
 ) -> dict:
     """
-    Get current user from Supabase Auth token.
+    Get current user from enhanced JWT token.
     
-    Returns Supabase user data directly without creating local user records.
-    This simplifies the authentication flow and removes the need for user sync.
+    Uses enhanced JWT tokens with business context for authentication.
     
     Returns:
-        dict: Supabase user data containing id, email, user_metadata, etc.
+        dict: User data containing id, email, business context, etc.
     """
     try:
         logger.info(f"get_current_user called with token: {token.credentials[:50]}...")
         
-        # Get user from Supabase Auth using the token
-        logger.info("Making request to Supabase Auth get_user")
-        user_response = supabase.auth.get_user(token.credentials)
-        logger.info(f"Supabase Auth response: user={user_response.user is not None}")
+        # Validate enhanced JWT token
+        logger.info("Validating enhanced JWT token")
+        enhanced_payload = await auth_facade.verify_enhanced_jwt_token(token.credentials)
         
-        if not user_response.user:
-            logger.warning("Supabase Auth returned no user")
+        if not enhanced_payload:
+            logger.warning("Enhanced JWT token validation failed")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
+                detail="Invalid or expired token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
+        logger.info("Enhanced JWT token validated successfully")
+        
+        # Get user ID from payload
+        user_id = enhanced_payload.get("sub") or enhanced_payload.get("user_id")
+        
+        # Fetch user details from Supabase to get email and metadata
+        try:
+            user_response = supabase.auth.admin.get_user_by_id(user_id)
+            user_email = user_response.user.email if user_response.user else None
+            user_phone = user_response.user.phone if user_response.user else None
+            user_metadata = user_response.user.user_metadata if user_response.user else {}
+            logger.info(f"Fetched user details: email={user_email}")
+        except Exception as e:
+            logger.warning(f"Could not fetch user details: {str(e)}")
+            user_email = None
+            user_phone = None
+            user_metadata = {}
+        
+        # Extract user data from enhanced JWT payload with fetched user details
         user_data = {
-            "sub": user_response.user.id,  # Keep 'sub' for JWT compatibility
-            "id": user_response.user.id,
-            "email": user_response.user.email,
-            "phone": user_response.user.phone,
-            "user_metadata": user_response.user.user_metadata or {},
-            "created_at": user_response.user.created_at,
-            "last_sign_in_at": user_response.user.last_sign_in_at,
-            "is_active": True  # Supabase users are active by default
+            "sub": user_id,
+            "id": user_id,
+            "email": user_email,
+            "phone": user_phone,
+            "user_metadata": user_metadata,
+            "current_business_id": enhanced_payload.get("current_business_id"),
+            "business_memberships": enhanced_payload.get("business_memberships", []),
+            "is_active": True,
+            "token_type": "enhanced_jwt"
         }
         
-        logger.info(f"Successfully authenticated user: {user_data['sub']}, email: {user_data['email']}")
-        
-        # Return Supabase user data directly
+        logger.info(f"Successfully authenticated user via enhanced JWT: {user_data['sub']}, email: {user_data['email']}")
         return user_data
         
     except HTTPException:

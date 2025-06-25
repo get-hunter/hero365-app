@@ -61,6 +61,7 @@ class MiddlewareConfig:
             f"{self.api_v1_str}/auth/",
             f"{self.api_v1_str}/users/me",
             f"{self.api_v1_str}/business-context/",
+            f"{self.api_v1_str}/businesses/me",  # User needs to discover their businesses
         ]
     
     @property

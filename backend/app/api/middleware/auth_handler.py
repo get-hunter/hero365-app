@@ -123,31 +123,22 @@ class AuthMiddleware(BaseHTTPMiddleware):
     
     async def _validate_token(self, token: str) -> Optional[Dict[str, Any]]:
         """
-        Validate JWT token and return user information.
-        
-        Supports both enhanced JWT tokens and legacy Supabase tokens.
+        Validate enhanced JWT token and return user information.
         
         Args:
-            token: JWT token to validate
+            token: Enhanced JWT token to validate
             
         Returns:
             User information dict if valid, None otherwise
         """
         try:
-            # First, try to validate as enhanced JWT token
+            # Validate enhanced JWT token
             enhanced_payload = await auth_facade.verify_enhanced_jwt_token(token)
             if enhanced_payload:
                 logger.info("Enhanced JWT token validated successfully")
                 return enhanced_payload
             
-            # Fallback to Supabase token validation
-            logger.info("Falling back to Supabase token validation")
-            user_data = await auth_facade.verify_token(token)
-            if user_data:
-                logger.info(f"Supabase token validation successful for user: {user_data.get('sub', 'unknown')}")
-                return user_data
-            
-            logger.warning("All token validation methods failed")
+            logger.warning("Enhanced JWT token validation failed")
             return None
             
         except jwt.ExpiredSignatureError:

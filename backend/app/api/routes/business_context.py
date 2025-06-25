@@ -60,34 +60,57 @@ async def get_current_business_context(request: Request) -> BusinessContextInfoR
     current_user = require_authenticated_user(request)
     user_id = current_user.get('id') or current_user.get('sub')
     
+    logger.info(f"📱 BusinessContext API: Getting current context for user {user_id}")
+    
     try:
         # Get user's business memberships
         business_memberships = await auth_facade._get_user_business_memberships(user_id)
+        logger.info(f"📊 BusinessContext API: Found {len(business_memberships)} business memberships for user")
         
         # Get current business context
         current_business_id = current_user.get('current_business_id')
+        logger.info(f"🏢 BusinessContext API: Current business ID: {current_business_id}")
         
         # Format available businesses
         available_businesses = []
-        for membership in business_memberships:
+        for i, membership in enumerate(business_memberships):
+            logger.info(f"👤 BusinessContext API: Processing membership {i+1}: business_id={membership['business_id']}, role={membership['role']}, permissions_count={len(membership.get('permissions', []))}")
+            
             # Get business details
             business_repo = get_container().get_business_repository()
             business = await business_repo.get_by_id(uuid.UUID(membership["business_id"]))
             
             if business:
-                available_businesses.append({
+                business_info = {
                     "business_id": membership["business_id"],
                     "business_name": business.name,
                     "role": membership["role"],
                     "permissions": membership["permissions"],
                     "role_level": membership["role_level"]
-                })
+                }
+                available_businesses.append(business_info)
+                
+                # Log detailed permissions for current business
+                if membership["business_id"] == current_business_id:
+                    logger.info(f"🔑 BusinessContext API: CURRENT BUSINESS PERMISSIONS:")
+                    logger.info(f"    Role: {membership['role']}")
+                    logger.info(f"    Role Level: {membership['role_level']}")
+                    logger.info(f"    Permissions: {membership['permissions']}")
+                    logger.info(f"    Has view_contacts: {'view_contacts' in membership.get('permissions', [])}")
+                    logger.info(f"    Has edit_contacts: {'edit_contacts' in membership.get('permissions', [])}")
         
-        return BusinessContextInfoResponse(
+        response_data = BusinessContextInfoResponse(
             current_business_id=current_business_id,
             available_businesses=available_businesses,
             user_id=user_id
         )
+        
+        logger.info(f"📤 BusinessContext API: Sending response to app:")
+        logger.info(f"    Current business: {current_business_id}")
+        logger.info(f"    Available businesses count: {len(available_businesses)}")
+        logger.info(f"    Response: {response_data.model_dump()}")
+        
+        return response_data
         
     except Exception as e:
         logger.error(f"Error getting business context: {str(e)}")

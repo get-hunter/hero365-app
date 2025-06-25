@@ -270,24 +270,37 @@ class SupabaseBusinessRepository(BusinessRepository):
             "tax_id": business.tax_id,
             "business_license": business.business_license,
             "insurance_number": business.insurance_number,
-            "selected_features": json.dumps(business.selected_features),
-            "primary_goals": json.dumps(business.primary_goals),
+            "selected_features": business.selected_features or [],  # Send as list for JSONB
+            "primary_goals": business.primary_goals or [],  # Send as list for JSONB
             "referral_source": business.referral_source.value if business.referral_source else None,
             "onboarding_completed": business.onboarding_completed,
             "onboarding_completed_date": business.onboarding_completed_date.isoformat() if business.onboarding_completed_date else None,
             "timezone": business.timezone,
             "currency": business.currency,
-            "business_hours": json.dumps(business.business_hours) if business.business_hours else None,
+            "business_hours": business.business_hours,  # Send as dict/object for JSONB
             "is_active": business.is_active,
             "max_team_members": business.max_team_members,
             "subscription_tier": business.subscription_tier,
-            "enabled_features": json.dumps(business.enabled_features),
+            "enabled_features": business.enabled_features or [],  # Send as list for JSONB
             "created_date": business.created_date.isoformat() if business.created_date else None,
             "last_modified": business.last_modified.isoformat() if business.last_modified else None
         }
     
     def _dict_to_business(self, data: dict) -> Business:
         """Convert dictionary from Supabase to Business entity."""
+        # Helper function to safely handle JSONB fields that might be strings or already parsed
+        def safe_json_parse(value, default=None):
+            if value is None:
+                return default or []
+            if isinstance(value, (list, dict)):
+                return value  # Already parsed by Supabase
+            if isinstance(value, str):
+                try:
+                    return json.loads(value)
+                except (json.JSONDecodeError, TypeError):
+                    return default or []
+            return default or []
+        
         return Business(
             id=uuid.UUID(data["id"]),
             name=data["name"],
@@ -305,18 +318,18 @@ class SupabaseBusinessRepository(BusinessRepository):
             tax_id=data.get("tax_id"),
             business_license=data.get("business_license"),
             insurance_number=data.get("insurance_number"),
-            selected_features=json.loads(data.get("selected_features", "[]")),
-            primary_goals=json.loads(data.get("primary_goals", "[]")),
+            selected_features=safe_json_parse(data.get("selected_features"), []),
+            primary_goals=safe_json_parse(data.get("primary_goals"), []),
             referral_source=ReferralSource(data["referral_source"]) if data.get("referral_source") else None,
             onboarding_completed=data.get("onboarding_completed", False),
             onboarding_completed_date=datetime.fromisoformat(data["onboarding_completed_date"]) if data.get("onboarding_completed_date") else None,
             timezone=data.get("timezone"),
             currency=data.get("currency", "USD"),
-            business_hours=json.loads(data["business_hours"]) if data.get("business_hours") else None,
+            business_hours=safe_json_parse(data.get("business_hours"), None),
             is_active=data.get("is_active", True),
             max_team_members=data.get("max_team_members"),
             subscription_tier=data.get("subscription_tier"),
-            enabled_features=json.loads(data.get("enabled_features", "[]")),
+            enabled_features=safe_json_parse(data.get("enabled_features"), []),
             created_date=datetime.fromisoformat(data["created_date"]) if data.get("created_date") else None,
             last_modified=datetime.fromisoformat(data["last_modified"]) if data.get("last_modified") else None
         ) 

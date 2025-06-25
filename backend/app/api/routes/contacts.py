@@ -5,6 +5,7 @@ REST API endpoints for contact management operations.
 """
 
 import uuid
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 
@@ -29,6 +30,8 @@ from ...application.dto.contact_dto import (
 from ...domain.entities.contact import ContactType, ContactStatus, ContactPriority, ContactSource
 from ...infrastructure.config.dependency_injection import get_manage_contacts_use_case
 
+# Configure logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
 
@@ -218,10 +221,35 @@ async def list_contacts(
     Retrieves a paginated list of contacts for the current business.
     Requires 'view_contacts' permission.
     """
+    user_id = current_user["sub"]
+    
+    # Log user context for debugging
+    logger.info(f"📱 ContactsAPI: List contacts request from user {user_id}")
+    logger.info(f"🏢 ContactsAPI: Business context: {business_id}")
+    logger.info(f"👤 ContactsAPI: User has business memberships: {len(current_user.get('business_memberships', []))}")
+    
+    # Find current business membership for logging
+    business_memberships = current_user.get('business_memberships', [])
+    current_membership = None
+    for membership in business_memberships:
+        if membership.get('business_id') == str(business_id):
+            current_membership = membership
+            break
+    
+    if current_membership:
+        logger.info(f"🔑 ContactsAPI: Current membership found:")
+        logger.info(f"    Role: {current_membership.get('role')}")
+        logger.info(f"    Permissions: {current_membership.get('permissions', [])}")
+        logger.info(f"    Has view_contacts: {'view_contacts' in current_membership.get('permissions', [])}")
+    else:
+        logger.warning(f"⚠️  ContactsAPI: No membership found for business {business_id}")
+    
     try:
         contact_list_dto = await use_case.get_business_contacts(
             business_id, current_user["sub"], skip, limit
         )
+        
+        logger.info(f"📊 ContactsAPI: Returning {len(contact_list_dto.contacts)} contacts (total: {contact_list_dto.total_count})")
         
         return ContactListResponse(
             contacts=[_contact_dto_to_response(contact) for contact in contact_list_dto.contacts],
@@ -232,6 +260,7 @@ async def list_contacts(
             has_previous=contact_list_dto.has_previous
         )
     except Exception as e:
+        logger.error(f"❌ ContactsAPI: Error getting contacts: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)

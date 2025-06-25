@@ -78,6 +78,11 @@ class OAuthController:
                 user_metadata = getattr(user_data, 'user_metadata', {}) or {}
                 print(f"🔍 Fallback user metadata: {user_metadata}")
             
+            # Create enhanced JWT token with business context
+            print(f"🔑 Creating enhanced JWT token with business context...")
+            enhanced_access_token = await self.auth_facade.create_enhanced_jwt_token(user_data.id)
+            print(f"✅ Enhanced JWT token created successfully")
+            
             # Build user response (no onboarding fields - determined by business membership)
             user_response = AuthUserResponse(
                 id=user_data.id,
@@ -90,8 +95,8 @@ class OAuthController:
             )
             
             return OAuthSignInResponse(
-                access_token=session_data.access_token,
-                refresh_token=session_data.refresh_token,
+                access_token=enhanced_access_token,  # Use enhanced JWT token
+                refresh_token=session_data.refresh_token,  # Keep Supabase refresh token
                 expires_in=getattr(session_data, 'expires_in', 3600),
                 token_type="bearer",
                 user=user_response,
@@ -173,6 +178,11 @@ class OAuthController:
                 user_metadata = getattr(user_data, 'user_metadata', {}) or {}
                 print(f"🔍 Fallback user metadata: {user_metadata}")
             
+            # Create enhanced JWT token with business context
+            print(f"🔑 Creating enhanced JWT token with business context...")
+            enhanced_access_token = await self.auth_facade.create_enhanced_jwt_token(user_data.id)
+            print(f"✅ Enhanced JWT token created successfully")
+            
             # Build user response (no onboarding fields - determined by business membership)
             user_response = AuthUserResponse(
                 id=user_data.id,
@@ -185,8 +195,8 @@ class OAuthController:
             )
             
             return OAuthSignInResponse(
-                access_token=session_data.access_token,
-                refresh_token=session_data.refresh_token,
+                access_token=enhanced_access_token,  # Use enhanced JWT token
+                refresh_token=session_data.refresh_token,  # Keep Supabase refresh token
                 expires_in=getattr(session_data, 'expires_in', 3600),
                 token_type="bearer",
                 user=user_response,

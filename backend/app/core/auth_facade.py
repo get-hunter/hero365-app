@@ -36,6 +36,23 @@ class AuthFacade:
             # Get user's business memberships
             business_memberships = await self._get_user_business_memberships(result.user.id)
             
+            # Get current business context with automatic default selection
+            current_business_id = self._get_current_business_id_from_metadata(
+                getattr(result.user, 'metadata', {}), business_memberships
+            )
+            
+            # If user has businesses but no current business context, set the first one as default
+            if not current_business_id and business_memberships:
+                current_business_id = business_memberships[0]["business_id"]
+                # Update user metadata to remember this choice for future requests
+                try:
+                    await self.update_user_metadata(result.user.id, {
+                        "current_business_id": current_business_id
+                    })
+                except Exception:
+                    # If updating metadata fails, continue anyway
+                    pass
+            
             user_data = {
                 "sub": result.user.id,  # Standard JWT subject claim
                 "id": result.user.id,
@@ -44,9 +61,7 @@ class AuthFacade:
                 "user_metadata": getattr(result.user, 'metadata', {}),
                 "app_metadata": {},  # Can be extracted from metadata if needed
                 "business_memberships": business_memberships,
-                "current_business_id": self._get_current_business_id_from_metadata(
-                    getattr(result.user, 'metadata', {}), business_memberships
-                )
+                "current_business_id": current_business_id
             }
             return user_data
         return None
@@ -56,16 +71,26 @@ class AuthFacade:
         # Get user's business memberships
         business_memberships = await self._get_user_business_memberships(user_id)
         
+        # Normalize business IDs to lowercase for consistency
+        normalized_memberships = []
+        for membership in business_memberships:
+            normalized_membership = membership.copy()
+            normalized_membership["business_id"] = membership["business_id"].lower()
+            normalized_memberships.append(normalized_membership)
+        
         # If no current business specified, use the first one or None
-        if not current_business_id and business_memberships:
-            current_business_id = business_memberships[0]["business_id"]
+        if not current_business_id and normalized_memberships:
+            current_business_id = normalized_memberships[0]["business_id"]
+        elif current_business_id:
+            # Normalize current business ID to lowercase
+            current_business_id = current_business_id.lower()
         
         # Create JWT payload with business context
         payload = {
             "sub": user_id,
             "user_id": user_id,
             "current_business_id": current_business_id,
-            "business_memberships": business_memberships,
+            "business_memberships": normalized_memberships,
             "iat": datetime.utcnow(),
             "exp": datetime.utcnow() + timedelta(hours=24),  # 24 hour expiry
         }
