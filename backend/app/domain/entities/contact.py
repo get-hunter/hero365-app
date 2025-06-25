@@ -55,13 +55,19 @@ class LifecycleStage(Enum):
 class ContactSource(Enum):
     """Enumeration for how the contact was acquired."""
     WEBSITE = "website"
-    REFERRAL = "referral"
+    GOOGLE_ADS = "google_ads"
     SOCIAL_MEDIA = "social_media"
-    ADVERTISING = "advertising"
-    COLD_OUTREACH = "cold_outreach"
-    EVENT = "event"
+    REFERRAL = "referral"
+    PHONE_CALL = "phone_call"
+    WALK_IN = "walk_in"
+    EMAIL_MARKETING = "email_marketing"
+    TRADE_SHOW = "trade_show"
+    DIRECT_MAIL = "direct_mail"
+    YELLOW_PAGES = "yellow_pages"
     PARTNER = "partner"
     EXISTING_CUSTOMER = "existing_customer"
+    COLD_OUTREACH = "cold_outreach"
+    EVENT = "event"
     DIRECT = "direct"
     OTHER = "other"
 
@@ -679,13 +685,19 @@ class Contact:
         """Get human-readable source."""
         source_names = {
             ContactSource.WEBSITE: "Website",
-            ContactSource.REFERRAL: "Referral",
+            ContactSource.GOOGLE_ADS: "Google Ads",
             ContactSource.SOCIAL_MEDIA: "Social Media",
-            ContactSource.ADVERTISING: "Advertising",
-            ContactSource.COLD_OUTREACH: "Cold Outreach",
-            ContactSource.EVENT: "Event",
+            ContactSource.REFERRAL: "Referral",
+            ContactSource.PHONE_CALL: "Phone Call",
+            ContactSource.WALK_IN: "Walk-In",
+            ContactSource.EMAIL_MARKETING: "Email Marketing",
+            ContactSource.TRADE_SHOW: "Trade Show",
+            ContactSource.DIRECT_MAIL: "Direct Mail",
+            ContactSource.YELLOW_PAGES: "Yellow Pages",
             ContactSource.PARTNER: "Partner",
             ContactSource.EXISTING_CUSTOMER: "Existing Customer",
+            ContactSource.COLD_OUTREACH: "Cold Outreach",
+            ContactSource.EVENT: "Event",
             ContactSource.DIRECT: "Direct",
             ContactSource.OTHER: "Other"
         }
