@@ -14,6 +14,7 @@ from ...dto.contact_dto import (
     ContactConversionDTO, ContactAssignmentDTO, ContactTagOperationDTO,
     ContactAddressDTO
 )
+from ....api.schemas.contact_schemas import UserDetailLevel
 from ....domain.repositories.contact_repository import ContactRepository
 from ....domain.repositories.business_repository import BusinessRepository
 from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
@@ -113,13 +114,15 @@ class ManageContactsUseCase:
         
         return self._contact_to_response_dto(created_contact)
     
-    async def get_contact(self, contact_id: uuid.UUID, user_id: str) -> ContactResponseDTO:
+    async def get_contact(self, contact_id: uuid.UUID, user_id: str, 
+                         include_user_details: UserDetailLevel = UserDetailLevel.BASIC) -> ContactResponseDTO:
         """
-        Get a contact by ID with permission validation.
+        Get a contact by ID with permission validation and optional user data.
         
         Args:
             contact_id: ID of the contact to retrieve
             user_id: ID of the user requesting the contact
+            include_user_details: Level of user detail to include
             
         Returns:
             ContactResponseDTO with contact information
@@ -128,14 +131,26 @@ class ManageContactsUseCase:
             EntityNotFoundError: If contact doesn't exist
             PermissionError: If user lacks permission
         """
-        contact = await self.contact_repository.get_by_id(contact_id)
-        if not contact:
-            raise EntityNotFoundError("Contact not found")
-        
-        # Validate user has permission to view contacts in this business
-        await self._validate_user_permission(contact.business_id, user_id, "view_contacts")
-        
-        return self._contact_to_response_dto(contact)
+        if include_user_details == UserDetailLevel.NONE:
+            # Use regular repository method
+            contact = await self.contact_repository.get_by_id(contact_id)
+            if not contact:
+                raise EntityNotFoundError("Contact not found")
+            
+            # Validate user has permission to view contacts in this business
+            await self._validate_user_permission(contact.business_id, user_id, "view_contacts")
+            
+            return self._contact_to_response_dto(contact)
+        else:
+            # Use repository method with user data
+            contact_data = await self.contact_repository.get_by_id_with_users(contact_id, include_user_details)
+            if not contact_data:
+                raise EntityNotFoundError("Contact not found")
+            
+            # Validate user has permission to view contacts in this business
+            await self._validate_user_permission(uuid.UUID(contact_data["business_id"]), user_id, "view_contacts")
+            
+            return self._contact_dict_to_response_dto(contact_data, include_user_details)
     
     async def update_contact(self, dto: ContactUpdateDTO, user_id: str) -> ContactResponseDTO:
         """
@@ -249,15 +264,17 @@ class ManageContactsUseCase:
         return await self.contact_repository.delete(contact_id)
     
     async def get_business_contacts(self, business_id: uuid.UUID, user_id: str,
-                                  skip: int = 0, limit: int = 100) -> ContactListDTO:
+                                  skip: int = 0, limit: int = 100,
+                                  include_user_details: UserDetailLevel = UserDetailLevel.BASIC) -> ContactListDTO:
         """
-        Get contacts for a business with pagination.
+        Get contacts for a business with pagination and optional user data.
         
         Args:
             business_id: ID of the business
             user_id: ID of the user requesting contacts
             skip: Number of records to skip
             limit: Maximum number of records to return
+            include_user_details: Level of user detail to include
             
         Returns:
             ContactListDTO with contacts and pagination info
@@ -268,10 +285,19 @@ class ManageContactsUseCase:
         # Validate user has permission to view contacts in this business
         await self._validate_user_permission(business_id, user_id, "view_contacts")
         
-        contacts = await self.contact_repository.get_by_business_id(business_id, skip, limit)
-        total_count = await self.contact_repository.count_by_business(business_id)
+        if include_user_details == UserDetailLevel.NONE:
+            # Use regular repository method
+            contacts = await self.contact_repository.get_by_business_id(business_id, skip, limit)
+            contact_dtos = [self._contact_to_response_dto(contact) for contact in contacts]
+        else:
+            # Use repository method with user data
+            contacts_data = await self.contact_repository.get_by_business_id_with_users(
+                business_id, include_user_details, skip, limit
+            )
+            contact_dtos = [self._contact_dict_to_response_dto(contact_data, include_user_details) 
+                           for contact_data in contacts_data]
         
-        contact_dtos = [self._contact_to_response_dto(contact) for contact in contacts]
+        total_count = await self.contact_repository.count_by_business(business_id)
         
         page = (skip // limit) + 1
         has_next = (skip + limit) < total_count
@@ -775,4 +801,153 @@ class ManageContactsUseCase:
             if not search_dto.never_contacted and not contact.last_contacted:
                 return False
         
-        return True 
+        return True
+    
+    def _contact_dict_to_response_dto(self, contact_data: Dict[str, Any], user_detail_level: UserDetailLevel) -> ContactResponseDTO:
+        """Convert contact dictionary data with user information to response DTO."""
+        from ...dto.contact_dto import UserReferenceBasicDTO, UserReferenceFullDTO
+        
+        address_dto = None
+        if contact_data.get("address"):
+            if isinstance(contact_data["address"], str):
+                import json
+                address_data = json.loads(contact_data["address"])
+            else:
+                address_data = contact_data["address"]
+            
+            if address_data:
+                address_dto = ContactAddressDTO(
+                    street_address=address_data.get("street_address"),
+                    city=address_data.get("city"),
+                    state=address_data.get("state"),
+                    postal_code=address_data.get("postal_code"),
+                    country=address_data.get("country")
+                )
+        
+        # Handle tags
+        tags = []
+        if contact_data.get("tags"):
+            if isinstance(contact_data["tags"], str):
+                import json
+                tags = json.loads(contact_data["tags"])
+            else:
+                tags = contact_data["tags"]
+        
+        # Handle custom fields
+        custom_fields = {}
+        if contact_data.get("custom_fields"):
+            if isinstance(contact_data["custom_fields"], str):
+                import json
+                custom_fields = json.loads(contact_data["custom_fields"])
+            else:
+                custom_fields = contact_data["custom_fields"]
+        
+        # Handle dates
+        created_date = None
+        if contact_data.get("created_date"):
+            if isinstance(contact_data["created_date"], str):
+                created_date = datetime.fromisoformat(contact_data["created_date"].replace('Z', '+00:00'))
+            else:
+                created_date = contact_data["created_date"]
+        
+        last_modified = None
+        if contact_data.get("last_modified"):
+            if isinstance(contact_data["last_modified"], str):
+                last_modified = datetime.fromisoformat(contact_data["last_modified"].replace('Z', '+00:00'))
+            else:
+                last_modified = contact_data["last_modified"]
+        
+        last_contacted = None
+        if contact_data.get("last_contacted"):
+            if isinstance(contact_data["last_contacted"], str):
+                last_contacted = datetime.fromisoformat(contact_data["last_contacted"].replace('Z', '+00:00'))
+            else:
+                last_contacted = contact_data["last_contacted"]
+        
+        # Handle user references based on detail level
+        assigned_to = contact_data.get("assigned_to")
+        created_by = contact_data.get("created_by")
+        
+        if user_detail_level == UserDetailLevel.BASIC and isinstance(assigned_to, dict):
+            assigned_to = UserReferenceBasicDTO(
+                id=assigned_to["id"],
+                display_name=assigned_to["display_name"],
+                email=assigned_to.get("email")
+            )
+        elif user_detail_level == UserDetailLevel.FULL and isinstance(assigned_to, dict):
+            assigned_to = UserReferenceFullDTO(
+                id=assigned_to["id"],
+                display_name=assigned_to["display_name"],
+                email=assigned_to.get("email"),
+                full_name=assigned_to.get("full_name"),
+                phone=assigned_to.get("phone"),
+                role=assigned_to.get("role"),
+                department=assigned_to.get("department"),
+                is_active=assigned_to.get("is_active", True)
+            )
+        
+        if user_detail_level == UserDetailLevel.BASIC and isinstance(created_by, dict):
+            created_by = UserReferenceBasicDTO(
+                id=created_by["id"],
+                display_name=created_by["display_name"],
+                email=created_by.get("email")
+            )
+        elif user_detail_level == UserDetailLevel.FULL and isinstance(created_by, dict):
+            created_by = UserReferenceFullDTO(
+                id=created_by["id"],
+                display_name=created_by["display_name"],
+                email=created_by.get("email"),
+                full_name=created_by.get("full_name"),
+                phone=created_by.get("phone"),
+                role=created_by.get("role"),
+                department=created_by.get("department"),
+                is_active=created_by.get("is_active", True)
+            )
+        
+        # Create temporary contact entity for computed fields
+        from ...domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource
+        temp_contact = Contact(
+            id=uuid.UUID(contact_data["id"]),
+            business_id=uuid.UUID(contact_data["business_id"]),
+            contact_type=ContactType(contact_data["contact_type"]),
+            status=ContactStatus(contact_data["status"]),
+            first_name=contact_data.get("first_name"),
+            last_name=contact_data.get("last_name"),
+            company_name=contact_data.get("company_name"),
+            priority=ContactPriority(contact_data.get("priority", "medium")),
+            source=ContactSource(contact_data["source"]) if contact_data.get("source") else None,
+        )
+        
+        return ContactResponseDTO(
+            id=uuid.UUID(contact_data["id"]),
+            business_id=uuid.UUID(contact_data["business_id"]),
+            contact_type=ContactType(contact_data["contact_type"]),
+            status=ContactStatus(contact_data["status"]),
+            first_name=contact_data.get("first_name"),
+            last_name=contact_data.get("last_name"),
+            company_name=contact_data.get("company_name"),
+            job_title=contact_data.get("job_title"),
+            email=contact_data.get("email"),
+            phone=contact_data.get("phone"),
+            mobile_phone=contact_data.get("mobile_phone"),
+            website=contact_data.get("website"),
+            address=address_dto,
+            priority=ContactPriority(contact_data.get("priority", "medium")),
+            source=ContactSource(contact_data["source"]) if contact_data.get("source") else None,
+            tags=tags,
+            notes=contact_data.get("notes"),
+            estimated_value=float(contact_data["estimated_value"]) if contact_data.get("estimated_value") else None,
+            currency=contact_data.get("currency", "USD"),
+            assigned_to=assigned_to,
+            created_by=created_by,
+            custom_fields=custom_fields,
+            created_date=created_date,
+            last_modified=last_modified,
+            last_contacted=last_contacted,
+            display_name=temp_contact.get_display_name(),
+            primary_contact_method=temp_contact.get_primary_contact_method(),
+            type_display=temp_contact.get_type_display(),
+            status_display=temp_contact.get_status_display(),
+            priority_display=temp_contact.get_priority_display(),
+            source_display=temp_contact.get_source_display()
+        )

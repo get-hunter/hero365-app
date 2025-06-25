@@ -1412,6 +1412,7 @@ export class ContactsService {
    * @param data The data for the request.
    * @param data.skip Number of records to skip
    * @param data.limit Maximum number of records to return
+   * @param data.includeUserDetails Level of user detail to include
    * @returns ContactListResponse Successful Response
    * @throws ApiError
    */
@@ -1424,6 +1425,7 @@ export class ContactsService {
       query: {
         skip: data.skip,
         limit: data.limit,
+        include_user_details: data.includeUserDetails,
       },
       errors: {
         422: "Validation Error",
@@ -1435,10 +1437,11 @@ export class ContactsService {
    * Get Contact
    * Get a contact by ID.
    *
-   * Retrieves detailed information about a specific contact.
+   * Retrieves detailed information about a specific contact with optional user data.
    * Requires 'view_contacts' permission.
    * @param data The data for the request.
    * @param data.contactId Contact ID
+   * @param data.includeUserDetails Level of user detail to include
    * @returns ContactResponse Successful Response
    * @throws ApiError
    */
@@ -1450,6 +1453,9 @@ export class ContactsService {
       url: "/api/v1/contacts/{contact_id}",
       path: {
         contact_id: data.contactId,
+      },
+      query: {
+        include_user_details: data.includeUserDetails,
       },
       errors: {
         422: "Validation Error",

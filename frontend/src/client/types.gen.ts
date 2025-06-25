@@ -1830,13 +1830,9 @@ export type ContactInteractionResponse = {
    */
   scheduled_follow_up?: string | null
   /**
-   * User who performed the interaction
+   * User who performed the interaction (ID or object based on include_user_details)
    */
-  performed_by: string
-  /**
-   * User ID who performed the interaction
-   */
-  performed_by_id?: string | null
+  performed_by: string | UserReferenceBasic | UserReferenceFull
 }
 
 /**
@@ -1963,13 +1959,13 @@ export type ContactResponse = {
    */
   currency: string
   /**
-   * Assigned user ID
+   * Assigned user (ID or object based on include_user_details)
    */
-  assigned_to?: string | null
+  assigned_to?: string | UserReferenceBasic | UserReferenceFull | null
   /**
-   * Creator user ID
+   * Creator user (ID or object based on include_user_details)
    */
-  created_by?: string | null
+  created_by?: string | UserReferenceBasic | UserReferenceFull | null
   /**
    * Custom fields
    */
@@ -2114,6 +2110,10 @@ export type ContactSearchRequest = {
    * Sort order
    */
   sort_order?: string
+  /**
+   * Level of user detail to include
+   */
+  include_user_details?: UserDetailLevel
 }
 
 /**
@@ -4270,6 +4270,11 @@ export type UserBusinessSummaryResponse = {
   pending_invitations_count: number | null
 }
 
+/**
+ * User detail inclusion levels.
+ */
+export type UserDetailLevel = "none" | "basic" | "full"
+
 export type UserProfileResponse = {
   id: string
   email?: string | null
@@ -4283,6 +4288,62 @@ export type UserProfileResponse = {
   business_memberships?: Array<BusinessMembershipSummary>
   has_businesses: boolean
   needs_onboarding: boolean
+}
+
+/**
+ * Basic user reference information.
+ */
+export type UserReferenceBasic = {
+  /**
+   * User ID
+   */
+  id: string
+  /**
+   * User display name
+   */
+  display_name: string
+  /**
+   * User email
+   */
+  email?: string | null
+}
+
+/**
+ * Full user reference information.
+ */
+export type UserReferenceFull = {
+  /**
+   * User ID
+   */
+  id: string
+  /**
+   * User display name
+   */
+  display_name: string
+  /**
+   * User email
+   */
+  email?: string | null
+  /**
+   * Full name
+   */
+  full_name?: string | null
+  /**
+   * Phone number
+   */
+  phone?: string | null
+  /**
+   * Business role
+   */
+  role?: string | null
+  /**
+   * Department
+   */
+  department?: string | null
+  /**
+   * Active status
+   */
+  is_active?: boolean
 }
 
 export type ValidationError = {
@@ -4781,6 +4842,10 @@ export type ContactsCreateContactResponse = ContactResponse
 
 export type ContactsListContactsData = {
   /**
+   * Level of user detail to include
+   */
+  includeUserDetails?: UserDetailLevel
+  /**
    * Maximum number of records to return
    */
   limit?: number
@@ -4797,6 +4862,10 @@ export type ContactsGetContactData = {
    * Contact ID
    */
   contactId: string
+  /**
+   * Level of user detail to include
+   */
+  includeUserDetails?: UserDetailLevel
 }
 
 export type ContactsGetContactResponse = ContactResponse

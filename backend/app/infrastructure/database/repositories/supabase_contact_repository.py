@@ -13,6 +13,7 @@ from supabase import Client
 from ....domain.repositories.contact_repository import ContactRepository
 from ....domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, ContactAddress
 from ....domain.exceptions.domain_exceptions import EntityNotFoundError, DuplicateEntityError, DatabaseError
+from ....api.schemas.contact_schemas import UserDetailLevel
 
 
 class SupabaseContactRepository(ContactRepository):
@@ -58,6 +59,49 @@ class SupabaseContactRepository(ContactRepository):
         except Exception as e:
             raise DatabaseError(f"Failed to get contact by ID: {str(e)}")
     
+    async def get_by_id_with_users(self, contact_id: uuid.UUID, user_detail_level: UserDetailLevel = UserDetailLevel.BASIC) -> Optional[Dict[str, Any]]:
+        """Get contact by ID with user data included."""
+        try:
+            if user_detail_level == UserDetailLevel.NONE:
+                # Just return the contact without user joins
+                response = self.client.table(self.table_name).select("*").eq(
+                    "id", str(contact_id)
+                ).execute()
+                
+                if not response.data:
+                    return None
+                
+                contact_data = response.data[0]
+                return self._prepare_contact_with_user_data(contact_data, user_detail_level)
+            
+            elif user_detail_level == UserDetailLevel.BASIC:
+                # Join with auth.users for basic user info
+                query = f"""
+                    *,
+                    assigned_user:auth.users!assigned_to(id, email, full_name),
+                    created_user:auth.users!created_by(id, email, full_name)
+                """
+            else:  # UserDetailLevel.FULL
+                # Join with auth.users and business_memberships for full user info
+                query = f"""
+                    *,
+                    assigned_user:auth.users!assigned_to(id, email, full_name, phone, is_active),
+                    created_user:auth.users!created_by(id, email, full_name, phone, is_active)
+                """
+            
+            response = self.client.table(self.table_name).select(query).eq(
+                "id", str(contact_id)
+            ).execute()
+            
+            if not response.data:
+                return None
+            
+            contact_data = response.data[0]
+            return self._prepare_contact_with_user_data(contact_data, user_detail_level)
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to get contact with user data: {str(e)}")
+    
     async def get_by_business_id(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[Contact]:
         """Get contacts by business ID."""
         try:
@@ -69,6 +113,41 @@ class SupabaseContactRepository(ContactRepository):
             
         except Exception as e:
             raise DatabaseError(f"Failed to get contacts by business ID: {str(e)}")
+    
+    async def get_by_business_id_with_users(self, business_id: uuid.UUID, user_detail_level: UserDetailLevel = UserDetailLevel.BASIC, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get contacts by business ID with user data included."""
+        try:
+            if user_detail_level == UserDetailLevel.NONE:
+                # Just return the contacts without user joins
+                response = self.client.table(self.table_name).select("*").eq(
+                    "business_id", str(business_id)
+                ).range(skip, skip + limit - 1).order("created_date", desc=True).execute()
+                
+                return [self._prepare_contact_with_user_data(contact_data, user_detail_level) for contact_data in response.data]
+            
+            elif user_detail_level == UserDetailLevel.BASIC:
+                # Join with auth.users for basic user info
+                query = f"""
+                    *,
+                    assigned_user:auth.users!assigned_to(id, email, full_name),
+                    created_user:auth.users!created_by(id, email, full_name)
+                """
+            else:  # UserDetailLevel.FULL
+                # Join with auth.users for full user info
+                query = f"""
+                    *,
+                    assigned_user:auth.users!assigned_to(id, email, full_name, phone, is_active),
+                    created_user:auth.users!created_by(id, email, full_name, phone, is_active)
+                """
+            
+            response = self.client.table(self.table_name).select(query).eq(
+                "business_id", str(business_id)
+            ).range(skip, skip + limit - 1).order("created_date", desc=True).execute()
+            
+            return [self._prepare_contact_with_user_data(contact_data, user_detail_level) for contact_data in response.data]
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to get contacts with user data: {str(e)}")
     
     async def get_by_email(self, business_id: uuid.UUID, email: str) -> Optional[Contact]:
         """Get contact by email within a business."""
@@ -615,4 +694,102 @@ class SupabaseContactRepository(ContactRepository):
             created_date=created_date,
             last_modified=last_modified,
             last_contacted=last_contacted
-        ) 
+        )
+    
+    def _prepare_contact_with_user_data(self, contact_data: Dict[str, Any], user_detail_level: UserDetailLevel) -> Dict[str, Any]:
+        """Prepare contact data with user information based on detail level."""
+        try:
+            # Start with the base contact data
+            result = dict(contact_data)
+            
+            if user_detail_level == UserDetailLevel.NONE:
+                # Return just IDs for assigned_to and created_by
+                result["assigned_to"] = contact_data.get("assigned_to")
+                result["created_by"] = contact_data.get("created_by")
+            
+            elif user_detail_level == UserDetailLevel.BASIC:
+                # Replace assigned_to and created_by with user objects
+                if contact_data.get("assigned_user"):
+                    assigned_user_data = contact_data["assigned_user"]
+                    if isinstance(assigned_user_data, list) and assigned_user_data:
+                        assigned_user_data = assigned_user_data[0]
+                    
+                    if assigned_user_data:
+                        result["assigned_to"] = {
+                            "id": str(assigned_user_data.get("id", "")),
+                            "display_name": assigned_user_data.get("full_name") or assigned_user_data.get("email", ""),
+                            "email": assigned_user_data.get("email")
+                        }
+                    else:
+                        result["assigned_to"] = None
+                else:
+                    result["assigned_to"] = None
+                
+                if contact_data.get("created_user"):
+                    created_user_data = contact_data["created_user"]
+                    if isinstance(created_user_data, list) and created_user_data:
+                        created_user_data = created_user_data[0]
+                    
+                    if created_user_data:
+                        result["created_by"] = {
+                            "id": str(created_user_data.get("id", "")),
+                            "display_name": created_user_data.get("full_name") or created_user_data.get("email", ""),
+                            "email": created_user_data.get("email")
+                        }
+                    else:
+                        result["created_by"] = None
+                else:
+                    result["created_by"] = None
+            
+            elif user_detail_level == UserDetailLevel.FULL:
+                # Replace assigned_to and created_by with full user objects
+                if contact_data.get("assigned_user"):
+                    assigned_user_data = contact_data["assigned_user"]
+                    if isinstance(assigned_user_data, list) and assigned_user_data:
+                        assigned_user_data = assigned_user_data[0]
+                    
+                    if assigned_user_data:
+                        result["assigned_to"] = {
+                            "id": str(assigned_user_data.get("id", "")),
+                            "display_name": assigned_user_data.get("full_name") or assigned_user_data.get("email", ""),
+                            "email": assigned_user_data.get("email"),
+                            "full_name": assigned_user_data.get("full_name"),
+                            "phone": assigned_user_data.get("phone"),
+                            "role": None,  # Will be populated from business membership if needed
+                            "department": None,  # Will be populated from business membership if needed
+                            "is_active": assigned_user_data.get("is_active", True)
+                        }
+                    else:
+                        result["assigned_to"] = None
+                else:
+                    result["assigned_to"] = None
+                
+                if contact_data.get("created_user"):
+                    created_user_data = contact_data["created_user"]
+                    if isinstance(created_user_data, list) and created_user_data:
+                        created_user_data = created_user_data[0]
+                    
+                    if created_user_data:
+                        result["created_by"] = {
+                            "id": str(created_user_data.get("id", "")),
+                            "display_name": created_user_data.get("full_name") or created_user_data.get("email", ""),
+                            "email": created_user_data.get("email"),
+                            "full_name": created_user_data.get("full_name"),
+                            "phone": created_user_data.get("phone"),
+                            "role": None,  # Will be populated from business membership if needed
+                            "department": None,  # Will be populated from business membership if needed
+                            "is_active": created_user_data.get("is_active", True)
+                        }
+                    else:
+                        result["created_by"] = None
+                else:
+                    result["created_by"] = None
+            
+            # Remove the user join data from the result to keep it clean
+            result.pop("assigned_user", None)
+            result.pop("created_user", None)
+            
+            return result
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to prepare contact with user data: {str(e)}")

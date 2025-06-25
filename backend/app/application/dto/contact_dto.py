@@ -6,10 +6,11 @@ DTOs for contact-related data transfer operations.
 
 import uuid
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 
 from ...domain.entities.contact import ContactType, ContactStatus, ContactSource, ContactPriority, ContactAddress
+from ...api.schemas.contact_schemas import UserDetailLevel
 
 
 @dataclass
@@ -20,6 +21,27 @@ class ContactAddressDTO:
     state: Optional[str] = None
     postal_code: Optional[str] = None
     country: Optional[str] = None
+
+
+@dataclass
+class UserReferenceBasicDTO:
+    """DTO for basic user reference information."""
+    id: str
+    display_name: str
+    email: Optional[str] = None
+
+
+@dataclass  
+class UserReferenceFullDTO:
+    """DTO for full user reference information."""
+    id: str
+    display_name: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    role: Optional[str] = None
+    department: Optional[str] = None
+    is_active: bool = True
 
 
 @dataclass
@@ -99,8 +121,8 @@ class ContactResponseDTO:
     notes: Optional[str]
     estimated_value: Optional[float]
     currency: str
-    assigned_to: Optional[str]
-    created_by: Optional[str]
+    assigned_to: Optional[Union[str, UserReferenceBasicDTO, UserReferenceFullDTO]]
+    created_by: Optional[Union[str, UserReferenceBasicDTO, UserReferenceFullDTO]]
     custom_fields: Dict[str, Any]
     created_date: Optional[datetime]
     last_modified: Optional[datetime]
@@ -150,6 +172,7 @@ class ContactSearchDTO:
     limit: int = 100
     sort_by: str = "created_date"
     sort_order: str = "desc"  # "asc" or "desc"
+    include_user_details: UserDetailLevel = UserDetailLevel.BASIC
 
 
 @dataclass

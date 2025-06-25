@@ -19,7 +19,7 @@ from ..schemas.contact_schemas import (
     ContactTagOperationRequest, ContactResponse, ContactListResponse,
     ContactStatisticsResponse, ContactBulkOperationResponse, MessageResponse,
     ContactInteractionCreateRequest, ContactInteractionResponse, ContactInteractionListResponse,
-    ContactStatusUpdateRequest, ContactStatusUpdateResponse
+    ContactStatusUpdateRequest, ContactStatusUpdateResponse, UserDetailLevel
 )
 from ...application.use_cases.contact.manage_contacts import ManageContactsUseCase
 from ...application.dto.contact_dto import (
@@ -98,6 +98,7 @@ async def create_contact(
 @router.get("/{contact_id}", response_model=ContactResponse)
 async def get_contact(
     contact_id: uuid.UUID = Path(..., description="Contact ID"),
+    include_user_details: UserDetailLevel = Query(UserDetailLevel.BASIC, description="Level of user detail to include"),
     current_user: dict = Depends(get_current_user),
     use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
     _: bool = Depends(require_view_contacts_dep)
@@ -105,11 +106,11 @@ async def get_contact(
     """
     Get a contact by ID.
     
-    Retrieves detailed information about a specific contact.
+    Retrieves detailed information about a specific contact with optional user data.
     Requires 'view_contacts' permission.
     """
     try:
-        contact_dto = await use_case.get_contact(contact_id, current_user["sub"])
+        contact_dto = await use_case.get_contact(contact_id, current_user["sub"], include_user_details)
         return _contact_dto_to_response(contact_dto)
     except Exception as e:
         raise HTTPException(
@@ -211,6 +212,7 @@ async def list_contacts(
     business_id: uuid.UUID = Depends(get_business_context),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
+    include_user_details: UserDetailLevel = Query(UserDetailLevel.BASIC, description="Level of user detail to include"),
     current_user: dict = Depends(get_current_user),
     use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
     _: bool = Depends(require_view_contacts_dep)
@@ -246,7 +248,7 @@ async def list_contacts(
     
     try:
         contact_list_dto = await use_case.get_business_contacts(
-            business_id, current_user["sub"], skip, limit
+            business_id, current_user["sub"], skip, limit, include_user_details
         )
         
         logger.info(f"📊 ContactsAPI: Returning {len(contact_list_dto.contacts)} contacts (total: {contact_list_dto.total_count})")
@@ -303,7 +305,8 @@ async def search_contacts(
         skip=request.skip,
         limit=request.limit,
         sort_by=request.sort_by,
-        sort_order=request.sort_order
+        sort_order=request.sort_order,
+        include_user_details=request.include_user_details
     )
     
     try:

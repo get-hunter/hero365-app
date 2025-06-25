@@ -3,4 +3,4 @@ description:
 globs: 
 alwaysApply: true
 ---
-It's not necessary to keep backwards compatibility, the app still on development.
+We don't need code implementations with for backward compatibility because the app still on development. (don't generate legacy code)

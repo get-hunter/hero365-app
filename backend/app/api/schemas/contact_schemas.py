@@ -6,11 +6,39 @@ Request and response schemas for contact management endpoints.
 
 import uuid
 from datetime import datetime
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field, EmailStr, ConfigDict, field_validator, field_serializer
+from typing import Optional, List, Dict, Any, Union
+from pydantic import BaseModel, Field, EmailStr, ConfigDict, field_validator, field_serializer, model_validator
 from enum import Enum
 
 from ...utils import format_datetime_utc
+
+
+# User reference schemas
+class UserReferenceBasic(BaseModel):
+    """Basic user reference information."""
+    id: str = Field(..., description="User ID")
+    display_name: str = Field(..., description="User display name")
+    email: Optional[str] = Field(None, description="User email")
+
+
+class UserReferenceFull(BaseModel):
+    """Full user reference information."""
+    id: str = Field(..., description="User ID")
+    display_name: str = Field(..., description="User display name")
+    email: Optional[str] = Field(None, description="User email")
+    full_name: Optional[str] = Field(None, description="Full name")
+    phone: Optional[str] = Field(None, description="Phone number")
+    role: Optional[str] = Field(None, description="Business role")
+    department: Optional[str] = Field(None, description="Department")
+    is_active: bool = Field(True, description="Active status")
+
+
+# Enum for user detail inclusion levels
+class UserDetailLevel(str, Enum):
+    """User detail inclusion levels."""
+    NONE = "none"
+    BASIC = "basic"
+    FULL = "full"
 
 
 # Enum schemas
@@ -142,8 +170,7 @@ class ContactInteractionResponse(BaseModel):
     outcome: Optional[str] = Field(None, description="Interaction outcome")
     next_action: Optional[str] = Field(None, description="Next action to take")
     scheduled_follow_up: Optional[datetime] = Field(None, description="Scheduled follow-up date")
-    performed_by: str = Field(..., description="User who performed the interaction")
-    performed_by_id: Optional[str] = Field(None, description="User ID who performed the interaction")
+    performed_by: Union[str, UserReferenceBasic, UserReferenceFull] = Field(..., description="User who performed the interaction (ID or object based on include_user_details)")
     
     @field_serializer('timestamp', 'scheduled_follow_up')
     def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
@@ -259,6 +286,7 @@ class ContactSearchRequest(BaseModel):
     limit: int = Field(100, ge=1, le=1000, description="Maximum number of records to return")
     sort_by: str = Field("created_date", description="Field to sort by")
     sort_order: str = Field("desc", pattern="^(asc|desc)$", description="Sort order")
+    include_user_details: UserDetailLevel = Field(UserDetailLevel.BASIC, description="Level of user detail to include")
 
 
 class ContactBulkUpdateRequest(BaseModel):
@@ -318,8 +346,8 @@ class ContactResponse(BaseModel):
     notes: Optional[str] = Field(None, description="Additional notes")
     estimated_value: Optional[float] = Field(None, description="Estimated value")
     currency: str = Field(..., description="Currency code")
-    assigned_to: Optional[str] = Field(None, description="Assigned user ID")
-    created_by: Optional[str] = Field(None, description="Creator user ID")
+    assigned_to: Optional[Union[str, UserReferenceBasic, UserReferenceFull]] = Field(None, description="Assigned user (ID or object based on include_user_details)")
+    created_by: Optional[Union[str, UserReferenceBasic, UserReferenceFull]] = Field(None, description="Creator user (ID or object based on include_user_details)")
     custom_fields: Dict[str, Any] = Field(default_factory=dict, description="Custom fields")
     
     # Status and interaction history
