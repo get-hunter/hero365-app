@@ -24,12 +24,12 @@ from ...dto.scheduling_dto import (
 from ...exceptions.application_exceptions import (
     ValidationError, NotFoundError, BusinessLogicError
 )
-from ....domain.entities.job import Job, JobType, JobPriority, JobStatus
-from ....domain.entities.user_capabilities import UserCapabilities
-from ....domain.entities.scheduling_engine import IntelligentSchedulingEngine, SchedulingResult
-from ....domain.repositories.job_repository import JobRepository
-from ....domain.repositories.user_capabilities_repository import UserCapabilitiesRepository
-from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
+from app.domain.entities.job import Job, JobType, JobPriority, JobStatus
+from app.domain.entities.user_capabilities import UserCapabilities
+from app.domain.entities.scheduling_engine import IntelligentSchedulingEngine, SchedulingResult
+from app.domain.repositories.job_repository import JobRepository
+from app.domain.repositories.user_capabilities_repository import UserCapabilitiesRepository
+from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
 from ...ports.external_services import (
     RouteOptimizationPort, TravelTimePort, WeatherServicePort, NotificationServicePort
 )
@@ -1094,7 +1094,7 @@ class IntelligentSchedulingUseCase:
         """Create a job from a booking request."""
         # This would create a new job using the job repository
         # For now, return a mock job
-        from ...domain.entities.job import Job, JobStatus, JobType
+        from app.domain.entities.job import JobStatus, JobType
         
         job = Job(
             id=uuid.uuid4(),

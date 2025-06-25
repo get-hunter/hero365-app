@@ -22,12 +22,12 @@ from ...exceptions.application_exceptions import (
 from ...ports.auth_service import AuthServicePort
 from ...ports.sms_service import SMSServicePort
 from ...ports.email_service import EmailServicePort
-from ....domain.entities.user_capabilities import (
+from app.domain.entities.user_capabilities import (
     UserCapabilities, CalendarEvent, TimeOffRequest, WorkingHoursTemplate,
     CalendarPreferences, CalendarEventType, TimeOffType, RecurrenceType
 )
-from ....domain.repositories.user_capabilities_repository import UserCapabilitiesRepository
-from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
+from app.domain.repositories.user_capabilities_repository import UserCapabilitiesRepository
+from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
 
 logger = logging.getLogger(__name__)
 

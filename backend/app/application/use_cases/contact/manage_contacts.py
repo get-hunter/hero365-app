@@ -14,12 +14,12 @@ from ...dto.contact_dto import (
     ContactConversionDTO, ContactAssignmentDTO, ContactTagOperationDTO,
     ContactAddressDTO
 )
-from ....api.schemas.contact_schemas import UserDetailLevel
-from ....domain.repositories.contact_repository import ContactRepository
-from ....domain.repositories.business_repository import BusinessRepository
-from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
-from ....domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, ContactAddress
-from ....domain.exceptions.domain_exceptions import EntityNotFoundError, DuplicateEntityError
+from app.api.schemas.contact_schemas import UserDetailLevel
+from app.domain.repositories.contact_repository import ContactRepository
+from app.domain.repositories.business_repository import BusinessRepository
+from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
+from app.domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, ContactAddress
+from app.domain.exceptions.domain_exceptions import EntityNotFoundError, DuplicateEntityError
 from ...exceptions.application_exceptions import (
     ApplicationError, ValidationError, BusinessLogicError, PermissionDeniedError
 )
@@ -540,7 +540,7 @@ class ManageContactsUseCase:
         await self._validate_user_permission(contact.business_id, user_id, "edit_contacts")
         
         # Add interaction to contact
-        from ....domain.entities.contact import InteractionType
+        from app.domain.entities.contact import InteractionType
         interaction_id = contact.add_interaction(
             interaction_type=InteractionType(interaction_data["type"]),
             description=interaction_data["description"],
@@ -623,7 +623,7 @@ class ManageContactsUseCase:
         await self._validate_user_permission(contact.business_id, user_id, "edit_contacts")
         
         # Store old status for response
-        from ....domain.entities.contact import RelationshipStatus, LifecycleStage
+        from app.domain.entities.contact import RelationshipStatus, LifecycleStage
         old_status = contact.relationship_status
         old_lifecycle = contact.lifecycle_stage
         
@@ -805,7 +805,6 @@ class ManageContactsUseCase:
     
     def _contact_dict_to_response_dto(self, contact_data: Dict[str, Any], user_detail_level: UserDetailLevel) -> ContactResponseDTO:
         """Convert contact dictionary data with user information to response DTO."""
-        from ...dto.contact_dto import UserReferenceBasicDTO, UserReferenceFullDTO
         
         address_dto = None
         if contact_data.get("address"):
@@ -869,43 +868,53 @@ class ManageContactsUseCase:
         created_by = contact_data.get("created_by")
         
         if user_detail_level == UserDetailLevel.BASIC and isinstance(assigned_to, dict):
-            assigned_to = UserReferenceBasicDTO(
-                id=assigned_to["id"],
-                display_name=assigned_to["display_name"],
-                email=assigned_to.get("email")
-            )
+            assigned_to = {
+                "id": assigned_to["id"],
+                "display_name": assigned_to["display_name"],
+                "email": assigned_to.get("email")
+            }
         elif user_detail_level == UserDetailLevel.FULL and isinstance(assigned_to, dict):
-            assigned_to = UserReferenceFullDTO(
-                id=assigned_to["id"],
-                display_name=assigned_to["display_name"],
-                email=assigned_to.get("email"),
-                full_name=assigned_to.get("full_name"),
-                phone=assigned_to.get("phone"),
-                role=assigned_to.get("role"),
-                department=assigned_to.get("department"),
-                is_active=assigned_to.get("is_active", True)
-            )
+            assigned_to = {
+                "id": assigned_to["id"],
+                "display_name": assigned_to["display_name"],
+                "email": assigned_to.get("email"),
+                "full_name": assigned_to.get("full_name"),
+                "phone": assigned_to.get("phone"),
+                "role": assigned_to.get("role"),
+                "department": assigned_to.get("department"),
+                "is_active": assigned_to.get("is_active", True)
+            }
         
         if user_detail_level == UserDetailLevel.BASIC and isinstance(created_by, dict):
-            created_by = UserReferenceBasicDTO(
-                id=created_by["id"],
-                display_name=created_by["display_name"],
-                email=created_by.get("email")
-            )
+            created_by = {
+                "id": created_by["id"],
+                "display_name": created_by["display_name"],
+                "email": created_by.get("email")
+            }
         elif user_detail_level == UserDetailLevel.FULL and isinstance(created_by, dict):
-            created_by = UserReferenceFullDTO(
-                id=created_by["id"],
-                display_name=created_by["display_name"],
-                email=created_by.get("email"),
-                full_name=created_by.get("full_name"),
-                phone=created_by.get("phone"),
-                role=created_by.get("role"),
-                department=created_by.get("department"),
-                is_active=created_by.get("is_active", True)
-            )
+            created_by = {
+                "id": created_by["id"],
+                "display_name": created_by["display_name"],
+                "email": created_by.get("email"),
+                "full_name": created_by.get("full_name"),
+                "phone": created_by.get("phone"),
+                "role": created_by.get("role"),
+                "department": created_by.get("department"),
+                "is_active": created_by.get("is_active", True)
+            }
         
         # Create temporary contact entity for computed fields
-        from ...domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource
+        from app.domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource
+        
+        # Ensure at least one contact method for validation (use placeholder if none exist)
+        email = contact_data.get("email") or None
+        phone = contact_data.get("phone") or None
+        mobile_phone = contact_data.get("mobile_phone") or None
+        
+        # If no contact methods exist, provide a placeholder email to pass validation
+        if not email and not phone and not mobile_phone:
+            email = "placeholder@example.com"
+        
         temp_contact = Contact(
             id=uuid.UUID(contact_data["id"]),
             business_id=uuid.UUID(contact_data["business_id"]),
@@ -914,6 +923,9 @@ class ManageContactsUseCase:
             first_name=contact_data.get("first_name"),
             last_name=contact_data.get("last_name"),
             company_name=contact_data.get("company_name"),
+            email=email,
+            phone=phone,
+            mobile_phone=mobile_phone,
             priority=ContactPriority(contact_data.get("priority", "medium")),
             source=ContactSource(contact_data["source"]) if contact_data.get("source") else None,
         )

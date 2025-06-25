@@ -9,8 +9,8 @@ import logging
 from typing import List, Dict
 import uuid
 
-from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
-from ....domain.entities.business_membership import BusinessRole, DEFAULT_ROLE_PERMISSIONS
+from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
+from app.domain.entities.business_membership import BusinessRole, DEFAULT_ROLE_PERMISSIONS
 from ...exceptions.application_exceptions import ApplicationError
 
 # Configure logging

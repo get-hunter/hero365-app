@@ -11,14 +11,14 @@ import logging
 
 from supabase import AsyncClient
 
-from ....domain.repositories.user_capabilities_repository import UserCapabilitiesRepository
-from ....domain.entities.user_capabilities import UserCapabilities
-from ....domain.entities.calendar import (
+from app.domain.repositories.user_capabilities_repository import UserCapabilitiesRepository
+from app.domain.entities.user_capabilities import UserCapabilities
+from app.domain.entities.calendar import (
     CalendarEvent, TimeOffRequest, WorkingHoursTemplate, CalendarPreferences
 )
-from ....domain.entities.skills import Skill, Certification
-from ....domain.entities.availability import AvailabilityWindow, WorkloadCapacity
-from ....domain.exceptions.domain_exceptions import EntityNotFoundError, DomainValidationError
+from app.domain.entities.skills import Skill, Certification
+from app.domain.entities.availability import AvailabilityWindow, WorkloadCapacity
+from app.domain.exceptions.domain_exceptions import EntityNotFoundError, DomainValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -520,7 +520,7 @@ class SupabaseUserCapabilitiesRepository(UserCapabilitiesRepository):
     def _build_calendar_event_from_data(self, data: Dict) -> CalendarEvent:
         """Build CalendarEvent from database data."""
         # Basic implementation
-        from ....domain.entities.calendar import CalendarEventType, RecurrenceType
+        from app.domain.entities.calendar import CalendarEventType, RecurrenceType
         
         return CalendarEvent(
             id=uuid.UUID(data["id"]),

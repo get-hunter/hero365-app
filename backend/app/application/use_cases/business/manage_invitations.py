@@ -10,11 +10,11 @@ from datetime import datetime
 
 from ...dto.business_dto import BusinessInvitationResponseDTO
 from ...exceptions.application_exceptions import ValidationError, BusinessLogicError
-from ....domain.repositories.business_repository import BusinessRepository
-from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
-from ....domain.repositories.business_invitation_repository import BusinessInvitationRepository
-from ....domain.entities.business_invitation import InvitationStatus
-from ....domain.entities.business_membership import BusinessRole
+from app.domain.repositories.business_repository import BusinessRepository
+from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
+from app.domain.repositories.business_invitation_repository import BusinessInvitationRepository
+from app.domain.entities.business_invitation import InvitationStatus
+from app.domain.entities.business_membership import BusinessRole
 
 
 class ManageInvitationsUseCase:

@@ -10,10 +10,10 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 
 from supabase import Client
-from ....domain.repositories.contact_repository import ContactRepository
-from ....domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, ContactAddress
-from ....domain.exceptions.domain_exceptions import EntityNotFoundError, DuplicateEntityError, DatabaseError
-from ....api.schemas.contact_schemas import UserDetailLevel
+from app.domain.repositories.contact_repository import ContactRepository
+from app.domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, ContactAddress
+from app.domain.exceptions.domain_exceptions import EntityNotFoundError, DuplicateEntityError, DatabaseError
+from app.api.schemas.contact_schemas import UserDetailLevel
 
 
 class SupabaseContactRepository(ContactRepository):
@@ -71,23 +71,11 @@ class SupabaseContactRepository(ContactRepository):
                 if not response.data:
                     return None
                 
-                contact_data = response.data[0]
-                return self._prepare_contact_with_user_data(contact_data, user_detail_level)
+                return self._prepare_contact_with_user_data(response.data[0], user_detail_level)
             
-            elif user_detail_level == UserDetailLevel.BASIC:
-                # Join with auth.users for basic user info
-                query = f"""
-                    *,
-                    assigned_user:auth.users!assigned_to(id, email, full_name),
-                    created_user:auth.users!created_by(id, email, full_name)
-                """
-            else:  # UserDetailLevel.FULL
-                # Join with auth.users and business_memberships for full user info
-                query = f"""
-                    *,
-                    assigned_user:auth.users!assigned_to(id, email, full_name, phone, is_active),
-                    created_user:auth.users!created_by(id, email, full_name, phone, is_active)
-                """
+            # Build query with user joins
+            user_fields = self._get_user_fields(user_detail_level)
+            query = f"*,assigned_user:users!assigned_to({user_fields}),created_user:users!created_by({user_fields})"
             
             response = self.client.table(self.table_name).select(query).eq(
                 "id", str(contact_id)
@@ -96,8 +84,7 @@ class SupabaseContactRepository(ContactRepository):
             if not response.data:
                 return None
             
-            contact_data = response.data[0]
-            return self._prepare_contact_with_user_data(contact_data, user_detail_level)
+            return self._prepare_contact_with_user_data(response.data[0], user_detail_level)
             
         except Exception as e:
             raise DatabaseError(f"Failed to get contact with user data: {str(e)}")
@@ -125,20 +112,9 @@ class SupabaseContactRepository(ContactRepository):
                 
                 return [self._prepare_contact_with_user_data(contact_data, user_detail_level) for contact_data in response.data]
             
-            elif user_detail_level == UserDetailLevel.BASIC:
-                # Join with auth.users for basic user info
-                query = f"""
-                    *,
-                    assigned_user:auth.users!assigned_to(id, email, full_name),
-                    created_user:auth.users!created_by(id, email, full_name)
-                """
-            else:  # UserDetailLevel.FULL
-                # Join with auth.users for full user info
-                query = f"""
-                    *,
-                    assigned_user:auth.users!assigned_to(id, email, full_name, phone, is_active),
-                    created_user:auth.users!created_by(id, email, full_name, phone, is_active)
-                """
+            # Build query with user joins using the public.users table
+            user_fields = self._get_user_fields(user_detail_level)
+            query = f"*,assigned_user:users!assigned_to({user_fields}),created_user:users!created_by({user_fields})"
             
             response = self.client.table(self.table_name).select(query).eq(
                 "business_id", str(business_id)
@@ -148,7 +124,16 @@ class SupabaseContactRepository(ContactRepository):
             
         except Exception as e:
             raise DatabaseError(f"Failed to get contacts with user data: {str(e)}")
-    
+
+    def _get_user_fields(self, user_detail_level: UserDetailLevel) -> str:
+        """Get the appropriate user fields for the detail level."""
+        if user_detail_level == UserDetailLevel.BASIC:
+            return "id,display_name,email"
+        elif user_detail_level == UserDetailLevel.FULL:
+            return "id,display_name,email,full_name,phone,is_active,last_sign_in"
+        else:
+            return "id"
+
     async def get_by_email(self, business_id: uuid.UUID, email: str) -> Optional[Contact]:
         """Get contact by email within a business."""
         try:
@@ -169,7 +154,7 @@ class SupabaseContactRepository(ContactRepository):
         try:
             response = self.client.table(self.table_name).select("*").eq(
                 "business_id", str(business_id)
-            ).or_(f"phone.eq.{phone},mobile_phone.eq.{phone}").execute()
+            ).eq("phone", phone).execute()
             
             if not response.data:
                 return None
@@ -226,7 +211,7 @@ class SupabaseContactRepository(ContactRepository):
     
     async def get_by_assigned_user(self, business_id: uuid.UUID, user_id: str,
                                   skip: int = 0, limit: int = 100) -> List[Contact]:
-        """Get contacts assigned to a specific user within a business."""
+        """Get contacts assigned to a user within a business."""
         try:
             response = self.client.table(self.table_name).select("*").eq(
                 "business_id", str(business_id)
@@ -241,12 +226,12 @@ class SupabaseContactRepository(ContactRepository):
     
     async def get_by_tag(self, business_id: uuid.UUID, tag: str,
                         skip: int = 0, limit: int = 100) -> List[Contact]:
-        """Get contacts with a specific tag within a business."""
+        """Get contacts by tag within a business."""
         try:
-            # Use JSONB contains operator for tag search
+            # Using PostgREST array contains operator
             response = self.client.table(self.table_name).select("*").eq(
                 "business_id", str(business_id)
-            ).contains("tags", [tag]).range(
+            ).contains("tags", f'["{tag}"]').range(
                 skip, skip + limit - 1
             ).order("created_date", desc=True).execute()
             
@@ -257,20 +242,17 @@ class SupabaseContactRepository(ContactRepository):
     
     async def search_contacts(self, business_id: uuid.UUID, search_term: str,
                              skip: int = 0, limit: int = 100) -> List[Contact]:
-        """Search contacts within a business by name, email, phone, or company."""
+        """Search contacts by name, email, phone, or company within a business."""
         try:
-            # Use text search across multiple fields
-            search_query = f"%{search_term}%"
-            
+            # Using full-text search on multiple fields
             response = self.client.table(self.table_name).select("*").eq(
                 "business_id", str(business_id)
             ).or_(
-                f"first_name.ilike.{search_query},"
-                f"last_name.ilike.{search_query},"
-                f"company_name.ilike.{search_query},"
-                f"email.ilike.{search_query},"
-                f"phone.ilike.{search_query},"
-                f"mobile_phone.ilike.{search_query}"
+                f"first_name.ilike.%{search_term}%,"
+                f"last_name.ilike.%{search_term}%,"
+                f"email.ilike.%{search_term}%,"
+                f"phone.ilike.%{search_term}%,"
+                f"company_name.ilike.%{search_term}%"
             ).range(skip, skip + limit - 1).order("created_date", desc=True).execute()
             
             return [self._dict_to_contact(contact_data) for contact_data in response.data]
@@ -280,9 +262,9 @@ class SupabaseContactRepository(ContactRepository):
     
     async def get_recently_contacted(self, business_id: uuid.UUID, days: int = 30,
                                    skip: int = 0, limit: int = 100) -> List[Contact]:
-        """Get contacts that were recently contacted within a business."""
+        """Get contacts contacted within the specified number of days."""
         try:
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
+            cutoff_date = datetime.now() - timedelta(days=days)
             
             response = self.client.table(self.table_name).select("*").eq(
                 "business_id", str(business_id)
@@ -293,11 +275,11 @@ class SupabaseContactRepository(ContactRepository):
             return [self._dict_to_contact(contact_data) for contact_data in response.data]
             
         except Exception as e:
-            raise DatabaseError(f"Failed to get recently contacted contacts: {str(e)}")
+            raise DatabaseError(f"Failed to get recently contacted: {str(e)}")
     
     async def get_never_contacted(self, business_id: uuid.UUID,
                                 skip: int = 0, limit: int = 100) -> List[Contact]:
-        """Get contacts that have never been contacted within a business."""
+        """Get contacts that have never been contacted."""
         try:
             response = self.client.table(self.table_name).select("*").eq(
                 "business_id", str(business_id)
@@ -308,11 +290,11 @@ class SupabaseContactRepository(ContactRepository):
             return [self._dict_to_contact(contact_data) for contact_data in response.data]
             
         except Exception as e:
-            raise DatabaseError(f"Failed to get never contacted contacts: {str(e)}")
+            raise DatabaseError(f"Failed to get never contacted: {str(e)}")
     
     async def get_high_value_contacts(self, business_id: uuid.UUID, min_value: float,
                                     skip: int = 0, limit: int = 100) -> List[Contact]:
-        """Get contacts with estimated value above threshold within a business."""
+        """Get contacts with estimated value above the minimum."""
         try:
             response = self.client.table(self.table_name).select("*").eq(
                 "business_id", str(business_id)
@@ -329,8 +311,7 @@ class SupabaseContactRepository(ContactRepository):
         """Update an existing contact."""
         try:
             contact_data = self._contact_to_dict(contact)
-            # Remove id from update data
-            contact_data.pop('id', None)
+            contact_data["last_modified"] = datetime.now().isoformat()
             
             response = self.client.table(self.table_name).update(contact_data).eq(
                 "id", str(contact.id)
@@ -347,7 +328,7 @@ class SupabaseContactRepository(ContactRepository):
             raise DatabaseError(f"Failed to update contact: {str(e)}")
     
     async def delete(self, contact_id: uuid.UUID) -> bool:
-        """Delete a contact by ID."""
+        """Delete a contact."""
         try:
             response = self.client.table(self.table_name).delete().eq(
                 "id", str(contact_id)
@@ -360,14 +341,14 @@ class SupabaseContactRepository(ContactRepository):
     
     async def bulk_update_status(self, business_id: uuid.UUID, contact_ids: List[uuid.UUID],
                                status: ContactStatus) -> int:
-        """Update status for multiple contacts."""
+        """Bulk update contact status."""
         try:
-            contact_id_strings = [str(cid) for cid in contact_ids]
+            contact_ids_str = [str(cid) for cid in contact_ids]
             
             response = self.client.table(self.table_name).update({
                 "status": status.value,
-                "last_modified": datetime.utcnow().isoformat()
-            }).eq("business_id", str(business_id)).in_("id", contact_id_strings).execute()
+                "last_modified": datetime.now().isoformat()
+            }).eq("business_id", str(business_id)).in_("id", contact_ids_str).execute()
             
             return len(response.data)
             
@@ -376,14 +357,14 @@ class SupabaseContactRepository(ContactRepository):
     
     async def bulk_assign_contacts(self, business_id: uuid.UUID, contact_ids: List[uuid.UUID],
                                  user_id: str) -> int:
-        """Assign multiple contacts to a user."""
+        """Bulk assign contacts to a user."""
         try:
-            contact_id_strings = [str(cid) for cid in contact_ids]
+            contact_ids_str = [str(cid) for cid in contact_ids]
             
             response = self.client.table(self.table_name).update({
                 "assigned_to": user_id,
-                "last_modified": datetime.utcnow().isoformat()
-            }).eq("business_id", str(business_id)).in_("id", contact_id_strings).execute()
+                "last_modified": datetime.now().isoformat()
+            }).eq("business_id", str(business_id)).in_("id", contact_ids_str).execute()
             
             return len(response.data)
             
@@ -392,19 +373,42 @@ class SupabaseContactRepository(ContactRepository):
     
     async def bulk_add_tag(self, business_id: uuid.UUID, contact_ids: List[uuid.UUID],
                           tag: str) -> int:
-        """Add a tag to multiple contacts."""
+        """Bulk add tag to contacts."""
         try:
-            # This is simplified - in production, you'd want to use a stored procedure
-            # or more sophisticated JSONB operations to avoid race conditions
-            updated_count = 0
+            # This is a simplified implementation - in practice, you'd want to 
+            # merge with existing tags rather than replace
+            contact_ids_str = [str(cid) for cid in contact_ids]
             
-            for contact_id in contact_ids:
-                contact = await self.get_by_id(contact_id)
-                if contact and contact.business_id == business_id:
-                    if tag not in contact.tags:
-                        contact.add_tag(tag)
-                        await self.update(contact)
-                        updated_count += 1
+            # Get current contacts to merge tags
+            current_contacts = self.client.table(self.table_name).select(
+                "id,tags"
+            ).eq("business_id", str(business_id)).in_("id", contact_ids_str).execute()
+            
+            updates = []
+            for contact_data in current_contacts.data:
+                current_tags = contact_data.get("tags", [])
+                if isinstance(current_tags, str):
+                    current_tags = json.loads(current_tags)
+                
+                if tag not in current_tags:
+                    current_tags.append(tag)
+                
+                updates.append({
+                    "id": contact_data["id"],
+                    "tags": json.dumps(current_tags),
+                    "last_modified": datetime.now().isoformat()
+                })
+            
+            # Perform batch update
+            updated_count = 0
+            for update_data in updates:
+                response = self.client.table(self.table_name).update({
+                    "tags": update_data["tags"],
+                    "last_modified": update_data["last_modified"]
+                }).eq("id", update_data["id"]).execute()
+                
+                if response.data:
+                    updated_count += 1
             
             return updated_count
             
@@ -412,11 +416,11 @@ class SupabaseContactRepository(ContactRepository):
             raise DatabaseError(f"Failed to bulk add tag: {str(e)}")
     
     async def count_by_business(self, business_id: uuid.UUID) -> int:
-        """Get total count of contacts for a business."""
+        """Count contacts in a business."""
         try:
-            response = self.client.table(self.table_name).select(
-                "id", count="exact"
-            ).eq("business_id", str(business_id)).execute()
+            response = self.client.table(self.table_name).select("id", count="exact").eq(
+                "business_id", str(business_id)
+            ).execute()
             
             return response.count or 0
             
@@ -424,13 +428,11 @@ class SupabaseContactRepository(ContactRepository):
             raise DatabaseError(f"Failed to count contacts: {str(e)}")
     
     async def count_by_type(self, business_id: uuid.UUID, contact_type: ContactType) -> int:
-        """Get count of contacts by type for a business."""
+        """Count contacts by type in a business."""
         try:
-            response = self.client.table(self.table_name).select(
-                "id", count="exact"
-            ).eq("business_id", str(business_id)).eq(
-                "contact_type", contact_type.value
-            ).execute()
+            response = self.client.table(self.table_name).select("id", count="exact").eq(
+                "business_id", str(business_id)
+            ).eq("contact_type", contact_type.value).execute()
             
             return response.count or 0
             
@@ -438,13 +440,11 @@ class SupabaseContactRepository(ContactRepository):
             raise DatabaseError(f"Failed to count contacts by type: {str(e)}")
     
     async def count_by_status(self, business_id: uuid.UUID, status: ContactStatus) -> int:
-        """Get count of contacts by status for a business."""
+        """Count contacts by status in a business."""
         try:
-            response = self.client.table(self.table_name).select(
-                "id", count="exact"
-            ).eq("business_id", str(business_id)).eq(
-                "status", status.value
-            ).execute()
+            response = self.client.table(self.table_name).select("id", count="exact").eq(
+                "business_id", str(business_id)
+            ).eq("status", status.value).execute()
             
             return response.count or 0
             
@@ -454,135 +454,117 @@ class SupabaseContactRepository(ContactRepository):
     async def get_contact_statistics(self, business_id: uuid.UUID) -> Dict[str, Any]:
         """Get comprehensive contact statistics for a business."""
         try:
-            # This is simplified - in production, you'd use aggregate queries
-            stats = {}
+            # Get total count
+            total_response = self.client.table(self.table_name).select("id", count="exact").eq(
+                "business_id", str(business_id)
+            ).execute()
             
-            # Total counts
-            stats["total_contacts"] = await self.count_by_business(business_id)
+            total_contacts = total_response.count or 0
             
-            # Status counts
+            # Get counts by status
+            status_counts = {}
             for status in ContactStatus:
-                stats[f"{status.value}_contacts"] = await self.count_by_status(business_id, status)
+                count_response = self.client.table(self.table_name).select("id", count="exact").eq(
+                    "business_id", str(business_id)
+                ).eq("status", status.value).execute()
+                
+                status_counts[status.value] = count_response.count or 0
             
-            # Type counts
+            # Get counts by type
+            type_counts = {}
             for contact_type in ContactType:
-                stats[contact_type.value + "s"] = await self.count_by_type(business_id, contact_type)
+                count_response = self.client.table(self.table_name).select("id", count="exact").eq(
+                    "business_id", str(business_id)
+                ).eq("contact_type", contact_type.value).execute()
+                
+                type_counts[contact_type.value] = count_response.count or 0
             
-            # Priority counts (simplified)
-            for priority in ContactPriority:
-                response = self.client.table(self.table_name).select(
-                    "id", count="exact"
-                ).eq("business_id", str(business_id)).eq(
-                    "priority", priority.value
-                ).execute()
-                stats[f"{priority.value}_priority"] = response.count or 0
+            # Get recently contacted count (last 30 days)
+            cutoff_date = datetime.now() - timedelta(days=30)
+            recent_response = self.client.table(self.table_name).select("id", count="exact").eq(
+                "business_id", str(business_id)
+            ).gte("last_contacted", cutoff_date.isoformat()).execute()
             
-            # Additional statistics
-            response = self.client.table(self.table_name).select(
-                "id", count="exact"
-            ).eq("business_id", str(business_id)).not_.is_("email", "null").execute()
-            stats["with_email"] = response.count or 0
+            recently_contacted = recent_response.count or 0
             
-            response = self.client.table(self.table_name).select(
-                "id", count="exact"
-            ).eq("business_id", str(business_id)).or_(
-                "phone.not.is.null,mobile_phone.not.is.null"
-            ).execute()
-            stats["with_phone"] = response.count or 0
+            # Get never contacted count
+            never_response = self.client.table(self.table_name).select("id", count="exact").eq(
+                "business_id", str(business_id)
+            ).is_("last_contacted", "null").execute()
             
-            response = self.client.table(self.table_name).select(
-                "id", count="exact"
-            ).eq("business_id", str(business_id)).not_.is_("assigned_to", "null").execute()
-            stats["assigned_contacts"] = response.count or 0
+            never_contacted = never_response.count or 0
             
-            stats["unassigned_contacts"] = stats["total_contacts"] - stats["assigned_contacts"]
+            # Get high value contacts count (>$1000)
+            high_value_response = self.client.table(self.table_name).select("id", count="exact").eq(
+                "business_id", str(business_id)
+            ).gte("estimated_value", 1000).execute()
             
-            response = self.client.table(self.table_name).select(
-                "id", count="exact"
-            ).eq("business_id", str(business_id)).is_("last_contacted", "null").execute()
-            stats["never_contacted"] = response.count or 0
+            high_value_contacts = high_value_response.count or 0
             
-            # Recently contacted (last 30 days)
-            cutoff_date = datetime.utcnow() - timedelta(days=30)
-            response = self.client.table(self.table_name).select(
-                "id", count="exact"
-            ).eq("business_id", str(business_id)).gte(
-                "last_contacted", cutoff_date.isoformat()
-            ).execute()
-            stats["recently_contacted"] = response.count or 0
-            
-            # High value contacts (> $1000)
-            response = self.client.table(self.table_name).select(
-                "id", count="exact"
-            ).eq("business_id", str(business_id)).gte("estimated_value", 1000).execute()
-            stats["high_value_contacts"] = response.count or 0
-            
-            # Financial statistics
-            response = self.client.table(self.table_name).select(
-                "estimated_value"
-            ).eq("business_id", str(business_id)).not_.is_("estimated_value", "null").execute()
-            
-            values = [float(row["estimated_value"]) for row in response.data if row["estimated_value"]]
-            stats["total_estimated_value"] = sum(values)
-            stats["average_estimated_value"] = sum(values) / len(values) if values else 0.0
-            
-            return stats
+            return {
+                "total_contacts": total_contacts,
+                "status_breakdown": status_counts,
+                "type_breakdown": type_counts,
+                "recently_contacted": recently_contacted,
+                "never_contacted": never_contacted,
+                "high_value_contacts": high_value_contacts,
+                "contact_quality_score": min(100, (recently_contacted / max(total_contacts, 1)) * 100)
+            }
             
         except Exception as e:
             raise DatabaseError(f"Failed to get contact statistics: {str(e)}")
     
     async def exists(self, contact_id: uuid.UUID) -> bool:
-        """Check if a contact exists."""
+        """Check if contact exists."""
         try:
-            response = self.client.table(self.table_name).select(
-                "id", count="exact"
-            ).eq("id", str(contact_id)).execute()
+            response = self.client.table(self.table_name).select("id").eq(
+                "id", str(contact_id)
+            ).execute()
             
-            return (response.count or 0) > 0
+            return len(response.data) > 0
             
         except Exception as e:
             raise DatabaseError(f"Failed to check contact existence: {str(e)}")
     
     async def has_duplicate_email(self, business_id: uuid.UUID, email: str, 
                                 exclude_id: Optional[uuid.UUID] = None) -> bool:
-        """Check if email already exists for another contact in the business."""
+        """Check if email exists for another contact in the business."""
         try:
-            query = self.client.table(self.table_name).select(
-                "id", count="exact"
-            ).eq("business_id", str(business_id)).eq("email", email)
+            query = self.client.table(self.table_name).select("id").eq(
+                "business_id", str(business_id)
+            ).eq("email", email)
             
             if exclude_id:
                 query = query.neq("id", str(exclude_id))
             
             response = query.execute()
             
-            return (response.count or 0) > 0
+            return len(response.data) > 0
             
         except Exception as e:
             raise DatabaseError(f"Failed to check duplicate email: {str(e)}")
     
     async def has_duplicate_phone(self, business_id: uuid.UUID, phone: str,
                                 exclude_id: Optional[uuid.UUID] = None) -> bool:
-        """Check if phone already exists for another contact in the business."""
+        """Check if phone exists for another contact in the business."""
         try:
-            query = self.client.table(self.table_name).select(
-                "id", count="exact"
-            ).eq("business_id", str(business_id)).or_(f"phone.eq.{phone},mobile_phone.eq.{phone}")
+            query = self.client.table(self.table_name).select("id").eq(
+                "business_id", str(business_id)
+            ).eq("phone", phone)
             
             if exclude_id:
                 query = query.neq("id", str(exclude_id))
             
             response = query.execute()
             
-            return (response.count or 0) > 0
+            return len(response.data) > 0
             
         except Exception as e:
             raise DatabaseError(f"Failed to check duplicate phone: {str(e)}")
     
-    # Helper methods
-    
     def _contact_to_dict(self, contact: Contact) -> Dict[str, Any]:
-        """Convert Contact entity to dictionary for database storage."""
+        """Convert Contact entity to database dictionary."""
+        # Convert address to dictionary if it exists
         address_dict = None
         if contact.address:
             address_dict = {
@@ -717,7 +699,7 @@ class SupabaseContactRepository(ContactRepository):
                     if assigned_user_data:
                         result["assigned_to"] = {
                             "id": str(assigned_user_data.get("id", "")),
-                            "display_name": assigned_user_data.get("full_name") or assigned_user_data.get("email", ""),
+                            "display_name": assigned_user_data.get("display_name", ""),
                             "email": assigned_user_data.get("email")
                         }
                     else:
@@ -733,7 +715,7 @@ class SupabaseContactRepository(ContactRepository):
                     if created_user_data:
                         result["created_by"] = {
                             "id": str(created_user_data.get("id", "")),
-                            "display_name": created_user_data.get("full_name") or created_user_data.get("email", ""),
+                            "display_name": created_user_data.get("display_name", ""),
                             "email": created_user_data.get("email")
                         }
                     else:
@@ -751,13 +733,12 @@ class SupabaseContactRepository(ContactRepository):
                     if assigned_user_data:
                         result["assigned_to"] = {
                             "id": str(assigned_user_data.get("id", "")),
-                            "display_name": assigned_user_data.get("full_name") or assigned_user_data.get("email", ""),
+                            "display_name": assigned_user_data.get("display_name", ""),
                             "email": assigned_user_data.get("email"),
                             "full_name": assigned_user_data.get("full_name"),
                             "phone": assigned_user_data.get("phone"),
-                            "role": None,  # Will be populated from business membership if needed
-                            "department": None,  # Will be populated from business membership if needed
-                            "is_active": assigned_user_data.get("is_active", True)
+                            "is_active": assigned_user_data.get("is_active", True),
+                            "last_sign_in": assigned_user_data.get("last_sign_in")
                         }
                     else:
                         result["assigned_to"] = None
@@ -772,13 +753,12 @@ class SupabaseContactRepository(ContactRepository):
                     if created_user_data:
                         result["created_by"] = {
                             "id": str(created_user_data.get("id", "")),
-                            "display_name": created_user_data.get("full_name") or created_user_data.get("email", ""),
+                            "display_name": created_user_data.get("display_name", ""),
                             "email": created_user_data.get("email"),
                             "full_name": created_user_data.get("full_name"),
                             "phone": created_user_data.get("phone"),
-                            "role": None,  # Will be populated from business membership if needed
-                            "department": None,  # Will be populated from business membership if needed
-                            "is_active": created_user_data.get("is_active", True)
+                            "is_active": created_user_data.get("is_active", True),
+                            "last_sign_in": created_user_data.get("last_sign_in")
                         }
                     else:
                         result["created_by"] = None

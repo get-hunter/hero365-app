@@ -10,11 +10,11 @@ from datetime import datetime
 from typing import Optional
 
 from ...dto.business_dto import BusinessCreateDTO, BusinessResponseDTO
-from ....domain.repositories.business_repository import BusinessRepository
-from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
-from ....domain.entities.business import Business, CompanySize, ReferralSource
-from ....domain.entities.business_membership import BusinessMembership, BusinessRole, get_default_permissions_for_role
-from ....domain.exceptions.domain_exceptions import DomainValidationError, DuplicateEntityError
+from app.domain.repositories.business_repository import BusinessRepository
+from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
+from app.domain.entities.business import Business, CompanySize, ReferralSource
+from app.domain.entities.business_membership import BusinessMembership, BusinessRole, get_default_permissions_for_role
+from app.domain.exceptions.domain_exceptions import DomainValidationError, DuplicateEntityError
 from ...exceptions.application_exceptions import (
     ApplicationError, ValidationError, BusinessLogicError
 )

@@ -9,9 +9,9 @@ from typing import Optional
 
 from ...dto.business_dto import BusinessDetailResponseDTO, BusinessMembershipResponseDTO
 from ...exceptions.application_exceptions import ValidationError, BusinessLogicError
-from ....domain.repositories.business_repository import BusinessRepository
-from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
-from ....domain.repositories.business_invitation_repository import BusinessInvitationRepository
+from app.domain.repositories.business_repository import BusinessRepository
+from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
+from app.domain.repositories.business_invitation_repository import BusinessInvitationRepository
 
 
 class GetBusinessDetailUseCase:

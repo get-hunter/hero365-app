@@ -12,12 +12,12 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from supabase import Client
-from ....domain.entities.job import (
+from app.domain.entities.job import (
     Job, JobType, JobStatus, JobPriority, JobSource, JobAddress, 
     JobTimeTracking, JobCostEstimate
 )
-from ....domain.repositories.job_repository import JobRepository
-from ....domain.exceptions.domain_exceptions import DomainValidationError
+from app.domain.repositories.job_repository import JobRepository
+from app.domain.exceptions.domain_exceptions import DomainValidationError
 
 
 class SupabaseJobRepository(JobRepository):

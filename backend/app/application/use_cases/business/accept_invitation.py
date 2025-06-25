@@ -9,12 +9,12 @@ from datetime import datetime
 from typing import Optional
 
 from ...dto.business_dto import BusinessInvitationAcceptDTO, BusinessMembershipResponseDTO
-from ....domain.repositories.business_repository import BusinessRepository
-from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
-from ....domain.repositories.business_invitation_repository import BusinessInvitationRepository
-from ....domain.entities.business_invitation import InvitationStatus
-from ....domain.entities.business_membership import BusinessMembership
-from ....domain.exceptions.domain_exceptions import EntityNotFoundError
+from app.domain.repositories.business_repository import BusinessRepository
+from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
+from app.domain.repositories.business_invitation_repository import BusinessInvitationRepository
+from app.domain.entities.business_invitation import InvitationStatus
+from app.domain.entities.business_membership import BusinessMembership
+from app.domain.exceptions.domain_exceptions import EntityNotFoundError
 from ...exceptions.application_exceptions import (
     ApplicationError, ValidationError, BusinessLogicError
 )

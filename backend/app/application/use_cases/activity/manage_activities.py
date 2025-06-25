@@ -14,11 +14,11 @@ from ...dto.activity_dto import (
     ActivityTemplateCreateDTO, ActivityTemplateResponseDTO, TimelineRequestDTO,
     TimelineResponseDTO, ActivityReminderDTO
 )
-from ....domain.repositories.activity_repository import ActivityRepository, ActivityTemplateRepository
-from ....domain.repositories.contact_repository import ContactRepository
-from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
-from ....domain.entities.activity import Activity, ActivityTemplate, ActivityType, ActivityStatus, ActivityPriority
-from ....domain.exceptions.domain_exceptions import EntityNotFoundError, DomainValidationError
+from app.domain.repositories.activity_repository import ActivityRepository, ActivityTemplateRepository
+from app.domain.repositories.contact_repository import ContactRepository
+from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
+from app.domain.entities.activity import Activity, ActivityTemplate, ActivityType, ActivityStatus, ActivityPriority
+from app.domain.exceptions.domain_exceptions import EntityNotFoundError, DomainValidationError
 from ...exceptions.application_exceptions import (
     ApplicationError, ValidationError, BusinessLogicError, PermissionDeniedError
 )

@@ -11,9 +11,9 @@ import json
 
 from supabase import Client
 
-from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
-from ....domain.entities.business_membership import BusinessMembership, BusinessRole
-from ....domain.exceptions.domain_exceptions import (
+from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
+from app.domain.entities.business_membership import BusinessMembership, BusinessRole
+from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DuplicateEntityError, DatabaseError
 )
 

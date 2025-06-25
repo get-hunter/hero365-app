@@ -12,12 +12,12 @@ import logging
 from supabase import Client
 from postgrest.exceptions import APIError
 
-from ....domain.repositories.activity_repository import ActivityRepository, ActivityTemplateRepository
-from ....domain.entities.activity import (
+from app.domain.repositories.activity_repository import ActivityRepository, ActivityTemplateRepository
+from app.domain.entities.activity import (
     Activity, ActivityTemplate, ActivityType, ActivityStatus, ActivityPriority,
     ActivityParticipant, ActivityReminder
 )
-from ....domain.exceptions.domain_exceptions import (
+from app.domain.exceptions.domain_exceptions import (
     DomainValidationError, EntityNotFoundError, RepositoryError
 )
 

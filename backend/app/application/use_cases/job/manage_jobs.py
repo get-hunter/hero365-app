@@ -20,13 +20,13 @@ from ...dto.job_dto import (
 from ...exceptions.application_exceptions import (
     ValidationError, NotFoundError, PermissionDeniedError, BusinessRuleViolationError
 )
-from ....domain.entities.job import (
+from app.domain.entities.job import (
     Job, JobType, JobStatus, JobPriority, JobSource, JobAddress, 
     JobTimeTracking, JobCostEstimate
 )
-from ....domain.repositories.job_repository import JobRepository
-from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
-from ....domain.repositories.contact_repository import ContactRepository
+from app.domain.repositories.job_repository import JobRepository
+from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
+from app.domain.repositories.contact_repository import ContactRepository
 
 
 class ManageJobsUseCase:

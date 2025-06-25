@@ -7,11 +7,11 @@ Handles the business logic for retrieving all businesses a user is associated wi
 from typing import List
 
 from ...dto.business_dto import UserBusinessSummaryDTO, BusinessSummaryDTO, BusinessMembershipResponseDTO
-from ....domain.repositories.business_repository import BusinessRepository
-from ....domain.repositories.business_membership_repository import BusinessMembershipRepository
-from ....domain.repositories.business_invitation_repository import BusinessInvitationRepository
-from ....domain.entities.business import Business
-from ....domain.entities.business_membership import BusinessMembership, BusinessRole
+from app.domain.repositories.business_repository import BusinessRepository
+from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
+from app.domain.repositories.business_invitation_repository import BusinessInvitationRepository
+from app.domain.entities.business import Business
+from app.domain.entities.business_membership import BusinessMembership, BusinessRole
 from ...exceptions.application_exceptions import ApplicationError, ValidationError
 
 

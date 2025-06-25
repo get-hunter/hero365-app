@@ -12,10 +12,10 @@ import json
 
 from supabase import Client
 
-from ....domain.repositories.business_repository import BusinessRepository
-from ....domain.entities.business import Business, CompanySize, ReferralSource
-from ....domain.entities.business_membership import BusinessMembership
-from ....domain.exceptions.domain_exceptions import (
+from app.domain.repositories.business_repository import BusinessRepository
+from app.domain.entities.business import Business, CompanySize, ReferralSource
+from app.domain.entities.business_membership import BusinessMembership
+from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DuplicateEntityError, DatabaseError
 )
 
