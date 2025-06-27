@@ -55,6 +55,7 @@ class LifecycleStage(Enum):
 class ContactSource(Enum):
     """Enumeration for how the contact was acquired."""
     WEBSITE = "website"
+    ONLINE = "online"
     GOOGLE_ADS = "google_ads"
     SOCIAL_MEDIA = "social_media"
     REFERRAL = "referral"
@@ -686,6 +687,7 @@ class Contact:
         """Get human-readable source."""
         source_names = {
             ContactSource.WEBSITE: "Website",
+            ContactSource.ONLINE: "Online",
             ContactSource.GOOGLE_ADS: "Google Ads",
             ContactSource.SOCIAL_MEDIA: "Social Media",
             ContactSource.REFERRAL: "Referral",

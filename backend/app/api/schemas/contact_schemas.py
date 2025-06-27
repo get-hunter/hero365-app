@@ -84,6 +84,7 @@ class LifecycleStageSchema(str, Enum):
 class ContactSourceSchema(str, Enum):
     """Schema for contact source."""
     WEBSITE = "website"
+    ONLINE = "online"
     GOOGLE_ADS = "google_ads"
     SOCIAL_MEDIA = "social_media"
     REFERRAL = "referral"

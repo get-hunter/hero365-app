@@ -2121,6 +2121,7 @@ export type ContactSearchRequest = {
  */
 export type ContactSourceSchema =
   | "website"
+  | "online"
   | "google_ads"
   | "social_media"
   | "referral"
@@ -3014,6 +3015,7 @@ export type JobSourceEnum =
   | "social_media"
   | "referral"
   | "phone_call"
+  | "phone"
   | "walk_in"
   | "email_marketing"
   | "trade_show"
@@ -3024,6 +3026,7 @@ export type JobSourceEnum =
   | "existing_customer"
   | "cold_outreach"
   | "emergency_call"
+  | "emergency"
   | "event"
   | "direct"
   | "other"
@@ -3111,6 +3114,8 @@ export type JobTypeEnum =
   | "repair"
   | "inspection"
   | "consultation"
+  | "quote"
+  | "follow_up"
   | "emergency"
   | "project"
   | "other"
@@ -4896,6 +4901,29 @@ export type ContactsListContactsData = {
 
 export type ContactsListContactsResponse = ContactListResponse
 
+export type ContactsCreateContact1Data = {
+  requestBody: ContactCreateRequest
+}
+
+export type ContactsCreateContact1Response = ContactResponse
+
+export type ContactsListContacts1Data = {
+  /**
+   * Level of user detail to include
+   */
+  includeUserDetails?: UserDetailLevel
+  /**
+   * Maximum number of records to return
+   */
+  limit?: number
+  /**
+   * Number of records to skip
+   */
+  skip?: number
+}
+
+export type ContactsListContacts1Response = ContactListResponse
+
 export type ContactsGetContactData = {
   /**
    * Contact ID
@@ -5280,6 +5308,44 @@ export type JobsListJobs1Data = {
 }
 
 export type JobsListJobs1Response = JobListPaginatedResponse
+
+export type JobsCreateJob2Data = {
+  requestBody: JobCreateRequest
+}
+
+export type JobsCreateJob2Response = JobResponse
+
+export type JobsCreateJob3Data = {
+  requestBody: JobCreateRequest
+}
+
+export type JobsCreateJob3Response = JobResponse
+
+export type JobsListJobs2Data = {
+  /**
+   * Number of jobs to return
+   */
+  limit?: number
+  /**
+   * Number of jobs to skip
+   */
+  skip?: number
+}
+
+export type JobsListJobs2Response = JobListPaginatedResponse
+
+export type JobsListJobs3Data = {
+  /**
+   * Number of jobs to return
+   */
+  limit?: number
+  /**
+   * Number of jobs to skip
+   */
+  skip?: number
+}
+
+export type JobsListJobs3Response = JobListPaginatedResponse
 
 export type JobsGetJobData = {
   jobId: string

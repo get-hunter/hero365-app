@@ -20,7 +20,8 @@ from ..schemas.job_schemas import (
     JobWorkloadResponse, JobScheduleResponse, JobListPaginatedResponse,
     JobActionResponse, JobBulkActionResponse, JobErrorResponse,
     JobTypeEnum, JobStatusEnum, JobPriorityEnum, JobSourceEnum,
-    JobAddressSchema, JobTimeTrackingSchema, JobCostEstimateSchema
+    JobAddressSchema, JobTimeTrackingSchema, JobCostEstimateSchema,
+    JobContactSchema
 )
 from ...application.use_cases.job.create_job_use_case import CreateJobUseCase
 from ...application.use_cases.job.get_job_use_case import GetJobUseCase
@@ -58,6 +59,14 @@ router = APIRouter(prefix="/jobs", tags=["Jobs"])
     status_code=status.HTTP_201_CREATED,
     summary="Create a new job",
     description="Create a new job with the provided details. Job number will be auto-generated if not provided."
+)
+@router.post(
+    "",
+    response_model=JobResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new job",
+    description="Create a new job with the provided details. Job number will be auto-generated if not provided.",
+    operation_id="create_job_no_slash"
 )
 async def create_job(
     job_data: JobCreateRequest,
@@ -304,6 +313,13 @@ async def delete_job(
     summary="List jobs",
     description="Get a paginated list of jobs for the current business."
 )
+@router.get(
+    "",
+    response_model=JobListPaginatedResponse,
+    summary="List jobs",
+    description="Get a paginated list of jobs for the current business.",
+    operation_id="list_jobs_no_slash"
+)
 async def list_jobs(
     skip: int = Query(0, ge=0, description="Number of jobs to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of jobs to return"),
@@ -312,25 +328,25 @@ async def list_jobs(
     use_case: JobSearchUseCase = Depends(get_job_search_use_case)
 ) -> JobListPaginatedResponse:
     """List jobs for the current business."""
-    try:
-        user_id = current_user["sub"]
-        business_id = business_context["business_id"]
-        
-        # Use list_jobs method to get all jobs
-        results = await use_case.list_jobs(business_id, user_id, skip, limit)
-        
-        return JobListPaginatedResponse(
-            jobs=[_convert_job_list_dto_to_response(job) for job in results],
-            total=len(results),
-            skip=skip,
-            limit=limit,
-            has_more=len(results) == limit
-        )
-        
-    except PermissionDeniedError as e:
-        raise HTTPException(status_code=403, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    user_id = current_user["sub"]
+    business_id = business_context["business_id"]
+    
+    # Use list_jobs method to get all jobs
+    results = await use_case.list_jobs(
+        business_id=business_id,
+        user_id=user_id,
+        skip=skip,
+        limit=limit
+    )
+    
+    # Convert jobs to response DTOs
+    return JobListPaginatedResponse(
+        jobs=[_convert_job_list_dto_to_response(job) for job in results],
+        total=len(results),
+        skip=skip,
+        limit=limit,
+        has_more=len(results) == limit
+    )
 
 
 @router.post(
@@ -698,15 +714,16 @@ async def cancel_job(
 def _convert_job_type_to_api_enum(domain_type: JobType) -> JobTypeEnum:
     """Convert domain JobType to API JobTypeEnum."""
     mapping = {
+        JobType.SERVICE: JobTypeEnum.SERVICE,
         JobType.INSTALLATION: JobTypeEnum.INSTALLATION,
-        JobType.REPAIR: JobTypeEnum.REPAIR,
         JobType.MAINTENANCE: JobTypeEnum.MAINTENANCE,
+        JobType.REPAIR: JobTypeEnum.REPAIR,
         JobType.INSPECTION: JobTypeEnum.INSPECTION,
         JobType.CONSULTATION: JobTypeEnum.CONSULTATION,
-        JobType.EMERGENCY: JobTypeEnum.EMERGENCY,
         JobType.QUOTE: JobTypeEnum.QUOTE,
         JobType.FOLLOW_UP: JobTypeEnum.FOLLOW_UP,
-        JobType.WARRANTY: JobTypeEnum.WARRANTY,
+        JobType.EMERGENCY: JobTypeEnum.EMERGENCY,
+        JobType.PROJECT: JobTypeEnum.PROJECT,
         JobType.OTHER: JobTypeEnum.OTHER
     }
     return mapping.get(domain_type, JobTypeEnum.OTHER)
@@ -716,6 +733,7 @@ def _convert_job_status_to_api_enum(domain_status: JobStatus) -> JobStatusEnum:
     """Convert domain JobStatus to API JobStatusEnum."""
     mapping = {
         JobStatus.DRAFT: JobStatusEnum.DRAFT,
+        JobStatus.QUOTED: JobStatusEnum.QUOTED,
         JobStatus.SCHEDULED: JobStatusEnum.SCHEDULED,
         JobStatus.IN_PROGRESS: JobStatusEnum.IN_PROGRESS,
         JobStatus.ON_HOLD: JobStatusEnum.ON_HOLD,
@@ -742,18 +760,28 @@ def _convert_job_priority_to_api_enum(domain_priority: JobPriority) -> JobPriori
 def _convert_job_source_to_api_enum(domain_source: JobSource) -> JobSourceEnum:
     """Convert domain JobSource to API JobSourceEnum."""
     mapping = {
-        JobSource.MANUAL: JobSourceEnum.MANUAL,
         JobSource.WEBSITE: JobSourceEnum.WEBSITE,
-        JobSource.PHONE: JobSourceEnum.PHONE,
-        JobSource.EMAIL: JobSourceEnum.EMAIL,
-        JobSource.REFERRAL: JobSourceEnum.REFERRAL,
+        JobSource.GOOGLE_ADS: JobSourceEnum.GOOGLE_ADS,
         JobSource.SOCIAL_MEDIA: JobSourceEnum.SOCIAL_MEDIA,
-        JobSource.ADVERTISEMENT: JobSourceEnum.ADVERTISEMENT,
+        JobSource.REFERRAL: JobSourceEnum.REFERRAL,
+        JobSource.PHONE_CALL: JobSourceEnum.PHONE_CALL,
+        JobSource.PHONE: JobSourceEnum.PHONE,
+        JobSource.WALK_IN: JobSourceEnum.WALK_IN,
+        JobSource.EMAIL_MARKETING: JobSourceEnum.EMAIL_MARKETING,
+        JobSource.TRADE_SHOW: JobSourceEnum.TRADE_SHOW,
+        JobSource.DIRECT_MAIL: JobSourceEnum.DIRECT_MAIL,
+        JobSource.YELLOW_PAGES: JobSourceEnum.YELLOW_PAGES,
         JobSource.REPEAT_CUSTOMER: JobSourceEnum.REPEAT_CUSTOMER,
+        JobSource.PARTNER: JobSourceEnum.PARTNER,
+        JobSource.EXISTING_CUSTOMER: JobSourceEnum.EXISTING_CUSTOMER,
+        JobSource.COLD_OUTREACH: JobSourceEnum.COLD_OUTREACH,
+        JobSource.EMERGENCY_CALL: JobSourceEnum.EMERGENCY_CALL,
         JobSource.EMERGENCY: JobSourceEnum.EMERGENCY,
+        JobSource.EVENT: JobSourceEnum.EVENT,
+        JobSource.DIRECT: JobSourceEnum.DIRECT,
         JobSource.OTHER: JobSourceEnum.OTHER
     }
-    return mapping.get(domain_source, JobSourceEnum.MANUAL)
+    return mapping.get(domain_source, JobSourceEnum.OTHER)
 
 
 def _convert_job_dto_to_response(job_dto) -> JobResponse:

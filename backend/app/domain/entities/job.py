@@ -23,6 +23,8 @@ class JobType(Enum):
     REPAIR = "repair"
     INSPECTION = "inspection"
     CONSULTATION = "consultation"
+    QUOTE = "quote"
+    FOLLOW_UP = "follow_up"
     EMERGENCY = "emergency"
     PROJECT = "project"
     OTHER = "other"
@@ -492,6 +494,8 @@ class Job:
             JobType.REPAIR: "Repair",
             JobType.INSPECTION: "Inspection",
             JobType.CONSULTATION: "Consultation",
+            JobType.QUOTE: "Quote",
+            JobType.FOLLOW_UP: "Follow Up",
             JobType.EMERGENCY: "Emergency",
             JobType.PROJECT: "Project",
             JobType.OTHER: "Other"

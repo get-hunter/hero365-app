@@ -221,6 +221,60 @@ class ListContactsUseCase:
             status_enum = ContactStatus(contact_data["status"])
         except ValueError:
             status_enum = ContactStatus.ACTIVE
+            
+        try:
+            relationship_status_enum = RelationshipStatus(contact_data.get("relationship_status", "prospect"))
+        except ValueError:
+            relationship_status_enum = RelationshipStatus.PROSPECT
+            
+        try:
+            lifecycle_stage_enum = LifecycleStage(contact_data.get("lifecycle_stage", "awareness"))
+        except ValueError:
+            lifecycle_stage_enum = LifecycleStage.AWARENESS
+            
+        try:
+            priority_enum = ContactPriority(contact_data.get("priority", "medium"))
+        except ValueError:
+            priority_enum = ContactPriority.MEDIUM
+            
+        try:
+            source_enum = ContactSource(contact_data["source"]) if contact_data.get("source") else None
+        except ValueError:
+            source_enum = None
+        
+        # Parse datetime fields
+        created_date = None
+        if contact_data.get("created_date"):
+            try:
+                from datetime import datetime
+                if isinstance(contact_data["created_date"], str):
+                    created_date = datetime.fromisoformat(contact_data["created_date"].replace("Z", "+00:00"))
+                else:
+                    created_date = contact_data["created_date"]
+            except (ValueError, TypeError):
+                created_date = None
+                
+        last_modified = None
+        if contact_data.get("last_modified"):
+            try:
+                from datetime import datetime
+                if isinstance(contact_data["last_modified"], str):
+                    last_modified = datetime.fromisoformat(contact_data["last_modified"].replace("Z", "+00:00"))
+                else:
+                    last_modified = contact_data["last_modified"]
+            except (ValueError, TypeError):
+                last_modified = None
+                
+        last_contacted = None
+        if contact_data.get("last_contacted"):
+            try:
+                from datetime import datetime
+                if isinstance(contact_data["last_contacted"], str):
+                    last_contacted = datetime.fromisoformat(contact_data["last_contacted"].replace("Z", "+00:00"))
+                else:
+                    last_contacted = contact_data["last_contacted"]
+            except (ValueError, TypeError):
+                last_contacted = None
         
         # Create temporary contact for computed fields
         temp_contact = Contact(
@@ -228,9 +282,15 @@ class ListContactsUseCase:
             business_id=uuid.UUID(contact_data["business_id"]),
             contact_type=contact_type_enum,
             status=status_enum,
+            relationship_status=relationship_status_enum,
+            lifecycle_stage=lifecycle_stage_enum,
             first_name=contact_data.get("first_name"),
             last_name=contact_data.get("last_name"),
-            email=contact_data.get("email") or "placeholder@example.com"
+            company_name=contact_data.get("company_name"),
+            email=contact_data.get("email"),
+            phone=contact_data.get("phone"),
+            priority=priority_enum,
+            source=source_enum
         )
         
         return ContactResponseDTO(
@@ -238,15 +298,35 @@ class ListContactsUseCase:
             business_id=uuid.UUID(contact_data["business_id"]),
             contact_type=contact_type_enum,
             status=status_enum,
+            relationship_status=relationship_status_enum,
+            lifecycle_stage=lifecycle_stage_enum,
             first_name=contact_data.get("first_name"),
             last_name=contact_data.get("last_name"),
-            display_name=temp_contact.get_display_name(),
+            company_name=contact_data.get("company_name"),
+            job_title=contact_data.get("job_title"),
             email=contact_data.get("email"),
             phone=contact_data.get("phone"),
+            mobile_phone=contact_data.get("mobile_phone"),
+            website=contact_data.get("website"),
             address=address_dto,
+            priority=priority_enum,
+            source=source_enum,
             tags=tags,
-            custom_fields=custom_fields,
+            notes=contact_data.get("notes"),
+            estimated_value=contact_data.get("estimated_value"),
+            currency=contact_data.get("currency", "USD"),
             assigned_to=assigned_to,
             created_by=created_by,
-            # ... other fields with safe defaults
+            custom_fields=custom_fields,
+            created_date=created_date,
+            last_modified=last_modified,
+            last_contacted=last_contacted,
+            display_name=temp_contact.get_display_name(),
+            primary_contact_method=temp_contact.get_primary_contact_method(),
+            type_display=temp_contact.get_type_display(),
+            status_display=temp_contact.get_status_display(),
+            priority_display=temp_contact.get_priority_display(),
+            source_display=temp_contact.get_source_display(),
+            relationship_status_display=temp_contact.get_relationship_status_display(),
+            lifecycle_stage_display=temp_contact.get_lifecycle_stage_display()
         ) 

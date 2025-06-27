@@ -37,7 +37,7 @@ from ...application.dto.contact_dto import (
     ContactConversionDTO, ContactAssignmentDTO, ContactTagOperationDTO,
     ContactAddressDTO
 )
-from ...domain.entities.contact import ContactType, ContactStatus, ContactPriority, ContactSource
+from ...domain.entities.contact import ContactType, ContactStatus, ContactPriority, ContactSource, RelationshipStatus, LifecycleStage
 from ...infrastructure.config.dependency_injection import (
     get_create_contact_use_case, get_get_contact_use_case, get_update_contact_use_case,
     get_delete_contact_use_case, get_list_contacts_use_case, get_search_contacts_use_case,
@@ -52,6 +52,7 @@ router = APIRouter(prefix="/contacts", tags=["contacts"])
 
 
 @router.post("/", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ContactResponse, status_code=status.HTTP_201_CREATED, operation_id="create_contact_no_slash")
 async def create_contact(
     request: ContactCreateRequest,
     business_context: dict = Depends(get_business_context),
@@ -249,6 +250,7 @@ async def delete_contact(
 
 
 @router.get("/", response_model=ContactListResponse)
+@router.get("", response_model=ContactListResponse, operation_id="list_contacts_no_slash")
 async def list_contacts(
     business_context: dict = Depends(get_business_context),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
@@ -271,8 +273,21 @@ async def list_contacts(
             business_id, current_user["sub"], skip, limit, include_user_details
         )
         
+        logger.info(f"🔧 ContactAPI: Retrieved {len(contact_list_dto.contacts)} contacts from use case")
+        
+        # Convert contacts one by one to catch which one fails
+        converted_contacts = []
+        for i, contact in enumerate(contact_list_dto.contacts):
+            try:
+                logger.info(f"🔧 ContactAPI: Converting contact {i+1}/{len(contact_list_dto.contacts)} - ID: {contact.id}")
+                converted_contact = _contact_dto_to_response(contact)
+                converted_contacts.append(converted_contact)
+            except Exception as contact_error:
+                logger.error(f"❌ ContactAPI: Failed to convert contact {i+1} (ID: {contact.id}): {str(contact_error)}")
+                raise contact_error
+        
         return ContactListResponse(
-            contacts=[_contact_dto_to_response(contact) for contact in contact_list_dto.contacts],
+            contacts=converted_contacts,
             total_count=contact_list_dto.total_count,
             page=contact_list_dto.page,
             per_page=contact_list_dto.per_page,
@@ -280,6 +295,9 @@ async def list_contacts(
             has_previous=contact_list_dto.has_previous
         )
     except Exception as e:
+        logger.error(f"❌ ContactAPI: Error in list_contacts: {str(e)}")
+        import traceback
+        logger.error(f"❌ ContactAPI: Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
@@ -684,8 +702,8 @@ def _contact_dto_to_response(contact_dto) -> ContactResponse:
     # Convert address if present
     address_response = None
     if contact_dto.address:
-        from ..schemas.contact_schemas import ContactAddressResponse
-        address_response = ContactAddressResponse(
+        from ..schemas.contact_schemas import ContactAddressSchema
+        address_response = ContactAddressSchema(
             street_address=contact_dto.address.street_address,
             city=contact_dto.address.city,
             state=contact_dto.address.state,
@@ -693,19 +711,19 @@ def _contact_dto_to_response(contact_dto) -> ContactResponse:
             country=contact_dto.address.country
         )
     
-    # Convert enum values to response enums
+    # Convert enum values to schema enums
     from ..schemas.contact_schemas import (
-        ContactTypeResponse, ContactStatusResponse, ContactPriorityResponse, 
-        ContactSourceResponse, RelationshipStatusResponse, LifecycleStageResponse
+        ContactTypeSchema, ContactStatusSchema, ContactPrioritySchema, 
+        ContactSourceSchema, RelationshipStatusSchema, LifecycleStageSchema
     )
     
     return ContactResponse(
         id=contact_dto.id,
         business_id=contact_dto.business_id,
-        contact_type=ContactTypeResponse(contact_dto.contact_type.value),
-        status=ContactStatusResponse(contact_dto.status.value),
-        relationship_status=RelationshipStatusResponse(contact_dto.relationship_status.value),
-        lifecycle_stage=LifecycleStageResponse(contact_dto.lifecycle_stage.value),
+        contact_type=ContactTypeSchema(contact_dto.contact_type.value),
+        status=ContactStatusSchema(contact_dto.status.value),
+        relationship_status=RelationshipStatusSchema(contact_dto.relationship_status.value),
+        lifecycle_stage=LifecycleStageSchema(contact_dto.lifecycle_stage.value),
         first_name=contact_dto.first_name,
         last_name=contact_dto.last_name,
         company_name=contact_dto.company_name,
@@ -715,15 +733,17 @@ def _contact_dto_to_response(contact_dto) -> ContactResponse:
         mobile_phone=contact_dto.mobile_phone,
         website=contact_dto.website,
         address=address_response,
-        priority=ContactPriorityResponse(contact_dto.priority.value),
-        source=ContactSourceResponse(contact_dto.source.value) if contact_dto.source else None,
-        tags=contact_dto.tags,
+        priority=ContactPrioritySchema(contact_dto.priority.value),
+        source=ContactSourceSchema(contact_dto.source.value) if contact_dto.source else None,
+        tags=contact_dto.tags or [],
         notes=contact_dto.notes,
         estimated_value=contact_dto.estimated_value,
-        currency=contact_dto.currency,
+        currency=contact_dto.currency or "USD",
         assigned_to=contact_dto.assigned_to,
         created_by=contact_dto.created_by,
-        custom_fields=contact_dto.custom_fields,
+        custom_fields=contact_dto.custom_fields or {},
+        status_history=[],  # Empty list for now
+        interaction_history=[],  # Empty list for now
         created_date=contact_dto.created_date,
         last_modified=contact_dto.last_modified,
         last_contacted=contact_dto.last_contacted,

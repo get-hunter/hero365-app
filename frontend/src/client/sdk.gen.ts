@@ -95,6 +95,10 @@ import type {
   ContactsCreateContactResponse,
   ContactsListContactsData,
   ContactsListContactsResponse,
+  ContactsCreateContact1Data,
+  ContactsCreateContact1Response,
+  ContactsListContacts1Data,
+  ContactsListContacts1Response,
   ContactsGetContactData,
   ContactsGetContactResponse,
   ContactsUpdateContactData,
@@ -177,6 +181,14 @@ import type {
   JobsListJobsResponse,
   JobsListJobs1Data,
   JobsListJobs1Response,
+  JobsCreateJob2Data,
+  JobsCreateJob2Response,
+  JobsCreateJob3Data,
+  JobsCreateJob3Response,
+  JobsListJobs2Data,
+  JobsListJobs2Response,
+  JobsListJobs3Data,
+  JobsListJobs3Response,
   JobsGetJobData,
   JobsGetJobResponse,
   JobsGetJob1Data,
@@ -1423,7 +1435,7 @@ export class ContactsService {
   ): CancelablePromise<ContactsCreateContactResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/contacts/",
+      url: "/api/v1/contacts",
       body: data.requestBody,
       mediaType: "application/json",
       errors: {
@@ -1434,9 +1446,9 @@ export class ContactsService {
 
   /**
    * List Contacts
-   * List contacts for the business.
+   * List contacts for the current business.
    *
-   * Retrieves a paginated list of contacts for the current business.
+   * Retrieves a paginated list of contacts with optional user detail information.
    * Requires 'view_contacts' permission.
    * @param data The data for the request.
    * @param data.skip Number of records to skip
@@ -1448,6 +1460,61 @@ export class ContactsService {
   public static listContacts(
     data: ContactsListContactsData = {},
   ): CancelablePromise<ContactsListContactsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/contacts",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        include_user_details: data.includeUserDetails,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Contact
+   * Create a new contact.
+   *
+   * Creates a new contact for the current business with the provided information.
+   * Requires 'edit_contacts' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ContactResponse Successful Response
+   * @throws ApiError
+   */
+  public static createContact1(
+    data: ContactsCreateContact1Data,
+  ): CancelablePromise<ContactsCreateContact1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/contacts/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Contacts
+   * List contacts for the current business.
+   *
+   * Retrieves a paginated list of contacts with optional user detail information.
+   * Requires 'view_contacts' permission.
+   * @param data The data for the request.
+   * @param data.skip Number of records to skip
+   * @param data.limit Maximum number of records to return
+   * @param data.includeUserDetails Level of user detail to include
+   * @returns ContactListResponse Successful Response
+   * @throws ApiError
+   */
+  public static listContacts1(
+    data: ContactsListContacts1Data = {},
+  ): CancelablePromise<ContactsListContacts1Response> {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/contacts/",
@@ -1551,7 +1618,7 @@ export class ContactsService {
    * Search Contacts
    * Search contacts with advanced filtering.
    *
-   * Performs advanced search and filtering on contacts.
+   * Performs advanced search across contacts with multiple filtering options.
    * Requires 'view_contacts' permission.
    * @param data The data for the request.
    * @param data.requestBody
@@ -1576,7 +1643,7 @@ export class ContactsService {
    * Bulk Update Contacts
    * Perform bulk updates on multiple contacts.
    *
-   * Updates multiple contacts with the same changes.
+   * Updates multiple contacts at once with the same changes.
    * Requires 'edit_contacts' permission.
    * @param data The data for the request.
    * @param data.requestBody
@@ -1601,7 +1668,7 @@ export class ContactsService {
    * Convert Contact Type
    * Convert a contact from one type to another.
    *
-   * Changes the contact type (e.g., lead to customer) with business rule validation.
+   * Changes the contact type and applies appropriate business logic.
    * Requires 'edit_contacts' permission.
    * @param data The data for the request.
    * @param data.contactId Contact ID
@@ -1628,9 +1695,9 @@ export class ContactsService {
 
   /**
    * Assign Contacts
-   * Assign multiple contacts to a user.
+   * Assign multiple contacts to a team member.
    *
-   * Assigns or unassigns multiple contacts to/from a team member.
+   * Bulk assigns contacts to a specific user for management.
    * Requires 'edit_contacts' permission.
    * @param data The data for the request.
    * @param data.requestBody
@@ -1653,9 +1720,9 @@ export class ContactsService {
 
   /**
    * Manage Contact Tags
-   * Add, remove, or replace tags on multiple contacts.
+   * Add or remove tags from multiple contacts.
    *
-   * Performs tag operations on multiple contacts.
+   * Manages tags across multiple contacts in bulk operations.
    * Requires 'edit_contacts' permission.
    * @param data The data for the request.
    * @param data.requestBody
@@ -1680,7 +1747,7 @@ export class ContactsService {
    * Mark Contact Contacted
    * Mark a contact as contacted.
    *
-   * Updates the last_contacted timestamp for the contact.
+   * Updates the last contacted timestamp for tracking purposes.
    * Requires 'edit_contacts' permission.
    * @param data The data for the request.
    * @param data.contactId Contact ID
@@ -1706,7 +1773,7 @@ export class ContactsService {
    * Get Contact Statistics
    * Get comprehensive contact statistics.
    *
-   * Retrieves detailed statistics about contacts for the business.
+   * Returns overview statistics for all contacts in the business.
    * Requires 'view_contacts' permission.
    * @returns ContactStatisticsResponse Successful Response
    * @throws ApiError
@@ -1722,7 +1789,7 @@ export class ContactsService {
    * Add Contact Interaction
    * Add an interaction record to a contact.
    *
-   * Creates a new interaction record for the specified contact.
+   * Records a new interaction (call, email, meeting, etc.) with the contact.
    * Requires 'edit_contacts' permission.
    * @param data The data for the request.
    * @param data.contactId Contact ID
@@ -1751,7 +1818,7 @@ export class ContactsService {
    * Get Contact Interactions
    * Get interaction history for a contact.
    *
-   * Retrieves paginated list of interactions for the specified contact.
+   * Retrieves paginated list of all interactions with the contact.
    * Requires 'view_contacts' permission.
    * @param data The data for the request.
    * @param data.contactId Contact ID
@@ -1783,8 +1850,7 @@ export class ContactsService {
    * Update Contact Status
    * Update contact relationship status and lifecycle stage.
    *
-   * Updates the relationship status and optionally the lifecycle stage for the specified contact.
-   * Automatically tracks status change history.
+   * Changes the contact's relationship status and/or lifecycle stage with business logic.
    * Requires 'edit_contacts' permission.
    * @param data The data for the request.
    * @param data.contactId Contact ID
@@ -2427,7 +2493,7 @@ export class JobsService {
   ): CancelablePromise<JobsCreateJobResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/jobs/",
+      url: "/api/v1/jobs",
       body: data.requestBody,
       mediaType: "application/json",
       errors: {
@@ -2449,7 +2515,7 @@ export class JobsService {
   ): CancelablePromise<JobsCreateJob1Response> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/jobs/",
+      url: "/api/v1/jobs",
       body: data.requestBody,
       mediaType: "application/json",
       errors: {
@@ -2472,7 +2538,7 @@ export class JobsService {
   ): CancelablePromise<JobsListJobsResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/jobs/",
+      url: "/api/v1/jobs",
       query: {
         skip: data.skip,
         limit: data.limit,
@@ -2495,6 +2561,100 @@ export class JobsService {
   public static listJobs1(
     data: JobsListJobs1Data = {},
   ): CancelablePromise<JobsListJobs1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create a new job
+   * Create a new job with the provided details. Job number will be auto-generated if not provided.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static createJob2(
+    data: JobsCreateJob2Data,
+  ): CancelablePromise<JobsCreateJob2Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create a new job
+   * Create a new job with the provided details. Job number will be auto-generated if not provided.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static createJob3(
+    data: JobsCreateJob3Data,
+  ): CancelablePromise<JobsCreateJob3Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List jobs
+   * Get a paginated list of jobs for the current business.
+   * @param data The data for the request.
+   * @param data.skip Number of jobs to skip
+   * @param data.limit Number of jobs to return
+   * @returns JobListPaginatedResponse Successful Response
+   * @throws ApiError
+   */
+  public static listJobs2(
+    data: JobsListJobs2Data = {},
+  ): CancelablePromise<JobsListJobs2Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List jobs
+   * Get a paginated list of jobs for the current business.
+   * @param data The data for the request.
+   * @param data.skip Number of jobs to skip
+   * @param data.limit Number of jobs to return
+   * @returns JobListPaginatedResponse Successful Response
+   * @throws ApiError
+   */
+  public static listJobs3(
+    data: JobsListJobs3Data = {},
+  ): CancelablePromise<JobsListJobs3Response> {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/jobs/",
