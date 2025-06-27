@@ -22,10 +22,6 @@ from .job_bulk_operations_use_case import JobBulkOperationsUseCase
 # Helper service
 from .job_helper_service import JobHelperService
 
-# Keep the original combined use cases for backward compatibility during transition
-from .job_crud_use_case import JobCRUDUseCase
-from .manage_jobs import ManageJobsUseCase
-
 __all__ = [
     # Individual CRUD use cases
     "CreateJobUseCase",
@@ -43,8 +39,4 @@ __all__ = [
     
     # Helper service
     "JobHelperService",
-    
-    # For backward compatibility
-    "JobCRUDUseCase",
-    "ManageJobsUseCase",
 ] 

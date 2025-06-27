@@ -55,10 +55,29 @@ from ...application.use_cases.business.manage_team_member import ManageTeamMembe
 from ...application.use_cases.business.manage_invitations import ManageInvitationsUseCase
 
 # Contact Use Cases
-from ...application.use_cases.contact.manage_contacts import ManageContactsUseCase
+from ...application.use_cases.contact.create_contact_use_case import CreateContactUseCase
+from ...application.use_cases.contact.get_contact_use_case import GetContactUseCase
+from ...application.use_cases.contact.update_contact_use_case import UpdateContactUseCase
+from ...application.use_cases.contact.delete_contact_use_case import DeleteContactUseCase
+from ...application.use_cases.contact.list_contacts_use_case import ListContactsUseCase
+from ...application.use_cases.contact.search_contacts_use_case import SearchContactsUseCase
+from ...application.use_cases.contact.contact_statistics_use_case import ContactStatisticsUseCase
+from ...application.use_cases.contact.contact_interaction_use_case import ContactInteractionUseCase
+from ...application.use_cases.contact.contact_status_management_use_case import ContactStatusManagementUseCase
+from ...application.use_cases.contact.bulk_contact_operations_use_case import BulkContactOperationsUseCase
 
 # Job Use Cases
-from ...application.use_cases.job.manage_jobs import ManageJobsUseCase
+from ...application.use_cases.job.create_job_use_case import CreateJobUseCase
+from ...application.use_cases.job.get_job_use_case import GetJobUseCase
+from ...application.use_cases.job.update_job_use_case import UpdateJobUseCase
+from ...application.use_cases.job.delete_job_use_case import DeleteJobUseCase
+from ...application.use_cases.job.job_status_management_use_case import JobStatusManagementUseCase
+from ...application.use_cases.job.job_assignment_use_case import JobAssignmentUseCase
+from ...application.use_cases.job.job_search_use_case import JobSearchUseCase
+from ...application.use_cases.job.job_analytics_use_case import JobAnalyticsUseCase
+from ...application.use_cases.job.job_scheduling_use_case import JobSchedulingUseCase
+from ...application.use_cases.job.job_bulk_operations_use_case import JobBulkOperationsUseCase
+from ...application.use_cases.job.job_helper_service import JobHelperService
 
 # Activity Use Cases
 from ...application.use_cases.activity.manage_activities import ManageActivitiesUseCase
@@ -200,17 +219,113 @@ class DependencyContainer:
         )
         
         # Contact use cases
-        self._use_cases['manage_contacts'] = ManageContactsUseCase(
+        self._use_cases['create_contact'] = CreateContactUseCase(
             contact_repository=self.get_repository('contact_repository'),
             business_repository=self.get_repository('business_repository'),
             membership_repository=self.get_repository('business_membership_repository')
         )
         
-        # Job use cases
-        self._use_cases['manage_jobs'] = ManageJobsUseCase(
-            job_repository=self.get_repository('job_repository'),
+        self._use_cases['get_contact'] = GetContactUseCase(
+            contact_repository=self.get_repository('contact_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        self._use_cases['update_contact'] = UpdateContactUseCase(
+            contact_repository=self.get_repository('contact_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        self._use_cases['delete_contact'] = DeleteContactUseCase(
+            contact_repository=self.get_repository('contact_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        self._use_cases['list_contacts'] = ListContactsUseCase(
+            contact_repository=self.get_repository('contact_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        self._use_cases['search_contacts'] = SearchContactsUseCase(
+            contact_repository=self.get_repository('contact_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        self._use_cases['contact_statistics'] = ContactStatisticsUseCase(
+            contact_repository=self.get_repository('contact_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        self._use_cases['contact_interaction'] = ContactInteractionUseCase(
+            contact_repository=self.get_repository('contact_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        self._use_cases['contact_status_management'] = ContactStatusManagementUseCase(
+            contact_repository=self.get_repository('contact_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        self._use_cases['bulk_contact_operations'] = BulkContactOperationsUseCase(
+            contact_repository=self.get_repository('contact_repository'),
+            membership_repository=self.get_repository('business_membership_repository')
+        )
+        
+        # Job helper service
+        job_helper_service = JobHelperService(
             business_membership_repository=self.get_repository('business_membership_repository'),
             contact_repository=self.get_repository('contact_repository')
+        )
+        
+        # Job use cases
+        self._use_cases['create_job'] = CreateJobUseCase(
+            job_repository=self.get_repository('job_repository'),
+            contact_repository=self.get_repository('contact_repository'),
+            job_helper_service=job_helper_service
+        )
+        
+        self._use_cases['get_job'] = GetJobUseCase(
+            job_repository=self.get_repository('job_repository'),
+            job_helper_service=job_helper_service
+        )
+        
+        self._use_cases['update_job'] = UpdateJobUseCase(
+            job_repository=self.get_repository('job_repository'),
+            job_helper_service=job_helper_service
+        )
+        
+        self._use_cases['delete_job'] = DeleteJobUseCase(
+            job_repository=self.get_repository('job_repository'),
+            job_helper_service=job_helper_service
+        )
+        
+        self._use_cases['job_status_management'] = JobStatusManagementUseCase(
+            job_repository=self.get_repository('job_repository'),
+            job_helper_service=job_helper_service
+        )
+        
+        self._use_cases['job_assignment'] = JobAssignmentUseCase(
+            job_repository=self.get_repository('job_repository'),
+            job_helper_service=job_helper_service
+        )
+        
+        self._use_cases['job_search'] = JobSearchUseCase(
+            job_repository=self.get_repository('job_repository'),
+            job_helper_service=job_helper_service
+        )
+        
+        self._use_cases['job_analytics'] = JobAnalyticsUseCase(
+            job_repository=self.get_repository('job_repository'),
+            job_helper_service=job_helper_service
+        )
+        
+        self._use_cases['job_scheduling'] = JobSchedulingUseCase(
+            job_repository=self.get_repository('job_repository'),
+            job_helper_service=job_helper_service
+        )
+        
+        self._use_cases['job_bulk_operations'] = JobBulkOperationsUseCase(
+            job_repository=self.get_repository('job_repository'),
+            job_helper_service=job_helper_service
         )
         
         # Activity use cases
@@ -336,17 +451,89 @@ class DependencyContainer:
         """Get contact repository."""
         return self.get_repository('contact_repository')
 
-    def get_manage_contacts_use_case(self) -> ManageContactsUseCase:
-        """Get manage contacts use case."""
-        return self.get_use_case('manage_contacts')
+    def get_create_contact_use_case(self) -> CreateContactUseCase:
+        """Get create contact use case."""
+        return self.get_use_case('create_contact')
+    
+    def get_get_contact_use_case(self) -> GetContactUseCase:
+        """Get get contact use case."""
+        return self.get_use_case('get_contact')
+    
+    def get_update_contact_use_case(self) -> UpdateContactUseCase:
+        """Get update contact use case."""
+        return self.get_use_case('update_contact')
+    
+    def get_delete_contact_use_case(self) -> DeleteContactUseCase:
+        """Get delete contact use case."""
+        return self.get_use_case('delete_contact')
+    
+    def get_list_contacts_use_case(self) -> ListContactsUseCase:
+        """Get list contacts use case."""
+        return self.get_use_case('list_contacts')
+    
+    def get_search_contacts_use_case(self) -> SearchContactsUseCase:
+        """Get search contacts use case."""
+        return self.get_use_case('search_contacts')
+    
+    def get_contact_statistics_use_case(self) -> ContactStatisticsUseCase:
+        """Get contact statistics use case."""
+        return self.get_use_case('contact_statistics')
+    
+    def get_contact_interaction_use_case(self) -> ContactInteractionUseCase:
+        """Get contact interaction use case."""
+        return self.get_use_case('contact_interaction')
+    
+    def get_contact_status_management_use_case(self) -> ContactStatusManagementUseCase:
+        """Get contact status management use case."""
+        return self.get_use_case('contact_status_management')
+    
+    def get_bulk_contact_operations_use_case(self) -> BulkContactOperationsUseCase:
+        """Get bulk contact operations use case."""
+        return self.get_use_case('bulk_contact_operations')
     
     def get_job_repository(self) -> JobRepository:
         """Get job repository."""
         return self.get_repository('job_repository')
     
-    def get_manage_jobs_use_case(self) -> ManageJobsUseCase:
-        """Get manage jobs use case."""
-        return self.get_use_case('manage_jobs')
+    def get_create_job_use_case(self) -> CreateJobUseCase:
+        """Get create job use case."""
+        return self.get_use_case('create_job')
+    
+    def get_get_job_use_case(self) -> GetJobUseCase:
+        """Get get job use case."""
+        return self.get_use_case('get_job')
+    
+    def get_update_job_use_case(self) -> UpdateJobUseCase:
+        """Get update job use case."""
+        return self.get_use_case('update_job')
+    
+    def get_delete_job_use_case(self) -> DeleteJobUseCase:
+        """Get delete job use case."""
+        return self.get_use_case('delete_job')
+    
+    def get_job_status_management_use_case(self) -> JobStatusManagementUseCase:
+        """Get job status management use case."""
+        return self.get_use_case('job_status_management')
+    
+    def get_job_assignment_use_case(self) -> JobAssignmentUseCase:
+        """Get job assignment use case."""
+        return self.get_use_case('job_assignment')
+    
+    def get_job_search_use_case(self) -> JobSearchUseCase:
+        """Get job search use case."""
+        return self.get_use_case('job_search')
+    
+    def get_job_analytics_use_case(self) -> JobAnalyticsUseCase:
+        """Get job analytics use case."""
+        return self.get_use_case('job_analytics')
+    
+    def get_job_scheduling_use_case(self) -> JobSchedulingUseCase:
+        """Get job scheduling use case."""
+        return self.get_use_case('job_scheduling')
+    
+    def get_job_bulk_operations_use_case(self) -> JobBulkOperationsUseCase:
+        """Get job bulk operations use case."""
+        return self.get_use_case('job_bulk_operations')
     
     def get_user_capabilities_repository(self) -> UserCapabilitiesRepository:
         """Get user capabilities repository."""
@@ -414,9 +601,55 @@ def get_contact_repository() -> ContactRepository:
     return get_container().get_contact_repository()
 
 
-def get_manage_contacts_use_case() -> ManageContactsUseCase:
-    """Get manage contacts use case from container."""
-    return get_container().get_manage_contacts_use_case()
+# Contact use case dependencies
+def get_create_contact_use_case() -> CreateContactUseCase:
+    """Get create contact use case from container."""
+    return get_container().get_create_contact_use_case()
+
+
+def get_get_contact_use_case() -> GetContactUseCase:
+    """Get get contact use case from container."""
+    return get_container().get_get_contact_use_case()
+
+
+def get_update_contact_use_case() -> UpdateContactUseCase:
+    """Get update contact use case from container."""
+    return get_container().get_update_contact_use_case()
+
+
+def get_delete_contact_use_case() -> DeleteContactUseCase:
+    """Get delete contact use case from container."""
+    return get_container().get_delete_contact_use_case()
+
+
+def get_list_contacts_use_case() -> ListContactsUseCase:
+    """Get list contacts use case from container."""
+    return get_container().get_list_contacts_use_case()
+
+
+def get_search_contacts_use_case() -> SearchContactsUseCase:
+    """Get search contacts use case from container."""
+    return get_container().get_search_contacts_use_case()
+
+
+def get_contact_statistics_use_case() -> ContactStatisticsUseCase:
+    """Get contact statistics use case from container."""
+    return get_container().get_contact_statistics_use_case()
+
+
+def get_contact_interaction_use_case() -> ContactInteractionUseCase:
+    """Get contact interaction use case from container."""
+    return get_container().get_contact_interaction_use_case()
+
+
+def get_contact_status_management_use_case() -> ContactStatusManagementUseCase:
+    """Get contact status management use case from container."""
+    return get_container().get_contact_status_management_use_case()
+
+
+def get_bulk_contact_operations_use_case() -> BulkContactOperationsUseCase:
+    """Get bulk contact operations use case from container."""
+    return get_container().get_bulk_contact_operations_use_case()
 
 
 # Job dependencies
@@ -425,9 +658,55 @@ def get_job_repository() -> JobRepository:
     return get_container().get_job_repository()
 
 
-def get_manage_jobs_use_case() -> ManageJobsUseCase:
-    """Get manage jobs use case from container."""
-    return get_container().get_manage_jobs_use_case()
+# Job use case dependencies
+def get_create_job_use_case() -> CreateJobUseCase:
+    """Get create job use case from container."""
+    return get_container().get_create_job_use_case()
+
+
+def get_get_job_use_case() -> GetJobUseCase:
+    """Get get job use case from container."""
+    return get_container().get_get_job_use_case()
+
+
+def get_update_job_use_case() -> UpdateJobUseCase:
+    """Get update job use case from container."""
+    return get_container().get_update_job_use_case()
+
+
+def get_delete_job_use_case() -> DeleteJobUseCase:
+    """Get delete job use case from container."""
+    return get_container().get_delete_job_use_case()
+
+
+def get_job_status_management_use_case() -> JobStatusManagementUseCase:
+    """Get job status management use case from container."""
+    return get_container().get_job_status_management_use_case()
+
+
+def get_job_assignment_use_case() -> JobAssignmentUseCase:
+    """Get job assignment use case from container."""
+    return get_container().get_job_assignment_use_case()
+
+
+def get_job_search_use_case() -> JobSearchUseCase:
+    """Get job search use case from container."""
+    return get_container().get_job_search_use_case()
+
+
+def get_job_analytics_use_case() -> JobAnalyticsUseCase:
+    """Get job analytics use case from container."""
+    return get_container().get_job_analytics_use_case()
+
+
+def get_job_scheduling_use_case() -> JobSchedulingUseCase:
+    """Get job scheduling use case from container."""
+    return get_container().get_job_scheduling_use_case()
+
+
+def get_job_bulk_operations_use_case() -> JobBulkOperationsUseCase:
+    """Get job bulk operations use case from container."""
+    return get_container().get_job_bulk_operations_use_case()
 
 
 # Activity dependencies
