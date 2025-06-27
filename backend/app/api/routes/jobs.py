@@ -18,7 +18,9 @@ from ..schemas.job_schemas import (
     JobAssignmentRequest, JobBulkUpdateRequest, JobSearchRequest,
     JobResponse, JobListResponse, JobStatisticsResponse,
     JobWorkloadResponse, JobScheduleResponse, JobListPaginatedResponse,
-    JobActionResponse, JobBulkActionResponse, JobErrorResponse
+    JobActionResponse, JobBulkActionResponse, JobErrorResponse,
+    JobTypeEnum, JobStatusEnum, JobPriorityEnum, JobSourceEnum,
+    JobAddressSchema, JobTimeTrackingSchema, JobCostEstimateSchema
 )
 from ...application.use_cases.job.manage_jobs import ManageJobsUseCase
 from ...application.dto.job_dto import (
@@ -51,7 +53,7 @@ async def create_job(
 ) -> JobResponse:
     """Create a new job."""
     try:
-        user_id = current_user["id"]
+        user_id = current_user["sub"]
         business_id = business_context["business_id"]
         
         # Convert request to DTO
@@ -114,7 +116,7 @@ async def create_job(
         )
         
         result = await manage_jobs_use_case.create_job(business_id, create_dto, user_id)
-        return JobResponse.model_validate(result)
+        return _convert_job_dto_to_response(result)
         
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -142,13 +144,18 @@ async def get_job(
         user_id = current_user["id"]
         
         result = await manage_jobs_use_case.get_job(job_id, user_id)
-        return JobResponse.model_validate(result)
+        response = _convert_job_dto_to_response(result)
+        return response
         
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except PermissionDeniedError as e:
         raise HTTPException(status_code=403, detail=str(e))
     except Exception as e:
+        import traceback
+        print(f"ERROR in get_job: {str(e)}")
+        print(f"ERROR type: {type(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
@@ -166,7 +173,7 @@ async def update_job(
 ) -> JobResponse:
     """Update an existing job."""
     try:
-        user_id = current_user["id"]
+        user_id = current_user["sub"]
         
         # Convert request to DTO
         job_address_dto = None
@@ -226,7 +233,7 @@ async def update_job(
         )
         
         result = await manage_jobs_use_case.update_job(job_id, update_dto, user_id)
-        return JobResponse.model_validate(result)
+        return _convert_job_dto_to_response(result)
         
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -251,7 +258,7 @@ async def delete_job(
 ) -> JobActionResponse:
     """Delete a job."""
     try:
-        user_id = current_user["id"]
+        user_id = current_user["sub"]
         
         success = await manage_jobs_use_case.delete_job(job_id, user_id)
         
@@ -290,7 +297,7 @@ async def list_jobs(
     """List jobs for a business."""
     try:
         business_id = business_context["business_id"]
-        user_id = current_user["id"]
+        user_id = current_user["sub"]
         
         jobs = await manage_jobs_use_case.list_jobs(business_id, user_id, skip, limit)
         
@@ -403,7 +410,7 @@ async def update_job_status(
         )
         
         result = await manage_jobs_use_case.update_job_status(job_id, status_dto, user_id)
-        return JobResponse.model_validate(result)
+        return _convert_job_dto_to_response(result)
         
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -439,7 +446,7 @@ async def assign_job(
         )
         
         result = await manage_jobs_use_case.assign_job(job_id, assignment_dto, user_id)
-        return JobResponse.model_validate(result)
+        return _convert_job_dto_to_response(result)
         
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -592,7 +599,7 @@ async def start_job(
         user_id = current_user["id"]
         
         result = await manage_jobs_use_case.start_job(job_id, user_id)
-        return JobResponse.model_validate(result)
+        return _convert_job_dto_to_response(result)
         
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -621,7 +628,7 @@ async def complete_job(
         user_id = current_user["id"]
         
         result = await manage_jobs_use_case.complete_job(job_id, user_id, completion_notes)
-        return JobResponse.model_validate(result)
+        return _convert_job_dto_to_response(result)
         
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -650,7 +657,7 @@ async def cancel_job(
         user_id = current_user["id"]
         
         result = await manage_jobs_use_case.cancel_job(job_id, user_id, reason)
-        return JobResponse.model_validate(result)
+        return _convert_job_dto_to_response(result)
         
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -659,4 +666,107 @@ async def cancel_job(
     except BusinessRuleViolationError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+def _convert_job_source_to_api_enum(domain_source: JobSource) -> JobSourceEnum:
+    """Convert domain JobSource to API JobSourceEnum."""
+    source_mapping = {
+        JobSource.WEBSITE: JobSourceEnum.WEBSITE,
+        JobSource.GOOGLE_ADS: JobSourceEnum.GOOGLE_ADS,
+        JobSource.SOCIAL_MEDIA: JobSourceEnum.SOCIAL_MEDIA,
+        JobSource.REFERRAL: JobSourceEnum.REFERRAL,
+        JobSource.PHONE_CALL: JobSourceEnum.PHONE_CALL,
+        JobSource.PHONE: JobSourceEnum.PHONE_CALL,  # Map PHONE to PHONE_CALL
+        JobSource.WALK_IN: JobSourceEnum.WALK_IN,
+        JobSource.EMAIL_MARKETING: JobSourceEnum.EMAIL_MARKETING,
+        JobSource.TRADE_SHOW: JobSourceEnum.TRADE_SHOW,
+        JobSource.DIRECT_MAIL: JobSourceEnum.DIRECT_MAIL,
+        JobSource.YELLOW_PAGES: JobSourceEnum.YELLOW_PAGES,
+        JobSource.REPEAT_CUSTOMER: JobSourceEnum.REPEAT_CUSTOMER,
+        JobSource.PARTNER: JobSourceEnum.PARTNER,
+        JobSource.EXISTING_CUSTOMER: JobSourceEnum.EXISTING_CUSTOMER,
+        JobSource.COLD_OUTREACH: JobSourceEnum.COLD_OUTREACH,
+        JobSource.EMERGENCY_CALL: JobSourceEnum.EMERGENCY_CALL,
+        JobSource.EMERGENCY: JobSourceEnum.EMERGENCY_CALL,  # Map EMERGENCY to EMERGENCY_CALL
+        JobSource.EVENT: JobSourceEnum.EVENT,
+        JobSource.DIRECT: JobSourceEnum.DIRECT,
+        JobSource.OTHER: JobSourceEnum.OTHER,
+    }
+    return source_mapping.get(domain_source, JobSourceEnum.OTHER)
+
+
+def _convert_job_dto_to_response(job_dto) -> JobResponse:
+    """Convert job DTO to JobResponse schema."""
+    
+    # Convert address DTO to schema
+    address_schema = JobAddressSchema(
+        street_address=job_dto.job_address.street_address,
+        city=job_dto.job_address.city,
+        state=job_dto.job_address.state,
+        postal_code=job_dto.job_address.postal_code,
+        country=job_dto.job_address.country,
+        latitude=job_dto.job_address.latitude,
+        longitude=job_dto.job_address.longitude,
+        access_notes=job_dto.job_address.access_notes
+    )
+    
+    # Convert time tracking DTO to schema
+    time_tracking_schema = JobTimeTrackingSchema(
+        estimated_hours=job_dto.time_tracking.estimated_hours,
+        actual_hours=job_dto.time_tracking.actual_hours,
+        billable_hours=job_dto.time_tracking.billable_hours,
+        start_time=job_dto.time_tracking.start_time,
+        end_time=job_dto.time_tracking.end_time,
+        break_time_minutes=job_dto.time_tracking.break_time_minutes
+    )
+    
+    # Convert cost estimate DTO to schema
+    cost_estimate_schema = JobCostEstimateSchema(
+        labor_cost=job_dto.cost_estimate.labor_cost,
+        material_cost=job_dto.cost_estimate.material_cost,
+        equipment_cost=job_dto.cost_estimate.equipment_cost,
+        overhead_cost=job_dto.cost_estimate.overhead_cost,
+        markup_percentage=job_dto.cost_estimate.markup_percentage,
+        tax_percentage=job_dto.cost_estimate.tax_percentage,
+        discount_amount=job_dto.cost_estimate.discount_amount
+    )
+    
+    return JobResponse(
+        id=job_dto.id,
+        business_id=job_dto.business_id,
+        contact_id=job_dto.contact_id,
+        job_number=job_dto.job_number,
+        title=job_dto.title,
+        description=job_dto.description,
+        job_type=JobTypeEnum(job_dto.job_type.value),
+        status=JobStatusEnum(job_dto.status.value),
+        priority=JobPriorityEnum(job_dto.priority.value),
+        source=_convert_job_source_to_api_enum(job_dto.source),
+        job_address=address_schema,
+        scheduled_start=job_dto.scheduled_start,
+        scheduled_end=job_dto.scheduled_end,
+        actual_start=job_dto.actual_start,
+        actual_end=job_dto.actual_end,
+        assigned_to=job_dto.assigned_to,
+        created_by=job_dto.created_by,
+        time_tracking=time_tracking_schema,
+        cost_estimate=cost_estimate_schema,
+        tags=job_dto.tags,
+        notes=job_dto.notes,
+        internal_notes=job_dto.internal_notes,
+        customer_requirements=job_dto.customer_requirements,
+        completion_notes=job_dto.completion_notes,
+        custom_fields=job_dto.custom_fields,
+        created_date=job_dto.created_date,
+        last_modified=job_dto.last_modified,
+        completed_date=job_dto.completed_date,
+        is_overdue=job_dto.is_overdue,
+        is_emergency=job_dto.is_emergency,
+        duration_days=job_dto.duration_days,
+        estimated_revenue=job_dto.estimated_revenue,
+        profit_margin=job_dto.profit_margin,
+        status_display=job_dto.status_display,
+        priority_display=job_dto.priority_display,
+        type_display=job_dto.type_display
+    ) 

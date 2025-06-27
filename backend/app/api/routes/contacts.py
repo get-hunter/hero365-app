@@ -299,7 +299,7 @@ async def list_contacts(
 @router.post("/search", response_model=ContactListResponse)
 async def search_contacts(
     request: ContactSearchRequest,
-    business_id: uuid.UUID = Depends(get_business_context),
+    business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
     use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
     _: bool = Depends(require_view_contacts_dep)
@@ -310,6 +310,7 @@ async def search_contacts(
     Performs advanced search and filtering on contacts.
     Requires 'view_contacts' permission.
     """
+    business_id = uuid.UUID(business_context["business_id"])
     # Create search DTO
     search_dto = ContactSearchDTO(
         business_id=business_id,
@@ -357,7 +358,7 @@ async def search_contacts(
 @router.post("/bulk-update", response_model=ContactBulkOperationResponse)
 async def bulk_update_contacts(
     request: ContactBulkUpdateRequest,
-    business_id: uuid.UUID = Depends(get_business_context),
+    business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
     use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
     _: bool = Depends(require_edit_contacts_dep)
@@ -368,6 +369,7 @@ async def bulk_update_contacts(
     Updates multiple contacts with the same changes.
     Requires 'edit_contacts' permission.
     """
+    business_id = uuid.UUID(business_context["business_id"])
     # Create bulk update DTO
     bulk_update_dto = ContactBulkUpdateDTO(
         business_id=business_id,
@@ -399,7 +401,7 @@ async def bulk_update_contacts(
 async def convert_contact_type(
     contact_id: uuid.UUID = Path(..., description="Contact ID"),
     request: ContactConversionRequest = Body(...),
-    business_id: uuid.UUID = Depends(get_business_context),
+    business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
     use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
     _: bool = Depends(require_edit_contacts_dep)
@@ -410,6 +412,7 @@ async def convert_contact_type(
     Changes the contact type (e.g., lead to customer) with business rule validation.
     Requires 'edit_contacts' permission.
     """
+    business_id = uuid.UUID(business_context["business_id"])
     # Get current contact to determine from_type
     try:
         current_contact = await use_case.get_contact(contact_id, current_user["sub"])
@@ -434,7 +437,7 @@ async def convert_contact_type(
 @router.post("/assign", response_model=ContactBulkOperationResponse)
 async def assign_contacts(
     request: ContactAssignmentRequest,
-    business_id: uuid.UUID = Depends(get_business_context),
+    business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
     use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
     _: bool = Depends(require_edit_contacts_dep)
@@ -445,6 +448,7 @@ async def assign_contacts(
     Assigns or unassigns multiple contacts to/from a team member.
     Requires 'edit_contacts' permission.
     """
+    business_id = uuid.UUID(business_context["business_id"])
     assignment_dto = ContactAssignmentDTO(
         business_id=business_id,
         contact_ids=request.contact_ids,
@@ -478,7 +482,7 @@ async def assign_contacts(
 @router.post("/tags", response_model=ContactBulkOperationResponse)
 async def manage_contact_tags(
     request: ContactTagOperationRequest,
-    business_id: uuid.UUID = Depends(get_business_context),
+    business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
     use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
     _: bool = Depends(require_edit_contacts_dep)
@@ -489,6 +493,7 @@ async def manage_contact_tags(
     Performs tag operations on multiple contacts.
     Requires 'edit_contacts' permission.
     """
+    business_id = uuid.UUID(business_context["business_id"])
     try:
         # Convert to bulk update based on operation
         bulk_update_dto = ContactBulkUpdateDTO(
@@ -547,7 +552,7 @@ async def mark_contact_contacted(
 
 @router.get("/statistics/overview", response_model=ContactStatisticsResponse)
 async def get_contact_statistics(
-    business_id: uuid.UUID = Depends(get_business_context),
+    business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
     use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
     _: bool = Depends(require_view_contacts_dep)
@@ -558,6 +563,7 @@ async def get_contact_statistics(
     Retrieves detailed statistics about contacts for the business.
     Requires 'view_contacts' permission.
     """
+    business_id = uuid.UUID(business_context["business_id"])
     try:
         stats_dto = await use_case.get_contact_statistics(business_id, current_user["sub"])
         
