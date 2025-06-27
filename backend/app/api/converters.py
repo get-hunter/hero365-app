@@ -188,15 +188,15 @@ class EnumConverter:
             return JobPriority.MEDIUM
     
     @staticmethod
-    def safe_job_source(value: Any) -> Optional[JobSource]:
+    def safe_job_source(value: Any) -> JobSource:
         """Safely convert to JobSource enum."""
         if value is None:
-            return None
+            return JobSource.OTHER
         try:
             return JobSource(str(value).lower())
         except (ValueError, AttributeError):
-            logger.warning(f"Invalid job_source value: {value}, using None")
-            return None
+            logger.warning(f"Invalid job_source value: {value}, using default")
+            return JobSource.OTHER
 
 
 class SupabaseConverter:

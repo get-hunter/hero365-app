@@ -744,7 +744,7 @@ def _convert_job_dto_to_response(job_dto) -> JobResponse:
         job_type=_convert_job_type_to_api_enum(job_dto.job_type),
         status=_convert_job_status_to_api_enum(job_dto.status),
         priority=_convert_job_priority_to_api_enum(job_dto.priority),
-        source=_convert_job_source_to_api_enum(job_dto.source) if job_dto.source else None,
+        source=_convert_job_source_to_api_enum(job_dto.source) if job_dto.source else JobSource.OTHER,
         job_address=JobAddressSchema(
             street_address=job_dto.job_address.street_address,
             city=job_dto.job_address.city,
