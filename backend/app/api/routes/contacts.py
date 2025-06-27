@@ -39,7 +39,7 @@ router = APIRouter(prefix="/contacts", tags=["contacts"])
 @router.post("/", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
 async def create_contact(
     request: ContactCreateRequest,
-    business_id: uuid.UUID = Depends(get_business_context),
+    business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
     use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
     _: bool = Depends(require_edit_contacts_dep)
@@ -50,6 +50,7 @@ async def create_contact(
     Creates a new contact for the current business with the provided information.
     Requires 'edit_contacts' permission.
     """
+    business_id = uuid.UUID(business_context["business_id"])
     logger.info(f"🔧 ContactAPI: Starting contact creation for business {business_id}")
     logger.info(f"🔧 ContactAPI: Request data: {request}")
     
@@ -136,7 +137,7 @@ async def get_contact(
 async def update_contact(
     contact_id: uuid.UUID = Path(..., description="Contact ID"),
     request: ContactUpdateRequest = Body(...),
-    business_id: uuid.UUID = Depends(get_business_context),
+    business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
     use_case: ManageContactsUseCase = Depends(get_manage_contacts_use_case),
     _: bool = Depends(require_edit_contacts_dep)
@@ -147,6 +148,7 @@ async def update_contact(
     Updates an existing contact with the provided information.
     Requires 'edit_contacts' permission.
     """
+    business_id = uuid.UUID(business_context["business_id"])
     logger.info(f"🔧 ContactAPI: Starting contact update for contact {contact_id}")
     logger.info(f"🔧 ContactAPI: Request data: {request}")
     
@@ -233,7 +235,7 @@ async def delete_contact(
 
 @router.get("/", response_model=ContactListResponse)
 async def list_contacts(
-    business_id: uuid.UUID = Depends(get_business_context),
+    business_context: dict = Depends(get_business_context),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
     include_user_details: UserDetailLevel = Query(UserDetailLevel.BASIC, description="Level of user detail to include"),
@@ -248,10 +250,11 @@ async def list_contacts(
     Requires 'view_contacts' permission.
     """
     user_id = current_user["sub"]
+    business_id = uuid.UUID(business_context["business_id"])
     
     # Log user context for debugging
     logger.info(f"📱 ContactsAPI: List contacts request from user {user_id}")
-    logger.info(f"🏢 ContactsAPI: Business context: {business_id}")
+    logger.info(f"🏢 ContactsAPI: Business context: {business_context}")
     logger.info(f"👤 ContactsAPI: User has business memberships: {len(current_user.get('business_memberships', []))}")
     
     # Find current business membership for logging

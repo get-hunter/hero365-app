@@ -27,7 +27,7 @@ def get_supabase_client() -> Client:
 
 
 SupabaseDep = Annotated[Client, Depends(get_supabase_client)]
-TokenDep = Annotated[HTTPAuthorizationCredentials, Depends(reusable_oauth2)]
+TokenDep = Annotated[HTTPAuthorizationCredentials | None, Depends(reusable_oauth2)]
 
 
 async def get_current_user(
@@ -42,6 +42,15 @@ async def get_current_user(
         dict: User data containing id, email, business context, etc.
     """
     try:
+        # Handle case where no token is provided
+        if not token:
+            logger.warning("No token provided")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
         logger.info(f"get_current_user called with token: {token.credentials[:50]}...")
         
         # Validate enhanced JWT token
@@ -172,18 +181,18 @@ def get_current_active_superuser(current_user: CurrentUser) -> dict:
     return current_user
 
 
-def get_business_context(request: Request) -> uuid.UUID:
+async def get_business_context(request: Request) -> dict:
     """
-    Get business ID from request context.
+    Get business context from request.
     
-    This function extracts business_id that was set by the BusinessContextMiddleware.
-    The middleware validates business access and sets the business_id in request.state.
+    This function extracts business context that was set by the BusinessContextMiddleware
+    or from the authenticated user's current business context.
     
     Args:
         request: FastAPI request object
         
     Returns:
-        uuid.UUID: Business ID from the validated business context
+        dict: Business context with business_id and other relevant info
         
     Raises:
         HTTPException: If business context is not available
@@ -192,12 +201,51 @@ def get_business_context(request: Request) -> uuid.UUID:
         # Get business_id from request state (set by BusinessContextMiddleware)
         business_id = getattr(request.state, "business_id", None)
         if business_id:
-            return uuid.UUID(business_id)
+            return {"business_id": business_id}
         
         # Fallback: try to extract business_id from path parameters
         if hasattr(request, "path_params") and "business_id" in request.path_params:
             business_id = request.path_params["business_id"]
-            return uuid.UUID(business_id)
+            # Validate UUID format
+            uuid.UUID(business_id)
+            return {"business_id": business_id}
+        
+        # Fallback: try to get from authenticated user's current business context
+        user = getattr(request.state, "user", {})
+        current_business_id = user.get("current_business_id")
+        if current_business_id:
+            # Validate UUID format
+            uuid.UUID(current_business_id)
+            return {"business_id": current_business_id}
+        
+        # Final fallback: if user has business memberships, use the first one
+        business_memberships = user.get("business_memberships", [])
+        if business_memberships:
+            first_business_id = business_memberships[0].get("business_id")
+            if first_business_id:
+                # Validate UUID format
+                uuid.UUID(first_business_id)
+                logger.info(f"Using first business membership as context: {first_business_id}")
+                return {"business_id": first_business_id}
+        
+        # Last resort: try to get business memberships from the auth facade if not in token
+        if not business_memberships:
+            try:
+                from ..core.auth_facade import auth_facade
+                user_id = user.get("id") or user.get("sub")
+                if user_id:
+                    logger.info(f"Fetching business memberships for user {user_id}")
+                    fresh_memberships = await auth_facade._get_user_business_memberships(user_id)
+                    if fresh_memberships:
+                        first_business_id = fresh_memberships[0].get("business_id")
+                        if first_business_id:
+                            # Validate UUID format
+                            uuid.UUID(first_business_id)
+                            logger.info(f"Using fetched business membership as context: {first_business_id}")
+                            return {"business_id": first_business_id}
+            except Exception as e:
+                logger.error(f"Failed to fetch business memberships: {str(e)}")
+                pass
         
         # If no business context available, raise error
         raise HTTPException(
@@ -219,4 +267,4 @@ def get_business_context(request: Request) -> uuid.UUID:
         )
 
 
-BusinessContext = Annotated[uuid.UUID, Depends(get_business_context)]
+BusinessContext = Annotated[dict, Depends(get_business_context)]

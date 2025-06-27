@@ -7,7 +7,7 @@ Handles job lifecycle, status transitions, cost tracking, and team assignments.
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from enum import Enum
 from decimal import Decimal
@@ -57,6 +57,7 @@ class JobSource(Enum):
     SOCIAL_MEDIA = "social_media"
     REFERRAL = "referral"
     PHONE_CALL = "phone_call"
+    PHONE = "phone"
     WALK_IN = "walk_in"
     EMAIL_MARKETING = "email_marketing"
     TRADE_SHOW = "trade_show"
@@ -67,6 +68,7 @@ class JobSource(Enum):
     EXISTING_CUSTOMER = "existing_customer"
     COLD_OUTREACH = "cold_outreach"
     EMERGENCY_CALL = "emergency_call"
+    EMERGENCY = "emergency"
     EVENT = "event"
     DIRECT = "direct"
     OTHER = "other"
@@ -243,8 +245,8 @@ class Job:
     custom_fields: Dict[str, Any] = field(default_factory=dict)
     
     # Audit fields
-    created_date: datetime = field(default_factory=datetime.utcnow)
-    last_modified: datetime = field(default_factory=datetime.utcnow)
+    created_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    last_modified: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     completed_date: Optional[datetime] = None
     
     def __post_init__(self):
@@ -321,16 +323,16 @@ class Job:
         
         old_status = self.status
         self.status = new_status
-        self.last_modified = datetime.utcnow()
+        self.last_modified = datetime.now(timezone.utc)
         
         # Handle status-specific logic
         if new_status == JobStatus.IN_PROGRESS and not self.actual_start:
-            self.actual_start = datetime.utcnow()
+            self.actual_start = datetime.now(timezone.utc)
         
         if new_status == JobStatus.COMPLETED:
             if not self.actual_end:
-                self.actual_end = datetime.utcnow()
-            self.completed_date = datetime.utcnow()
+                self.actual_end = datetime.now(timezone.utc)
+            self.completed_date = datetime.now(timezone.utc)
             
             # Auto-calculate actual hours if not set
             if not self.time_tracking.actual_hours and self.actual_start and self.actual_end:
@@ -340,7 +342,7 @@ class Job:
         
         # Add status change note
         if notes:
-            status_note = f"[{datetime.utcnow().strftime('%Y-%m-%d %H:%M')}] Status changed from {old_status.value} to {new_status.value} by {user_id}: {notes}"
+            status_note = f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Status changed from {old_status.value} to {new_status.value} by {user_id}: {notes}"
             if self.internal_notes:
                 self.internal_notes += f"\n{status_note}"
             else:
@@ -367,13 +369,13 @@ class Job:
         """Assign a team member to the job."""
         if user_id not in self.assigned_to:
             self.assigned_to.append(user_id)
-            self.last_modified = datetime.utcnow()
+            self.last_modified = datetime.now(timezone.utc)
     
     def remove_team_member(self, user_id: str) -> None:
         """Remove a team member from the job."""
         if user_id in self.assigned_to:
             self.assigned_to.remove(user_id)
-            self.last_modified = datetime.utcnow()
+            self.last_modified = datetime.now(timezone.utc)
     
     def update_schedule(self, start_time: Optional[datetime], end_time: Optional[datetime]) -> None:
         """Update job schedule with validation."""
@@ -382,7 +384,7 @@ class Job:
         
         self.scheduled_start = start_time
         self.scheduled_end = end_time
-        self.last_modified = datetime.utcnow()
+        self.last_modified = datetime.now(timezone.utc)
     
     def start_job(self, user_id: str) -> None:
         """Start the job (transition to in progress)."""
@@ -390,7 +392,7 @@ class Job:
             raise BusinessRuleViolationError("Job must be scheduled to start")
         
         self.update_status(JobStatus.IN_PROGRESS, user_id, "Job started")
-        self.actual_start = datetime.utcnow()
+        self.actual_start = datetime.now(timezone.utc)
     
     def complete_job(self, user_id: str, completion_notes: Optional[str] = None) -> None:
         """Complete the job."""
@@ -412,29 +414,29 @@ class Job:
         tag = tag.strip().lower()
         if tag and tag not in self.tags:
             self.tags.append(tag)
-            self.last_modified = datetime.utcnow()
+            self.last_modified = datetime.now(timezone.utc)
     
     def remove_tag(self, tag: str) -> None:
         """Remove a tag from the job."""
         tag = tag.strip().lower()
         if tag in self.tags:
             self.tags.remove(tag)
-            self.last_modified = datetime.utcnow()
+            self.last_modified = datetime.now(timezone.utc)
     
     def update_cost_estimate(self, cost_estimate: JobCostEstimate) -> None:
         """Update job cost estimate."""
         self.cost_estimate = cost_estimate
-        self.last_modified = datetime.utcnow()
+        self.last_modified = datetime.now(timezone.utc)
     
     def update_time_tracking(self, time_tracking: JobTimeTracking) -> None:
         """Update job time tracking."""
         self.time_tracking = time_tracking
-        self.last_modified = datetime.utcnow()
+        self.last_modified = datetime.now(timezone.utc)
     
     def is_overdue(self) -> bool:
         """Check if job is overdue."""
         if self.scheduled_end and self.status in [JobStatus.SCHEDULED, JobStatus.IN_PROGRESS]:
-            return datetime.utcnow() > self.scheduled_end
+            return datetime.now(timezone.utc) > self.scheduled_end
         return False
     
     def is_emergency(self) -> bool:

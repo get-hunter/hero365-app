@@ -51,7 +51,7 @@ async def create_job(
 ) -> JobResponse:
     """Create a new job."""
     try:
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         business_id = business_context["business_id"]
         
         # Convert request to DTO
@@ -139,7 +139,7 @@ async def get_job(
 ) -> JobResponse:
     """Get a job by ID."""
     try:
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         result = await manage_jobs_use_case.get_job(job_id, user_id)
         return JobResponse.model_validate(result)
@@ -166,7 +166,7 @@ async def update_job(
 ) -> JobResponse:
     """Update an existing job."""
     try:
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         # Convert request to DTO
         job_address_dto = None
@@ -251,7 +251,7 @@ async def delete_job(
 ) -> JobActionResponse:
     """Delete a job."""
     try:
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         success = await manage_jobs_use_case.delete_job(job_id, user_id)
         
@@ -290,7 +290,7 @@ async def list_jobs(
     """List jobs for a business."""
     try:
         business_id = business_context["business_id"]
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         jobs = await manage_jobs_use_case.list_jobs(business_id, user_id, skip, limit)
         
@@ -330,7 +330,7 @@ async def search_jobs(
     """Search jobs with filters."""
     try:
         business_id = business_context["business_id"]
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         # Convert request to DTO
         search_dto = JobSearchDTO(
@@ -395,7 +395,7 @@ async def update_job_status(
 ) -> JobResponse:
     """Update job status."""
     try:
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         status_dto = JobStatusUpdateDTO(
             status=JobStatus(status_data.status),
@@ -431,7 +431,7 @@ async def assign_job(
 ) -> JobResponse:
     """Assign job to users."""
     try:
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         assignment_dto = JobAssignmentDTO(
             user_ids=assignment_data.user_ids,
@@ -466,7 +466,7 @@ async def bulk_update_jobs(
     """Bulk update jobs."""
     try:
         business_id = business_context["business_id"]
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         bulk_dto = JobBulkUpdateDTO(
             job_ids=bulk_data.job_ids,
@@ -508,7 +508,7 @@ async def get_job_statistics(
     """Get job statistics."""
     try:
         business_id = business_context["business_id"]
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         stats = await manage_jobs_use_case.get_job_statistics(business_id, user_id)
         return JobStatisticsResponse.model_validate(stats)
@@ -534,7 +534,7 @@ async def get_user_workload(
     """Get user workload."""
     try:
         business_id = business_context["business_id"]
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         workload = await manage_jobs_use_case.get_user_workload(business_id, target_user_id, user_id)
         return JobWorkloadResponse.model_validate(workload)
@@ -561,7 +561,7 @@ async def get_daily_schedule(
     """Get daily job schedule."""
     try:
         business_id = business_context["business_id"]
-        current_user_id = current_user["user_id"]
+        current_user_id = current_user["id"]
         
         schedule = await manage_jobs_use_case.get_daily_schedule(
             business_id, date, current_user_id, user_id
@@ -589,7 +589,7 @@ async def start_job(
 ) -> JobResponse:
     """Start a job."""
     try:
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         result = await manage_jobs_use_case.start_job(job_id, user_id)
         return JobResponse.model_validate(result)
@@ -618,7 +618,7 @@ async def complete_job(
 ) -> JobResponse:
     """Complete a job."""
     try:
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         result = await manage_jobs_use_case.complete_job(job_id, user_id, completion_notes)
         return JobResponse.model_validate(result)
@@ -647,7 +647,7 @@ async def cancel_job(
 ) -> JobResponse:
     """Cancel a job."""
     try:
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         
         result = await manage_jobs_use_case.cancel_job(job_id, user_id, reason)
         return JobResponse.model_validate(result)

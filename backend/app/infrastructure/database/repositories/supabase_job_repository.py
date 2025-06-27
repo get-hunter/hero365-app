@@ -8,7 +8,7 @@ Handles all job-related database operations with proper error handling.
 import uuid
 import json
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from supabase import Client
@@ -195,7 +195,7 @@ class SupabaseJobRepository(JobRepository):
                               skip: int = 0, limit: int = 100) -> List[Job]:
         """Get overdue jobs within a business."""
         try:
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
             result = (self.client.table("jobs")
                      .select("*")
                      .eq("business_id", str(business_id))
@@ -814,8 +814,8 @@ class SupabaseJobRepository(JobRepository):
             estimated_hours=Decimal(str(time_data.get("estimated_hours"))) if time_data.get("estimated_hours") else None,
             actual_hours=Decimal(str(time_data.get("actual_hours"))) if time_data.get("actual_hours") else None,
             billable_hours=Decimal(str(time_data.get("billable_hours"))) if time_data.get("billable_hours") else None,
-            start_time=datetime.fromisoformat(time_data.get("start_time")) if time_data.get("start_time") else None,
-            end_time=datetime.fromisoformat(time_data.get("end_time")) if time_data.get("end_time") else None,
+            start_time=self._parse_datetime(time_data.get("start_time")) if time_data.get("start_time") else None,
+            end_time=self._parse_datetime(time_data.get("end_time")) if time_data.get("end_time") else None,
             break_time_minutes=time_data.get("break_time_minutes", 0)
         )
         
@@ -831,6 +831,27 @@ class SupabaseJobRepository(JobRepository):
             discount_amount=Decimal(str(cost_data.get("discount_amount", 0)))
         )
         
+        # Parse enums with fallback for invalid values
+        try:
+            job_type = JobType(data["job_type"])
+        except ValueError:
+            job_type = JobType.OTHER
+        
+        try:
+            status = JobStatus(data["status"])
+        except ValueError:
+            status = JobStatus.DRAFT
+        
+        try:
+            priority = JobPriority(data["priority"])
+        except ValueError:
+            priority = JobPriority.MEDIUM
+        
+        try:
+            source = JobSource(data["source"])
+        except ValueError:
+            source = JobSource.OTHER
+
         # Create job entity
         job = Job(
             id=uuid.UUID(data["id"]),
@@ -839,15 +860,15 @@ class SupabaseJobRepository(JobRepository):
             job_number=data["job_number"],
             title=data["title"],
             description=data.get("description"),
-            job_type=JobType(data["job_type"]),
-            status=JobStatus(data["status"]),
-            priority=JobPriority(data["priority"]),
-            source=JobSource(data["source"]),
+            job_type=job_type,
+            status=status,
+            priority=priority,
+            source=source,
             job_address=job_address,
-            scheduled_start=datetime.fromisoformat(data["scheduled_start"]) if data.get("scheduled_start") else None,
-            scheduled_end=datetime.fromisoformat(data["scheduled_end"]) if data.get("scheduled_end") else None,
-            actual_start=datetime.fromisoformat(data["actual_start"]) if data.get("actual_start") else None,
-            actual_end=datetime.fromisoformat(data["actual_end"]) if data.get("actual_end") else None,
+            scheduled_start=self._parse_datetime(data.get("scheduled_start")) if data.get("scheduled_start") else None,
+            scheduled_end=self._parse_datetime(data.get("scheduled_end")) if data.get("scheduled_end") else None,
+            actual_start=self._parse_datetime(data.get("actual_start")) if data.get("actual_start") else None,
+            actual_end=self._parse_datetime(data.get("actual_end")) if data.get("actual_end") else None,
             assigned_to=data.get("assigned_to", []),
             created_by=data["created_by"],
             time_tracking=time_tracking,
@@ -858,9 +879,22 @@ class SupabaseJobRepository(JobRepository):
             customer_requirements=data.get("customer_requirements"),
             completion_notes=data.get("completion_notes"),
             custom_fields=data.get("custom_fields", {}),
-            created_date=datetime.fromisoformat(data["created_date"]),
-            last_modified=datetime.fromisoformat(data["last_modified"]),
-            completed_date=datetime.fromisoformat(data["completed_date"]) if data.get("completed_date") else None
+            created_date=self._parse_datetime(data["created_date"]),
+            last_modified=self._parse_datetime(data["last_modified"]),
+            completed_date=self._parse_datetime(data.get("completed_date")) if data.get("completed_date") else None
         )
         
         return job 
+    
+    def _parse_datetime(self, datetime_str: str) -> datetime:
+        """Parse datetime string and ensure it's timezone-aware (UTC)."""
+        if not datetime_str:
+            return None
+            
+        dt = datetime.fromisoformat(datetime_str)
+        
+        # If datetime is naive, assume it's UTC
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        
+        return dt
