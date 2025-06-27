@@ -10,7 +10,8 @@ from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-from ..entities.job import Job, JobStatus, JobType, JobPriority
+from ..entities.job import Job
+from ..enums import JobStatus, JobType, JobPriority
 
 
 class JobRepository(ABC):

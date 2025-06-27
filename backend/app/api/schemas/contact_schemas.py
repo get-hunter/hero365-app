@@ -11,6 +11,12 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict, field_validator, fi
 from enum import Enum
 
 from ...utils import format_datetime_utc
+# Import centralized enums
+from ...domain.enums import (
+    ContactType, ContactStatus, ContactPriority, ContactSource,
+    RelationshipStatus, LifecycleStage
+)
+from ..converters import EnumConverter, SupabaseConverter
 
 
 # User reference schemas
@@ -41,73 +47,13 @@ class UserDetailLevel(str, Enum):
     FULL = "full"
 
 
-# Enum schemas
-class ContactTypeSchema(str, Enum):
-    """Schema for contact types."""
-    CUSTOMER = "customer"
-    LEAD = "lead"
-    PROSPECT = "prospect"
-    VENDOR = "vendor"
-    PARTNER = "partner"
-    CONTRACTOR = "contractor"
-
-
-class ContactStatusSchema(str, Enum):
-    """Schema for contact status."""
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    ARCHIVED = "archived"
-    BLOCKED = "blocked"
-
-
-class RelationshipStatusSchema(str, Enum):
-    """Schema for relationship status in sales/client lifecycle."""
-    PROSPECT = "prospect"
-    QUALIFIED_LEAD = "qualified_lead"
-    OPPORTUNITY = "opportunity"
-    ACTIVE_CLIENT = "active_client"
-    PAST_CLIENT = "past_client"
-    LOST_LEAD = "lost_lead"
-    INACTIVE = "inactive"
-
-
-class LifecycleStageSchema(str, Enum):
-    """Schema for customer lifecycle stage."""
-    AWARENESS = "awareness"
-    INTEREST = "interest"
-    CONSIDERATION = "consideration"
-    DECISION = "decision"
-    RETENTION = "retention"
-    CUSTOMER = "customer"
-
-
-class ContactSourceSchema(str, Enum):
-    """Schema for contact source."""
-    WEBSITE = "website"
-    ONLINE = "online"
-    GOOGLE_ADS = "google_ads"
-    SOCIAL_MEDIA = "social_media"
-    REFERRAL = "referral"
-    PHONE_CALL = "phone_call"
-    WALK_IN = "walk_in"
-    EMAIL_MARKETING = "email_marketing"
-    TRADE_SHOW = "trade_show"
-    DIRECT_MAIL = "direct_mail"
-    YELLOW_PAGES = "yellow_pages"
-    PARTNER = "partner"
-    EXISTING_CUSTOMER = "existing_customer"
-    COLD_OUTREACH = "cold_outreach"
-    EVENT = "event"
-    DIRECT = "direct"
-    OTHER = "other"
-
-
-class ContactPrioritySchema(str, Enum):
-    """Schema for contact priority."""
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    URGENT = "urgent"
+# Use centralized enums directly as API schemas
+ContactTypeSchema = ContactType
+ContactStatusSchema = ContactStatus  
+ContactPrioritySchema = ContactPriority
+ContactSourceSchema = ContactSource
+RelationshipStatusSchema = RelationshipStatus
+LifecycleStageSchema = LifecycleStage
 
 
 class InteractionTypeSchema(str, Enum):
@@ -329,8 +275,12 @@ class ContactTagOperationRequest(BaseModel):
 
 # Response schemas
 class ContactResponse(BaseModel):
-    """Response schema for contact data."""
-    model_config = ConfigDict(from_attributes=True)
+    """Response schema for contact data with robust validation."""
+    model_config = ConfigDict(
+        from_attributes=True,
+        use_enum_values=True,
+        validate_assignment=True
+    )
     
     id: uuid.UUID = Field(..., description="Contact ID")
     business_id: uuid.UUID = Field(..., description="Business ID")
@@ -352,7 +302,7 @@ class ContactResponse(BaseModel):
     tags: List[str] = Field(default_factory=list, description="Contact tags")
     notes: Optional[str] = Field(None, description="Additional notes")
     estimated_value: Optional[float] = Field(None, description="Estimated value")
-    currency: str = Field(..., description="Currency code")
+    currency: str = Field("USD", description="Currency code")
     assigned_to: Optional[Union[str, UserReferenceBasic, UserReferenceFull]] = Field(None, description="Assigned user (ID or object based on include_user_details)")
     created_by: Optional[Union[str, UserReferenceBasic, UserReferenceFull]] = Field(None, description="Creator user (ID or object based on include_user_details)")
     custom_fields: Dict[str, Any] = Field(default_factory=dict, description="Custom fields")
@@ -375,6 +325,109 @@ class ContactResponse(BaseModel):
     source_display: str = Field(..., description="Human-readable source")
     relationship_status_display: str = Field(..., description="Human-readable relationship status")
     lifecycle_stage_display: str = Field(..., description="Human-readable lifecycle stage")
+    
+    # Field validators for robust enum handling from Supabase
+    @field_validator('contact_type', mode='before')
+    @classmethod
+    def validate_contact_type(cls, v):
+        return EnumConverter.safe_contact_type(v)
+    
+    @field_validator('status', mode='before')
+    @classmethod
+    def validate_status(cls, v):
+        return EnumConverter.safe_contact_status(v)
+    
+    @field_validator('relationship_status', mode='before')
+    @classmethod
+    def validate_relationship_status(cls, v):
+        return EnumConverter.safe_relationship_status(v)
+    
+    @field_validator('lifecycle_stage', mode='before')
+    @classmethod
+    def validate_lifecycle_stage(cls, v):
+        return EnumConverter.safe_lifecycle_stage(v)
+    
+    @field_validator('priority', mode='before')
+    @classmethod
+    def validate_priority(cls, v):
+        return EnumConverter.safe_contact_priority(v)
+    
+    @field_validator('source', mode='before')
+    @classmethod
+    def validate_source(cls, v):
+        return EnumConverter.safe_contact_source(v)
+    
+    @field_validator('tags', mode='before')
+    @classmethod
+    def validate_tags(cls, v):
+        return SupabaseConverter.parse_list_field(v, [])
+    
+    @field_validator('custom_fields', mode='before')
+    @classmethod
+    def validate_custom_fields(cls, v):
+        return SupabaseConverter.parse_dict_field(v, {})
+    
+    @field_validator('created_date', 'last_modified', 'last_contacted', mode='before')
+    @classmethod
+    def validate_datetime_fields(cls, v):
+        return SupabaseConverter.parse_datetime(v)
+    
+    @field_validator('id', 'business_id', mode='before')
+    @classmethod
+    def validate_uuid_fields(cls, v):
+        return SupabaseConverter.parse_uuid(v)
+    
+    @classmethod
+    def from_supabase_dict(cls, data: Dict[str, Any]) -> "ContactResponse":
+        """Create ContactResponse from Supabase dictionary with safe conversion."""
+        # Compute display fields
+        display_name = cls._compute_display_name(data)
+        primary_contact_method = cls._compute_primary_contact_method(data)
+        
+        # Add computed fields to data
+        computed_data = {
+            **data,
+            'display_name': display_name,
+            'primary_contact_method': primary_contact_method,
+            'type_display': EnumConverter.safe_contact_type(data.get('contact_type')).get_display(),
+            'status_display': EnumConverter.safe_contact_status(data.get('status')).get_display(),
+            'priority_display': EnumConverter.safe_contact_priority(data.get('priority')).get_display(),
+            'source_display': EnumConverter.safe_contact_source(data.get('source')).get_display() if data.get('source') else 'Unknown',
+            'relationship_status_display': EnumConverter.safe_relationship_status(data.get('relationship_status')).get_display(),
+            'lifecycle_stage_display': EnumConverter.safe_lifecycle_stage(data.get('lifecycle_stage')).get_display(),
+        }
+        
+        return cls.model_validate(computed_data)
+    
+    @staticmethod
+    def _compute_display_name(data: Dict[str, Any]) -> str:
+        """Compute display name from contact data."""
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        company_name = data.get('company_name', '').strip()
+        
+        if first_name and last_name:
+            return f"{first_name} {last_name}"
+        elif first_name:
+            return first_name
+        elif last_name:
+            return last_name
+        elif company_name:
+            return company_name
+        else:
+            return "Unknown Contact"
+    
+    @staticmethod
+    def _compute_primary_contact_method(data: Dict[str, Any]) -> str:
+        """Compute primary contact method from contact data."""
+        if data.get('email'):
+            return 'email'
+        elif data.get('mobile_phone'):
+            return 'mobile_phone'
+        elif data.get('phone'):
+            return 'phone'
+        else:
+            return 'none'
     
     @field_serializer('created_date', 'last_modified', 'last_contacted')
     def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:

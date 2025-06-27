@@ -16,7 +16,8 @@ from ...dto.contact_dto import ContactListDTO, ContactResponseDTO, ContactAddres
 from app.api.schemas.contact_schemas import UserDetailLevel
 from app.domain.repositories.contact_repository import ContactRepository
 from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
-from app.domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, RelationshipStatus, LifecycleStage
+from app.domain.entities.contact import Contact
+from app.domain.enums import ContactType, ContactStatus, ContactPriority, ContactSource, RelationshipStatus, LifecycleStage
 from ...exceptions.application_exceptions import PermissionDeniedError
 
 
@@ -57,12 +58,19 @@ class ListContactsUseCase:
             contacts = await self.contact_repository.get_by_business_id(business_id, skip, limit)
             contact_dtos = [self._contact_to_response_dto(contact) for contact in contacts]
         else:
-            # Use repository method with user data
+            # Use repository method with user data - simplified approach
             contacts_data = await self.contact_repository.get_by_business_id_with_users(
                 business_id, include_user_details, skip, limit
             )
-            contact_dtos = [self._contact_dict_to_response_dto(contact_data, include_user_details) 
-                           for contact_data in contacts_data]
+            # Use simplified conversion with better error handling
+            contact_dtos = []
+            for contact_data in contacts_data:
+                try:
+                    dto = self._contact_dict_to_response_dto_simple(contact_data, include_user_details)
+                    contact_dtos.append(dto)
+                except Exception as e:
+                    logger.warning(f"Skipping invalid contact {contact_data.get('id', 'unknown')}: {e}")
+                    continue
         
         total_count = await self.contact_repository.count_by_business(business_id)
         
@@ -311,6 +319,97 @@ class ListContactsUseCase:
             address=address_dto,
             priority=priority_enum,
             source=source_enum,
+            tags=tags,
+            notes=contact_data.get("notes"),
+            estimated_value=contact_data.get("estimated_value"),
+            currency=contact_data.get("currency", "USD"),
+            assigned_to=assigned_to,
+            created_by=created_by,
+            custom_fields=custom_fields,
+            created_date=created_date,
+            last_modified=last_modified,
+            last_contacted=last_contacted,
+            display_name=temp_contact.get_display_name(),
+            primary_contact_method=temp_contact.get_primary_contact_method(),
+            type_display=temp_contact.get_type_display(),
+            status_display=temp_contact.get_status_display(),
+            priority_display=temp_contact.get_priority_display(),
+            source_display=temp_contact.get_source_display(),
+            relationship_status_display=temp_contact.get_relationship_status_display(),
+            lifecycle_stage_display=temp_contact.get_lifecycle_stage_display()
+        )
+    
+    def _contact_dict_to_response_dto_simple(self, contact_data: Dict[str, Any], user_detail_level: UserDetailLevel) -> ContactResponseDTO:
+        """Simplified conversion using enum converters."""
+        from app.api.converters import EnumConverter, SupabaseConverter
+        
+        # Safe enum conversions
+        contact_type = EnumConverter.safe_contact_type(contact_data.get("contact_type"))
+        status = EnumConverter.safe_contact_status(contact_data.get("status"))
+        relationship_status = EnumConverter.safe_relationship_status(contact_data.get("relationship_status"))
+        lifecycle_stage = EnumConverter.safe_lifecycle_stage(contact_data.get("lifecycle_stage"))
+        priority = EnumConverter.safe_contact_priority(contact_data.get("priority"))
+        source = EnumConverter.safe_contact_source(contact_data.get("source"))
+        
+        # Safe field parsing
+        tags = SupabaseConverter.parse_list_field(contact_data.get("tags"), [])
+        custom_fields = SupabaseConverter.parse_dict_field(contact_data.get("custom_fields"), {})
+        created_date = SupabaseConverter.parse_datetime(contact_data.get("created_date"))
+        last_modified = SupabaseConverter.parse_datetime(contact_data.get("last_modified"))
+        last_contacted = SupabaseConverter.parse_datetime(contact_data.get("last_contacted"))
+        
+        # Handle address
+        address_dto = None
+        if contact_data.get("address"):
+            address_data = SupabaseConverter.parse_dict_field(contact_data.get("address"))
+            if address_data:
+                address_dto = ContactAddressDTO(
+                    street_address=address_data.get("street_address"),
+                    city=address_data.get("city"),
+                    state=address_data.get("state"),
+                    postal_code=address_data.get("postal_code"),
+                    country=address_data.get("country")
+                )
+        
+        # Handle user references
+        assigned_to = contact_data.get("assigned_to")
+        created_by = contact_data.get("created_by")
+        
+        # Create temp contact for computed fields
+        temp_contact = Contact(
+            id=uuid.UUID(contact_data["id"]),
+            business_id=uuid.UUID(contact_data["business_id"]),
+            contact_type=contact_type,
+            status=status,
+            relationship_status=relationship_status,
+            lifecycle_stage=lifecycle_stage,
+            first_name=contact_data.get("first_name"),
+            last_name=contact_data.get("last_name"),
+            company_name=contact_data.get("company_name"),
+            email=contact_data.get("email"),
+            phone=contact_data.get("phone"),
+            priority=priority,
+            source=source
+        )
+        
+        return ContactResponseDTO(
+            id=uuid.UUID(contact_data["id"]),
+            business_id=uuid.UUID(contact_data["business_id"]),
+            contact_type=contact_type,
+            status=status,
+            relationship_status=relationship_status,
+            lifecycle_stage=lifecycle_stage,
+            first_name=contact_data.get("first_name"),
+            last_name=contact_data.get("last_name"),
+            company_name=contact_data.get("company_name"),
+            job_title=contact_data.get("job_title"),
+            email=contact_data.get("email"),
+            phone=contact_data.get("phone"),
+            mobile_phone=contact_data.get("mobile_phone"),
+            website=contact_data.get("website"),
+            address=address_dto,
+            priority=priority,
+            source=source,
             tags=tags,
             notes=contact_data.get("notes"),
             estimated_value=contact_data.get("estimated_value"),

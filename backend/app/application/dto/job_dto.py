@@ -11,7 +11,8 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
 
-from ...domain.entities.job import JobType, JobStatus, JobPriority, JobSource, JobAddress, JobTimeTracking, JobCostEstimate
+from ...domain.enums import JobType, JobStatus, JobPriority, JobSource
+from ...domain.entities.job import JobAddress, JobTimeTracking, JobCostEstimate
 
 
 @dataclass

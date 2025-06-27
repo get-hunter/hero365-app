@@ -24,7 +24,8 @@ from ...dto.scheduling_dto import (
 from ...exceptions.application_exceptions import (
     ValidationError, NotFoundError, BusinessLogicError
 )
-from app.domain.entities.job import Job, JobType, JobPriority, JobStatus
+from app.domain.entities.job import Job
+from app.domain.enums import JobType, JobPriority, JobStatus
 from app.domain.entities.user_capabilities import UserCapabilities
 from app.domain.entities.scheduling_engine import IntelligentSchedulingEngine, SchedulingResult
 from app.domain.repositories.job_repository import JobRepository

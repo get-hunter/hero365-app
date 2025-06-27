@@ -13,9 +13,10 @@ from decimal import Decimal
 
 from supabase import Client
 from app.domain.entities.job import (
-    Job, JobType, JobStatus, JobPriority, JobSource, JobAddress, 
+    Job, JobAddress, 
     JobTimeTracking, JobCostEstimate
 )
+from app.domain.enums import JobType, JobStatus, JobPriority, JobSource
 from app.domain.repositories.job_repository import JobRepository
 from app.domain.exceptions.domain_exceptions import DomainValidationError
 

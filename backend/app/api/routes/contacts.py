@@ -37,7 +37,7 @@ from ...application.dto.contact_dto import (
     ContactConversionDTO, ContactAssignmentDTO, ContactTagOperationDTO,
     ContactAddressDTO
 )
-from ...domain.entities.contact import ContactType, ContactStatus, ContactPriority, ContactSource, RelationshipStatus, LifecycleStage
+from ...domain.enums import ContactType, ContactStatus, ContactPriority, ContactSource, RelationshipStatus, LifecycleStage
 from ...infrastructure.config.dependency_injection import (
     get_create_contact_use_case, get_get_contact_use_case, get_update_contact_use_case,
     get_delete_contact_use_case, get_list_contacts_use_case, get_search_contacts_use_case,
@@ -698,61 +698,6 @@ async def update_contact_status(
 
 
 def _contact_dto_to_response(contact_dto) -> ContactResponse:
-    """Convert ContactResponseDTO to API response model."""
-    # Convert address if present
-    address_response = None
-    if contact_dto.address:
-        from ..schemas.contact_schemas import ContactAddressSchema
-        address_response = ContactAddressSchema(
-            street_address=contact_dto.address.street_address,
-            city=contact_dto.address.city,
-            state=contact_dto.address.state,
-            postal_code=contact_dto.address.postal_code,
-            country=contact_dto.address.country
-        )
-    
-    # Convert enum values to schema enums
-    from ..schemas.contact_schemas import (
-        ContactTypeSchema, ContactStatusSchema, ContactPrioritySchema, 
-        ContactSourceSchema, RelationshipStatusSchema, LifecycleStageSchema
-    )
-    
-    return ContactResponse(
-        id=contact_dto.id,
-        business_id=contact_dto.business_id,
-        contact_type=ContactTypeSchema(contact_dto.contact_type.value),
-        status=ContactStatusSchema(contact_dto.status.value),
-        relationship_status=RelationshipStatusSchema(contact_dto.relationship_status.value),
-        lifecycle_stage=LifecycleStageSchema(contact_dto.lifecycle_stage.value),
-        first_name=contact_dto.first_name,
-        last_name=contact_dto.last_name,
-        company_name=contact_dto.company_name,
-        job_title=contact_dto.job_title,
-        email=contact_dto.email,
-        phone=contact_dto.phone,
-        mobile_phone=contact_dto.mobile_phone,
-        website=contact_dto.website,
-        address=address_response,
-        priority=ContactPrioritySchema(contact_dto.priority.value),
-        source=ContactSourceSchema(contact_dto.source.value) if contact_dto.source else None,
-        tags=contact_dto.tags or [],
-        notes=contact_dto.notes,
-        estimated_value=contact_dto.estimated_value,
-        currency=contact_dto.currency or "USD",
-        assigned_to=contact_dto.assigned_to,
-        created_by=contact_dto.created_by,
-        custom_fields=contact_dto.custom_fields or {},
-        status_history=[],  # Empty list for now
-        interaction_history=[],  # Empty list for now
-        created_date=contact_dto.created_date,
-        last_modified=contact_dto.last_modified,
-        last_contacted=contact_dto.last_contacted,
-        display_name=contact_dto.display_name,
-        primary_contact_method=contact_dto.primary_contact_method,
-        type_display=contact_dto.type_display,
-        status_display=contact_dto.status_display,
-        priority_display=contact_dto.priority_display,
-        source_display=contact_dto.source_display,
-        relationship_status_display=contact_dto.relationship_status_display,
-        lifecycle_stage_display=contact_dto.lifecycle_stage_display
-    ) 
+    """Convert ContactResponseDTO to API response model using Pydantic."""
+    from ..converters import SafeConverter
+    return SafeConverter.safe_convert_to_api_model(contact_dto, ContactResponse) 

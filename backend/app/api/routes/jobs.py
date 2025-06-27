@@ -19,7 +19,7 @@ from ..schemas.job_schemas import (
     JobResponse, JobListResponse, JobStatisticsResponse,
     JobWorkloadResponse, JobScheduleResponse, JobListPaginatedResponse,
     JobActionResponse, JobBulkActionResponse, JobErrorResponse,
-    JobTypeEnum, JobStatusEnum, JobPriorityEnum, JobSourceEnum,
+    JobTypeSchema, JobStatusSchema, JobPrioritySchema, JobSourceSchema,
     JobAddressSchema, JobTimeTrackingSchema, JobCostEstimateSchema,
     JobContactSchema
 )
@@ -47,7 +47,7 @@ from ...infrastructure.config.dependency_injection import (
     get_job_search_use_case, get_job_analytics_use_case, get_job_scheduling_use_case,
     get_job_bulk_operations_use_case
 )
-from ...domain.entities.job import JobType, JobStatus, JobPriority, JobSource
+from ...domain.enums import JobType, JobStatus, JobPriority, JobSource
 
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
@@ -711,77 +711,24 @@ async def cancel_job(
 
 # Helper functions
 
-def _convert_job_type_to_api_enum(domain_type: JobType) -> JobTypeEnum:
-    """Convert domain JobType to API JobTypeEnum."""
-    mapping = {
-        JobType.SERVICE: JobTypeEnum.SERVICE,
-        JobType.INSTALLATION: JobTypeEnum.INSTALLATION,
-        JobType.MAINTENANCE: JobTypeEnum.MAINTENANCE,
-        JobType.REPAIR: JobTypeEnum.REPAIR,
-        JobType.INSPECTION: JobTypeEnum.INSPECTION,
-        JobType.CONSULTATION: JobTypeEnum.CONSULTATION,
-        JobType.QUOTE: JobTypeEnum.QUOTE,
-        JobType.FOLLOW_UP: JobTypeEnum.FOLLOW_UP,
-        JobType.EMERGENCY: JobTypeEnum.EMERGENCY,
-        JobType.PROJECT: JobTypeEnum.PROJECT,
-        JobType.OTHER: JobTypeEnum.OTHER
-    }
-    return mapping.get(domain_type, JobTypeEnum.OTHER)
+def _convert_job_type_to_api_enum(domain_type: JobType) -> JobTypeSchema:
+    """Convert domain JobType to API JobTypeSchema."""
+    return domain_type  # Since we're now using the same centralized enum
 
 
-def _convert_job_status_to_api_enum(domain_status: JobStatus) -> JobStatusEnum:
-    """Convert domain JobStatus to API JobStatusEnum."""
-    mapping = {
-        JobStatus.DRAFT: JobStatusEnum.DRAFT,
-        JobStatus.QUOTED: JobStatusEnum.QUOTED,
-        JobStatus.SCHEDULED: JobStatusEnum.SCHEDULED,
-        JobStatus.IN_PROGRESS: JobStatusEnum.IN_PROGRESS,
-        JobStatus.ON_HOLD: JobStatusEnum.ON_HOLD,
-        JobStatus.COMPLETED: JobStatusEnum.COMPLETED,
-        JobStatus.CANCELLED: JobStatusEnum.CANCELLED,
-        JobStatus.INVOICED: JobStatusEnum.INVOICED,
-        JobStatus.PAID: JobStatusEnum.PAID
-    }
-    return mapping.get(domain_status, JobStatusEnum.DRAFT)
+def _convert_job_status_to_api_enum(domain_status: JobStatus) -> JobStatusSchema:
+    """Convert domain JobStatus to API JobStatusSchema."""
+    return domain_status  # Since we're now using the same centralized enum
 
 
-def _convert_job_priority_to_api_enum(domain_priority: JobPriority) -> JobPriorityEnum:
-    """Convert domain JobPriority to API JobPriorityEnum."""
-    mapping = {
-        JobPriority.LOW: JobPriorityEnum.LOW,
-        JobPriority.MEDIUM: JobPriorityEnum.MEDIUM,
-        JobPriority.HIGH: JobPriorityEnum.HIGH,
-        JobPriority.URGENT: JobPriorityEnum.URGENT,
-        JobPriority.EMERGENCY: JobPriorityEnum.EMERGENCY
-    }
-    return mapping.get(domain_priority, JobPriorityEnum.MEDIUM)
+def _convert_job_priority_to_api_enum(domain_priority: JobPriority) -> JobPrioritySchema:
+    """Convert domain JobPriority to API JobPrioritySchema."""
+    return domain_priority  # Since we're now using the same centralized enum
 
 
-def _convert_job_source_to_api_enum(domain_source: JobSource) -> JobSourceEnum:
-    """Convert domain JobSource to API JobSourceEnum."""
-    mapping = {
-        JobSource.WEBSITE: JobSourceEnum.WEBSITE,
-        JobSource.GOOGLE_ADS: JobSourceEnum.GOOGLE_ADS,
-        JobSource.SOCIAL_MEDIA: JobSourceEnum.SOCIAL_MEDIA,
-        JobSource.REFERRAL: JobSourceEnum.REFERRAL,
-        JobSource.PHONE_CALL: JobSourceEnum.PHONE_CALL,
-        JobSource.PHONE: JobSourceEnum.PHONE,
-        JobSource.WALK_IN: JobSourceEnum.WALK_IN,
-        JobSource.EMAIL_MARKETING: JobSourceEnum.EMAIL_MARKETING,
-        JobSource.TRADE_SHOW: JobSourceEnum.TRADE_SHOW,
-        JobSource.DIRECT_MAIL: JobSourceEnum.DIRECT_MAIL,
-        JobSource.YELLOW_PAGES: JobSourceEnum.YELLOW_PAGES,
-        JobSource.REPEAT_CUSTOMER: JobSourceEnum.REPEAT_CUSTOMER,
-        JobSource.PARTNER: JobSourceEnum.PARTNER,
-        JobSource.EXISTING_CUSTOMER: JobSourceEnum.EXISTING_CUSTOMER,
-        JobSource.COLD_OUTREACH: JobSourceEnum.COLD_OUTREACH,
-        JobSource.EMERGENCY_CALL: JobSourceEnum.EMERGENCY_CALL,
-        JobSource.EMERGENCY: JobSourceEnum.EMERGENCY,
-        JobSource.EVENT: JobSourceEnum.EVENT,
-        JobSource.DIRECT: JobSourceEnum.DIRECT,
-        JobSource.OTHER: JobSourceEnum.OTHER
-    }
-    return mapping.get(domain_source, JobSourceEnum.OTHER)
+def _convert_job_source_to_api_enum(domain_source: JobSource) -> JobSourceSchema:
+    """Convert domain JobSource to API JobSourceSchema."""
+    return domain_source  # Since we're now using the same centralized enum
 
 
 def _convert_job_dto_to_response(job_dto) -> JobResponse:

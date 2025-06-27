@@ -11,73 +11,22 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, field_serializer, ConfigDict
 from pydantic.types import StringConstraints
 from typing_extensions import Annotated
 
-from ...domain.entities.job import JobType, JobStatus, JobPriority, JobSource
+from ...utils import format_datetime_utc
+# Import centralized enums
+from ...domain.enums import (
+    JobType, JobStatus, JobPriority, JobSource
+)
+from ..converters import EnumConverter, SupabaseConverter
 
-
-# Enums for API documentation
-class JobTypeEnum(str, Enum):
-    """Job type enumeration for API."""
-    SERVICE = "service"
-    INSTALLATION = "installation"
-    MAINTENANCE = "maintenance"
-    REPAIR = "repair"
-    INSPECTION = "inspection"
-    CONSULTATION = "consultation"
-    QUOTE = "quote"
-    FOLLOW_UP = "follow_up"
-    EMERGENCY = "emergency"
-    PROJECT = "project"
-    OTHER = "other"
-
-
-class JobStatusEnum(str, Enum):
-    """Job status enumeration for API."""
-    DRAFT = "draft"
-    QUOTED = "quoted"
-    SCHEDULED = "scheduled"
-    IN_PROGRESS = "in_progress"
-    ON_HOLD = "on_hold"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
-    INVOICED = "invoiced"
-    PAID = "paid"
-
-
-class JobPriorityEnum(str, Enum):
-    """Job priority enumeration for API."""
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    URGENT = "urgent"
-    EMERGENCY = "emergency"
-
-
-class JobSourceEnum(str, Enum):
-    """Job source enumeration for API."""
-    WEBSITE = "website"
-    GOOGLE_ADS = "google_ads"
-    SOCIAL_MEDIA = "social_media"
-    REFERRAL = "referral"
-    PHONE_CALL = "phone_call"
-    PHONE = "phone"
-    WALK_IN = "walk_in"
-    EMAIL_MARKETING = "email_marketing"
-    TRADE_SHOW = "trade_show"
-    DIRECT_MAIL = "direct_mail"
-    YELLOW_PAGES = "yellow_pages"
-    REPEAT_CUSTOMER = "repeat_customer"
-    PARTNER = "partner"
-    EXISTING_CUSTOMER = "existing_customer"
-    COLD_OUTREACH = "cold_outreach"
-    EMERGENCY_CALL = "emergency_call"
-    EMERGENCY = "emergency"
-    EVENT = "event"
-    DIRECT = "direct"
-    OTHER = "other"
+# Use centralized enums directly as API schemas  
+JobTypeSchema = JobType
+JobStatusSchema = JobStatus
+JobPrioritySchema = JobPriority
+JobSourceSchema = JobSource
 
 
 # Base schemas
@@ -196,9 +145,9 @@ class JobCreateRequest(BaseModel):
     job_number: Optional[str] = Field(default=None, max_length=50)
     title: Annotated[str, StringConstraints(min_length=1, max_length=255)]
     description: Optional[str] = Field(default=None, max_length=2000)
-    job_type: JobTypeEnum
-    priority: JobPriorityEnum = JobPriorityEnum.MEDIUM
-    source: JobSourceEnum = JobSourceEnum.OTHER
+    job_type: JobTypeSchema
+    priority: JobPrioritySchema = JobPrioritySchema.MEDIUM
+    source: JobSourceSchema = JobSourceSchema.OTHER
     job_address: JobAddressSchema
     scheduled_start: Optional[datetime] = None
     scheduled_end: Optional[datetime] = None
@@ -253,9 +202,9 @@ class JobUpdateRequest(BaseModel):
     """Schema for job update request."""
     title: Optional[str] = Field(default=None, min_length=1, max_length=255)
     description: Optional[str] = Field(default=None, max_length=2000)
-    job_type: Optional[JobTypeEnum] = None
-    priority: Optional[JobPriorityEnum] = None
-    source: Optional[JobSourceEnum] = None
+    job_type: Optional[JobTypeSchema] = None
+    priority: Optional[JobPrioritySchema] = None
+    source: Optional[JobSourceSchema] = None
     job_address: Optional[JobAddressSchema] = None
     scheduled_start: Optional[datetime] = None
     scheduled_end: Optional[datetime] = None
@@ -279,7 +228,7 @@ class JobUpdateRequest(BaseModel):
 
 class JobStatusUpdateRequest(BaseModel):
     """Schema for job status update request."""
-    status: JobStatusEnum
+    status: JobStatusSchema
     notes: Optional[str] = Field(default=None, max_length=500)
 
     model_config = {
@@ -310,11 +259,11 @@ class JobAssignmentRequest(BaseModel):
 class JobBulkUpdateRequest(BaseModel):
     """Schema for bulk job update request."""
     job_ids: List[uuid.UUID] = Field(min_length=1, max_length=50)
-    status: Optional[JobStatusEnum] = None
+    status: Optional[JobStatusSchema] = None
     assigned_to: Optional[str] = None
     tags_to_add: Optional[List[str]] = Field(default=None, max_length=10)
     tags_to_remove: Optional[List[str]] = Field(default=None, max_length=10)
-    priority: Optional[JobPriorityEnum] = None
+    priority: Optional[JobPrioritySchema] = None
 
     model_config = {
         "json_schema_extra": {
@@ -331,10 +280,10 @@ class JobBulkUpdateRequest(BaseModel):
 class JobSearchRequest(BaseModel):
     """Schema for job search request."""
     search_term: Optional[str] = Field(default=None, max_length=100)
-    job_type: Optional[JobTypeEnum] = None
-    status: Optional[JobStatusEnum] = None
-    priority: Optional[JobPriorityEnum] = None
-    source: Optional[JobSourceEnum] = None
+    job_type: Optional[JobTypeSchema] = None
+    status: Optional[JobStatusSchema] = None
+    priority: Optional[JobPrioritySchema] = None
+    source: Optional[JobSourceSchema] = None
     assigned_to: Optional[str] = None
     contact_id: Optional[uuid.UUID] = None
     tags: Optional[List[str]] = Field(default=None, max_length=10)
@@ -356,92 +305,192 @@ class JobSearchRequest(BaseModel):
 
 # Response schemas
 class JobResponse(BaseModel):
-    """Schema for job response."""
-    id: uuid.UUID
-    business_id: uuid.UUID
-    contact_id: Optional[uuid.UUID]
-    contact: Optional[JobContactSchema]
-    job_number: str
-    title: str
-    description: Optional[str]
-    job_type: JobTypeEnum
-    status: JobStatusEnum
-    priority: JobPriorityEnum
-    source: JobSourceEnum
-    job_address: JobAddressSchema
-    scheduled_start: Optional[datetime]
-    scheduled_end: Optional[datetime]
-    actual_start: Optional[datetime]
-    actual_end: Optional[datetime]
-    assigned_to: List[str]
-    created_by: str
-    time_tracking: JobTimeTrackingSchema
-    cost_estimate: JobCostEstimateSchema
-    tags: List[str]
-    notes: Optional[str]
-    internal_notes: Optional[str]
-    customer_requirements: Optional[str]
-    completion_notes: Optional[str]
-    custom_fields: Dict[str, Any]
-    created_date: datetime
-    last_modified: datetime
-    completed_date: Optional[datetime]
+    """Schema for job response with robust validation."""
+    model_config = ConfigDict(
+        from_attributes=True,
+        use_enum_values=True,
+        validate_assignment=True
+    )
+    
+    id: uuid.UUID = Field(..., description="Job ID")
+    business_id: uuid.UUID = Field(..., description="Business ID")
+    contact_id: Optional[uuid.UUID] = Field(None, description="Contact ID")
+    contact: Optional[JobContactSchema] = Field(None, description="Contact details")
+    job_number: str = Field(..., description="Job number")
+    title: str = Field(..., description="Job title")
+    description: Optional[str] = Field(None, description="Job description")
+    job_type: JobTypeSchema = Field(..., description="Job type")
+    status: JobStatusSchema = Field(..., description="Job status")
+    priority: JobPrioritySchema = Field(..., description="Job priority")
+    source: JobSourceSchema = Field(..., description="Job source")
+    job_address: JobAddressSchema = Field(..., description="Job address")
+    scheduled_start: Optional[datetime] = Field(None, description="Scheduled start time")
+    scheduled_end: Optional[datetime] = Field(None, description="Scheduled end time")
+    actual_start: Optional[datetime] = Field(None, description="Actual start time")
+    actual_end: Optional[datetime] = Field(None, description="Actual end time")
+    assigned_to: List[str] = Field(default_factory=list, description="Assigned user IDs")
+    created_by: str = Field(..., description="Creator user ID")
+    time_tracking: JobTimeTrackingSchema = Field(..., description="Time tracking details")
+    cost_estimate: JobCostEstimateSchema = Field(..., description="Cost estimate details")
+    tags: List[str] = Field(default_factory=list, description="Job tags")
+    notes: Optional[str] = Field(None, description="Job notes")
+    internal_notes: Optional[str] = Field(None, description="Internal notes")
+    customer_requirements: Optional[str] = Field(None, description="Customer requirements")
+    completion_notes: Optional[str] = Field(None, description="Completion notes")
+    custom_fields: Dict[str, Any] = Field(default_factory=dict, description="Custom fields")
+    created_date: Optional[datetime] = Field(None, description="Creation date")
+    last_modified: Optional[datetime] = Field(None, description="Last modification date")
+    completed_date: Optional[datetime] = Field(None, description="Completion date")
     
     # Computed fields
-    is_overdue: bool
-    is_emergency: bool
-    duration_days: Optional[int]
-    estimated_revenue: Decimal
-    profit_margin: Decimal
-    status_display: str
-    priority_display: str
-    type_display: str
+    is_overdue: bool = Field(..., description="Whether job is overdue")
+    is_emergency: bool = Field(..., description="Whether job is emergency")
+    duration_days: Optional[int] = Field(None, description="Duration in days")
+    estimated_revenue: Decimal = Field(..., description="Estimated revenue")
+    profit_margin: Decimal = Field(..., description="Profit margin")
+    status_display: str = Field(..., description="Human-readable status")
+    priority_display: str = Field(..., description="Human-readable priority")
+    type_display: str = Field(..., description="Human-readable type")
 
-    model_config = {
-        "from_attributes": True,
-        "json_schema_extra": {
-            "example": {
-                "id": "550e8400-e29b-41d4-a716-446655440000",
-                "business_id": "550e8400-e29b-41d4-a716-446655440001",
-                "contact_id": "550e8400-e29b-41d4-a716-446655440002",
-                "job_number": "JOB-000001",
-                "title": "HVAC Maintenance Service",
-                "description": "Annual HVAC system maintenance",
-                "job_type": "maintenance",
-                "status": "scheduled",
-                "priority": "medium",
-                "source": "website",
-                "is_overdue": False,
-                "is_emergency": False,
-                "estimated_revenue": "280.00"
-            }
-        }
-    }
+    @field_validator('job_type', mode='before')
+    @classmethod
+    def validate_job_type(cls, v):
+        return EnumConverter.safe_job_type(v)
+
+    @field_validator('status', mode='before')
+    @classmethod
+    def validate_status(cls, v):
+        return EnumConverter.safe_job_status(v)
+
+    @field_validator('priority', mode='before')
+    @classmethod
+    def validate_priority(cls, v):
+        return EnumConverter.safe_job_priority(v)
+
+    @field_validator('source', mode='before')
+    @classmethod
+    def validate_source(cls, v):
+        return EnumConverter.safe_job_source(v)
+
+    @field_validator('tags', mode='before')
+    @classmethod
+    def validate_tags(cls, v):
+        return SupabaseConverter.parse_list_field(v, default=[])
+
+    @field_validator('assigned_to', mode='before')
+    @classmethod
+    def validate_assigned_to(cls, v):
+        return SupabaseConverter.parse_list_field(v, default=[])
+
+    @field_validator('custom_fields', mode='before')
+    @classmethod
+    def validate_custom_fields(cls, v):
+        return SupabaseConverter.parse_dict_field(v, default={})
+
+    @field_validator('created_date', 'last_modified', 'completed_date', 'scheduled_start', 'scheduled_end', 'actual_start', 'actual_end', mode='before')
+    @classmethod
+    def validate_datetime_fields(cls, v):
+        return SupabaseConverter.parse_datetime(v)
+
+    @field_validator('id', 'business_id', 'contact_id', mode='before')
+    @classmethod
+    def validate_uuid_fields(cls, v):
+        return SupabaseConverter.parse_uuid(v)
+
+    @classmethod
+    def from_supabase_dict(cls, data: Dict[str, Any]) -> "JobResponse":
+        """Create JobResponse from Supabase dictionary with proper validation."""
+        # Compute display fields
+        data['type_display'] = cls._compute_type_display(data)
+        data['status_display'] = cls._compute_status_display(data)
+        data['priority_display'] = cls._compute_priority_display(data)
+        
+        return cls.model_validate(data)
+
+    @staticmethod
+    def _compute_type_display(data: Dict[str, Any]) -> str:
+        """Compute human-readable type display."""
+        job_type = EnumConverter.safe_job_type(data.get('job_type'))
+        return job_type.get_display()
+
+    @staticmethod
+    def _compute_status_display(data: Dict[str, Any]) -> str:
+        """Compute human-readable status display."""
+        status = EnumConverter.safe_job_status(data.get('status'))
+        return status.get_display()
+
+    @staticmethod
+    def _compute_priority_display(data: Dict[str, Any]) -> str:
+        """Compute human-readable priority display."""
+        priority = EnumConverter.safe_job_priority(data.get('priority'))
+        return priority.get_display()
+
+    @field_serializer('created_date', 'last_modified', 'completed_date', 'scheduled_start', 'scheduled_end', 'actual_start', 'actual_end')
+    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
+        return format_datetime_utc(value) if value else None
 
 
 class JobListResponse(BaseModel):
-    """Schema for job list response."""
-    id: uuid.UUID
-    contact_id: Optional[uuid.UUID]
-    contact: Optional[JobContactSchema]  # Add contact data
-    job_number: str
-    title: str
-    job_type: JobTypeEnum
-    status: JobStatusEnum
-    priority: JobPriorityEnum
-    scheduled_start: Optional[datetime]
-    scheduled_end: Optional[datetime]
-    assigned_to: List[str]
-    estimated_revenue: Decimal
-    is_overdue: bool
-    is_emergency: bool
-    created_date: datetime
-    last_modified: datetime
-    status_display: str
-    priority_display: str
-    type_display: str
+    """Schema for job list response with robust validation."""
+    model_config = ConfigDict(
+        from_attributes=True,
+        use_enum_values=True,
+        validate_assignment=True
+    )
+    
+    id: uuid.UUID = Field(..., description="Job ID")
+    contact_id: Optional[uuid.UUID] = Field(None, description="Contact ID")
+    contact: Optional[JobContactSchema] = Field(None, description="Contact details")
+    job_number: str = Field(..., description="Job number")
+    title: str = Field(..., description="Job title")
+    job_type: JobTypeSchema = Field(..., description="Job type")
+    status: JobStatusSchema = Field(..., description="Job status")
+    priority: JobPrioritySchema = Field(..., description="Job priority")
+    scheduled_start: Optional[datetime] = Field(None, description="Scheduled start time")
+    scheduled_end: Optional[datetime] = Field(None, description="Scheduled end time")
+    assigned_to: List[str] = Field(default_factory=list, description="Assigned user IDs")
+    estimated_revenue: Decimal = Field(..., description="Estimated revenue")
+    is_overdue: bool = Field(..., description="Whether job is overdue")
+    is_emergency: bool = Field(..., description="Whether job is emergency")
+    created_date: Optional[datetime] = Field(None, description="Creation date")
+    last_modified: Optional[datetime] = Field(None, description="Last modification date")
+    status_display: str = Field(..., description="Human-readable status")
+    priority_display: str = Field(..., description="Human-readable priority")
+    type_display: str = Field(..., description="Human-readable type")
 
-    model_config = {"from_attributes": True}
+    @field_validator('job_type', mode='before')
+    @classmethod
+    def validate_job_type(cls, v):
+        return EnumConverter.safe_job_type(v)
+
+    @field_validator('status', mode='before')
+    @classmethod
+    def validate_status(cls, v):
+        return EnumConverter.safe_job_status(v)
+
+    @field_validator('priority', mode='before')
+    @classmethod
+    def validate_priority(cls, v):
+        return EnumConverter.safe_job_priority(v)
+
+    @field_validator('assigned_to', mode='before')
+    @classmethod
+    def validate_assigned_to(cls, v):
+        return SupabaseConverter.parse_list_field(v, default=[])
+
+    @field_validator('created_date', 'last_modified', 'scheduled_start', 'scheduled_end', mode='before')
+    @classmethod
+    def validate_datetime_fields(cls, v):
+        return SupabaseConverter.parse_datetime(v)
+
+    @field_validator('id', 'contact_id', mode='before')
+    @classmethod
+    def validate_uuid_fields(cls, v):
+        return SupabaseConverter.parse_uuid(v)
+
+    @field_serializer('created_date', 'last_modified', 'scheduled_start', 'scheduled_end')
+    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
+        return format_datetime_utc(value) if value else None
 
 
 class JobStatisticsResponse(BaseModel):

@@ -10,70 +10,13 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from enum import Enum
+from ..enums import JobType, JobStatus, JobPriority, JobSource
 from decimal import Decimal
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
 
 
-class JobType(Enum):
-    """Job type enumeration."""
-    SERVICE = "service"
-    INSTALLATION = "installation"
-    MAINTENANCE = "maintenance"
-    REPAIR = "repair"
-    INSPECTION = "inspection"
-    CONSULTATION = "consultation"
-    QUOTE = "quote"
-    FOLLOW_UP = "follow_up"
-    EMERGENCY = "emergency"
-    PROJECT = "project"
-    OTHER = "other"
-
-
-class JobStatus(Enum):
-    """Job status enumeration with workflow states."""
-    DRAFT = "draft"
-    QUOTED = "quoted"
-    SCHEDULED = "scheduled"
-    IN_PROGRESS = "in_progress"
-    ON_HOLD = "on_hold"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
-    INVOICED = "invoiced"
-    PAID = "paid"
-
-
-class JobPriority(Enum):
-    """Job priority levels."""
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    URGENT = "urgent"
-    EMERGENCY = "emergency"
-
-
-class JobSource(Enum):
-    """How the job was acquired."""
-    WEBSITE = "website"
-    GOOGLE_ADS = "google_ads"
-    SOCIAL_MEDIA = "social_media"
-    REFERRAL = "referral"
-    PHONE_CALL = "phone_call"
-    PHONE = "phone"
-    WALK_IN = "walk_in"
-    EMAIL_MARKETING = "email_marketing"
-    TRADE_SHOW = "trade_show"
-    DIRECT_MAIL = "direct_mail"
-    YELLOW_PAGES = "yellow_pages"
-    REPEAT_CUSTOMER = "repeat_customer"
-    PARTNER = "partner"
-    EXISTING_CUSTOMER = "existing_customer"
-    COLD_OUTREACH = "cold_outreach"
-    EMERGENCY_CALL = "emergency_call"
-    EMERGENCY = "emergency"
-    EVENT = "event"
-    DIRECT = "direct"
-    OTHER = "other"
+# Enums now imported from centralized enums module
 
 
 @dataclass
@@ -461,43 +404,12 @@ class Job:
     
     def get_status_display(self) -> str:
         """Get human-readable status."""
-        status_display = {
-            JobStatus.DRAFT: "Draft",
-            JobStatus.QUOTED: "Quoted",
-            JobStatus.SCHEDULED: "Scheduled",
-            JobStatus.IN_PROGRESS: "In Progress",
-            JobStatus.ON_HOLD: "On Hold",
-            JobStatus.COMPLETED: "Completed",
-            JobStatus.CANCELLED: "Cancelled",
-            JobStatus.INVOICED: "Invoiced",
-            JobStatus.PAID: "Paid"
-        }
-        return status_display.get(self.status, self.status.value.title())
+        return self.status.get_display()
     
     def get_priority_display(self) -> str:
         """Get human-readable priority."""
-        priority_display = {
-            JobPriority.LOW: "Low",
-            JobPriority.MEDIUM: "Medium",
-            JobPriority.HIGH: "High",
-            JobPriority.URGENT: "Urgent",
-            JobPriority.EMERGENCY: "Emergency"
-        }
-        return priority_display.get(self.priority, self.priority.value.title())
+        return self.priority.get_display()
     
     def get_type_display(self) -> str:
         """Get human-readable type."""
-        type_display = {
-            JobType.SERVICE: "Service",
-            JobType.INSTALLATION: "Installation",
-            JobType.MAINTENANCE: "Maintenance",
-            JobType.REPAIR: "Repair",
-            JobType.INSPECTION: "Inspection",
-            JobType.CONSULTATION: "Consultation",
-            JobType.QUOTE: "Quote",
-            JobType.FOLLOW_UP: "Follow Up",
-            JobType.EMERGENCY: "Emergency",
-            JobType.PROJECT: "Project",
-            JobType.OTHER: "Other"
-        }
-        return type_display.get(self.job_type, self.job_type.value.title()) 
+        return self.job_type.get_display() 
