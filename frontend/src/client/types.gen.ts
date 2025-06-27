@@ -2815,6 +2815,19 @@ export type JobBulkUpdateRequest = {
 }
 
 /**
+ * Lightweight contact schema for job responses.
+ */
+export type JobContactSchema = {
+  id: string
+  display_name: string
+  company_name?: string | null
+  email?: string | null
+  phone?: string | null
+  mobile_phone?: string | null
+  primary_contact_method: string
+}
+
+/**
  * Schema for job cost estimation.
  */
 export type JobCostEstimateSchema_Input = {
@@ -2881,6 +2894,8 @@ export type JobListPaginatedResponse = {
  */
 export type JobListResponse = {
   id: string
+  contact_id: string | null
+  contact: JobContactSchema | null
   job_number: string
   title: string
   job_type: JobTypeEnum
@@ -2911,6 +2926,7 @@ export type JobResponse = {
   id: string
   business_id: string
   contact_id: string | null
+  contact: JobContactSchema | null
   job_number: string
   title: string
   description: string | null

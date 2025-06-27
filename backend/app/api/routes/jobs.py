@@ -302,7 +302,7 @@ async def list_jobs(
         jobs = await manage_jobs_use_case.list_jobs(business_id, user_id, skip, limit)
         
         # Convert to response DTOs
-        job_responses = [JobListResponse.model_validate(job) for job in jobs]
+        job_responses = [_convert_job_list_dto_to_response(job) for job in jobs]
         
         # Get total count (this could be optimized with a separate count query)
         total = len(job_responses) + skip  # Simplified for now
@@ -368,7 +368,7 @@ async def search_jobs(
         jobs = await manage_jobs_use_case.search_jobs(business_id, search_dto, user_id)
         
         # Convert to response DTOs
-        job_responses = [JobListResponse.model_validate(job) for job in jobs]
+        job_responses = [_convert_job_list_dto_to_response(job) for job in jobs]
         
         # Get total count (this could be optimized with a separate count query)
         total = len(job_responses) + search_request.skip  # Simplified for now
@@ -699,6 +699,20 @@ def _convert_job_source_to_api_enum(domain_source: JobSource) -> JobSourceEnum:
 def _convert_job_dto_to_response(job_dto) -> JobResponse:
     """Convert job DTO to JobResponse schema."""
     
+    # Convert contact DTO to schema if available
+    contact_schema = None
+    if job_dto.contact:
+        from ..schemas.job_schemas import JobContactSchema
+        contact_schema = JobContactSchema(
+            id=job_dto.contact.id,
+            display_name=job_dto.contact.display_name,
+            company_name=job_dto.contact.company_name,
+            email=job_dto.contact.email,
+            phone=job_dto.contact.phone,
+            mobile_phone=job_dto.contact.mobile_phone,
+            primary_contact_method=job_dto.contact.primary_contact_method
+        )
+    
     # Convert address DTO to schema
     address_schema = JobAddressSchema(
         street_address=job_dto.job_address.street_address,
@@ -736,6 +750,7 @@ def _convert_job_dto_to_response(job_dto) -> JobResponse:
         id=job_dto.id,
         business_id=job_dto.business_id,
         contact_id=job_dto.contact_id,
+        contact=contact_schema,
         job_number=job_dto.job_number,
         title=job_dto.title,
         description=job_dto.description,
@@ -766,6 +781,46 @@ def _convert_job_dto_to_response(job_dto) -> JobResponse:
         duration_days=job_dto.duration_days,
         estimated_revenue=job_dto.estimated_revenue,
         profit_margin=job_dto.profit_margin,
+        status_display=job_dto.status_display,
+        priority_display=job_dto.priority_display,
+        type_display=job_dto.type_display
+    )
+
+
+def _convert_job_list_dto_to_response(job_dto) -> JobListResponse:
+    """Convert job list DTO to JobListResponse schema.""" 
+    
+    # Convert contact DTO to schema if available
+    contact_schema = None
+    if job_dto.contact:
+        from ..schemas.job_schemas import JobContactSchema
+        contact_schema = JobContactSchema(
+            id=job_dto.contact.id,
+            display_name=job_dto.contact.display_name,
+            company_name=job_dto.contact.company_name,
+            email=job_dto.contact.email,
+            phone=job_dto.contact.phone,
+            mobile_phone=job_dto.contact.mobile_phone,
+            primary_contact_method=job_dto.contact.primary_contact_method
+        )
+    
+    return JobListResponse(
+        id=job_dto.id,
+        contact_id=job_dto.contact_id,
+        contact=contact_schema,
+        job_number=job_dto.job_number,
+        title=job_dto.title,
+        job_type=JobTypeEnum(job_dto.job_type.value),
+        status=JobStatusEnum(job_dto.status.value),
+        priority=JobPriorityEnum(job_dto.priority.value),
+        scheduled_start=job_dto.scheduled_start,
+        scheduled_end=job_dto.scheduled_end,
+        assigned_to=job_dto.assigned_to,
+        estimated_revenue=job_dto.estimated_revenue,
+        is_overdue=job_dto.is_overdue,
+        is_emergency=job_dto.is_emergency,
+        created_date=job_dto.created_date,
+        last_modified=job_dto.last_modified,
         status_display=job_dto.status_display,
         priority_display=job_dto.priority_display,
         type_display=job_dto.type_display

@@ -519,10 +519,28 @@ class ManageJobsUseCase:
     
     async def _convert_to_response_dto(self, job: Job) -> JobResponseDTO:
         """Convert Job entity to JobResponseDTO."""
+        
+        # Fetch contact data if contact_id exists
+        contact_dto = None
+        if job.contact_id:
+            contact = await self.contact_repository.get_by_id(job.contact_id)
+            if contact:
+                from ...dto.job_dto import JobContactDTO
+                contact_dto = JobContactDTO(
+                    id=contact.id,
+                    display_name=contact.get_display_name(),
+                    company_name=contact.company_name,
+                    email=contact.email,
+                    phone=contact.phone,
+                    mobile_phone=contact.mobile_phone,
+                    primary_contact_method=contact.get_primary_contact_method()
+                )
+        
         return JobResponseDTO(
             id=job.id,
             business_id=job.business_id,
             contact_id=job.contact_id,
+            contact=contact_dto,
             job_number=job.job_number,
             title=job.title,
             description=job.description,
@@ -584,8 +602,27 @@ class ManageJobsUseCase:
     
     async def _convert_to_list_dto(self, job: Job) -> JobListDTO:
         """Convert Job entity to JobListDTO."""
+        
+        # Fetch contact data if contact_id exists
+        contact_dto = None
+        if job.contact_id:
+            contact = await self.contact_repository.get_by_id(job.contact_id)
+            if contact:
+                from ...dto.job_dto import JobContactDTO
+                contact_dto = JobContactDTO(
+                    id=contact.id,
+                    display_name=contact.get_display_name(),
+                    company_name=contact.company_name,
+                    email=contact.email,
+                    phone=contact.phone,
+                    mobile_phone=contact.mobile_phone,
+                    primary_contact_method=contact.get_primary_contact_method()
+                )
+        
         return JobListDTO(
             id=job.id,
+            contact_id=job.contact_id,
+            contact=contact_dto,
             job_number=job.job_number,
             title=job.title,
             job_type=job.job_type,

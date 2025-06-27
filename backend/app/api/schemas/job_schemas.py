@@ -159,6 +159,32 @@ class JobCostEstimateSchema(BaseModel):
     }
 
 
+class JobContactSchema(BaseModel):
+    """Lightweight contact schema for job responses."""
+    id: uuid.UUID
+    display_name: str
+    company_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    mobile_phone: Optional[str] = None
+    primary_contact_method: str
+    
+    model_config = {
+        "from_attributes": True,
+        "json_schema_extra": {
+            "example": {
+                "id": "550e8400-e29b-41d4-a716-446655440002",
+                "display_name": "John Doe (Acme Corp)",
+                "company_name": "Acme Corp",
+                "email": "john@acme.com",
+                "phone": "+1-555-0123",
+                "mobile_phone": "+1-555-0124",
+                "primary_contact_method": "john@acme.com"
+            }
+        }
+    }
+
+
 # Request schemas
 class JobCreateRequest(BaseModel):
     """Schema for job creation request."""
@@ -330,6 +356,7 @@ class JobResponse(BaseModel):
     id: uuid.UUID
     business_id: uuid.UUID
     contact_id: Optional[uuid.UUID]
+    contact: Optional[JobContactSchema]
     job_number: str
     title: str
     description: Optional[str]
@@ -391,6 +418,8 @@ class JobResponse(BaseModel):
 class JobListResponse(BaseModel):
     """Schema for job list response."""
     id: uuid.UUID
+    contact_id: Optional[uuid.UUID]
+    contact: Optional[JobContactSchema]  # Add contact data
     job_number: str
     title: str
     job_type: JobTypeEnum

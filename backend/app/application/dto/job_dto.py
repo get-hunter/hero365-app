@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
 
-from ...domain.entities.job import JobType, JobStatus, JobPriority, JobSource
+from ...domain.entities.job import JobType, JobStatus, JobPriority, JobSource, JobAddress, JobTimeTracking, JobCostEstimate
 
 
 @dataclass
@@ -100,6 +100,7 @@ class JobResponseDTO:
     id: uuid.UUID
     business_id: uuid.UUID
     contact_id: Optional[uuid.UUID]
+    contact: Optional['JobContactDTO']  # Add contact data
     job_number: str
     title: str
     description: Optional[str]
@@ -141,6 +142,8 @@ class JobResponseDTO:
 class JobListDTO:
     """DTO for job list response with minimal data."""
     id: uuid.UUID
+    contact_id: Optional[uuid.UUID]
+    contact: Optional['JobContactDTO']  # Add contact data
     job_number: str
     title: str
     job_type: JobType
@@ -377,4 +380,16 @@ class JobConversionDTO:
     target_type: Optional[JobType] = None
     notes: Optional[str] = None
     update_cost_estimate: bool = False
-    new_cost_estimate: Optional[JobCostEstimateDTO] = None 
+    new_cost_estimate: Optional[JobCostEstimateDTO] = None
+
+
+@dataclass
+class JobContactDTO:
+    """DTO for contact information in job responses."""
+    id: uuid.UUID
+    display_name: str
+    company_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    mobile_phone: Optional[str] = None
+    primary_contact_method: str = "" 
