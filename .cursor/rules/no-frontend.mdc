@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+We are not currently implementing a frontend, only a mobile app on swift that consumes the backend API. Don't make changes in the /frontend folders because we are not building a frontend app.

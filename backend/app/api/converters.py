@@ -93,6 +93,8 @@ class EnumConverter:
         """Safely convert to ContactType enum."""
         if value is None:
             return ContactType.PROSPECT
+        if isinstance(value, ContactType):
+            return value
         try:
             return ContactType(str(value).lower())
         except (ValueError, AttributeError):
@@ -104,6 +106,8 @@ class EnumConverter:
         """Safely convert to ContactStatus enum."""
         if value is None:
             return ContactStatus.ACTIVE
+        if isinstance(value, ContactStatus):
+            return value
         try:
             return ContactStatus(str(value).lower())
         except (ValueError, AttributeError):
@@ -115,6 +119,8 @@ class EnumConverter:
         """Safely convert to ContactPriority enum."""
         if value is None:
             return ContactPriority.MEDIUM
+        if isinstance(value, ContactPriority):
+            return value
         try:
             return ContactPriority(str(value).lower())
         except (ValueError, AttributeError):
@@ -126,6 +132,8 @@ class EnumConverter:
         """Safely convert to ContactSource enum."""
         if value is None:
             return None
+        if isinstance(value, ContactSource):
+            return value
         try:
             return ContactSource(str(value).lower())
         except (ValueError, AttributeError):
@@ -137,6 +145,8 @@ class EnumConverter:
         """Safely convert to RelationshipStatus enum."""
         if value is None:
             return RelationshipStatus.PROSPECT
+        if isinstance(value, RelationshipStatus):
+            return value
         try:
             return RelationshipStatus(str(value).lower())
         except (ValueError, AttributeError):
@@ -148,6 +158,8 @@ class EnumConverter:
         """Safely convert to LifecycleStage enum."""
         if value is None:
             return LifecycleStage.AWARENESS
+        if isinstance(value, LifecycleStage):
+            return value
         try:
             return LifecycleStage(str(value).lower())
         except (ValueError, AttributeError):
@@ -159,6 +171,8 @@ class EnumConverter:
         """Safely convert to JobType enum."""
         if value is None:
             return JobType.SERVICE
+        if isinstance(value, JobType):
+            return value
         try:
             return JobType(str(value).lower())
         except (ValueError, AttributeError):
@@ -170,6 +184,8 @@ class EnumConverter:
         """Safely convert to JobStatus enum."""
         if value is None:
             return JobStatus.DRAFT
+        if isinstance(value, JobStatus):
+            return value
         try:
             return JobStatus(str(value).lower())
         except (ValueError, AttributeError):
@@ -181,6 +197,8 @@ class EnumConverter:
         """Safely convert to JobPriority enum."""
         if value is None:
             return JobPriority.MEDIUM
+        if isinstance(value, JobPriority):
+            return value
         try:
             return JobPriority(str(value).lower())
         except (ValueError, AttributeError):
@@ -192,6 +210,8 @@ class EnumConverter:
         """Safely convert to JobSource enum."""
         if value is None:
             return JobSource.OTHER
+        if isinstance(value, JobSource):
+            return value
         try:
             return JobSource(str(value).lower())
         except (ValueError, AttributeError):
