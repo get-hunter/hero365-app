@@ -19,36 +19,8 @@ from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleVi
 # Enums now imported from centralized enums module
 
 
-@dataclass
-class JobAddress:
-    """Value object for job location address."""
-    street_address: str
-    city: str
-    state: str
-    postal_code: str
-    country: str = "US"
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    access_notes: Optional[str] = None
-    
-    def __post_init__(self):
-        """Validate address data."""
-        if not self.street_address or not self.street_address.strip():
-            raise DomainValidationError("Street address is required")
-        if not self.city or not self.city.strip():
-            raise DomainValidationError("City is required")
-        if not self.state or not self.state.strip():
-            raise DomainValidationError("State is required")
-        if not self.postal_code or not self.postal_code.strip():
-            raise DomainValidationError("Postal code is required")
-    
-    def get_full_address(self) -> str:
-        """Get formatted full address."""
-        return f"{self.street_address}, {self.city}, {self.state} {self.postal_code}"
-    
-    def get_short_address(self) -> str:
-        """Get short address for display."""
-        return f"{self.city}, {self.state}"
+# Import unified Address value object
+from ..value_objects.address import Address
 
 
 @dataclass
@@ -163,7 +135,7 @@ class Job:
     status: JobStatus
     priority: JobPriority
     source: JobSource
-    job_address: JobAddress
+    job_address: Address
     created_by: str
     
     # Optional fields (with default values)
@@ -225,7 +197,7 @@ class Job:
     def create_job(cls, business_id: uuid.UUID, contact_id: Optional[uuid.UUID],
                    job_number: str, title: str, description: Optional[str],
                    job_type: JobType, priority: JobPriority, source: JobSource,
-                   job_address: JobAddress, created_by: str,
+                   job_address: Address, created_by: str,
                    scheduled_start: Optional[datetime] = None,
                    scheduled_end: Optional[datetime] = None,
                    assigned_to: Optional[List[str]] = None,

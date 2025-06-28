@@ -94,33 +94,8 @@ class InteractionType(Enum):
     NOTE = "note"
 
 
-@dataclass
-class ContactAddress:
-    """Value object for contact address information."""
-    street_address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    postal_code: Optional[str] = None
-    country: Optional[str] = None
-    
-    def is_complete(self) -> bool:
-        """Check if address has minimum required information."""
-        return bool(self.street_address and self.city)
-    
-    def get_formatted_address(self) -> str:
-        """Get formatted address string."""
-        parts = []
-        if self.street_address:
-            parts.append(self.street_address)
-        if self.city:
-            parts.append(self.city)
-        if self.state:
-            parts.append(self.state)
-        if self.postal_code:
-            parts.append(self.postal_code)
-        if self.country:
-            parts.append(self.country)
-        return ", ".join(parts)
+# Import unified Address value object
+from ..value_objects.address import Address
 
 
 @dataclass
@@ -182,7 +157,7 @@ class Contact:
     website: Optional[str] = None
     
     # Address Information
-    address: Optional[ContactAddress] = None
+    address: Optional[Address] = None
     
     # Business Information
     priority: ContactPriority = ContactPriority.MEDIUM
@@ -541,7 +516,7 @@ class Contact:
     def get_full_address(self) -> Optional[str]:
         """Get formatted full address."""
         if self.address and self.address.is_complete():
-            return self.address.get_formatted_address()
+            return self.address.get_full_address()
         return None
     
     def is_customer(self) -> bool:
@@ -567,6 +542,10 @@ class Contact:
     def has_complete_address(self) -> bool:
         """Check if contact has a complete address."""
         return self.address is not None and self.address.is_complete()
+    
+    def has_geocoded_address(self) -> bool:
+        """Check if contact has address with coordinates."""
+        return self.address is not None and self.address.has_coordinates()
     
     def add_tag(self, tag: str) -> None:
         """Add a tag to the contact."""

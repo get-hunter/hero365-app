@@ -9,18 +9,51 @@ from dataclasses import dataclass
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 
-from ...domain.entities.contact import ContactType, ContactStatus, ContactSource, ContactPriority, ContactAddress, RelationshipStatus, LifecycleStage
+from ...domain.entities.contact import ContactType, ContactStatus, ContactSource, ContactPriority, RelationshipStatus, LifecycleStage
 from ...api.schemas.contact_schemas import UserDetailLevel
 
 
 @dataclass
 class ContactAddressDTO:
-    """DTO for contact address information."""
+    """DTO for contact address information. Compatible with unified Address value object."""
     street_address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     postal_code: Optional[str] = None
     country: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    access_notes: Optional[str] = None
+    place_id: Optional[str] = None
+    formatted_address: Optional[str] = None
+    address_type: Optional[str] = None
+    
+    def to_address_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for Address value object creation."""
+        result = {}
+        if self.street_address:
+            result["street_address"] = self.street_address
+        if self.city:
+            result["city"] = self.city
+        if self.state:
+            result["state"] = self.state
+        if self.postal_code:
+            result["postal_code"] = self.postal_code
+        if self.country:
+            result["country"] = self.country
+        if self.latitude is not None:
+            result["latitude"] = self.latitude
+        if self.longitude is not None:
+            result["longitude"] = self.longitude
+        if self.access_notes:
+            result["access_notes"] = self.access_notes
+        if self.place_id:
+            result["place_id"] = self.place_id
+        if self.formatted_address:
+            result["formatted_address"] = self.formatted_address
+        if self.address_type:
+            result["address_type"] = self.address_type
+        return result
 
 
 @dataclass

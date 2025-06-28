@@ -12,8 +12,9 @@ import logging
 from ...dto.job_dto import JobCreateDTO, JobResponseDTO
 from ...exceptions.application_exceptions import ValidationError
 from app.domain.entities.job import (
-    Job, JobAddress, JobTimeTracking, JobCostEstimate
+    Job, JobTimeTracking, JobCostEstimate
 )
+from app.domain.value_objects.address import Address
 from app.domain.repositories.job_repository import JobRepository
 from app.domain.repositories.contact_repository import ContactRepository
 from .job_helper_service import JobHelperService
@@ -84,21 +85,12 @@ class CreateJobUseCase:
             logger.info("Creating job address...")
             job_address = None
             if job_data.job_address:
-                job_address = JobAddress(
-                    street_address=job_data.job_address.street_address,
-                    city=job_data.job_address.city,
-                    state=job_data.job_address.state,
-                    postal_code=job_data.job_address.postal_code,
-                    country=job_data.job_address.country,
-                    latitude=job_data.job_address.latitude,
-                    longitude=job_data.job_address.longitude,
-                    access_notes=job_data.job_address.access_notes
-                )
+                job_address = job_data.job_address.to_address()
             else:
                 # Create a default address with placeholder values
-                job_address = JobAddress(
+                job_address = Address.create_minimal(
                     street_address="No address provided",
-                    city="Unknown",
+                    city="Unknown", 
                     state="Unknown",
                     postal_code="00000",
                     country="US"

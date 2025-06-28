@@ -11,8 +11,9 @@ from datetime import datetime
 from ...dto.job_dto import JobUpdateDTO, JobResponseDTO
 from ...exceptions.application_exceptions import NotFoundError
 from app.domain.entities.job import (
-    JobAddress, JobTimeTracking, JobCostEstimate
+    JobTimeTracking, JobCostEstimate
 )
+from app.domain.value_objects.address import Address
 from app.domain.repositories.job_repository import JobRepository
 from .job_helper_service import JobHelperService
 
@@ -78,15 +79,18 @@ class UpdateJobUseCase:
         
         # Update job address if provided
         if job_data.job_address:
-            job.job_address = JobAddress(
+            job.job_address = Address(
                 street_address=job_data.job_address.street_address,
                 city=job_data.job_address.city,
                 state=job_data.job_address.state,
                 postal_code=job_data.job_address.postal_code,
-                country=job_data.job_address.country,
+                country=job_data.job_address.country or "US",
                 latitude=job_data.job_address.latitude,
                 longitude=job_data.job_address.longitude,
-                access_notes=job_data.job_address.access_notes
+                access_notes=job_data.job_address.access_notes,
+                place_id=job_data.job_address.place_id,
+                formatted_address=job_data.job_address.formatted_address,
+                address_type=job_data.job_address.address_type
             )
         
         # Update time tracking if provided

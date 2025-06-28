@@ -7,15 +7,19 @@ Handles all job-related database operations with proper error handling.
 
 import uuid
 import json
+import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from supabase import Client
+
+logger = logging.getLogger(__name__)
 from app.domain.entities.job import (
-    Job, JobAddress, 
+    Job, 
     JobTimeTracking, JobCostEstimate
 )
+from app.domain.value_objects.address import Address
 from app.domain.enums import JobType, JobStatus, JobPriority, JobSource
 from app.domain.repositories.job_repository import JobRepository
 from app.domain.exceptions.domain_exceptions import DomainValidationError
@@ -750,16 +754,7 @@ class SupabaseJobRepository(JobRepository):
             "status": job.status.value,
             "priority": job.priority.value,
             "source": job.source.value,
-            "job_address": {
-                "street_address": job.job_address.street_address,
-                "city": job.job_address.city,
-                "state": job.job_address.state,
-                "postal_code": job.job_address.postal_code,
-                "country": job.job_address.country,
-                "latitude": job.job_address.latitude,
-                "longitude": job.job_address.longitude,
-                "access_notes": job.job_address.access_notes
-            },
+            "job_address": job.job_address.to_dict(),
             "scheduled_start": job.scheduled_start.isoformat() if job.scheduled_start else None,
             "scheduled_end": job.scheduled_end.isoformat() if job.scheduled_end else None,
             "actual_start": job.actual_start.isoformat() if job.actual_start else None,
@@ -796,18 +791,29 @@ class SupabaseJobRepository(JobRepository):
     
     def _dict_to_job(self, data: Dict[str, Any]) -> Job:
         """Convert dictionary from database to Job entity."""
-        # Parse address
-        address_data = data.get("job_address", {})
-        job_address = JobAddress(
-            street_address=address_data.get("street_address", ""),
-            city=address_data.get("city", ""),
-            state=address_data.get("state", ""),
-            postal_code=address_data.get("postal_code", ""),
-            country=address_data.get("country", "US"),
-            latitude=address_data.get("latitude"),
-            longitude=address_data.get("longitude"),
-            access_notes=address_data.get("access_notes")
-        )
+        # Parse address using unified Address value object
+        job_address = None
+        if data.get("job_address"):
+            try:
+                from app.application.utils.address_utils import AddressUtils
+                job_address = AddressUtils.parse_address_from_jsonb(data.get("job_address"))
+            except Exception as e:
+                logger.warning(f"Failed to parse job address for job {data.get('id')}: {str(e)}")
+                # Create minimal address as fallback
+                job_address = Address.create_minimal(
+                    street_address="Address unavailable",
+                    city="Unknown",
+                    state="Unknown", 
+                    postal_code="00000"
+                )
+        else:
+            # Default address for jobs without address data
+            job_address = Address.create_minimal(
+                street_address="No address provided",
+                city="Unknown",
+                state="Unknown",
+                postal_code="00000"
+            )
         
         # Parse time tracking
         time_data = data.get("time_tracking", {})

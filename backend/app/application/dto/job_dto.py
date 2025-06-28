@@ -12,12 +12,13 @@ from typing import Optional, List, Dict, Any
 from decimal import Decimal
 
 from ...domain.enums import JobType, JobStatus, JobPriority, JobSource
-from ...domain.entities.job import JobAddress, JobTimeTracking, JobCostEstimate
+from ...domain.entities.job import JobTimeTracking, JobCostEstimate
+from ...domain.value_objects.address import Address
 
 
 @dataclass
 class JobAddressDTO:
-    """DTO for job address information."""
+    """DTO for job address information. Compatible with unified Address value object."""
     street_address: str
     city: str
     state: str
@@ -26,6 +27,42 @@ class JobAddressDTO:
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     access_notes: Optional[str] = None
+    place_id: Optional[str] = None
+    formatted_address: Optional[str] = None
+    address_type: Optional[str] = None
+    
+    def to_address(self) -> Address:
+        """Convert to unified Address value object."""
+        return Address(
+            street_address=self.street_address,
+            city=self.city,
+            state=self.state,
+            postal_code=self.postal_code,
+            country=self.country,
+            latitude=self.latitude,
+            longitude=self.longitude,
+            access_notes=self.access_notes,
+            place_id=self.place_id,
+            formatted_address=self.formatted_address,
+            address_type=self.address_type
+        )
+    
+    @classmethod
+    def from_address(cls, address: Address) -> 'JobAddressDTO':
+        """Create DTO from unified Address value object."""
+        return cls(
+            street_address=address.street_address,
+            city=address.city,
+            state=address.state,
+            postal_code=address.postal_code,
+            country=address.country,
+            latitude=address.latitude,
+            longitude=address.longitude,
+            access_notes=address.access_notes,
+            place_id=address.place_id,
+            formatted_address=address.formatted_address,
+            address_type=address.address_type
+        )
 
 
 @dataclass

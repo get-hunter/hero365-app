@@ -15,7 +15,8 @@ from ...dto.contact_dto import ContactCreateDTO, ContactResponseDTO, ContactAddr
 from app.domain.repositories.contact_repository import ContactRepository
 from app.domain.repositories.business_repository import BusinessRepository
 from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
-from app.domain.entities.contact import Contact, ContactAddress
+from app.domain.entities.contact import Contact
+from app.domain.value_objects.address import Address
 from ...exceptions.application_exceptions import (
     ValidationError, BusinessLogicError, PermissionDeniedError
 )
@@ -71,12 +72,18 @@ class CreateContactUseCase:
         # Create contact entity
         contact_address = None
         if dto.address:
-            contact_address = ContactAddress(
+            contact_address = Address(
                 street_address=dto.address.street_address,
                 city=dto.address.city,
                 state=dto.address.state,
                 postal_code=dto.address.postal_code,
-                country=dto.address.country
+                country=dto.address.country or "US",
+                latitude=dto.address.latitude,
+                longitude=dto.address.longitude,
+                access_notes=dto.address.access_notes,
+                place_id=dto.address.place_id,
+                formatted_address=dto.address.formatted_address,
+                address_type=dto.address.address_type
             )
         
         # Debug logging
@@ -140,7 +147,13 @@ class CreateContactUseCase:
                 city=contact.address.city,
                 state=contact.address.state,
                 postal_code=contact.address.postal_code,
-                country=contact.address.country
+                country=contact.address.country,
+                latitude=contact.address.latitude,
+                longitude=contact.address.longitude,
+                access_notes=contact.address.access_notes,
+                place_id=contact.address.place_id,
+                formatted_address=contact.address.formatted_address,
+                address_type=contact.address.address_type
             )
         
         return ContactResponseDTO(

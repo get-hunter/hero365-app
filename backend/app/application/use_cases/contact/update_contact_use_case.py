@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 from ...dto.contact_dto import ContactUpdateDTO, ContactResponseDTO, ContactAddressDTO
 from app.domain.repositories.contact_repository import ContactRepository
 from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
-from app.domain.entities.contact import Contact, ContactAddress
+from app.domain.entities.contact import Contact
+from app.domain.value_objects.address import Address
 from app.domain.exceptions.domain_exceptions import EntityNotFoundError
 from ...exceptions.application_exceptions import (
     ValidationError, BusinessLogicError, PermissionDeniedError
@@ -87,12 +88,18 @@ class UpdateContactUseCase:
         if dto.website is not None:
             contact.website = dto.website
         if dto.address is not None:
-            contact.address = ContactAddress(
+            contact.address = Address(
                 street_address=dto.address.street_address,
                 city=dto.address.city,
                 state=dto.address.state,
                 postal_code=dto.address.postal_code,
-                country=dto.address.country
+                country=dto.address.country or "US",
+                latitude=dto.address.latitude,
+                longitude=dto.address.longitude,
+                access_notes=dto.address.access_notes,
+                place_id=dto.address.place_id,
+                formatted_address=dto.address.formatted_address,
+                address_type=dto.address.address_type
             )
         if dto.priority is not None:
             contact.priority = dto.priority
@@ -140,7 +147,13 @@ class UpdateContactUseCase:
                 city=contact.address.city,
                 state=contact.address.state,
                 postal_code=contact.address.postal_code,
-                country=contact.address.country
+                country=contact.address.country,
+                latitude=contact.address.latitude,
+                longitude=contact.address.longitude,
+                access_notes=contact.address.access_notes,
+                place_id=contact.address.place_id,
+                formatted_address=contact.address.formatted_address,
+                address_type=contact.address.address_type
             )
         
         return ContactResponseDTO(

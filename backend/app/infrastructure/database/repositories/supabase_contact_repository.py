@@ -6,12 +6,16 @@ Implements contact data access operations using Supabase as the database backend
 
 import uuid
 import json
+import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 
+logger = logging.getLogger(__name__)
+
 from supabase import Client
 from app.domain.repositories.contact_repository import ContactRepository
-from app.domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, ContactAddress, RelationshipStatus, LifecycleStage
+from app.domain.entities.contact import Contact, ContactType, ContactStatus, ContactPriority, ContactSource, RelationshipStatus, LifecycleStage
+from app.domain.value_objects.address import Address
 from app.domain.exceptions.domain_exceptions import EntityNotFoundError, DuplicateEntityError, DatabaseError
 from app.api.schemas.contact_schemas import UserDetailLevel
 
@@ -579,11 +583,7 @@ class SupabaseContactRepository(ContactRepository):
             "phone": contact.phone,
             "mobile_phone": contact.mobile_phone,
             "website": contact.website,
-            "street_address": contact.address.street_address if contact.address else None,
-            "city": contact.address.city if contact.address else None,
-            "state": contact.address.state if contact.address else None,
-            "postal_code": contact.address.postal_code if contact.address else None,
-            "country": contact.address.country if contact.address else None,
+            "address": contact.address.to_dict() if contact.address else {},
             "priority": contact.priority.value,
             "source": contact.source.value if contact.source else None,
             "tags": contact.tags,
@@ -600,17 +600,15 @@ class SupabaseContactRepository(ContactRepository):
     
     def _dict_to_contact(self, data: Dict[str, Any]) -> Contact:
         """Convert database dictionary to Contact entity."""
-        # Build address from individual fields
+        # Parse address from JSONB field
         address = None
-        if any([data.get("street_address"), data.get("city"), data.get("state"), 
-                data.get("postal_code"), data.get("country")]):
-            address = ContactAddress(
-                street_address=data.get("street_address"),
-                city=data.get("city"),
-                state=data.get("state"),
-                postal_code=data.get("postal_code"),
-                country=data.get("country")
-            )
+        if data.get("address"):
+            try:
+                from ...application.utils.address_utils import AddressUtils
+                address = AddressUtils.parse_address_from_jsonb(data.get("address"))
+            except Exception as e:
+                logger.warning(f"Failed to parse address for contact {data.get('id')}: {str(e)}")
+                address = None
         
         # Parse tags
         tags = []

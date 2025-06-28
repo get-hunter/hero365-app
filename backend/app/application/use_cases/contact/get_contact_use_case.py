@@ -135,27 +135,33 @@ class GetContactUseCase:
     def _contact_dict_to_response_dto(self, contact_data: Dict[str, Any], user_detail_level: UserDetailLevel) -> ContactResponseDTO:
         """Convert contact dictionary data with user information to response DTO."""
         
+        # Handle address from JSONB field
         address_dto = None
         if contact_data.get("address"):
-            if isinstance(contact_data["address"], str):
-                try:
+            try:
+                if isinstance(contact_data["address"], str):
                     import json
                     address_data = json.loads(contact_data["address"])
-                except (json.JSONDecodeError, ValueError) as e:
-                    # If JSON parsing fails, log the error and skip address
-                    logger.warning(f"Failed to parse address JSON for contact {contact_data.get('id')}: {str(e)}")
-                    address_data = None
-            else:
-                address_data = contact_data["address"]
-            
-            if address_data:
-                address_dto = ContactAddressDTO(
-                    street_address=address_data.get("street_address"),
-                    city=address_data.get("city"),
-                    state=address_data.get("state"),
-                    postal_code=address_data.get("postal_code"),
-                    country=address_data.get("country")
-                )
+                else:
+                    address_data = contact_data["address"]
+                
+                if address_data and any(address_data.get(field) for field in ['street_address', 'city', 'state', 'postal_code']):
+                    address_dto = ContactAddressDTO(
+                        street_address=address_data.get("street_address"),
+                        city=address_data.get("city"),
+                        state=address_data.get("state"),
+                        postal_code=address_data.get("postal_code"),
+                        country=address_data.get("country", "US"),
+                        latitude=address_data.get("latitude"),
+                        longitude=address_data.get("longitude"),
+                        access_notes=address_data.get("access_notes"),
+                        place_id=address_data.get("place_id"),
+                        formatted_address=address_data.get("formatted_address"),
+                        address_type=address_data.get("address_type")
+                    )
+            except (json.JSONDecodeError, ValueError, TypeError) as e:
+                logger.warning(f"Failed to parse address JSON for contact {contact_data.get('id')}: {str(e)}")
+                address_dto = None
         
         # Handle tags with safe JSON parsing
         tags = []

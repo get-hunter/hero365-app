@@ -1,5 +1,9 @@
 """
-Value Objects
+Domain Value Objects
 
-Immutable objects that represent values and have no identity.
-""" 
+Value objects for the Hero365 application domain.
+"""
+
+from .address import Address
+
+__all__ = ['Address'] 
