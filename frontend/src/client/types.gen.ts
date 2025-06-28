@@ -1621,11 +1621,11 @@ export type ContactBulkUpdateRequest = {
   /**
    * New status
    */
-  status?: ContactStatusSchema | null
+  status?: ContactStatus | null
   /**
    * New priority
    */
-  priority?: ContactPrioritySchema | null
+  priority?: ContactPriority | null
   /**
    * User ID to assign contacts to
    */
@@ -1653,7 +1653,7 @@ export type ContactConversionRequest = {
   /**
    * Target contact type
    */
-  to_type: ContactTypeSchema
+  to_type: ContactType
   /**
    * Conversion notes
    */
@@ -1667,15 +1667,15 @@ export type ContactCreateRequest = {
   /**
    * Type of contact
    */
-  contact_type: ContactTypeSchema
+  contact_type: ContactType
   /**
    * Relationship status (auto-set based on contact_type if not provided)
    */
-  relationship_status?: RelationshipStatusSchema | null
+  relationship_status?: RelationshipStatus | null
   /**
    * Lifecycle stage (auto-set based on relationship_status if not provided)
    */
-  lifecycle_stage?: LifecycleStageSchema | null
+  lifecycle_stage?: LifecycleStage | null
   /**
    * First name
    */
@@ -1715,11 +1715,11 @@ export type ContactCreateRequest = {
   /**
    * Contact priority
    */
-  priority?: ContactPrioritySchema
+  priority?: ContactPriority
   /**
    * Contact source
    */
-  source?: ContactSourceSchema | null
+  source?: ContactSource | null
   /**
    * Contact tags
    */
@@ -1866,12 +1866,12 @@ export type ContactListResponse = {
 }
 
 /**
- * Schema for contact priority.
+ * Contact priority enumeration.
  */
-export type ContactPrioritySchema = "low" | "medium" | "high" | "urgent"
+export type ContactPriority = "low" | "medium" | "high" | "urgent"
 
 /**
- * Response schema for contact data.
+ * Response schema for contact data with robust validation.
  */
 export type ContactResponse = {
   /**
@@ -1885,19 +1885,19 @@ export type ContactResponse = {
   /**
    * Contact type
    */
-  contact_type: ContactTypeSchema
+  contact_type: ContactType
   /**
    * Contact status
    */
-  status: ContactStatusSchema
+  status: ContactStatus
   /**
    * Relationship status
    */
-  relationship_status: RelationshipStatusSchema
+  relationship_status: RelationshipStatus
   /**
    * Lifecycle stage
    */
-  lifecycle_stage: LifecycleStageSchema
+  lifecycle_stage: LifecycleStage
   /**
    * First name
    */
@@ -1937,11 +1937,11 @@ export type ContactResponse = {
   /**
    * Contact priority
    */
-  priority: ContactPrioritySchema
+  priority: ContactPriority
   /**
    * Contact source
    */
-  source?: ContactSourceSchema | null
+  source?: ContactSource | null
   /**
    * Contact tags
    */
@@ -1957,7 +1957,7 @@ export type ContactResponse = {
   /**
    * Currency code
    */
-  currency: string
+  currency?: string
   /**
    * Assigned user (ID or object based on include_user_details)
    */
@@ -2037,19 +2037,19 @@ export type ContactSearchRequest = {
   /**
    * Filter by contact type
    */
-  contact_type?: ContactTypeSchema | null
+  contact_type?: ContactType | null
   /**
    * Filter by status
    */
-  status?: ContactStatusSchema | null
+  status?: ContactStatus | null
   /**
    * Filter by priority
    */
-  priority?: ContactPrioritySchema | null
+  priority?: ContactPriority | null
   /**
    * Filter by source
    */
-  source?: ContactSourceSchema | null
+  source?: ContactSource | null
   /**
    * Filter by assigned user
    */
@@ -2117,25 +2117,18 @@ export type ContactSearchRequest = {
 }
 
 /**
- * Schema for contact source.
+ * Contact source enumeration.
  */
-export type ContactSourceSchema =
+export type ContactSource =
   | "website"
-  | "online"
-  | "google_ads"
-  | "social_media"
   | "referral"
+  | "social_media"
+  | "email_campaign"
   | "phone_call"
   | "walk_in"
-  | "email_marketing"
   | "trade_show"
-  | "direct_mail"
-  | "yellow_pages"
-  | "partner"
-  | "existing_customer"
-  | "cold_outreach"
-  | "event"
-  | "direct"
+  | "advertising"
+  | "online"
   | "other"
 
 /**
@@ -2241,9 +2234,9 @@ export type ContactStatisticsResponse = {
 }
 
 /**
- * Schema for contact status.
+ * Contact status enumeration.
  */
-export type ContactStatusSchema = "active" | "inactive" | "archived" | "blocked"
+export type ContactStatus = "active" | "inactive" | "archived" | "blocked"
 
 /**
  * Request schema for updating contact relationship status.
@@ -2252,11 +2245,11 @@ export type ContactStatusUpdateRequest = {
   /**
    * New relationship status
    */
-  relationship_status: RelationshipStatusSchema
+  relationship_status: RelationshipStatus
   /**
    * New lifecycle stage (optional, will be auto-set if not provided)
    */
-  lifecycle_stage?: LifecycleStageSchema | null
+  lifecycle_stage?: LifecycleStage | null
   /**
    * Reason for status change
    */
@@ -2278,19 +2271,19 @@ export type ContactStatusUpdateResponse = {
   /**
    * Previous relationship status
    */
-  old_status: RelationshipStatusSchema
+  old_status: RelationshipStatus
   /**
    * New relationship status
    */
-  new_status: RelationshipStatusSchema
+  new_status: RelationshipStatus
   /**
    * Previous lifecycle stage
    */
-  old_lifecycle_stage: LifecycleStageSchema
+  old_lifecycle_stage: LifecycleStage
   /**
    * New lifecycle stage
    */
-  new_lifecycle_stage: LifecycleStageSchema
+  new_lifecycle_stage: LifecycleStage
   /**
    * User who made the change
    */
@@ -2324,15 +2317,14 @@ export type ContactTagOperationRequest = {
 }
 
 /**
- * Schema for contact types.
+ * Contact type enumeration.
  */
-export type ContactTypeSchema =
-  | "customer"
-  | "lead"
+export type ContactType =
   | "prospect"
-  | "vendor"
+  | "lead"
+  | "customer"
   | "partner"
-  | "contractor"
+  | "vendor"
 
 /**
  * Request schema for updating a contact.
@@ -2341,7 +2333,7 @@ export type ContactUpdateRequest = {
   /**
    * Type of contact
    */
-  contact_type?: ContactTypeSchema | null
+  contact_type?: ContactType | null
   /**
    * First name
    */
@@ -2381,11 +2373,11 @@ export type ContactUpdateRequest = {
   /**
    * Contact priority
    */
-  priority?: ContactPrioritySchema | null
+  priority?: ContactPriority | null
   /**
    * Contact source
    */
-  source?: ContactSourceSchema | null
+  source?: ContactSource | null
   /**
    * Contact tags
    */
@@ -2808,11 +2800,11 @@ export type JobBulkActionResponse = {
  */
 export type JobBulkUpdateRequest = {
   job_ids: Array<string>
-  status?: JobStatusEnum | null
+  status?: JobStatus | null
   assigned_to?: string | null
   tags_to_add?: Array<string> | null
   tags_to_remove?: Array<string> | null
-  priority?: JobPriorityEnum | null
+  priority?: JobPriority | null
 }
 
 /**
@@ -2862,9 +2854,9 @@ export type JobCreateRequest = {
   job_number?: string | null
   title: string
   description?: string | null
-  job_type: JobTypeEnum
-  priority?: JobPriorityEnum
-  source?: JobSourceEnum
+  job_type: JobType
+  priority?: JobPriority
+  source?: JobSource
   job_address: JobAddressSchema
   scheduled_start?: string | null
   scheduled_end?: string | null
@@ -2891,77 +2883,245 @@ export type JobListPaginatedResponse = {
 }
 
 /**
- * Schema for job list response.
+ * Schema for job list response with robust validation.
  */
 export type JobListResponse = {
+  /**
+   * Job ID
+   */
   id: string
-  contact_id: string | null
-  contact: JobContactSchema | null
+  /**
+   * Contact ID
+   */
+  contact_id?: string | null
+  /**
+   * Contact details
+   */
+  contact?: JobContactSchema | null
+  /**
+   * Job number
+   */
   job_number: string
+  /**
+   * Job title
+   */
   title: string
-  job_type: JobTypeEnum
-  status: JobStatusEnum
-  priority: JobPriorityEnum
-  scheduled_start: string | null
-  scheduled_end: string | null
-  assigned_to: Array<string>
+  /**
+   * Job type
+   */
+  job_type: JobType
+  /**
+   * Job status
+   */
+  status: JobStatus
+  /**
+   * Job priority
+   */
+  priority: JobPriority
+  /**
+   * Scheduled start time
+   */
+  scheduled_start?: string | null
+  /**
+   * Scheduled end time
+   */
+  scheduled_end?: string | null
+  /**
+   * Assigned user IDs
+   */
+  assigned_to?: Array<string>
+  /**
+   * Estimated revenue
+   */
   estimated_revenue: string
+  /**
+   * Whether job is overdue
+   */
   is_overdue: boolean
+  /**
+   * Whether job is emergency
+   */
   is_emergency: boolean
-  created_date: string
-  last_modified: string
+  /**
+   * Creation date
+   */
+  created_date?: string | null
+  /**
+   * Last modification date
+   */
+  last_modified?: string | null
+  /**
+   * Human-readable status
+   */
   status_display: string
+  /**
+   * Human-readable priority
+   */
   priority_display: string
+  /**
+   * Human-readable type
+   */
   type_display: string
 }
 
 /**
- * Job priority enumeration for API.
+ * Job priority enumeration.
  */
-export type JobPriorityEnum = "low" | "medium" | "high" | "urgent" | "emergency"
+export type JobPriority = "low" | "medium" | "high" | "urgent" | "emergency"
 
 /**
- * Schema for job response.
+ * Schema for job response with robust validation.
  */
 export type JobResponse = {
+  /**
+   * Job ID
+   */
   id: string
+  /**
+   * Business ID
+   */
   business_id: string
-  contact_id: string | null
-  contact: JobContactSchema | null
+  /**
+   * Contact ID
+   */
+  contact_id?: string | null
+  /**
+   * Contact details
+   */
+  contact?: JobContactSchema | null
+  /**
+   * Job number
+   */
   job_number: string
+  /**
+   * Job title
+   */
   title: string
-  description: string | null
-  job_type: JobTypeEnum
-  status: JobStatusEnum
-  priority: JobPriorityEnum
-  source: JobSourceEnum
+  /**
+   * Job description
+   */
+  description?: string | null
+  /**
+   * Job type
+   */
+  job_type: JobType
+  /**
+   * Job status
+   */
+  status: JobStatus
+  /**
+   * Job priority
+   */
+  priority: JobPriority
+  /**
+   * Job source
+   */
+  source: JobSource
+  /**
+   * Job address
+   */
   job_address: JobAddressSchema
-  scheduled_start: string | null
-  scheduled_end: string | null
-  actual_start: string | null
-  actual_end: string | null
-  assigned_to: Array<string>
+  /**
+   * Scheduled start time
+   */
+  scheduled_start?: string | null
+  /**
+   * Scheduled end time
+   */
+  scheduled_end?: string | null
+  /**
+   * Actual start time
+   */
+  actual_start?: string | null
+  /**
+   * Actual end time
+   */
+  actual_end?: string | null
+  /**
+   * Assigned user IDs
+   */
+  assigned_to?: Array<string>
+  /**
+   * Creator user ID
+   */
   created_by: string
+  /**
+   * Time tracking details
+   */
   time_tracking: JobTimeTrackingSchema_Output
+  /**
+   * Cost estimate details
+   */
   cost_estimate: JobCostEstimateSchema_Output
-  tags: Array<string>
-  notes: string | null
-  internal_notes: string | null
-  customer_requirements: string | null
-  completion_notes: string | null
-  custom_fields: {
+  /**
+   * Job tags
+   */
+  tags?: Array<string>
+  /**
+   * Job notes
+   */
+  notes?: string | null
+  /**
+   * Internal notes
+   */
+  internal_notes?: string | null
+  /**
+   * Customer requirements
+   */
+  customer_requirements?: string | null
+  /**
+   * Completion notes
+   */
+  completion_notes?: string | null
+  /**
+   * Custom fields
+   */
+  custom_fields?: {
     [key: string]: unknown
   }
-  created_date: string
-  last_modified: string
-  completed_date: string | null
+  /**
+   * Creation date
+   */
+  created_date?: string | null
+  /**
+   * Last modification date
+   */
+  last_modified?: string | null
+  /**
+   * Completion date
+   */
+  completed_date?: string | null
+  /**
+   * Whether job is overdue
+   */
   is_overdue: boolean
+  /**
+   * Whether job is emergency
+   */
   is_emergency: boolean
-  duration_days: number | null
+  /**
+   * Duration in days
+   */
+  duration_days?: number | null
+  /**
+   * Estimated revenue
+   */
   estimated_revenue: string
+  /**
+   * Profit margin
+   */
   profit_margin: string
+  /**
+   * Human-readable status
+   */
   status_display: string
+  /**
+   * Human-readable priority
+   */
   priority_display: string
+  /**
+   * Human-readable type
+   */
   type_display: string
 }
 
@@ -2983,10 +3143,10 @@ export type JobScheduleResponse = {
  */
 export type JobSearchRequest = {
   search_term?: string | null
-  job_type?: JobTypeEnum | null
-  status?: JobStatusEnum | null
-  priority?: JobPriorityEnum | null
-  source?: JobSourceEnum | null
+  job_type?: JobType | null
+  status?: JobStatus | null
+  priority?: JobPriority | null
+  source?: JobSource | null
   assigned_to?: string | null
   contact_id?: string | null
   tags?: Array<string> | null
@@ -3007,9 +3167,9 @@ export type JobSearchRequest = {
 }
 
 /**
- * Job source enumeration for API.
+ * Job source enumeration.
  */
-export type JobSourceEnum =
+export type JobSource =
   | "website"
   | "google_ads"
   | "social_media"
@@ -3059,9 +3219,9 @@ export type JobStatisticsResponse = {
 }
 
 /**
- * Job status enumeration for API.
+ * Job status enumeration.
  */
-export type JobStatusEnum =
+export type JobStatus =
   | "draft"
   | "quoted"
   | "scheduled"
@@ -3076,7 +3236,7 @@ export type JobStatusEnum =
  * Schema for job status update request.
  */
 export type JobStatusUpdateRequest = {
-  status: JobStatusEnum
+  status: JobStatus
   notes?: string | null
 }
 
@@ -3105,20 +3265,19 @@ export type JobTimeTrackingSchema_Output = {
 }
 
 /**
- * Job type enumeration for API.
+ * Job type enumeration.
  */
-export type JobTypeEnum =
+export type JobType =
   | "service"
-  | "installation"
+  | "project"
   | "maintenance"
+  | "installation"
   | "repair"
   | "inspection"
   | "consultation"
   | "quote"
   | "follow_up"
   | "emergency"
-  | "project"
-  | "other"
 
 /**
  * Schema for job update request.
@@ -3126,9 +3285,9 @@ export type JobTypeEnum =
 export type JobUpdateRequest = {
   title?: string | null
   description?: string | null
-  job_type?: JobTypeEnum | null
-  priority?: JobPriorityEnum | null
-  source?: JobSourceEnum | null
+  job_type?: JobType | null
+  priority?: JobPriority | null
+  source?: JobSource | null
   job_address?: JobAddressSchema | null
   scheduled_start?: string | null
   scheduled_end?: string | null
@@ -3161,15 +3320,17 @@ export type JobWorkloadResponse = {
 }
 
 /**
- * Schema for customer lifecycle stage.
+ * Lifecycle stage enumeration.
  */
-export type LifecycleStageSchema =
+export type LifecycleStage =
   | "awareness"
   | "interest"
   | "consideration"
-  | "decision"
+  | "intent"
+  | "evaluation"
+  | "purchase"
   | "retention"
-  | "customer"
+  | "advocacy"
 
 /**
  * Location data for tracking.
@@ -3548,16 +3709,16 @@ export type ReferralSourceSchema =
   | "other"
 
 /**
- * Schema for relationship status in sales/client lifecycle.
+ * Relationship status enumeration.
  */
-export type RelationshipStatusSchema =
+export type RelationshipStatus =
   | "prospect"
-  | "qualified_lead"
-  | "opportunity"
-  | "active_client"
-  | "past_client"
-  | "lost_lead"
-  | "inactive"
+  | "qualified"
+  | "proposal"
+  | "negotiation"
+  | "closed_won"
+  | "closed_lost"
+  | "dormant"
 
 /**
  * Response for scheduling analytics.
@@ -3780,11 +3941,11 @@ export type StatusHistoryEntrySchema = {
   /**
    * Previous status
    */
-  from_status?: RelationshipStatusSchema | null
+  from_status?: RelationshipStatus | null
   /**
    * New status
    */
-  to_status: RelationshipStatusSchema
+  to_status: RelationshipStatus
   /**
    * Change timestamp
    */
@@ -4878,6 +5039,29 @@ export type BusinessesDeclineInvitationData = {
 
 export type BusinessesDeclineInvitationResponse = Message
 
+export type CreateContactNoSlashData = {
+  requestBody: ContactCreateRequest
+}
+
+export type CreateContactNoSlashResponse = ContactResponse
+
+export type ListContactsNoSlashData = {
+  /**
+   * Level of user detail to include
+   */
+  includeUserDetails?: UserDetailLevel
+  /**
+   * Maximum number of records to return
+   */
+  limit?: number
+  /**
+   * Number of records to skip
+   */
+  skip?: number
+}
+
+export type ListContactsNoSlashResponse = ContactListResponse
+
 export type ContactsCreateContactData = {
   requestBody: ContactCreateRequest
 }
@@ -4900,29 +5084,6 @@ export type ContactsListContactsData = {
 }
 
 export type ContactsListContactsResponse = ContactListResponse
-
-export type ContactsCreateContact1Data = {
-  requestBody: ContactCreateRequest
-}
-
-export type ContactsCreateContact1Response = ContactResponse
-
-export type ContactsListContacts1Data = {
-  /**
-   * Level of user detail to include
-   */
-  includeUserDetails?: UserDetailLevel
-  /**
-   * Maximum number of records to return
-   */
-  limit?: number
-  /**
-   * Number of records to skip
-   */
-  skip?: number
-}
-
-export type ContactsListContacts1Response = ContactListResponse
 
 export type ContactsGetContactData = {
   /**
@@ -5271,6 +5432,44 @@ export type IntelligentSchedulingGetCalendarPreferencesData = {
 export type IntelligentSchedulingGetCalendarPreferencesResponse =
   CalendarPreferences
 
+export type CreateJobNoSlashData = {
+  requestBody: JobCreateRequest
+}
+
+export type CreateJobNoSlashResponse = JobResponse
+
+export type CreateJobNoSlash1Data = {
+  requestBody: JobCreateRequest
+}
+
+export type CreateJobNoSlash1Response = JobResponse
+
+export type ListJobsNoSlashData = {
+  /**
+   * Number of jobs to return
+   */
+  limit?: number
+  /**
+   * Number of jobs to skip
+   */
+  skip?: number
+}
+
+export type ListJobsNoSlashResponse = JobListPaginatedResponse
+
+export type ListJobsNoSlash1Data = {
+  /**
+   * Number of jobs to return
+   */
+  limit?: number
+  /**
+   * Number of jobs to skip
+   */
+  skip?: number
+}
+
+export type ListJobsNoSlash1Response = JobListPaginatedResponse
+
 export type JobsCreateJobData = {
   requestBody: JobCreateRequest
 }
@@ -5308,44 +5507,6 @@ export type JobsListJobs1Data = {
 }
 
 export type JobsListJobs1Response = JobListPaginatedResponse
-
-export type JobsCreateJob2Data = {
-  requestBody: JobCreateRequest
-}
-
-export type JobsCreateJob2Response = JobResponse
-
-export type JobsCreateJob3Data = {
-  requestBody: JobCreateRequest
-}
-
-export type JobsCreateJob3Response = JobResponse
-
-export type JobsListJobs2Data = {
-  /**
-   * Number of jobs to return
-   */
-  limit?: number
-  /**
-   * Number of jobs to skip
-   */
-  skip?: number
-}
-
-export type JobsListJobs2Response = JobListPaginatedResponse
-
-export type JobsListJobs3Data = {
-  /**
-   * Number of jobs to return
-   */
-  limit?: number
-  /**
-   * Number of jobs to skip
-   */
-  skip?: number
-}
-
-export type JobsListJobs3Response = JobListPaginatedResponse
 
 export type JobsGetJobData = {
   jobId: string

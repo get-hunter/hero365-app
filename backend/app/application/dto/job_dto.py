@@ -54,6 +54,7 @@ class JobCostEstimateDTO:
 @dataclass
 class JobCreateDTO:
     """DTO for creating a new job."""
+    business_id: uuid.UUID
     contact_id: Optional[uuid.UUID]
     job_number: Optional[str]  # Will be auto-generated if not provided
     title: str
@@ -61,7 +62,7 @@ class JobCreateDTO:
     job_type: JobType
     priority: JobPriority
     source: JobSource
-    job_address: JobAddressDTO
+    job_address: Optional[JobAddressDTO] = None
     scheduled_start: Optional[datetime] = None
     scheduled_end: Optional[datetime] = None
     assigned_to: Optional[List[str]] = None  # User IDs

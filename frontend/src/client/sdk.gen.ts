@@ -91,14 +91,14 @@ import type {
   BusinessesCancelInvitationResponse,
   BusinessesDeclineInvitationData,
   BusinessesDeclineInvitationResponse,
+  CreateContactNoSlashData,
+  CreateContactNoSlashResponse,
+  ListContactsNoSlashData,
+  ListContactsNoSlashResponse,
   ContactsCreateContactData,
   ContactsCreateContactResponse,
   ContactsListContactsData,
   ContactsListContactsResponse,
-  ContactsCreateContact1Data,
-  ContactsCreateContact1Response,
-  ContactsListContacts1Data,
-  ContactsListContacts1Response,
   ContactsGetContactData,
   ContactsGetContactResponse,
   ContactsUpdateContactData,
@@ -173,6 +173,14 @@ import type {
   IntelligentSchedulingUpdateCalendarPreferencesResponse,
   IntelligentSchedulingGetCalendarPreferencesData,
   IntelligentSchedulingGetCalendarPreferencesResponse,
+  CreateJobNoSlashData,
+  CreateJobNoSlashResponse,
+  CreateJobNoSlash1Data,
+  CreateJobNoSlash1Response,
+  ListJobsNoSlashData,
+  ListJobsNoSlashResponse,
+  ListJobsNoSlash1Data,
+  ListJobsNoSlash1Response,
   JobsCreateJobData,
   JobsCreateJobResponse,
   JobsCreateJob1Data,
@@ -181,14 +189,6 @@ import type {
   JobsListJobsResponse,
   JobsListJobs1Data,
   JobsListJobs1Response,
-  JobsCreateJob2Data,
-  JobsCreateJob2Response,
-  JobsCreateJob3Data,
-  JobsCreateJob3Response,
-  JobsListJobs2Data,
-  JobsListJobs2Response,
-  JobsListJobs3Data,
-  JobsListJobs3Response,
   JobsGetJobData,
   JobsGetJobResponse,
   JobsGetJob1Data,
@@ -1430,9 +1430,9 @@ export class ContactsService {
    * @returns ContactResponse Successful Response
    * @throws ApiError
    */
-  public static createContact(
-    data: ContactsCreateContactData,
-  ): CancelablePromise<ContactsCreateContactResponse> {
+  public static createContactNoSlash(
+    data: CreateContactNoSlashData,
+  ): CancelablePromise<CreateContactNoSlashResponse> {
     return __request(OpenAPI, {
       method: "POST",
       url: "/api/v1/contacts",
@@ -1457,9 +1457,9 @@ export class ContactsService {
    * @returns ContactListResponse Successful Response
    * @throws ApiError
    */
-  public static listContacts(
-    data: ContactsListContactsData = {},
-  ): CancelablePromise<ContactsListContactsResponse> {
+  public static listContactsNoSlash(
+    data: ListContactsNoSlashData = {},
+  ): CancelablePromise<ListContactsNoSlashResponse> {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/contacts",
@@ -1485,9 +1485,9 @@ export class ContactsService {
    * @returns ContactResponse Successful Response
    * @throws ApiError
    */
-  public static createContact1(
-    data: ContactsCreateContact1Data,
-  ): CancelablePromise<ContactsCreateContact1Response> {
+  public static createContact(
+    data: ContactsCreateContactData,
+  ): CancelablePromise<ContactsCreateContactResponse> {
     return __request(OpenAPI, {
       method: "POST",
       url: "/api/v1/contacts/",
@@ -1512,9 +1512,9 @@ export class ContactsService {
    * @returns ContactListResponse Successful Response
    * @throws ApiError
    */
-  public static listContacts1(
-    data: ContactsListContacts1Data = {},
-  ): CancelablePromise<ContactsListContacts1Response> {
+  public static listContacts(
+    data: ContactsListContactsData = {},
+  ): CancelablePromise<ContactsListContactsResponse> {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/contacts/",
@@ -2488,12 +2488,106 @@ export class JobsService {
    * @returns JobResponse Successful Response
    * @throws ApiError
    */
+  public static createJobNoSlash(
+    data: CreateJobNoSlashData,
+  ): CancelablePromise<CreateJobNoSlashResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create a new job
+   * Create a new job with the provided details. Job number will be auto-generated if not provided.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
+  public static createJobNoSlash1(
+    data: CreateJobNoSlash1Data,
+  ): CancelablePromise<CreateJobNoSlash1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/jobs",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List jobs
+   * Get a paginated list of jobs for the current business.
+   * @param data The data for the request.
+   * @param data.skip Number of jobs to skip
+   * @param data.limit Number of jobs to return
+   * @returns JobListPaginatedResponse Successful Response
+   * @throws ApiError
+   */
+  public static listJobsNoSlash(
+    data: ListJobsNoSlashData = {},
+  ): CancelablePromise<ListJobsNoSlashResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List jobs
+   * Get a paginated list of jobs for the current business.
+   * @param data The data for the request.
+   * @param data.skip Number of jobs to skip
+   * @param data.limit Number of jobs to return
+   * @returns JobListPaginatedResponse Successful Response
+   * @throws ApiError
+   */
+  public static listJobsNoSlash1(
+    data: ListJobsNoSlash1Data = {},
+  ): CancelablePromise<ListJobsNoSlash1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jobs",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create a new job
+   * Create a new job with the provided details. Job number will be auto-generated if not provided.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns JobResponse Successful Response
+   * @throws ApiError
+   */
   public static createJob(
     data: JobsCreateJobData,
   ): CancelablePromise<JobsCreateJobResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/jobs",
+      url: "/api/v1/jobs/",
       body: data.requestBody,
       mediaType: "application/json",
       errors: {
@@ -2515,7 +2609,7 @@ export class JobsService {
   ): CancelablePromise<JobsCreateJob1Response> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/jobs",
+      url: "/api/v1/jobs/",
       body: data.requestBody,
       mediaType: "application/json",
       errors: {
@@ -2538,7 +2632,7 @@ export class JobsService {
   ): CancelablePromise<JobsListJobsResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/jobs",
+      url: "/api/v1/jobs/",
       query: {
         skip: data.skip,
         limit: data.limit,
@@ -2561,100 +2655,6 @@ export class JobsService {
   public static listJobs1(
     data: JobsListJobs1Data = {},
   ): CancelablePromise<JobsListJobs1Response> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/jobs",
-      query: {
-        skip: data.skip,
-        limit: data.limit,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Create a new job
-   * Create a new job with the provided details. Job number will be auto-generated if not provided.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns JobResponse Successful Response
-   * @throws ApiError
-   */
-  public static createJob2(
-    data: JobsCreateJob2Data,
-  ): CancelablePromise<JobsCreateJob2Response> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/jobs/",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Create a new job
-   * Create a new job with the provided details. Job number will be auto-generated if not provided.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns JobResponse Successful Response
-   * @throws ApiError
-   */
-  public static createJob3(
-    data: JobsCreateJob3Data,
-  ): CancelablePromise<JobsCreateJob3Response> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/jobs/",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * List jobs
-   * Get a paginated list of jobs for the current business.
-   * @param data The data for the request.
-   * @param data.skip Number of jobs to skip
-   * @param data.limit Number of jobs to return
-   * @returns JobListPaginatedResponse Successful Response
-   * @throws ApiError
-   */
-  public static listJobs2(
-    data: JobsListJobs2Data = {},
-  ): CancelablePromise<JobsListJobs2Response> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/jobs/",
-      query: {
-        skip: data.skip,
-        limit: data.limit,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * List jobs
-   * Get a paginated list of jobs for the current business.
-   * @param data The data for the request.
-   * @param data.skip Number of jobs to skip
-   * @param data.limit Number of jobs to return
-   * @returns JobListPaginatedResponse Successful Response
-   * @throws ApiError
-   */
-  public static listJobs3(
-    data: JobsListJobs3Data = {},
-  ): CancelablePromise<JobsListJobs3Response> {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/jobs/",

@@ -8,6 +8,7 @@ Handles all job-related HTTP endpoints with proper validation and error handling
 import uuid
 from typing import List, Optional
 from datetime import datetime
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
@@ -75,6 +76,12 @@ async def create_job(
     use_case: CreateJobUseCase = Depends(get_create_job_use_case)
 ) -> JobResponse:
     """Create a new job."""
+    logger = logging.getLogger(__name__)
+    logger.info(f"create_job route handler called with job_data: {job_data}")
+    logger.info(f"business_context: {business_context}")
+    logger.info(f"current_user: {current_user}")
+    logger.info(f"use_case: {use_case}")
+    
     try:
         user_id = current_user["sub"]
         business_id = business_context["business_id"]
@@ -116,29 +123,40 @@ async def create_job(
                 discount_amount=job_data.cost_estimate.discount_amount
             )
         
-        create_dto = JobCreateDTO(
-            business_id=business_id,
-            title=job_data.title,
-            description=job_data.description,
-            job_type=JobType(job_data.job_type),
-            priority=JobPriority(job_data.priority) if job_data.priority else JobPriority.MEDIUM,
-            source=JobSource(job_data.source) if job_data.source else JobSource.MANUAL,
-            job_number=job_data.job_number,
-            contact_id=job_data.contact_id,
-            job_address=job_address_dto,
-            scheduled_start=job_data.scheduled_start,
-            scheduled_end=job_data.scheduled_end,
-            assigned_to=job_data.assigned_to,
-            tags=job_data.tags,
-            notes=job_data.notes,
-            internal_notes=job_data.internal_notes,
-            customer_requirements=job_data.customer_requirements,
-            time_tracking=time_tracking_dto,
-            cost_estimate=cost_estimate_dto,
-            custom_fields=job_data.custom_fields
-        )
+        try:
+            create_dto = JobCreateDTO(
+                business_id=business_id,
+                title=job_data.title,
+                description=job_data.description,
+                job_type=JobType(job_data.job_type),
+                priority=JobPriority(job_data.priority) if job_data.priority else JobPriority.MEDIUM,
+                source=JobSource(job_data.source) if job_data.source else JobSource.MANUAL,
+                job_number=job_data.job_number,
+                contact_id=job_data.contact_id,
+                job_address=job_address_dto,
+                scheduled_start=job_data.scheduled_start,
+                scheduled_end=job_data.scheduled_end,
+                assigned_to=job_data.assigned_to,
+                tags=job_data.tags,
+                notes=job_data.notes,
+                customer_requirements=job_data.customer_requirements,
+                time_tracking=time_tracking_dto,
+                cost_estimate=cost_estimate_dto,
+                custom_fields=job_data.custom_fields
+            )
+            logger.info(f"DTO created successfully: {create_dto}")
+        except Exception as dto_error:
+            logger.error(f"Error creating DTO: {dto_error}")
+            logger.error(f"Error type: {type(dto_error)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise HTTPException(status_code=400, detail=f"Invalid job data: {str(dto_error)}")
+        
+        logger.info("About to call use_case.execute...")
         
         result = await use_case.execute(business_id, create_dto, user_id)
+        
+        logger.info(f"Use case executed successfully, result: {result}")
         return _convert_job_dto_to_response(result)
         
     except ValidationError as e:

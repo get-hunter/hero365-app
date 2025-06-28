@@ -7,6 +7,7 @@ Manages the wiring of dependencies for the clean architecture implementation.
 import os
 from typing import Dict, Any, Optional
 from supabase import create_client, Client
+import logging
 
 from ...core.config import settings
 
@@ -497,7 +498,11 @@ class DependencyContainer:
     
     def get_create_job_use_case(self) -> CreateJobUseCase:
         """Get create job use case."""
-        return self.get_use_case('create_job')
+        logger = logging.getLogger(__name__)
+        logger.info("Getting create_job use case...")
+        use_case = self.get_use_case('create_job')
+        logger.info(f"Create job use case retrieved: {use_case}")
+        return use_case
     
     def get_get_job_use_case(self) -> GetJobUseCase:
         """Get get job use case."""

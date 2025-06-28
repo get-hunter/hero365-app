@@ -7,6 +7,7 @@ Contains shared functionality like permission checks and DTO conversions.
 
 import uuid
 from typing import List
+import logging
 
 from ...dto.job_dto import (
     JobResponseDTO, JobListDTO, JobAddressDTO, JobTimeTrackingDTO, 
@@ -19,6 +20,7 @@ from app.domain.entities.job import Job
 from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
 from app.domain.repositories.contact_repository import ContactRepository
 
+logger = logging.getLogger(__name__)
 
 class JobHelperService:
     """
@@ -38,15 +40,28 @@ class JobHelperService:
     
     async def check_permission(self, business_id: uuid.UUID, user_id: str, permission: str) -> None:
         """Check if user has permission for the business."""
-        membership = await self.business_membership_repository.get_by_business_and_user(
-            business_id, user_id
-        )
-        
-        if not membership:
-            raise PermissionDeniedError("User is not a member of this business")
-        
-        if not membership.has_permission(permission):
-            raise PermissionDeniedError(f"User does not have {permission} permission")
+        try:
+            logger.info(f"Checking permission '{permission}' for user {user_id} in business {business_id}")
+            
+            membership = await self.business_membership_repository.get_by_business_and_user(
+                business_id, user_id
+            )
+            
+            if not membership:
+                logger.warning(f"User {user_id} is not a member of business {business_id}")
+                raise PermissionDeniedError("User is not a member of this business")
+            
+            logger.info(f"Found membership: role={membership.role}, permissions={membership.permissions}, active={membership.is_active}")
+            
+            if not membership.has_permission(permission):
+                logger.warning(f"User {user_id} does not have '{permission}' permission. Has: {membership.permissions}")
+                raise PermissionDeniedError(f"User does not have {permission} permission")
+            
+            logger.info(f"Permission check passed for user {user_id}")
+            
+        except Exception as e:
+            logger.error(f"Error in permission check: {str(e)}", exc_info=True)
+            raise
     
     async def validate_assigned_users(self, business_id: uuid.UUID, user_ids: List[str]) -> None:
         """Validate that all user IDs are members of the business."""
