@@ -77,6 +77,38 @@ class ContactAddressSchema(BaseModel):
     state: Optional[str] = Field(None, max_length=100, description="State or province")
     postal_code: Optional[str] = Field(None, max_length=20, description="Postal or ZIP code")
     country: Optional[str] = Field(None, max_length=100, description="Country")
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90, description="Latitude coordinate")
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180, description="Longitude coordinate")
+    access_notes: Optional[str] = Field(default=None, max_length=500, description="Access notes for service visits")
+    place_id: Optional[str] = Field(default=None, max_length=255, description="Google Places ID")
+    formatted_address: Optional[str] = Field(default=None, max_length=500, description="Full formatted address")
+    address_type: Optional[str] = Field(default=None, max_length=50, description="Address type (residential, commercial, etc.)")
+
+    @field_validator('postal_code')
+    @classmethod
+    def validate_postal_code(cls, v):
+        """Allow empty postal codes but validate format if provided."""
+        if v is not None and v.strip() == "":
+            return None  # Convert empty strings to None
+        return v
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "street_address": "123 Main St",
+                "city": "Anytown",
+                "state": "CA",
+                "postal_code": "12345",
+                "country": "US",
+                "latitude": 37.7749,
+                "longitude": -122.4194,
+                "access_notes": "Ring doorbell twice",
+                "place_id": "ChIJ2eUgeAK6j4ARbn5u_wAGqWA",
+                "formatted_address": "123 Main St, Anytown, CA 12345, USA",
+                "address_type": "residential"
+            }
+        }
+    }
 
 
 # Status history schema

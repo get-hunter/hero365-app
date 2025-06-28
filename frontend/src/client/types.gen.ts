@@ -1572,6 +1572,30 @@ export type ContactAddressSchema = {
    * Country
    */
   country?: string | null
+  /**
+   * Latitude coordinate
+   */
+  latitude?: number | null
+  /**
+   * Longitude coordinate
+   */
+  longitude?: number | null
+  /**
+   * Access notes for service visits
+   */
+  access_notes?: string | null
+  /**
+   * Google Places ID
+   */
+  place_id?: string | null
+  /**
+   * Full formatted address
+   */
+  formatted_address?: string | null
+  /**
+   * Address type (residential, commercial, etc.)
+   */
+  address_type?: string | null
 }
 
 /**
@@ -2769,11 +2793,26 @@ export type JobAddressSchema = {
   street_address: string
   city: string
   state: string
-  postal_code: string
+  /**
+   * Postal or ZIP code
+   */
+  postal_code?: string | null
   country?: string
   latitude?: number | null
   longitude?: number | null
   access_notes?: string | null
+  /**
+   * Google Places ID
+   */
+  place_id?: string | null
+  /**
+   * Full formatted address
+   */
+  formatted_address?: string | null
+  /**
+   * Address type (residential, commercial, etc.)
+   */
+  address_type?: string | null
 }
 
 /**

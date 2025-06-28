@@ -35,11 +35,22 @@ class JobAddressSchema(BaseModel):
     street_address: Annotated[str, StringConstraints(min_length=1, max_length=255)]
     city: Annotated[str, StringConstraints(min_length=1, max_length=100)]
     state: Annotated[str, StringConstraints(min_length=2, max_length=50)]
-    postal_code: Annotated[str, StringConstraints(min_length=3, max_length=20)]
+    postal_code: Optional[str] = Field(default=None, max_length=20, description="Postal or ZIP code")
     country: str = Field(default="US", max_length=2)
     latitude: Optional[float] = Field(default=None, ge=-90, le=90)
     longitude: Optional[float] = Field(default=None, ge=-180, le=180)
     access_notes: Optional[str] = Field(default=None, max_length=500)
+    place_id: Optional[str] = Field(default=None, max_length=255, description="Google Places ID")
+    formatted_address: Optional[str] = Field(default=None, max_length=500, description="Full formatted address")
+    address_type: Optional[str] = Field(default=None, max_length=50, description="Address type (residential, commercial, etc.)")
+
+    @field_validator('postal_code')
+    @classmethod
+    def validate_postal_code(cls, v):
+        """Allow empty postal codes but validate format if provided."""
+        if v is not None and v.strip() == "":
+            return None  # Convert empty strings to None
+        return v
 
     model_config = {
         "json_schema_extra": {
@@ -51,7 +62,10 @@ class JobAddressSchema(BaseModel):
                 "country": "US",
                 "latitude": 37.7749,
                 "longitude": -122.4194,
-                "access_notes": "Gate code: 1234"
+                "access_notes": "Gate code: 1234",
+                "place_id": "ChIJ2eUgeAK6j4ARbn5u_wAGqWA",
+                "formatted_address": "123 Main St, Anytown, CA 12345, USA",
+                "address_type": "residential"
             }
         }
     }
