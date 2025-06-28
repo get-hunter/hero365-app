@@ -209,12 +209,20 @@ async def get_job(
 async def update_job(
     job_id: uuid.UUID,
     job_data: JobUpdateRequest,
+    business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
     use_case: UpdateJobUseCase = Depends(get_update_job_use_case)
 ) -> JobResponse:
     """Update an existing job."""
+    logger = logging.getLogger(__name__)
+    logger.info(f"update_job route handler called with job_id: {job_id}")
+    logger.info(f"job_data: {job_data}")
+    logger.info(f"business_context: {business_context}")
+    logger.info(f"current_user: {current_user}")
+    
     try:
         user_id = current_user["sub"]
+        business_id = business_context["business_id"]
         
         # Convert request to DTO
         job_address_dto = None
@@ -253,39 +261,58 @@ async def update_job(
                 discount_amount=job_data.cost_estimate.discount_amount
             )
         
-        update_dto = JobUpdateDTO(
-            job_id=job_id,
-            title=job_data.title,
-            description=job_data.description,
-            job_type=JobType(job_data.job_type) if job_data.job_type else None,
-            priority=JobPriority(job_data.priority) if job_data.priority else None,
-            source=JobSource(job_data.source) if job_data.source else None,
-            job_address=job_address_dto,
-            scheduled_start=job_data.scheduled_start,
-            scheduled_end=job_data.scheduled_end,
-            assigned_to=job_data.assigned_to,
-            tags=job_data.tags,
-            notes=job_data.notes,
-            internal_notes=job_data.internal_notes,
-            customer_requirements=job_data.customer_requirements,
-            completion_notes=job_data.completion_notes,
-            time_tracking=time_tracking_dto,
-            cost_estimate=cost_estimate_dto,
-            custom_fields=job_data.custom_fields
-        )
+        try:
+            update_dto = JobUpdateDTO(
+                title=job_data.title,
+                description=job_data.description,
+                job_type=JobType(job_data.job_type) if job_data.job_type else None,
+                priority=JobPriority(job_data.priority) if job_data.priority else None,
+                source=JobSource(job_data.source) if job_data.source else None,
+                job_address=job_address_dto,
+                scheduled_start=job_data.scheduled_start,
+                scheduled_end=job_data.scheduled_end,
+                assigned_to=job_data.assigned_to,
+                tags=job_data.tags,
+                notes=job_data.notes,
+                internal_notes=job_data.internal_notes,
+                customer_requirements=job_data.customer_requirements,
+                completion_notes=job_data.completion_notes,
+                time_tracking=time_tracking_dto,
+                cost_estimate=cost_estimate_dto,
+                custom_fields=job_data.custom_fields
+            )
+            logger.info(f"Update DTO created successfully: {update_dto}")
+        except Exception as dto_error:
+            logger.error(f"Error creating update DTO: {dto_error}")
+            logger.error(f"Error type: {type(dto_error)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise HTTPException(status_code=400, detail=f"Invalid job data: {str(dto_error)}")
+        
+        logger.info("About to call use_case.execute...")
         
         result = await use_case.execute(job_id, update_dto, user_id)
+        
+        logger.info(f"Use case executed successfully, result: {result}")
         return _convert_job_dto_to_response(result)
         
     except NotFoundError as e:
+        logger.error(f"Job not found: {str(e)}")
         raise HTTPException(status_code=404, detail=str(e))
     except ValidationError as e:
+        logger.error(f"Validation error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except PermissionDeniedError as e:
+        logger.error(f"Permission denied: {str(e)}")
         raise HTTPException(status_code=403, detail=str(e))
     except BusinessRuleViolationError as e:
+        logger.error(f"Business rule violation: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.error(f"Unexpected error in update_job: {str(e)}")
+        logger.error(f"Error type: {type(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 

@@ -91,6 +91,45 @@ class JobHelperService:
                     primary_contact_method=contact.get_primary_contact_method()
                 )
         
+        # Safely handle job_address
+        job_address_dto = None
+        if job.job_address:
+            job_address_dto = JobAddressDTO(
+                street_address=job.job_address.street_address,
+                city=job.job_address.city,
+                state=job.job_address.state,
+                postal_code=job.job_address.postal_code,
+                country=job.job_address.country,
+                latitude=job.job_address.latitude,
+                longitude=job.job_address.longitude,
+                access_notes=job.job_address.access_notes
+            )
+        
+        # Safely handle time_tracking
+        time_tracking_dto = JobTimeTrackingDTO()
+        if job.time_tracking:
+            time_tracking_dto = JobTimeTrackingDTO(
+                estimated_hours=job.time_tracking.estimated_hours,
+                actual_hours=job.time_tracking.actual_hours,
+                billable_hours=job.time_tracking.billable_hours,
+                start_time=job.time_tracking.start_time,
+                end_time=job.time_tracking.end_time,
+                break_time_minutes=job.time_tracking.break_time_minutes
+            )
+        
+        # Safely handle cost_estimate
+        cost_estimate_dto = JobCostEstimateDTO()
+        if job.cost_estimate:
+            cost_estimate_dto = JobCostEstimateDTO(
+                labor_cost=job.cost_estimate.labor_cost,
+                material_cost=job.cost_estimate.material_cost,
+                equipment_cost=job.cost_estimate.equipment_cost,
+                overhead_cost=job.cost_estimate.overhead_cost,
+                markup_percentage=job.cost_estimate.markup_percentage,
+                tax_percentage=job.cost_estimate.tax_percentage,
+                discount_amount=job.cost_estimate.discount_amount
+            )
+
         return JobResponseDTO(
             id=job.id,
             business_id=job.business_id,
@@ -103,39 +142,15 @@ class JobHelperService:
             status=job.status,
             priority=job.priority,
             source=job.source,
-            job_address=JobAddressDTO(
-                street_address=job.job_address.street_address,
-                city=job.job_address.city,
-                state=job.job_address.state,
-                postal_code=job.job_address.postal_code,
-                country=job.job_address.country,
-                latitude=job.job_address.latitude,
-                longitude=job.job_address.longitude,
-                access_notes=job.job_address.access_notes
-            ),
+            job_address=job_address_dto,
             scheduled_start=job.scheduled_start,
             scheduled_end=job.scheduled_end,
             actual_start=job.actual_start,
             actual_end=job.actual_end,
             assigned_to=job.assigned_to,
             created_by=job.created_by,
-            time_tracking=JobTimeTrackingDTO(
-                estimated_hours=job.time_tracking.estimated_hours,
-                actual_hours=job.time_tracking.actual_hours,
-                billable_hours=job.time_tracking.billable_hours,
-                start_time=job.time_tracking.start_time,
-                end_time=job.time_tracking.end_time,
-                break_time_minutes=job.time_tracking.break_time_minutes
-            ),
-            cost_estimate=JobCostEstimateDTO(
-                labor_cost=job.cost_estimate.labor_cost,
-                material_cost=job.cost_estimate.material_cost,
-                equipment_cost=job.cost_estimate.equipment_cost,
-                overhead_cost=job.cost_estimate.overhead_cost,
-                markup_percentage=job.cost_estimate.markup_percentage,
-                tax_percentage=job.cost_estimate.tax_percentage,
-                discount_amount=job.cost_estimate.discount_amount
-            ),
+            time_tracking=time_tracking_dto,
+            cost_estimate=cost_estimate_dto,
             tags=job.tags,
             notes=job.notes,
             internal_notes=job.internal_notes,
