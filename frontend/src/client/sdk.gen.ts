@@ -244,6 +244,64 @@ import type {
   MiddlewareHealthGetMiddlewareConfigResponse,
   MiddlewareHealthTestAuthenticationRequiredResponse,
   MiddlewareHealthTestBusinessContextRequiredResponse,
+  ProjectsCreateProjectData,
+  ProjectsCreateProjectResponse,
+  ProjectsCreateProject1Data,
+  ProjectsCreateProject1Response,
+  ProjectsListProjectsData,
+  ProjectsListProjectsResponse,
+  ProjectsListProjects1Data,
+  ProjectsListProjects1Response,
+  ProjectsGetProjectData,
+  ProjectsGetProjectResponse,
+  ProjectsGetProject1Data,
+  ProjectsGetProject1Response,
+  ProjectsUpdateProjectData,
+  ProjectsUpdateProjectResponse,
+  ProjectsUpdateProject1Data,
+  ProjectsUpdateProject1Response,
+  ProjectsDeleteProjectData,
+  ProjectsDeleteProjectResponse,
+  ProjectsDeleteProject1Data,
+  ProjectsDeleteProject1Response,
+  ProjectsSearchProjectsData,
+  ProjectsSearchProjectsResponse,
+  ProjectsSearchProjects1Data,
+  ProjectsSearchProjects1Response,
+  ProjectsGetProjectsByStatusData,
+  ProjectsGetProjectsByStatusResponse,
+  ProjectsGetProjectsByStatus1Data,
+  ProjectsGetProjectsByStatus1Response,
+  ProjectsGetProjectStatisticsResponse,
+  ProjectsGetProjectStatistics1Response,
+  ProjectsGetBudgetSummaryData,
+  ProjectsGetBudgetSummaryResponse,
+  ProjectsGetBudgetSummary1Data,
+  ProjectsGetBudgetSummary1Response,
+  ProjectsAssignTeamMembersData,
+  ProjectsAssignTeamMembersResponse,
+  ProjectsAssignTeamMembers1Data,
+  ProjectsAssignTeamMembers1Response,
+  ProjectsCreateProjectTemplateData,
+  ProjectsCreateProjectTemplateResponse,
+  ProjectsCreateProjectTemplate1Data,
+  ProjectsCreateProjectTemplate1Response,
+  ProjectsCreateProjectFromTemplateData,
+  ProjectsCreateProjectFromTemplateResponse,
+  ProjectsCreateProjectFromTemplate1Data,
+  ProjectsCreateProjectFromTemplate1Response,
+  ProjectsAssignJobsToProjectData,
+  ProjectsAssignJobsToProjectResponse,
+  ProjectsAssignJobsToProject1Data,
+  ProjectsAssignJobsToProject1Response,
+  ProjectsGetProjectJobsData,
+  ProjectsGetProjectJobsResponse,
+  ProjectsGetProjectJobs1Data,
+  ProjectsGetProjectJobs1Response,
+  ProjectsRemoveJobFromProjectData,
+  ProjectsRemoveJobFromProjectResponse,
+  ProjectsRemoveJobFromProject1Data,
+  ProjectsRemoveJobFromProject1Response,
   UsersGetCurrentUserProfileResponse,
   UsersUpdateUserBusinessContextData,
   UsersUpdateUserBusinessContextResponse,
@@ -3357,6 +3415,732 @@ export class MiddlewareHealthService {
     return __request(OpenAPI, {
       method: "POST",
       url: "/api/v1/middleware/test-business-context",
+    })
+  }
+}
+
+export class ProjectsService {
+  /**
+   * Create a new project
+   * Create a new project with the provided details. Project number will be auto-generated if not provided.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ProjectResponse Successful Response
+   * @throws ApiError
+   */
+  public static createProject(
+    data: ProjectsCreateProjectData,
+  ): CancelablePromise<ProjectsCreateProjectResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/projects/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create a new project
+   * Create a new project with the provided details. Project number will be auto-generated if not provided.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ProjectResponse Successful Response
+   * @throws ApiError
+   */
+  public static createProject1(
+    data: ProjectsCreateProject1Data,
+  ): CancelablePromise<ProjectsCreateProject1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/projects/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List projects
+   * Get a paginated list of projects for the business.
+   * @param data The data for the request.
+   * @param data.skip Number of projects to skip
+   * @param data.limit Maximum number of projects to return
+   * @returns ProjectListPaginatedResponse Successful Response
+   * @throws ApiError
+   */
+  public static listProjects(
+    data: ProjectsListProjectsData = {},
+  ): CancelablePromise<ProjectsListProjectsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/projects/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List projects
+   * Get a paginated list of projects for the business.
+   * @param data The data for the request.
+   * @param data.skip Number of projects to skip
+   * @param data.limit Maximum number of projects to return
+   * @returns ProjectListPaginatedResponse Successful Response
+   * @throws ApiError
+   */
+  public static listProjects1(
+    data: ProjectsListProjects1Data = {},
+  ): CancelablePromise<ProjectsListProjects1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/projects/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get project by ID
+   * Retrieve a specific project by its ID.
+   * @param data The data for the request.
+   * @param data.projectId
+   * @returns ProjectResponse Successful Response
+   * @throws ApiError
+   */
+  public static getProject(
+    data: ProjectsGetProjectData,
+  ): CancelablePromise<ProjectsGetProjectResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/projects/{project_id}",
+      path: {
+        project_id: data.projectId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get project by ID
+   * Retrieve a specific project by its ID.
+   * @param data The data for the request.
+   * @param data.projectId
+   * @returns ProjectResponse Successful Response
+   * @throws ApiError
+   */
+  public static getProject1(
+    data: ProjectsGetProject1Data,
+  ): CancelablePromise<ProjectsGetProject1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/projects/{project_id}",
+      path: {
+        project_id: data.projectId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update project
+   * Update an existing project with the provided details.
+   * @param data The data for the request.
+   * @param data.projectId
+   * @param data.requestBody
+   * @returns ProjectResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateProject(
+    data: ProjectsUpdateProjectData,
+  ): CancelablePromise<ProjectsUpdateProjectResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/projects/{project_id}",
+      path: {
+        project_id: data.projectId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update project
+   * Update an existing project with the provided details.
+   * @param data The data for the request.
+   * @param data.projectId
+   * @param data.requestBody
+   * @returns ProjectResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateProject1(
+    data: ProjectsUpdateProject1Data,
+  ): CancelablePromise<ProjectsUpdateProject1Response> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/projects/{project_id}",
+      path: {
+        project_id: data.projectId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete project
+   * Delete a project by its ID.
+   * @param data The data for the request.
+   * @param data.projectId
+   * @returns ProjectActionResponse Successful Response
+   * @throws ApiError
+   */
+  public static deleteProject(
+    data: ProjectsDeleteProjectData,
+  ): CancelablePromise<ProjectsDeleteProjectResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/projects/{project_id}",
+      path: {
+        project_id: data.projectId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete project
+   * Delete a project by its ID.
+   * @param data The data for the request.
+   * @param data.projectId
+   * @returns ProjectActionResponse Successful Response
+   * @throws ApiError
+   */
+  public static deleteProject1(
+    data: ProjectsDeleteProject1Data,
+  ): CancelablePromise<ProjectsDeleteProject1Response> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/projects/{project_id}",
+      path: {
+        project_id: data.projectId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search projects
+   * Search projects with various criteria and filters.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @param data.skip Number of projects to skip
+   * @param data.limit Maximum number of projects to return
+   * @returns ProjectListPaginatedResponse Successful Response
+   * @throws ApiError
+   */
+  public static searchProjects(
+    data: ProjectsSearchProjectsData,
+  ): CancelablePromise<ProjectsSearchProjectsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/projects/search",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search projects
+   * Search projects with various criteria and filters.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @param data.skip Number of projects to skip
+   * @param data.limit Maximum number of projects to return
+   * @returns ProjectListPaginatedResponse Successful Response
+   * @throws ApiError
+   */
+  public static searchProjects1(
+    data: ProjectsSearchProjects1Data,
+  ): CancelablePromise<ProjectsSearchProjects1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/projects/search",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get projects by status
+   * Get all projects with a specific status.
+   * @param data The data for the request.
+   * @param data.status
+   * @param data.skip
+   * @param data.limit
+   * @returns ProjectListResponse Successful Response
+   * @throws ApiError
+   */
+  public static getProjectsByStatus(
+    data: ProjectsGetProjectsByStatusData,
+  ): CancelablePromise<ProjectsGetProjectsByStatusResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/projects/status/{status}",
+      path: {
+        status: data.status,
+      },
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get projects by status
+   * Get all projects with a specific status.
+   * @param data The data for the request.
+   * @param data.status
+   * @param data.skip
+   * @param data.limit
+   * @returns ProjectListResponse Successful Response
+   * @throws ApiError
+   */
+  public static getProjectsByStatus1(
+    data: ProjectsGetProjectsByStatus1Data,
+  ): CancelablePromise<ProjectsGetProjectsByStatus1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/projects/status/{status}",
+      path: {
+        status: data.status,
+      },
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get project statistics
+   * Get comprehensive project statistics for the business.
+   * @returns ProjectStatisticsResponse Successful Response
+   * @throws ApiError
+   */
+  public static getProjectStatistics(): CancelablePromise<ProjectsGetProjectStatisticsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/projects/analytics/statistics",
+    })
+  }
+
+  /**
+   * Get project statistics
+   * Get comprehensive project statistics for the business.
+   * @returns ProjectStatisticsResponse Successful Response
+   * @throws ApiError
+   */
+  public static getProjectStatistics1(): CancelablePromise<ProjectsGetProjectStatistics1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/projects/analytics/statistics",
+    })
+  }
+
+  /**
+   * Get budget summary
+   * Get budget summary for projects within a date range.
+   * @param data The data for the request.
+   * @param data.startDate Start date for budget summary
+   * @param data.endDate End date for budget summary
+   * @returns ProjectBudgetSummaryResponse Successful Response
+   * @throws ApiError
+   */
+  public static getBudgetSummary(
+    data: ProjectsGetBudgetSummaryData,
+  ): CancelablePromise<ProjectsGetBudgetSummaryResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/projects/analytics/budget-summary",
+      query: {
+        start_date: data.startDate,
+        end_date: data.endDate,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get budget summary
+   * Get budget summary for projects within a date range.
+   * @param data The data for the request.
+   * @param data.startDate Start date for budget summary
+   * @param data.endDate End date for budget summary
+   * @returns ProjectBudgetSummaryResponse Successful Response
+   * @throws ApiError
+   */
+  public static getBudgetSummary1(
+    data: ProjectsGetBudgetSummary1Data,
+  ): CancelablePromise<ProjectsGetBudgetSummary1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/projects/analytics/budget-summary",
+      query: {
+        start_date: data.startDate,
+        end_date: data.endDate,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Assign team members to project
+   * Assign team members to a project.
+   * @param data The data for the request.
+   * @param data.projectId
+   * @param data.requestBody
+   * @returns ProjectResponse Successful Response
+   * @throws ApiError
+   */
+  public static assignTeamMembers(
+    data: ProjectsAssignTeamMembersData,
+  ): CancelablePromise<ProjectsAssignTeamMembersResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/projects/{project_id}/assign",
+      path: {
+        project_id: data.projectId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Assign team members to project
+   * Assign team members to a project.
+   * @param data The data for the request.
+   * @param data.projectId
+   * @param data.requestBody
+   * @returns ProjectResponse Successful Response
+   * @throws ApiError
+   */
+  public static assignTeamMembers1(
+    data: ProjectsAssignTeamMembers1Data,
+  ): CancelablePromise<ProjectsAssignTeamMembers1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/projects/{project_id}/assign",
+      path: {
+        project_id: data.projectId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create project template
+   * Create a new project template.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ProjectTemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static createProjectTemplate(
+    data: ProjectsCreateProjectTemplateData,
+  ): CancelablePromise<ProjectsCreateProjectTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/projects/templates",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create project template
+   * Create a new project template.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ProjectTemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static createProjectTemplate1(
+    data: ProjectsCreateProjectTemplate1Data,
+  ): CancelablePromise<ProjectsCreateProjectTemplate1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/projects/templates",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create project from template
+   * Create a new project using a template.
+   * @param data The data for the request.
+   * @param data.templateId
+   * @param data.requestBody
+   * @returns ProjectResponse Successful Response
+   * @throws ApiError
+   */
+  public static createProjectFromTemplate(
+    data: ProjectsCreateProjectFromTemplateData,
+  ): CancelablePromise<ProjectsCreateProjectFromTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/projects/templates/{template_id}/create-project",
+      path: {
+        template_id: data.templateId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create project from template
+   * Create a new project using a template.
+   * @param data The data for the request.
+   * @param data.templateId
+   * @param data.requestBody
+   * @returns ProjectResponse Successful Response
+   * @throws ApiError
+   */
+  public static createProjectFromTemplate1(
+    data: ProjectsCreateProjectFromTemplate1Data,
+  ): CancelablePromise<ProjectsCreateProjectFromTemplate1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/projects/templates/{template_id}/create-project",
+      path: {
+        template_id: data.templateId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Assign jobs to project
+   * Assign multiple jobs to a project.
+   * @param data The data for the request.
+   * @param data.projectId
+   * @param data.requestBody
+   * @returns ProjectJobAssignmentResponse Successful Response
+   * @throws ApiError
+   */
+  public static assignJobsToProject(
+    data: ProjectsAssignJobsToProjectData,
+  ): CancelablePromise<ProjectsAssignJobsToProjectResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/projects/{project_id}/jobs",
+      path: {
+        project_id: data.projectId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Assign jobs to project
+   * Assign multiple jobs to a project.
+   * @param data The data for the request.
+   * @param data.projectId
+   * @param data.requestBody
+   * @returns ProjectJobAssignmentResponse Successful Response
+   * @throws ApiError
+   */
+  public static assignJobsToProject1(
+    data: ProjectsAssignJobsToProject1Data,
+  ): CancelablePromise<ProjectsAssignJobsToProject1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/projects/{project_id}/jobs",
+      path: {
+        project_id: data.projectId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get project jobs
+   * Get all jobs associated with a project.
+   * @param data The data for the request.
+   * @param data.projectId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getProjectJobs(
+    data: ProjectsGetProjectJobsData,
+  ): CancelablePromise<ProjectsGetProjectJobsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/projects/{project_id}/jobs",
+      path: {
+        project_id: data.projectId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get project jobs
+   * Get all jobs associated with a project.
+   * @param data The data for the request.
+   * @param data.projectId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getProjectJobs1(
+    data: ProjectsGetProjectJobs1Data,
+  ): CancelablePromise<ProjectsGetProjectJobs1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/projects/{project_id}/jobs",
+      path: {
+        project_id: data.projectId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Remove job from project
+   * Remove a job from a project (sets project_id to NULL).
+   * @param data The data for the request.
+   * @param data.projectId
+   * @param data.jobId
+   * @returns ProjectActionResponse Successful Response
+   * @throws ApiError
+   */
+  public static removeJobFromProject(
+    data: ProjectsRemoveJobFromProjectData,
+  ): CancelablePromise<ProjectsRemoveJobFromProjectResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/projects/{project_id}/jobs/{job_id}",
+      path: {
+        project_id: data.projectId,
+        job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Remove job from project
+   * Remove a job from a project (sets project_id to NULL).
+   * @param data The data for the request.
+   * @param data.projectId
+   * @param data.jobId
+   * @returns ProjectActionResponse Successful Response
+   * @throws ApiError
+   */
+  public static removeJobFromProject1(
+    data: ProjectsRemoveJobFromProject1Data,
+  ): CancelablePromise<ProjectsRemoveJobFromProject1Response> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/projects/{project_id}/jobs/{job_id}",
+      path: {
+        project_id: data.projectId,
+        job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
     })
   }
 }

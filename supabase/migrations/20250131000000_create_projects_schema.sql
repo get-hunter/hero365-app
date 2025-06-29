@@ -122,7 +122,7 @@ CREATE POLICY "projects_business_isolation" ON "public"."projects"
         business_id IN (
             SELECT bm.business_id 
             FROM public.business_memberships bm 
-            WHERE bm.user_id = auth.uid()::text 
+            WHERE bm.user_id = auth.uid() 
             AND bm.is_active = true
         )
     );
@@ -137,7 +137,7 @@ CREATE POLICY "project_templates_access" ON "public"."project_templates"
         business_id IN (
             SELECT bm.business_id 
             FROM public.business_memberships bm 
-            WHERE bm.user_id = auth.uid()::text 
+            WHERE bm.user_id = auth.uid() 
             AND bm.is_active = true
         )
     );

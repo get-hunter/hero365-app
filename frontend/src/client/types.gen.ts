@@ -3209,25 +3209,15 @@ export type JobSearchRequest = {
  * Job source enumeration.
  */
 export type JobSource =
-  | "website"
-  | "google_ads"
-  | "social_media"
-  | "referral"
-  | "phone_call"
   | "phone"
+  | "email"
+  | "website"
+  | "referral"
+  | "social_media"
+  | "advertisement"
   | "walk_in"
-  | "email_marketing"
-  | "trade_show"
-  | "direct_mail"
-  | "yellow_pages"
   | "repeat_customer"
-  | "partner"
-  | "existing_customer"
-  | "cold_outreach"
-  | "emergency_call"
-  | "emergency"
-  | "event"
-  | "direct"
+  | "partnership"
   | "other"
 
 /**
@@ -3608,6 +3598,464 @@ export type PredictiveInsight = {
    * Recommended actions
    */
   recommended_actions: Array<string>
+}
+
+/**
+ * Schema for project action responses.
+ */
+export type ProjectActionResponse = {
+  success?: boolean
+  message: string
+  project_id?: string | null
+}
+
+/**
+ * Schema for project team assignment request.
+ */
+export type ProjectAssignmentRequest = {
+  user_ids: Array<string>
+  replace_existing?: boolean
+}
+
+/**
+ * Schema for project budget summary response.
+ */
+export type ProjectBudgetSummaryResponse = {
+  total_budget: string
+  total_actual: string
+  variance: string
+  project_count: number
+}
+
+/**
+ * Schema for creating project from template request.
+ */
+export type ProjectCreateFromTemplateRequest = {
+  project_number?: string | null
+  name: string
+  description?: string | null
+  status: ProjectStatus
+  priority?: ProjectPriority | null
+  contact_id?: string | null
+  client_name?: string | null
+  client_email?: string | null
+  client_phone?: string | null
+  address?: string | null
+  start_date: string
+  end_date?: string | null
+  estimated_hours?: number | string | null
+  budget_amount?: number | string | null
+  team_members?: Array<string> | null
+  tags?: Array<string> | null
+  notes?: string | null
+}
+
+/**
+ * Schema for project creation request.
+ */
+export type ProjectCreateRequest = {
+  name: string
+  description: string
+  client_id: string
+  project_type: ProjectType
+  priority: ProjectPriority
+  start_date: string
+  end_date?: string | null
+  estimated_budget?: number | string | null
+  manager_id?: string | null
+  team_members?: Array<string> | null
+  tags?: Array<string> | null
+  notes?: string | null
+}
+
+/**
+ * Schema for assigning jobs to a project.
+ */
+export type ProjectJobAssignmentRequest = {
+  /**
+   * List of job IDs to assign to the project
+   */
+  job_ids: Array<string>
+}
+
+/**
+ * Schema for project-job assignment response.
+ */
+export type ProjectJobAssignmentResponse = {
+  project_id: string
+  job_ids: Array<string>
+  message: string
+}
+
+/**
+ * Schema for paginated project list response.
+ */
+export type ProjectListPaginatedResponse = {
+  projects: Array<ProjectListResponse>
+  pagination: {
+    [key: string]: unknown
+  }
+}
+
+/**
+ * Schema for project list response.
+ */
+export type ProjectListResponse = {
+  /**
+   * Project ID
+   */
+  id: string
+  /**
+   * Project name
+   */
+  name: string
+  /**
+   * Client name
+   */
+  client_name: string
+  /**
+   * Project type
+   */
+  project_type: ProjectType
+  /**
+   * Project status
+   */
+  status: ProjectStatus
+  /**
+   * Project priority
+   */
+  priority: ProjectPriority
+  /**
+   * Project start date
+   */
+  start_date: string | null
+  /**
+   * Project end date
+   */
+  end_date?: string | null
+  /**
+   * Estimated budget
+   */
+  estimated_budget: string
+  /**
+   * Actual cost
+   */
+  actual_cost: string
+  /**
+   * Manager name
+   */
+  manager?: string | null
+  /**
+   * Whether project is overdue
+   */
+  is_overdue: boolean
+  /**
+   * Whether project is over budget
+   */
+  is_over_budget: boolean
+  /**
+   * Creation date
+   */
+  created_date: string | null
+  /**
+   * Last modification date
+   */
+  last_modified: string | null
+  /**
+   * Human-readable status
+   */
+  status_display: string
+  /**
+   * Human-readable priority
+   */
+  priority_display: string
+  /**
+   * Human-readable type
+   */
+  type_display: string
+}
+
+/**
+ * Project priority enumeration.
+ */
+export type ProjectPriority = "low" | "medium" | "high" | "critical"
+
+/**
+ * Schema for project response with robust validation.
+ */
+export type ProjectResponse = {
+  /**
+   * Project ID
+   */
+  id: string
+  /**
+   * Business ID
+   */
+  business_id: string
+  /**
+   * Project name
+   */
+  name: string
+  /**
+   * Project description
+   */
+  description: string
+  /**
+   * Creator user ID
+   */
+  created_by: string
+  /**
+   * Client ID
+   */
+  client_id: string
+  /**
+   * Client name
+   */
+  client_name: string
+  /**
+   * Client address
+   */
+  client_address: string
+  /**
+   * Project type
+   */
+  project_type: ProjectType
+  /**
+   * Project status
+   */
+  status: ProjectStatus
+  /**
+   * Project priority
+   */
+  priority: ProjectPriority
+  /**
+   * Project start date
+   */
+  start_date: string | null
+  /**
+   * Project end date
+   */
+  end_date?: string | null
+  /**
+   * Estimated budget
+   */
+  estimated_budget: string
+  /**
+   * Actual cost
+   */
+  actual_cost: string
+  /**
+   * Manager name
+   */
+  manager?: string | null
+  /**
+   * Manager user ID
+   */
+  manager_id?: string | null
+  /**
+   * Team member IDs
+   */
+  team_members?: Array<string>
+  /**
+   * Project tags
+   */
+  tags?: Array<string>
+  /**
+   * Project notes
+   */
+  notes?: string | null
+  /**
+   * Creation date
+   */
+  created_date: string | null
+  /**
+   * Last modification date
+   */
+  last_modified: string | null
+  /**
+   * Whether project is overdue
+   */
+  is_overdue: boolean
+  /**
+   * Whether project is over budget
+   */
+  is_over_budget: boolean
+  /**
+   * Budget variance (actual - estimated)
+   */
+  budget_variance: string
+  /**
+   * Budget variance percentage
+   */
+  budget_variance_percentage?: string | null
+  /**
+   * Duration in days
+   */
+  duration_days?: number | null
+  /**
+   * Human-readable status
+   */
+  status_display: string
+  /**
+   * Human-readable priority
+   */
+  priority_display: string
+  /**
+   * Human-readable type
+   */
+  type_display: string
+}
+
+/**
+ * Schema for project search request.
+ */
+export type ProjectSearchRequest = {
+  search?: string | null
+  status?: ProjectStatus | null
+  project_type?: ProjectType | null
+  priority?: ProjectPriority | null
+  client_id?: string | null
+  manager_id?: string | null
+  start_date_from?: string | null
+  start_date_to?: string | null
+  end_date_from?: string | null
+  end_date_to?: string | null
+  tags?: Array<string> | null
+  is_overdue?: boolean | null
+  is_over_budget?: boolean | null
+  min_budget?: number | string | null
+  max_budget?: number | string | null
+  skip?: number
+  limit?: number
+  sort_by?: string
+  sort_order?: string
+}
+
+/**
+ * Schema for project statistics response.
+ */
+export type ProjectStatisticsResponse = {
+  total_projects: number
+  by_status?: {
+    [key: string]: number
+  }
+  by_priority?: {
+    [key: string]: number
+  }
+  by_type?: {
+    [key: string]: number
+  }
+  budget_totals?: {
+    [key: string]: unknown
+  }
+}
+
+/**
+ * Project status enumeration.
+ */
+export type ProjectStatus =
+  | "planning"
+  | "active"
+  | "on_hold"
+  | "completed"
+  | "cancelled"
+
+/**
+ * Schema for project template creation request.
+ */
+export type ProjectTemplateCreateRequest = {
+  name: string
+  description: string
+  project_type: ProjectType
+  priority: ProjectPriority
+  estimated_budget?: number | string | null
+  estimated_duration?: number | null
+  tags?: Array<string> | null
+}
+
+/**
+ * Schema for project template response.
+ */
+export type ProjectTemplateResponse = {
+  /**
+   * Template ID
+   */
+  id: string
+  /**
+   * Business ID (None for system templates)
+   */
+  business_id?: string | null
+  /**
+   * Template name
+   */
+  name: string
+  /**
+   * Template description
+   */
+  description: string
+  /**
+   * Project type
+   */
+  project_type: ProjectType
+  /**
+   * Default priority
+   */
+  priority: ProjectPriority
+  /**
+   * Default estimated budget
+   */
+  estimated_budget: string
+  /**
+   * Default duration in days
+   */
+  estimated_duration?: number | null
+  /**
+   * Default tags
+   */
+  tags?: Array<string>
+  /**
+   * Whether this is a system template
+   */
+  is_system_template: boolean
+  /**
+   * Creation date
+   */
+  created_date: string | null
+  /**
+   * Last modification date
+   */
+  last_modified: string | null
+}
+
+/**
+ * Project type enumeration.
+ */
+export type ProjectType =
+  | "maintenance"
+  | "installation"
+  | "renovation"
+  | "emergency"
+  | "consultation"
+  | "inspection"
+  | "repair"
+  | "construction"
+
+/**
+ * Schema for project update request.
+ */
+export type ProjectUpdateRequest = {
+  name?: string | null
+  description?: string | null
+  project_type?: ProjectType | null
+  priority?: ProjectPriority | null
+  start_date?: string | null
+  end_date?: string | null
+  estimated_budget?: number | string | null
+  actual_cost?: number | string | null
+  manager_id?: string | null
+  team_members?: Array<string> | null
+  tags?: Array<string> | null
+  notes?: string | null
 }
 
 /**
@@ -5747,6 +6195,240 @@ export type MiddlewareHealthTestAuthenticationRequiredResponse = {
 export type MiddlewareHealthTestBusinessContextRequiredResponse = {
   [key: string]: unknown
 }
+
+export type ProjectsCreateProjectData = {
+  requestBody: ProjectCreateRequest
+}
+
+export type ProjectsCreateProjectResponse = ProjectResponse
+
+export type ProjectsCreateProject1Data = {
+  requestBody: ProjectCreateRequest
+}
+
+export type ProjectsCreateProject1Response = ProjectResponse
+
+export type ProjectsListProjectsData = {
+  /**
+   * Maximum number of projects to return
+   */
+  limit?: number
+  /**
+   * Number of projects to skip
+   */
+  skip?: number
+}
+
+export type ProjectsListProjectsResponse = ProjectListPaginatedResponse
+
+export type ProjectsListProjects1Data = {
+  /**
+   * Maximum number of projects to return
+   */
+  limit?: number
+  /**
+   * Number of projects to skip
+   */
+  skip?: number
+}
+
+export type ProjectsListProjects1Response = ProjectListPaginatedResponse
+
+export type ProjectsGetProjectData = {
+  projectId: string
+}
+
+export type ProjectsGetProjectResponse = ProjectResponse
+
+export type ProjectsGetProject1Data = {
+  projectId: string
+}
+
+export type ProjectsGetProject1Response = ProjectResponse
+
+export type ProjectsUpdateProjectData = {
+  projectId: string
+  requestBody: ProjectUpdateRequest
+}
+
+export type ProjectsUpdateProjectResponse = ProjectResponse
+
+export type ProjectsUpdateProject1Data = {
+  projectId: string
+  requestBody: ProjectUpdateRequest
+}
+
+export type ProjectsUpdateProject1Response = ProjectResponse
+
+export type ProjectsDeleteProjectData = {
+  projectId: string
+}
+
+export type ProjectsDeleteProjectResponse = ProjectActionResponse
+
+export type ProjectsDeleteProject1Data = {
+  projectId: string
+}
+
+export type ProjectsDeleteProject1Response = ProjectActionResponse
+
+export type ProjectsSearchProjectsData = {
+  /**
+   * Maximum number of projects to return
+   */
+  limit?: number
+  requestBody: ProjectSearchRequest
+  /**
+   * Number of projects to skip
+   */
+  skip?: number
+}
+
+export type ProjectsSearchProjectsResponse = ProjectListPaginatedResponse
+
+export type ProjectsSearchProjects1Data = {
+  /**
+   * Maximum number of projects to return
+   */
+  limit?: number
+  requestBody: ProjectSearchRequest
+  /**
+   * Number of projects to skip
+   */
+  skip?: number
+}
+
+export type ProjectsSearchProjects1Response = ProjectListPaginatedResponse
+
+export type ProjectsGetProjectsByStatusData = {
+  limit?: number
+  skip?: number
+  status: ProjectStatus
+}
+
+export type ProjectsGetProjectsByStatusResponse = Array<ProjectListResponse>
+
+export type ProjectsGetProjectsByStatus1Data = {
+  limit?: number
+  skip?: number
+  status: ProjectStatus
+}
+
+export type ProjectsGetProjectsByStatus1Response = Array<ProjectListResponse>
+
+export type ProjectsGetProjectStatisticsResponse = ProjectStatisticsResponse
+
+export type ProjectsGetProjectStatistics1Response = ProjectStatisticsResponse
+
+export type ProjectsGetBudgetSummaryData = {
+  /**
+   * End date for budget summary
+   */
+  endDate: string
+  /**
+   * Start date for budget summary
+   */
+  startDate: string
+}
+
+export type ProjectsGetBudgetSummaryResponse = ProjectBudgetSummaryResponse
+
+export type ProjectsGetBudgetSummary1Data = {
+  /**
+   * End date for budget summary
+   */
+  endDate: string
+  /**
+   * Start date for budget summary
+   */
+  startDate: string
+}
+
+export type ProjectsGetBudgetSummary1Response = ProjectBudgetSummaryResponse
+
+export type ProjectsAssignTeamMembersData = {
+  projectId: string
+  requestBody: ProjectAssignmentRequest
+}
+
+export type ProjectsAssignTeamMembersResponse = ProjectResponse
+
+export type ProjectsAssignTeamMembers1Data = {
+  projectId: string
+  requestBody: ProjectAssignmentRequest
+}
+
+export type ProjectsAssignTeamMembers1Response = ProjectResponse
+
+export type ProjectsCreateProjectTemplateData = {
+  requestBody: ProjectTemplateCreateRequest
+}
+
+export type ProjectsCreateProjectTemplateResponse = ProjectTemplateResponse
+
+export type ProjectsCreateProjectTemplate1Data = {
+  requestBody: ProjectTemplateCreateRequest
+}
+
+export type ProjectsCreateProjectTemplate1Response = ProjectTemplateResponse
+
+export type ProjectsCreateProjectFromTemplateData = {
+  requestBody: ProjectCreateFromTemplateRequest
+  templateId: string
+}
+
+export type ProjectsCreateProjectFromTemplateResponse = ProjectResponse
+
+export type ProjectsCreateProjectFromTemplate1Data = {
+  requestBody: ProjectCreateFromTemplateRequest
+  templateId: string
+}
+
+export type ProjectsCreateProjectFromTemplate1Response = ProjectResponse
+
+export type ProjectsAssignJobsToProjectData = {
+  projectId: string
+  requestBody: ProjectJobAssignmentRequest
+}
+
+export type ProjectsAssignJobsToProjectResponse = ProjectJobAssignmentResponse
+
+export type ProjectsAssignJobsToProject1Data = {
+  projectId: string
+  requestBody: ProjectJobAssignmentRequest
+}
+
+export type ProjectsAssignJobsToProject1Response = ProjectJobAssignmentResponse
+
+export type ProjectsGetProjectJobsData = {
+  projectId: string
+}
+
+export type ProjectsGetProjectJobsResponse = Array<{
+  [key: string]: unknown
+}>
+
+export type ProjectsGetProjectJobs1Data = {
+  projectId: string
+}
+
+export type ProjectsGetProjectJobs1Response = Array<{
+  [key: string]: unknown
+}>
+
+export type ProjectsRemoveJobFromProjectData = {
+  jobId: string
+  projectId: string
+}
+
+export type ProjectsRemoveJobFromProjectResponse = ProjectActionResponse
+
+export type ProjectsRemoveJobFromProject1Data = {
+  jobId: string
+  projectId: string
+}
+
+export type ProjectsRemoveJobFromProject1Response = ProjectActionResponse
 
 export type UsersGetCurrentUserProfileResponse = UserProfileResponse
 
