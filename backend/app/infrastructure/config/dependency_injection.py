@@ -18,6 +18,7 @@ from ...domain.repositories.business_invitation_repository import BusinessInvita
 from ...domain.repositories.contact_repository import ContactRepository
 from ...domain.repositories.job_repository import JobRepository
 from ...domain.repositories.activity_repository import ActivityRepository
+from ...domain.repositories.project_repository import ProjectRepository, ProjectTemplateRepository
 from ...domain.repositories.user_capabilities_repository import UserCapabilitiesRepository
 
 # Application Ports
@@ -32,6 +33,7 @@ from ..database.repositories.supabase_business_invitation_repository import Supa
 from ..database.repositories.supabase_contact_repository import SupabaseContactRepository
 from ..database.repositories.supabase_job_repository import SupabaseJobRepository
 from ..database.repositories.supabase_activity_repository import SupabaseActivityRepository, SupabaseActivityTemplateRepository
+from ..database.repositories.supabase_project_repository import SupabaseProjectRepository, SupabaseProjectTemplateRepository
 from ..database.repositories.supabase_user_capabilities_repository import SupabaseUserCapabilitiesRepository
 from ..external_services.supabase_auth_adapter import SupabaseAuthAdapter
 from ..external_services.smtp_email_adapter import SMTPEmailAdapter
@@ -83,6 +85,17 @@ from ...application.use_cases.job.job_helper_service import JobHelperService
 # Activity Use Cases
 from ...application.use_cases.activity.manage_activities import ManageActivitiesUseCase
 
+# Project Use Cases
+from ...application.use_cases.project.create_project_use_case import CreateProjectUseCase
+from ...application.use_cases.project.get_project_use_case import GetProjectUseCase
+from ...application.use_cases.project.update_project_use_case import UpdateProjectUseCase
+from ...application.use_cases.project.delete_project_use_case import DeleteProjectUseCase
+from ...application.use_cases.project.project_search_use_case import ProjectSearchUseCase
+from ...application.use_cases.project.project_analytics_use_case import ProjectAnalyticsUseCase
+from ...application.use_cases.project.project_assignment_use_case import ProjectAssignmentUseCase
+from ...application.use_cases.project.project_template_use_case import ProjectTemplateUseCase
+from ...application.use_cases.project.project_helper_service import ProjectHelperService
+
 # Scheduling Use Cases
 from ...application.use_cases.scheduling.intelligent_scheduling_use_case import IntelligentSchedulingUseCase
 from ...application.use_cases.scheduling.calendar_management_use_case import CalendarManagementUseCase
@@ -117,6 +130,8 @@ class DependencyContainer:
         self._repositories['job_repository'] = SupabaseJobRepository(client=supabase_client)
         self._repositories['activity_repository'] = SupabaseActivityRepository(client=supabase_client)
         self._repositories['activity_template_repository'] = SupabaseActivityTemplateRepository(client=supabase_client)
+        self._repositories['project_repository'] = SupabaseProjectRepository(client=supabase_client)
+        self._repositories['project_template_repository'] = SupabaseProjectTemplateRepository(client=supabase_client)
         self._repositories['user_capabilities_repository'] = SupabaseUserCapabilitiesRepository(client=supabase_client)
     
     def _setup_services(self):
@@ -356,6 +371,55 @@ class DependencyContainer:
             sms_service=self.get_service('sms_service'),
             email_service=self.get_service('email_service')
         )
+        
+        # Project helper service
+        project_helper_service = ProjectHelperService(
+            business_membership_repository=self.get_repository('business_membership_repository'),
+            contact_repository=self.get_repository('contact_repository')
+        )
+        
+        # Project use cases
+        self._use_cases['create_project'] = CreateProjectUseCase(
+            project_repository=self.get_repository('project_repository'),
+            contact_repository=self.get_repository('contact_repository'),
+            project_helper_service=project_helper_service
+        )
+        
+        self._use_cases['get_project'] = GetProjectUseCase(
+            project_repository=self.get_repository('project_repository'),
+            project_helper_service=project_helper_service
+        )
+        
+        self._use_cases['update_project'] = UpdateProjectUseCase(
+            project_repository=self.get_repository('project_repository'),
+            project_helper_service=project_helper_service
+        )
+        
+        self._use_cases['delete_project'] = DeleteProjectUseCase(
+            project_repository=self.get_repository('project_repository'),
+            project_helper_service=project_helper_service
+        )
+        
+        self._use_cases['project_search'] = ProjectSearchUseCase(
+            project_repository=self.get_repository('project_repository'),
+            project_helper_service=project_helper_service
+        )
+        
+        self._use_cases['project_analytics'] = ProjectAnalyticsUseCase(
+            project_repository=self.get_repository('project_repository'),
+            project_helper_service=project_helper_service
+        )
+        
+        self._use_cases['project_assignment'] = ProjectAssignmentUseCase(
+            project_repository=self.get_repository('project_repository'),
+            project_helper_service=project_helper_service
+        )
+        
+        self._use_cases['project_template'] = ProjectTemplateUseCase(
+            project_template_repository=self.get_repository('project_template_repository'),
+            project_repository=self.get_repository('project_repository'),
+            project_helper_service=project_helper_service
+        )
 
     def _get_supabase_client(self) -> Client:
         """Get or create Supabase client."""
@@ -543,14 +607,54 @@ class DependencyContainer:
     def get_user_capabilities_repository(self) -> UserCapabilitiesRepository:
         """Get user capabilities repository."""
         return self.get_repository('user_capabilities_repository')
-    
+
     def get_intelligent_scheduling_use_case(self) -> IntelligentSchedulingUseCase:
         """Get intelligent scheduling use case."""
         return self.get_use_case('intelligent_scheduling')
-    
+
     def get_calendar_management_use_case(self) -> CalendarManagementUseCase:
         """Get calendar management use case."""
         return self.get_use_case('calendar_management')
+    
+    def get_project_repository(self) -> ProjectRepository:
+        """Get project repository."""
+        return self.get_repository('project_repository')
+    
+    def get_project_template_repository(self) -> ProjectTemplateRepository:
+        """Get project template repository."""
+        return self.get_repository('project_template_repository')
+    
+    def get_create_project_use_case(self) -> CreateProjectUseCase:
+        """Get create project use case."""
+        return self.get_use_case('create_project')
+    
+    def get_get_project_use_case(self) -> GetProjectUseCase:
+        """Get get project use case."""
+        return self.get_use_case('get_project')
+    
+    def get_update_project_use_case(self) -> UpdateProjectUseCase:
+        """Get update project use case."""
+        return self.get_use_case('update_project')
+    
+    def get_delete_project_use_case(self) -> DeleteProjectUseCase:
+        """Get delete project use case."""
+        return self.get_use_case('delete_project')
+    
+    def get_project_search_use_case(self) -> ProjectSearchUseCase:
+        """Get project search use case."""
+        return self.get_use_case('project_search')
+    
+    def get_project_analytics_use_case(self) -> ProjectAnalyticsUseCase:
+        """Get project analytics use case."""
+        return self.get_use_case('project_analytics')
+    
+    def get_project_assignment_use_case(self) -> ProjectAssignmentUseCase:
+        """Get project assignment use case."""
+        return self.get_use_case('project_assignment')
+    
+    def get_project_template_use_case(self) -> ProjectTemplateUseCase:
+        """Get project template use case."""
+        return self.get_use_case('project_template')
 
     def close(self):
         """Close all connections and cleanup resources."""
@@ -739,3 +843,55 @@ def get_calendar_management_use_case() -> CalendarManagementUseCase:
 def get_user_capabilities_repository() -> UserCapabilitiesRepository:
     """Get user capabilities repository from container."""
     return get_container().get_user_capabilities_repository()
+
+
+# Project dependencies
+def get_project_repository() -> ProjectRepository:
+    """Get project repository from container."""
+    return get_container().get_project_repository()
+
+
+def get_project_template_repository() -> ProjectTemplateRepository:
+    """Get project template repository from container."""
+    return get_container().get_project_template_repository()
+
+
+# Project use case dependencies
+def get_create_project_use_case() -> CreateProjectUseCase:
+    """Get create project use case from container."""
+    return get_container().get_create_project_use_case()
+
+
+def get_get_project_use_case() -> GetProjectUseCase:
+    """Get get project use case from container."""
+    return get_container().get_get_project_use_case()
+
+
+def get_update_project_use_case() -> UpdateProjectUseCase:
+    """Get update project use case from container."""
+    return get_container().get_update_project_use_case()
+
+
+def get_delete_project_use_case() -> DeleteProjectUseCase:
+    """Get delete project use case from container."""
+    return get_container().get_delete_project_use_case()
+
+
+def get_project_search_use_case() -> ProjectSearchUseCase:
+    """Get project search use case from container."""
+    return get_container().get_project_search_use_case()
+
+
+def get_project_analytics_use_case() -> ProjectAnalyticsUseCase:
+    """Get project analytics use case from container."""
+    return get_container().get_project_analytics_use_case()
+
+
+def get_project_assignment_use_case() -> ProjectAssignmentUseCase:
+    """Get project assignment use case from container."""
+    return get_container().get_project_assignment_use_case()
+
+
+def get_project_template_use_case() -> ProjectTemplateUseCase:
+    """Get project template use case from container."""
+    return get_container().get_project_template_use_case()

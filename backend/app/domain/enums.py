@@ -224,49 +224,94 @@ class JobPriority(str, Enum):
 
 class JobSource(str, Enum):
     """Job source enumeration."""
-    WEBSITE = "website"
-    GOOGLE_ADS = "google_ads"
-    SOCIAL_MEDIA = "social_media"
-    REFERRAL = "referral"
-    PHONE_CALL = "phone_call"
     PHONE = "phone"
+    EMAIL = "email"
+    WEBSITE = "website"
+    REFERRAL = "referral"
+    SOCIAL_MEDIA = "social_media"
+    ADVERTISEMENT = "advertisement"
     WALK_IN = "walk_in"
-    EMAIL_MARKETING = "email_marketing"
-    TRADE_SHOW = "trade_show"
-    DIRECT_MAIL = "direct_mail"
-    YELLOW_PAGES = "yellow_pages"
     REPEAT_CUSTOMER = "repeat_customer"
-    PARTNER = "partner"
-    EXISTING_CUSTOMER = "existing_customer"
-    COLD_OUTREACH = "cold_outreach"
-    EMERGENCY_CALL = "emergency_call"
-    EMERGENCY = "emergency"
-    EVENT = "event"
-    DIRECT = "direct"
+    PARTNERSHIP = "partnership"
     OTHER = "other"
     
     def get_display(self) -> str:
         """Get human-readable display name."""
         display_map = {
-            self.WEBSITE: "Website",
-            self.GOOGLE_ADS: "Google Ads",
-            self.SOCIAL_MEDIA: "Social Media",
-            self.REFERRAL: "Referral",
-            self.PHONE_CALL: "Phone Call",
             self.PHONE: "Phone",
+            self.EMAIL: "Email",
+            self.WEBSITE: "Website",
+            self.REFERRAL: "Referral",
+            self.SOCIAL_MEDIA: "Social Media",
+            self.ADVERTISEMENT: "Advertisement",
             self.WALK_IN: "Walk-in",
-            self.EMAIL_MARKETING: "Email Marketing",
-            self.TRADE_SHOW: "Trade Show",
-            self.DIRECT_MAIL: "Direct Mail",
-            self.YELLOW_PAGES: "Yellow Pages",
             self.REPEAT_CUSTOMER: "Repeat Customer",
-            self.PARTNER: "Partner",
-            self.EXISTING_CUSTOMER: "Existing Customer",
-            self.COLD_OUTREACH: "Cold Outreach",
-            self.EMERGENCY_CALL: "Emergency Call",
-            self.EMERGENCY: "Emergency",
-            self.EVENT: "Event",
-            self.DIRECT: "Direct",
+            self.PARTNERSHIP: "Partnership",
             self.OTHER: "Other"
+        }
+        return display_map.get(self, self.value.title())
+
+
+# Project-related enums
+class ProjectType(str, Enum):
+    """Project type enumeration."""
+    MAINTENANCE = "maintenance"
+    INSTALLATION = "installation"
+    RENOVATION = "renovation"
+    EMERGENCY = "emergency"
+    CONSULTATION = "consultation"
+    INSPECTION = "inspection"
+    REPAIR = "repair"
+    CONSTRUCTION = "construction"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.MAINTENANCE: "Maintenance",
+            self.INSTALLATION: "Installation",
+            self.RENOVATION: "Renovation",
+            self.EMERGENCY: "Emergency",
+            self.CONSULTATION: "Consultation",
+            self.INSPECTION: "Inspection",
+            self.REPAIR: "Repair",
+            self.CONSTRUCTION: "Construction"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class ProjectStatus(str, Enum):
+    """Project status enumeration."""
+    PLANNING = "planning"
+    ACTIVE = "active"
+    ON_HOLD = "on_hold"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.PLANNING: "Planning",
+            self.ACTIVE: "Active",
+            self.ON_HOLD: "On Hold",
+            self.COMPLETED: "Completed",
+            self.CANCELLED: "Cancelled"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class ProjectPriority(str, Enum):
+    """Project priority enumeration."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.LOW: "Low",
+            self.MEDIUM: "Medium",
+            self.HIGH: "High",
+            self.CRITICAL: "Critical"
         }
         return display_map.get(self, self.value.title()) 

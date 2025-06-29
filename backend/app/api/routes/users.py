@@ -19,7 +19,7 @@ from fastapi import Request
 # Configure logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(prefix="/users", tags=["users"])
 
 
 class BusinessMembershipSummary(BaseModel):

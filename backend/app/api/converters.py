@@ -16,7 +16,8 @@ from fastapi import HTTPException, status
 
 from ..domain.enums import (
     ContactType, ContactStatus, ContactPriority, ContactSource,
-    RelationshipStatus, LifecycleStage, JobType, JobStatus, JobPriority, JobSource
+    RelationshipStatus, LifecycleStage, JobType, JobStatus, JobPriority, JobSource,
+    ProjectType, ProjectStatus, ProjectPriority
 )
 
 logger = logging.getLogger(__name__)
@@ -217,6 +218,45 @@ class EnumConverter:
         except (ValueError, AttributeError):
             logger.warning(f"Invalid job_source value: {value}, using default")
             return JobSource.OTHER
+    
+    @staticmethod
+    def safe_project_type(value: Any) -> ProjectType:
+        """Safely convert to ProjectType enum."""
+        if value is None:
+            return ProjectType.MAINTENANCE
+        if isinstance(value, ProjectType):
+            return value
+        try:
+            return ProjectType(str(value).lower())
+        except (ValueError, AttributeError):
+            logger.warning(f"Invalid project_type value: {value}, using default")
+            return ProjectType.MAINTENANCE
+    
+    @staticmethod
+    def safe_project_status(value: Any) -> ProjectStatus:
+        """Safely convert to ProjectStatus enum."""
+        if value is None:
+            return ProjectStatus.PLANNING
+        if isinstance(value, ProjectStatus):
+            return value
+        try:
+            return ProjectStatus(str(value).lower())
+        except (ValueError, AttributeError):
+            logger.warning(f"Invalid project_status value: {value}, using default")
+            return ProjectStatus.PLANNING
+    
+    @staticmethod
+    def safe_project_priority(value: Any) -> ProjectPriority:
+        """Safely convert to ProjectPriority enum."""
+        if value is None:
+            return ProjectPriority.MEDIUM
+        if isinstance(value, ProjectPriority):
+            return value
+        try:
+            return ProjectPriority(str(value).lower())
+        except (ValueError, AttributeError):
+            logger.warning(f"Invalid project_priority value: {value}, using default")
+            return ProjectPriority.MEDIUM
 
 
 class SupabaseConverter:
@@ -293,3 +333,49 @@ class SupabaseConverter:
         if isinstance(value, dict):
             return value
         return default 
+    
+    @staticmethod
+    def safe_list_field(value: Any, default: Optional[List] = None) -> List:
+        """Safely convert list field for API responses."""
+        if default is None:
+            default = []
+        if value is None:
+            return default
+        if isinstance(value, list):
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+                return parsed if isinstance(parsed, list) else default
+            except (json.JSONDecodeError, ValueError):
+                return default
+        return default
+    
+    @staticmethod
+    def safe_datetime_field(value: Any) -> Optional[datetime]:
+        """Safely convert datetime field for API responses."""
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, str):
+            try:
+                # Handle ISO format with Z suffix
+                return datetime.fromisoformat(value.replace('Z', '+00:00'))
+            except (ValueError, TypeError):
+                logger.warning(f"Failed to parse datetime: {value}")
+                return None
+        return None
+    
+    @staticmethod
+    def safe_uuid_field(value: Any) -> Optional[UUID]:
+        """Safely convert UUID field for API responses."""
+        if value is None:
+            return None
+        if isinstance(value, UUID):
+            return value
+        try:
+            return UUID(str(value))
+        except (ValueError, TypeError):
+            logger.warning(f"Failed to parse UUID: {value}")
+            return None 

@@ -22,7 +22,7 @@ from ..deps import get_current_user, get_business_controller
 # Configure logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(prefix="/businesses", tags=["businesses"])
 
 
 @router.get("/debug", status_code=200)
