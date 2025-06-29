@@ -18,6 +18,8 @@ TRUNCATE TABLE
     contact_segments,
     activities,
     jobs,
+    projects,
+    project_templates,
     contacts,
     user_capabilities,
     working_hours_templates,
@@ -1134,7 +1136,184 @@ INSERT INTO business_invitations (
     'Welcome to Elite Plumbing! Please join our team to start managing jobs and customers.'
 );
 
+-- 24. Create Project Templates (before projects)
+INSERT INTO project_templates (
+    id,
+    business_id,
+    name,
+    description,
+    project_type,
+    priority,
+    estimated_budget,
+    estimated_duration,
+    tags,
+    is_system_template
+) VALUES 
+-- Business-specific templates
+(
+    'pt0e8400-e29b-41d4-a716-446655440001'::uuid,
+    '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    'Complete Plumbing System Installation',
+    'Full residential plumbing system installation including main lines, fixtures, and testing',
+    'installation',
+    'high',
+    8500.00,
+    14,
+    ARRAY['plumbing', 'residential', 'new_construction'],
+    false
+),
+(
+    'pt0e8400-e29b-41d4-a716-446655440002'::uuid,
+    '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    'Bathroom Renovation Project',
+    'Complete bathroom renovation including plumbing fixtures, tile work, and vanity installation',
+    'renovation',
+    'medium',
+    12000.00,
+    21,
+    ARRAY['bathroom', 'renovation', 'residential'],
+    false
+),
+(
+    'pt0e8400-e29b-41d4-a716-446655440003'::uuid,
+    '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    'Commercial Maintenance Contract',
+    'Monthly maintenance contract for commercial properties',
+    'maintenance',
+    'low',
+    2400.00,
+    365,
+    ARRAY['commercial', 'maintenance', 'contract'],
+    false
+);
+
+-- 25. Create Projects
+INSERT INTO projects (
+    id,
+    business_id,
+    name,
+    description,
+    created_by,
+    client_id,
+    client_name,
+    client_address,
+    project_type,
+    status,
+    priority,
+    start_date,
+    end_date,
+    estimated_budget,
+    actual_cost,
+    manager,
+    manager_id,
+    team_members,
+    tags,
+    notes
+) VALUES 
+-- Completed Project
+(
+    'pj0e8400-e29b-41d4-a716-446655440001'::uuid,
+    '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    'Smith Kitchen Renovation',
+    'Complete kitchen plumbing renovation including new fixtures, dishwasher connection, and garbage disposal installation',
+    '550e8400-e29b-41d4-a716-446655440001'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
+    'John Smith',
+    '1234 Elm Street, Austin, TX 78701',
+    'renovation',
+    'completed',
+    'medium',
+    (now() - interval '2 months'),
+    (now() - interval '1 month'),
+    4500.00,
+    4250.00,
+    'David Chen',
+    '550e8400-e29b-41d4-a716-446655440003'::uuid,
+    ARRAY['550e8400-e29b-41d4-a716-446655440003'::uuid, '550e8400-e29b-41d4-a716-446655440005'::uuid],
+    ARRAY['kitchen', 'renovation', 'residential', 'completed'],
+    'Project completed successfully. Customer very satisfied with new fixtures and layout improvements.'
+),
+-- Active Project
+(
+    'pj0e8400-e29b-41d4-a716-446655440002'::uuid,
+    '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    'Austin Property Management - Quarterly Maintenance',
+    'Quarterly maintenance project covering all 50+ rental units with comprehensive plumbing inspections and repairs',
+    '550e8400-e29b-41d4-a716-446655440001'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440003'::uuid,
+    'Robert Davis - Austin Property Management',
+    '999 Business Park Dr, Austin, TX 78759',
+    'maintenance',
+    'active',
+    'high',
+    (now() - interval '2 weeks'),
+    (now() + interval '4 weeks'),
+    15000.00,
+    8750.00,
+    'Sarah Wilson',
+    '550e8400-e29b-41d4-a716-446655440002'::uuid,
+    ARRAY['550e8400-e29b-41d4-a716-446655440002'::uuid, '550e8400-e29b-41d4-a716-446655440003'::uuid],
+    ARRAY['commercial', 'maintenance', 'property_management', 'recurring'],
+    'Large maintenance contract. 60% complete. All units scheduled, 30 units completed so far.'
+),
+-- Planned Project
+(
+    'pj0e8400-e29b-41d4-a716-446655440003'::uuid,
+    '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    'Sunshine Restaurant Grease Trap Installation',
+    'Installation of new commercial grease trap system with maintenance agreement setup',
+    '550e8400-e29b-41d4-a716-446655440004'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440004'::uuid,
+    'Lisa Anderson - Sunshine Restaurant',
+    '246 Restaurant Row, Austin, TX 78701',
+    'installation',
+    'planning',
+    'medium',
+    (now() + interval '1 week'),
+    (now() + interval '3 weeks'),
+    6500.00,
+    0.00,
+    'Mike Johnson',
+    '550e8400-e29b-41d4-a716-446655440001'::uuid,
+    ARRAY['550e8400-e29b-41d4-a716-446655440001'::uuid, '550e8400-e29b-41d4-a716-446655440003'::uuid],
+    ARRAY['commercial', 'restaurant', 'installation', 'grease_trap'],
+    'Waiting for permits. Customer approved quote. Installation scheduled for next week.'
+),
+-- Emergency Project  
+(
+    'pj0e8400-e29b-41d4-a716-446655440004'::uuid,
+    '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    'Johnson Emergency Water Damage Restoration',
+    'Emergency plumbing repair and water damage mitigation for burst pipe in basement',
+    '550e8400-e29b-41d4-a716-446655440002'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440002'::uuid,
+    'Mary Johnson',
+    '5678 Oak Avenue, Austin, TX 78704',
+    'emergency',
+    'active',
+    'critical',
+    (now() - interval '6 hours'),
+    (now() + interval '3 days'),
+    3500.00,
+    1200.00,
+    'David Chen',
+    '550e8400-e29b-41d4-a716-446655440003'::uuid,
+    ARRAY['550e8400-e29b-41d4-a716-446655440003'::uuid, '550e8400-e29b-41d4-a716-446655440005'::uuid],
+    ARRAY['emergency', 'water_damage', 'residential', 'urgent'],
+    'Emergency response in progress. Initial pipe repair completed. Continuing with water damage assessment and repairs.'
+);
+
+-- Update Jobs to link to projects
+UPDATE jobs SET project_id = 'pj0e8400-e29b-41d4-a716-446655440001'::uuid 
+WHERE id = 'ee0e8400-e29b-41d4-a716-446655440001'::uuid;
+
+UPDATE jobs SET project_id = 'pj0e8400-e29b-41d4-a716-446655440004'::uuid 
+WHERE id = 'ee0e8400-e29b-41d4-a716-446655440002'::uuid;
+
+UPDATE jobs SET project_id = 'pj0e8400-e29b-41d4-a716-446655440002'::uuid 
+WHERE id = 'ee0e8400-e29b-41d4-a716-446655440003'::uuid;
+
 -- Update sequence counters to continue from our demo data
 -- (This ensures future records don't conflict with our demo UUIDs)
 
-COMMENT ON DATABASE postgres IS 'Hero365 Demo Database - Complete with realistic plumbing business data'; 
+COMMENT ON DATABASE postgres IS 'Hero365 Demo Database - Complete with realistic plumbing business data including projects'; 

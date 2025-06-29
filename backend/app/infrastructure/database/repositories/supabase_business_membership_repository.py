@@ -72,6 +72,10 @@ class SupabaseBusinessMembershipRepository(BusinessMembershipRepository):
         except Exception as e:
             raise DatabaseError(f"Failed to get membership by business and user: {str(e)}")
     
+    async def get_by_user_and_business(self, user_id: str, business_id: uuid.UUID) -> Optional[BusinessMembership]:
+        """Get business membership by user ID and business ID (alias for get_by_business_and_user)."""
+        return await self.get_by_business_and_user(business_id, user_id)
+    
     async def get_business_members(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[BusinessMembership]:
         """Get all members of a specific business."""
         try:

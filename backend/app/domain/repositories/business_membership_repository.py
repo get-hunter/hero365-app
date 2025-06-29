@@ -70,6 +70,23 @@ class BusinessMembershipRepository(ABC):
         pass
     
     @abstractmethod
+    async def get_by_user_and_business(self, user_id: str, business_id: uuid.UUID) -> Optional[BusinessMembership]:
+        """
+        Get business membership by user ID and business ID.
+        
+        Args:
+            user_id: ID of the user
+            business_id: ID of the business
+            
+        Returns:
+            BusinessMembership entity if found, None otherwise
+            
+        Raises:
+            DatabaseError: If retrieval fails
+        """
+        pass
+    
+    @abstractmethod
     async def get_business_members(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[BusinessMembership]:
         """
         Get all members of a specific business.

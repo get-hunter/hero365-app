@@ -1,434 +1,396 @@
 # Projects Management API Documentation
 
 ## Overview
+The Projects Management API provides comprehensive project management capabilities for Hero365, allowing mobile clients to create, manage, and track construction and service projects with associated jobs, budgets, and team assignments.
 
-The Projects Management API provides comprehensive endpoints for managing construction and service projects within the Hero365 platform. This API allows businesses to create, track, and manage projects from planning to completion.
+## Base URL
+All API endpoints are prefixed with `/api/v1/projects`
 
-## Core Features
+## Authentication
+All endpoints require authentication via Bearer token in the Authorization header.
 
-- ✅ **Project CRUD Operations**: Complete project lifecycle management
-- ✅ **Project Templates**: System and custom templates for quick project creation
-- ✅ **Advanced Search & Filtering**: Comprehensive search capabilities
-- ✅ **Team Management**: Assign managers and team members
-- ✅ **Financial Tracking**: Budget estimation and cost tracking
-- ✅ **Analytics & Reporting**: Project performance insights
-- ✅ **Job Integration**: Associate jobs with projects
-- ✅ **Status Management**: Project lifecycle tracking
+## Core Endpoints
 
-## Data Models
+### 1. List Projects
+**GET** `/api/v1/projects`
 
-### Project Entity
-```json
-{
-  "id": "uuid",
-  "business_id": "uuid", 
-  "name": "string",
-  "description": "string",
-  "created_by": "string",
-  "client_id": "uuid",
-  "client_name": "string",
-  "client_address": "string",
-  "project_type": "enum",
-  "status": "enum",
-  "priority": "enum",
-  "start_date": "datetime",
-  "end_date": "datetime?",
-  "estimated_budget": "decimal",
-  "actual_cost": "decimal",
-  "manager": "string?",
-  "manager_id": "uuid?",
-  "team_members": "array<string>",
-  "tags": "array<string>",
-  "notes": "string?",
-  "created_date": "datetime",
-  "last_modified": "datetime"
-}
-```
-
-### Project Template Entity
-```json
-{
-  "id": "uuid",
-  "business_id": "uuid?",
-  "name": "string",
-  "description": "string", 
-  "project_type": "enum",
-  "priority": "enum",
-  "estimated_budget": "decimal",
-  "estimated_duration": "integer?",
-  "tags": "array<string>",
-  "is_system_template": "boolean",
-  "created_date": "datetime",
-  "last_modified": "datetime"
-}
-```
-
-### Enums
-
-#### ProjectType
-- `maintenance` - Maintenance projects
-- `installation` - Installation projects  
-- `renovation` - Renovation projects
-- `emergency` - Emergency projects
-- `consultation` - Consultation projects
-- `inspection` - Inspection projects
-- `repair` - Repair projects
-- `construction` - Construction projects
-
-#### ProjectStatus
-- `planning` - Project in planning phase
-- `active` - Project actively in progress
-- `on_hold` - Project temporarily paused
-- `completed` - Project completed
-- `cancelled` - Project cancelled
-
-#### ProjectPriority
-- `low` - Low priority
-- `medium` - Medium priority
-- `high` - High priority
-- `critical` - Critical priority
-
-## API Endpoints
-
-### Projects
-
-#### Create Project
-```http
-POST /api/v1/projects
-```
-
-**Request Body:**
-```json
-{
-  "name": "Kitchen Renovation Project",
-  "description": "Complete kitchen renovation including appliances, cabinets, and flooring",
-  "client_id": "550e8400-e29b-41d4-a716-446655440000",
-  "project_type": "renovation",
-  "priority": "high",
-  "start_date": "2024-02-01T09:00:00Z",
-  "end_date": "2024-03-15T17:00:00Z",
-  "estimated_budget": "25000.00",
-  "manager_id": "550e8400-e29b-41d4-a716-446655440001",
-  "team_members": ["user1", "user2"],
-  "tags": ["kitchen", "renovation", "residential"],
-  "notes": "Client wants premium appliances and custom cabinets"
-}
-```
-
-**Response:** `201 Created`
-```json
-{
-  "success": true,
-  "message": "Project created successfully",
-  "project_id": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
-#### Get Projects
-```http
-GET /api/v1/projects
-```
+**Description:** Retrieve a paginated list of projects for the authenticated user's business.
 
 **Query Parameters:**
-- `search` (optional): Search term for name, description, or client
-- `status` (optional): Filter by project status
-- `project_type` (optional): Filter by project type
-- `priority` (optional): Filter by priority
-- `client_id` (optional): Filter by client
-- `manager_id` (optional): Filter by manager
-- `start_date_from` (optional): Filter by start date range
-- `start_date_to` (optional): Filter by start date range
-- `tags` (optional): Filter by tags (comma-separated)
-- `is_overdue` (optional): Filter overdue projects
-- `is_over_budget` (optional): Filter over-budget projects
-- `skip` (optional): Pagination offset (default: 0)
-- `limit` (optional): Pagination limit (default: 100, max: 1000)
-- `sort_by` (optional): Sort field (default: "created_date")
-- `sort_order` (optional): Sort order "asc" or "desc" (default: "desc")
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 20, max: 100)
+- `status` (optional): Filter by project status (`planning`, `active`, `on_hold`, `completed`, `cancelled`)
+- `priority` (optional): Filter by priority (`low`, `medium`, `high`, `critical`)
+- `project_type` (optional): Filter by type (`maintenance`, `installation`, `renovation`, `emergency`, `consultation`, `inspection`, `repair`, `construction`)
+- `search` (optional): Search in project name, description, or client name
+- `manager_id` (optional): Filter by project manager UUID
+- `client_id` (optional): Filter by client UUID
 
-**Response:** `200 OK`
+**Response:**
 ```json
 {
   "projects": [
     {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "Kitchen Renovation Project",
-      "client_name": "John Doe",
+      "id": "pj0e8400-e29b-41d4-a716-446655440001",
+      "business_id": "660e8400-e29b-41d4-a716-446655440000",
+      "name": "Smith Kitchen Renovation",
+      "description": "Complete kitchen plumbing renovation including new fixtures, dishwasher connection, and garbage disposal installation",
+      "created_by": "550e8400-e29b-41d4-a716-446655440001",
+      "client_id": "bb0e8400-e29b-41d4-a716-446655440001",
+      "client_name": "John Smith",
+      "client_address": "1234 Elm Street, Austin, TX 78701",
       "project_type": "renovation",
-      "status": "active",
-      "priority": "high",
-      "start_date": "2024-02-01T09:00:00Z",
-      "end_date": "2024-03-15T17:00:00Z",
-      "estimated_budget": "25000.00",
-      "actual_cost": "12500.00",
-      "manager": "Jane Smith",
+      "status": "completed",
+      "priority": "medium",
+      "start_date": "2024-11-01T00:00:00Z",
+      "end_date": "2024-12-01T00:00:00Z",
+      "estimated_budget": "4500.00",
+      "actual_cost": "4250.00",
+      "manager": "David Chen",
+      "manager_id": "550e8400-e29b-41d4-a716-446655440003",
+      "team_members": ["550e8400-e29b-41d4-a716-446655440003", "550e8400-e29b-41d4-a716-446655440005"],
+      "tags": ["kitchen", "renovation", "residential", "completed"],
+      "notes": "Project completed successfully. Customer very satisfied with new fixtures and layout improvements.",
+      "created_date": "2024-11-01T00:00:00Z",
+      "last_modified": "2024-12-01T00:00:00Z",
       "is_overdue": false,
       "is_over_budget": false,
-      "created_date": "2024-01-15T10:00:00Z",
-      "last_modified": "2024-01-20T14:30:00Z",
-      "status_display": "Active",
-      "priority_display": "High",
+      "budget_variance": "-250.00",
+      "budget_variance_percentage": "-5.56",
+      "duration_days": 30,
+      "status_display": "Completed",
+      "priority_display": "Medium",
       "type_display": "Renovation"
     }
   ],
   "pagination": {
     "current_page": 1,
-    "total_pages": 10,
-    "total_items": 95,
-    "items_per_page": 10
+    "total_pages": 1,
+    "total_items": 1,
+    "items_per_page": 20
   }
 }
 ```
 
-#### Get Project by ID
-```http
-GET /api/v1/projects/{project_id}
-```
+### 2. Get Project Details
+**GET** `/api/v1/projects/{project_id}`
 
-**Response:** `200 OK` - Full project details with computed fields
+**Description:** Retrieve detailed information about a specific project.
 
-#### Update Project
-```http
-PUT /api/v1/projects/{project_id}
-```
+**Path Parameters:**
+- `project_id`: UUID of the project
 
-**Request Body:** Partial project data (same fields as create, all optional)
-
-**Response:** `200 OK`
+**Response:**
 ```json
 {
-  "success": true,
-  "message": "Project updated successfully",
-  "project_id": "550e8400-e29b-41d4-a716-446655440000"
+  "id": "pj0e8400-e29b-41d4-a716-446655440001",
+  "business_id": "660e8400-e29b-41d4-a716-446655440000",
+  "name": "Smith Kitchen Renovation",
+  "description": "Complete kitchen plumbing renovation including new fixtures, dishwasher connection, and garbage disposal installation",
+  "created_by": "550e8400-e29b-41d4-a716-446655440001",
+  "client_id": "bb0e8400-e29b-41d4-a716-446655440001",
+  "client_name": "John Smith",
+  "client_address": "1234 Elm Street, Austin, TX 78701",
+  "project_type": "renovation",
+  "status": "completed",
+  "priority": "medium",
+  "start_date": "2024-11-01T00:00:00Z",
+  "end_date": "2024-12-01T00:00:00Z",
+  "estimated_budget": "4500.00",
+  "actual_cost": "4250.00",
+  "manager": "David Chen",
+  "manager_id": "550e8400-e29b-41d4-a716-446655440003",
+  "team_members": ["550e8400-e29b-41d4-a716-446655440003", "550e8400-e29b-41d4-a716-446655440005"],
+  "tags": ["kitchen", "renovation", "residential", "completed"],
+  "notes": "Project completed successfully. Customer very satisfied with new fixtures and layout improvements.",
+  "created_date": "2024-11-01T00:00:00Z",
+  "last_modified": "2024-12-01T00:00:00Z",
+  "is_overdue": false,
+  "is_over_budget": false,
+  "budget_variance": "-250.00",
+  "budget_variance_percentage": "-5.56",
+  "duration_days": 30,
+  "status_display": "Completed",
+  "priority_display": "Medium",
+  "type_display": "Renovation"
 }
 ```
 
-#### Update Project Status
-```http
-PATCH /api/v1/projects/{project_id}/status
-```
+### 3. Create Project
+**POST** `/api/v1/projects`
+
+**Description:** Create a new project.
 
 **Request Body:**
 ```json
 {
-  "status": "active",
-  "notes": "Project has been approved and work is starting"
+  "name": "New Bathroom Installation",
+  "description": "Complete bathroom installation with modern fixtures and tile work",
+  "client_id": "bb0e8400-e29b-41d4-a716-446655440001",
+  "project_type": "installation",
+  "priority": "medium",
+  "start_date": "2024-02-01T00:00:00Z",
+  "end_date": "2024-02-15T00:00:00Z",
+  "estimated_budget": 8500.00,
+  "manager_id": "550e8400-e29b-41d4-a716-446655440003",
+  "team_members": ["550e8400-e29b-41d4-a716-446655440003", "550e8400-e29b-41d4-a716-446655440005"],
+  "tags": ["bathroom", "installation", "residential"],
+  "notes": "Customer wants high-end fixtures and heated floors"
 }
 ```
 
-#### Delete Project
-```http
-DELETE /api/v1/projects/{project_id}
-```
+**Response:** Returns the created project object with generated ID and timestamps.
 
-**Response:** `200 OK`
+### 4. Update Project
+**PUT** `/api/v1/projects/{project_id}`
+
+**Description:** Update an existing project.
+
+**Path Parameters:**
+- `project_id`: UUID of the project
+
+**Request Body:**
 ```json
 {
-  "success": true,
+  "name": "Updated Project Name",
+  "description": "Updated description",
+  "project_type": "renovation",
+  "priority": "high",
+  "start_date": "2024-02-01T00:00:00Z",
+  "end_date": "2024-02-20T00:00:00Z",
+  "estimated_budget": 9000.00,
+  "actual_cost": 8750.00,
+  "manager_id": "550e8400-e29b-41d4-a716-446655440002",
+  "team_members": ["550e8400-e29b-41d4-a716-446655440002", "550e8400-e29b-41d4-a716-446655440003"],
+  "tags": ["updated", "high-priority"],
+  "notes": "Updated project requirements and timeline"
+}
+```
+
+**Response:** Returns the updated project object.
+
+### 5. Delete Project
+**DELETE** `/api/v1/projects/{project_id}`
+
+**Description:** Delete a project (only if no associated jobs exist).
+
+**Path Parameters:**
+- `project_id`: UUID of the project
+
+**Response:** 
+```json
+{
   "message": "Project deleted successfully"
 }
 ```
 
-### Project Templates
+### 6. Update Project Status
+**PATCH** `/api/v1/projects/{project_id}/status`
 
-#### Get Templates
-```http
-GET /api/v1/projects/templates
+**Description:** Update only the status of a project.
+
+**Path Parameters:**
+- `project_id`: UUID of the project
+
+**Request Body:**
+```json
+{
+  "status": "active"
+}
 ```
+
+**Response:** Returns the updated project object.
+
+## Project Templates
+
+### 7. List Project Templates
+**GET** `/api/v1/projects/templates`
+
+**Description:** Retrieve available project templates (both system and business-specific).
 
 **Query Parameters:**
 - `project_type` (optional): Filter by project type
-- `is_system_template` (optional): Filter system vs business templates
+- `business_only` (optional): Return only business-specific templates (default: false)
 
-**Response:** `200 OK` - Array of project templates
-
-#### Create Template
-```http
-POST /api/v1/projects/templates
-```
-
-**Request Body:**
+**Response:**
 ```json
 {
-  "name": "Standard HVAC Installation",
-  "description": "Template for standard residential HVAC installation projects",
-  "project_type": "installation",
-  "priority": "medium",
-  "estimated_budget": "12000.00",
-  "estimated_duration": 14,
-  "tags": ["hvac", "residential", "installation"]
-}
-```
-
-#### Create Project from Template
-```http
-POST /api/v1/projects/from-template
-```
-
-**Request Body:**
-```json
-{
-  "template_id": "550e8400-e29b-41d4-a716-446655440010",
-  "client_id": "550e8400-e29b-41d4-a716-446655440000",
-  "start_date": "2024-02-01T09:00:00Z",
-  "custom_name": "Johnson Home HVAC Installation",
-  "custom_budget": "15000.00",
-  "manager_id": "550e8400-e29b-41d4-a716-446655440001"
-}
-```
-
-### Project Analytics
-
-#### Get Project Analytics
-```http
-GET /api/v1/projects/analytics
-```
-
-**Response:** `200 OK`
-```json
-{
-  "total_projects": 156,
-  "active_projects": 23,
-  "completed_projects": 120,
-  "projects_by_status": {
-    "planning": 8,
-    "active": 23,
-    "on_hold": 5,
-    "completed": 120,
-    "cancelled": 0
-  },
-  "projects_by_type": {
-    "maintenance": 45,
-    "installation": 32,
-    "renovation": 28
-  },
-  "budget_analytics": {
-    "total_estimated_budget": 1250000.00,
-    "total_actual_cost": 980000.00,
-    "average_project_budget": 8012.82,
-    "projects_over_budget": 12,
-    "budget_variance_percentage": -21.6
-  },
-  "timeline_analytics": {
-    "average_project_duration": 14,
-    "overdue_projects": 3,
-    "upcoming_deadlines": 7
-  }
-}
-```
-
-### Project-Job Integration
-
-#### Assign Jobs to Project
-```http
-POST /api/v1/projects/{project_id}/jobs
-```
-
-**Request Body:**
-```json
-{
-  "job_ids": ["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002"]
-}
-```
-
-#### Get Project Jobs
-```http
-GET /api/v1/projects/{project_id}/jobs
-```
-
-**Response:** Array of jobs associated with the project
-
-## Error Responses
-
-### Validation Error
-```json
-{
-  "error": "ValidationError",
-  "message": "Invalid request data",
-  "validation_errors": [
+  "templates": [
     {
-      "field": "start_date",
-      "message": "Start date is required"
+      "id": "pt0e8400-e29b-41d4-a716-446655440001",
+      "business_id": "660e8400-e29b-41d4-a716-446655440000",
+      "name": "Complete Plumbing System Installation",
+      "description": "Full residential plumbing system installation including main lines, fixtures, and testing",
+      "project_type": "installation",
+      "priority": "high",
+      "estimated_budget": "8500.00",
+      "estimated_duration": 14,
+      "tags": ["plumbing", "residential", "new_construction"],
+      "is_system_template": false,
+      "created_date": "2024-01-01T00:00:00Z",
+      "last_modified": "2024-01-01T00:00:00Z"
     }
   ]
 }
 ```
 
-### Not Found Error
+### 8. Create Project From Template
+**POST** `/api/v1/projects/templates/{template_id}/create`
+
+**Description:** Create a new project based on a template.
+
+**Path Parameters:**
+- `template_id`: UUID of the template
+
+**Request Body:**
 ```json
 {
-  "error": "PROJECT_NOT_FOUND",
-  "message": "Project not found",
+  "name": "Custom Project Name",
+  "description": "Custom project description (optional - uses template if not provided)",
+  "client_id": "bb0e8400-e29b-41d4-a716-446655440001",
+  "client_name": "John Smith",
+  "client_email": "john@example.com",
+  "client_phone": "+1-512-555-1234",
+  "address": "123 Main St, Austin, TX 78701",
+  "start_date": "2024-02-01T00:00:00Z",
+  "end_date": "2024-02-15T00:00:00Z",
+  "estimated_hours": 40,
+  "budget_amount": 8500.00,
+  "team_members": ["550e8400-e29b-41d4-a716-446655440003"],
+  "tags": ["from-template"],
+  "notes": "Created from template with custom modifications"
+}
+```
+
+**Response:** Returns the created project object.
+
+## Project Jobs
+
+### 9. Get Project Jobs
+**GET** `/api/v1/projects/{project_id}/jobs`
+
+**Description:** Retrieve all jobs associated with a specific project.
+
+**Path Parameters:**
+- `project_id`: UUID of the project
+
+**Response:**
+```json
+{
+  "jobs": [
+    {
+      "id": "ee0e8400-e29b-41d4-a716-446655440001",
+      "job_number": "JOB-2024-001",
+      "title": "Kitchen Sink Repair",
+      "description": "Repair leaky kitchen sink faucet and replace worn gaskets",
+      "job_type": "repair",
+      "status": "completed",
+      "priority": "medium",
+      "project_id": "pj0e8400-e29b-41d4-a716-446655440001",
+      "estimated_cost": 150.00,
+      "actual_cost": 125.00,
+      "scheduled_start": "2024-11-15T08:00:00Z",
+      "scheduled_end": "2024-11-15T10:00:00Z",
+      "created_date": "2024-11-14T00:00:00Z"
+    }
+  ]
+}
+```
+
+## Error Responses
+
+All endpoints may return the following error responses:
+
+### 400 Bad Request
+```json
+{
+  "error": "Bad Request",
+  "message": "Invalid request data",
   "details": {
-    "project_id": "550e8400-e29b-41d4-a716-446655440000"
+    "field": "start_date",
+    "issue": "Start date must be before end date"
   }
 }
 ```
 
-### Business Rule Error
+### 401 Unauthorized
 ```json
 {
-  "error": "BUSINESS_RULE_VIOLATION",
-  "message": "End date must be after start date",
-  "details": {
-    "start_date": "2024-02-01T09:00:00Z",
-    "end_date": "2024-01-30T17:00:00Z"
-  }
+  "error": "Unauthorized",
+  "message": "Authentication required"
 }
 ```
 
-## Authentication & Authorization
+### 403 Forbidden
+```json
+{
+  "error": "Forbidden",
+  "message": "Insufficient permissions to access this resource"
+}
+```
 
-All endpoints require:
-- **Authentication**: Valid JWT token in Authorization header
-- **Authorization**: User must be an active member of the business
-- **Permissions**: Specific permissions based on user role:
-  - `VIEW_PROJECTS`: View projects
-  - `CREATE_PROJECTS`: Create new projects
-  - `EDIT_PROJECTS`: Update existing projects
-  - `DELETE_PROJECTS`: Delete projects
-  - `MANAGE_TEMPLATES`: Create/edit project templates
+### 404 Not Found
+```json
+{
+  "error": "Not Found",
+  "message": "Project not found"
+}
+```
 
-## Rate Limiting
+### 422 Unprocessable Entity
+```json
+{
+  "error": "Validation Error",
+  "message": "Request validation failed",
+  "details": [
+    {
+      "field": "estimated_budget",
+      "message": "Must be a positive number"
+    }
+  ]
+}
+```
 
-- **Standard endpoints**: 100 requests per minute per user
-- **Analytics endpoints**: 10 requests per minute per user
-- **Bulk operations**: 20 requests per minute per user
+## Data Types and Enums
 
-## Data Validation
+### Project Types
+- `maintenance`: Routine maintenance and upkeep
+- `installation`: New installations and setups
+- `renovation`: Renovation and remodeling work
+- `emergency`: Emergency repairs and responses
+- `consultation`: Consultation and planning services
+- `inspection`: Inspection and assessment work
+- `repair`: Standard repairs and fixes
+- `construction`: New construction work
 
-All request data is validated using Pydantic schemas with:
-- ✅ Field type validation
-- ✅ Field length constraints
-- ✅ Business rule validation
-- ✅ Cross-field validation (e.g., end_date > start_date)
-- ✅ Enum value validation
-- ✅ UUID format validation
+### Project Status
+- `planning`: Project is in planning phase
+- `active`: Project is actively being worked on
+- `on_hold`: Project is temporarily paused
+- `completed`: Project has been completed
+- `cancelled`: Project has been cancelled
 
-## Database Schema
+### Project Priority
+- `low`: Low priority project
+- `medium`: Medium priority project  
+- `high`: High priority project
+- `critical`: Critical priority project
 
-The implementation includes:
-- ✅ Proper database indexes for query performance
-- ✅ Row Level Security (RLS) for business data isolation
-- ✅ Automatic timestamp triggers
-- ✅ Foreign key relationships with proper cascade rules
-- ✅ Check constraints for data integrity
-- ✅ Full-text search indexes
+## Best Practices
 
-## Integration Notes
+1. **Always validate dates**: Ensure end_date is after start_date when both are provided
+2. **Budget tracking**: Update actual_cost regularly to track budget performance
+3. **Team assignments**: Verify team members have appropriate permissions for project work
+4. **Status management**: Follow proper status flow (planning → active → completed/cancelled)
+5. **Client information**: Keep client contact information up-to-date for project communication
+6. **Tags usage**: Use consistent tagging for better project organization and reporting
 
-### iOS Mobile App Integration
-- All datetime fields use ISO 8601 format with timezone information
-- Decimal fields use string representation for precision
-- Enum values are validated on both client and server
-- Proper error handling with structured error responses
-- Pagination support for large datasets
+## Mobile App Integration Notes
 
-### Business Logic
-- Projects can contain multiple jobs
-- Template system supports both system-wide and business-specific templates
-- Automatic budget variance calculations
-- Overdue project detection based on end_date vs current date
-- Team member assignment with manager designation
-
-This API provides a complete foundation for project management within the Hero365 mobile application, following clean architecture principles and using Pydantic for comprehensive data validation. 
+- All datetime fields are returned in ISO 8601 format with UTC timezone
+- Budget amounts are returned as strings to maintain precision
+- UUIDs are used for all entity references
+- Pagination is supported on list endpoints
+- Search functionality is available for finding projects quickly
+- Status updates can be performed independently for quick status changes
+- Template-based creation streamlines project setup process 

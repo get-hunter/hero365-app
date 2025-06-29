@@ -222,7 +222,7 @@ async def delete_project(
 
 
 @router.get(
-    "/",
+    "",
     response_model=ProjectListPaginatedResponse,
     summary="List projects",
     description="Get a paginated list of projects for the business."
@@ -243,9 +243,13 @@ async def list_projects(
         
         return ProjectListPaginatedResponse(
             projects=projects,
-            total=len(projects),
-            skip=skip,
-            limit=limit
+            pagination={
+                "total": len(projects),
+                "skip": skip,
+                "limit": limit,
+                "has_next": len(projects) == limit,
+                "has_previous": skip > 0
+            }
         )
         
     except PermissionDeniedError as e:
@@ -289,9 +293,13 @@ async def search_projects(
         
         return ProjectListPaginatedResponse(
             projects=projects,
-            total=len(projects),
-            skip=skip,
-            limit=limit
+            pagination={
+                "total": len(projects),
+                "skip": skip,
+                "limit": limit,
+                "has_next": len(projects) == limit,
+                "has_previous": skip > 0
+            }
         )
         
     except PermissionDeniedError as e:
