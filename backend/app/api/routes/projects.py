@@ -20,7 +20,7 @@ from ..schemas.project_schemas import (
     ProjectCreateFromTemplateRequest, ProjectResponse, ProjectListResponse,
     ProjectStatisticsResponse, ProjectBudgetSummaryResponse, ProjectProgressReportResponse,
     ProjectTemplateResponse, ProjectListPaginatedResponse, ProjectActionResponse,
-    ProjectErrorResponse
+    ProjectErrorResponse, ProjectJobAssignmentResponse, ProjectJobAssignmentRequest
 )
 from ...application.use_cases.project.create_project_use_case import CreateProjectUseCase
 from ...application.use_cases.project.get_project_use_case import GetProjectUseCase
@@ -518,4 +518,164 @@ async def create_project_from_template(
         raise HTTPException(status_code=403, detail=str(e))
     except Exception as e:
         logger.error(f"Error creating project from template: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# Project-Job Management Endpoints
+@router.post(
+    "/{project_id}/jobs",
+    response_model=ProjectJobAssignmentResponse,
+    summary="Assign jobs to project",
+    description="Assign multiple jobs to a project."
+)
+async def assign_jobs_to_project(
+    project_id: uuid.UUID,
+    assignment_data: ProjectJobAssignmentRequest,
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user)
+) -> ProjectJobAssignmentResponse:
+    """Assign jobs to a project."""
+    try:
+        from ...infrastructure.config.dependency_injection import get_job_repository, get_project_repository
+        
+        user_id = current_user["sub"]
+        business_id = business_context["business_id"]
+        
+        # Get repositories
+        job_repository = get_job_repository()
+        project_repository = get_project_repository()
+        
+        # Validate project exists and user has permission
+        project = await project_repository.get_by_id(project_id, business_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        job_ids = assignment_data.job_ids
+        if not job_ids:
+            raise HTTPException(status_code=400, detail="At least one job ID required")
+        
+        updated_count = 0
+        for job_id in job_ids:
+            job = await job_repository.get_by_id(job_id)
+            if job and job.business_id == business_id:
+                job.project_id = project_id
+                await job_repository.update(job)
+                updated_count += 1
+        
+        return ProjectJobAssignmentResponse(
+            project_id=project_id,
+            job_ids=job_ids,
+            message=f"Successfully assigned {updated_count} jobs to project"
+        )
+        
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionDeniedError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error assigning jobs to project: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get(
+    "/{project_id}/jobs",
+    response_model=List[dict],  # Will be JobListResponse when imported
+    summary="Get project jobs",
+    description="Get all jobs associated with a project."
+)
+async def get_project_jobs(
+    project_id: uuid.UUID,
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user)
+) -> List[dict]:
+    """Get all jobs for a project."""
+    try:
+        from ...infrastructure.config.dependency_injection import get_job_repository, get_project_repository
+        
+        user_id = current_user["sub"]
+        business_id = business_context["business_id"]
+        
+        # Get repositories
+        job_repository = get_job_repository()
+        project_repository = get_project_repository()
+        
+        # Validate project exists and user has permission
+        project = await project_repository.get_by_id(project_id, business_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        # Get jobs for this project
+        jobs = await job_repository.get_by_project_id(project_id, business_id)
+        
+        # Convert to response format
+        return [
+            {
+                "id": str(job.id),
+                "job_number": job.job_number,
+                "title": job.title,
+                "job_type": job.job_type.value,
+                "status": job.status.value,
+                "priority": job.priority.value,
+                "assigned_to": job.assigned_to,
+                "scheduled_start": job.scheduled_start.isoformat() if job.scheduled_start else None,
+                "scheduled_end": job.scheduled_end.isoformat() if job.scheduled_end else None,
+                "created_date": job.created_date.isoformat(),
+                "last_modified": job.last_modified.isoformat()
+            }
+            for job in jobs
+        ]
+        
+    except PermissionDeniedError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error getting project jobs: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.delete(
+    "/{project_id}/jobs/{job_id}",
+    response_model=ProjectActionResponse,
+    summary="Remove job from project",
+    description="Remove a job from a project (sets project_id to NULL)."
+)
+async def remove_job_from_project(
+    project_id: uuid.UUID,
+    job_id: uuid.UUID,
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user)
+) -> ProjectActionResponse:
+    """Remove a job from a project."""
+    try:
+        from ...infrastructure.config.dependency_injection import get_job_repository
+        
+        user_id = current_user["sub"]
+        business_id = business_context["business_id"]
+        
+        # Get repository
+        job_repository = get_job_repository()
+        
+        # Get and validate job
+        job = await job_repository.get_by_id(job_id)
+        if not job or job.business_id != business_id:
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        if job.project_id != project_id:
+            raise HTTPException(status_code=400, detail="Job is not assigned to this project")
+        
+        # Remove project association
+        job.project_id = None
+        await job_repository.update(job)
+        
+        return ProjectActionResponse(
+            success=True,
+            message="Job successfully removed from project",
+            project_id=project_id
+        )
+        
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionDeniedError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error removing job from project: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error") 

@@ -409,6 +409,19 @@ class ProjectAssignmentRequest(BaseModel):
     }
 
 
+class ProjectJobAssignmentRequest(BaseModel):
+    """Schema for assigning jobs to a project."""
+    job_ids: List[uuid.UUID] = Field(..., min_length=1, max_length=50, description="List of job IDs to assign to the project")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "job_ids": ["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002"]
+            }
+        }
+    }
+
+
 class ProjectTemplateCreateRequest(BaseModel):
     """Schema for project template creation request."""
     name: Annotated[str, StringConstraints(min_length=1, max_length=200)]

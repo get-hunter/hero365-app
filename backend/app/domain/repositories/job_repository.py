@@ -72,6 +72,12 @@ class JobRepository(ABC):
         pass
     
     @abstractmethod
+    async def get_by_project_id(self, project_id: uuid.UUID, business_id: uuid.UUID,
+                               skip: int = 0, limit: int = 100) -> List[Job]:
+        """Get jobs associated with a specific project."""
+        pass
+    
+    @abstractmethod
     async def get_scheduled_jobs(self, business_id: uuid.UUID, start_date: datetime,
                                 end_date: datetime, skip: int = 0, limit: int = 100) -> List[Job]:
         """Get jobs scheduled within a date range."""

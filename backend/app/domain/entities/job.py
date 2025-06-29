@@ -15,10 +15,6 @@ from decimal import Decimal
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
 
-
-# Enums now imported from centralized enums module
-
-
 # Import unified Address value object
 from ..value_objects.address import Address
 
@@ -140,6 +136,7 @@ class Job:
     
     # Optional fields (with default values)
     contact_id: Optional[uuid.UUID] = None
+    project_id: Optional[uuid.UUID] = None  # Reference to project if job is part of a project
     description: Optional[str] = None
     
     # Location and timing

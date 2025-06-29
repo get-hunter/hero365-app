@@ -178,6 +178,23 @@ class SupabaseJobRepository(JobRepository):
         except Exception as e:
             raise DomainValidationError(f"Failed to get jobs by assigned user: {str(e)}")
     
+    async def get_by_project_id(self, project_id: uuid.UUID, business_id: uuid.UUID,
+                               skip: int = 0, limit: int = 100) -> List[Job]:
+        """Get jobs associated with a specific project."""
+        try:
+            result = (self.client.table("jobs")
+                     .select("*")
+                     .eq("business_id", str(business_id))
+                     .eq("project_id", str(project_id))
+                     .order("created_date", desc=True)
+                     .range(skip, skip + limit - 1)
+                     .execute())
+            
+            return [self._dict_to_job(job_data) for job_data in result.data]
+        
+        except Exception as e:
+            raise DomainValidationError(f"Failed to get jobs by project: {str(e)}")
+    
     async def get_scheduled_jobs(self, business_id: uuid.UUID, start_date: datetime,
                                 end_date: datetime, skip: int = 0, limit: int = 100) -> List[Job]:
         """Get jobs scheduled within a date range."""
@@ -747,6 +764,7 @@ class SupabaseJobRepository(JobRepository):
             "id": str(job.id),
             "business_id": str(job.business_id),
             "contact_id": str(job.contact_id) if job.contact_id else None,
+            "project_id": str(job.project_id) if job.project_id else None,
             "job_number": job.job_number,
             "title": job.title,
             "description": job.description,
@@ -864,6 +882,7 @@ class SupabaseJobRepository(JobRepository):
             id=uuid.UUID(data["id"]),
             business_id=uuid.UUID(data["business_id"]),
             contact_id=uuid.UUID(data["contact_id"]) if data.get("contact_id") else None,
+            project_id=uuid.UUID(data["project_id"]) if data.get("project_id") else None,
             job_number=data["job_number"],
             title=data["title"],
             description=data.get("description"),
