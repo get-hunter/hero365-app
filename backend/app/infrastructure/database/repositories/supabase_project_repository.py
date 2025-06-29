@@ -664,26 +664,24 @@ class SupabaseProjectRepository(ProjectRepository):
             "project_number": project.project_number,
             "name": project.name,
             "description": project.description,
-            "project_type": project.project_type.value,
-            "status": project.status.value,
-            "priority": project.priority.value,
-            "contact_id": str(project.contact_id) if project.contact_id else None,
+            "created_by": project.created_by,
+            "client_id": str(project.client_id),
             "client_name": project.client_name,
-            "client_email": project.client_email,
-            "client_phone": project.client_phone,
-            "address": project.address.model_dump() if project.address else None,
+            "address": project.address.to_dict() if project.address else {},
+            "project_type": project.project_type.value if hasattr(project.project_type, 'value') else project.project_type,
+            "status": project.status.value if hasattr(project.status, 'value') else project.status,
+            "priority": project.priority.value if hasattr(project.priority, 'value') else project.priority,
             "start_date": project.start_date.isoformat() if project.start_date else None,
             "end_date": project.end_date.isoformat() if project.end_date else None,
-            "estimated_hours": float(project.estimated_hours) if project.estimated_hours else None,
-            "actual_hours": float(project.actual_hours) if project.actual_hours else None,
-            "budget_amount": float(project.budget_amount) if project.budget_amount else None,
-            "actual_cost": float(project.actual_cost) if project.actual_cost else None,
-            "team_members": project.team_members,
-            "tags": project.tags,
+            "estimated_budget": float(project.estimated_budget) if project.estimated_budget else 0.0,
+            "actual_cost": float(project.actual_cost) if project.actual_cost else 0.0,
+            "manager": project.manager,
+            "manager_id": str(project.manager_id) if project.manager_id else None,
+            "team_members": project.team_members or [],
+            "tags": project.tags or [],
             "notes": project.notes,
-            "created_by": project.created_by,
             "created_date": project.created_date.isoformat(),
-            "updated_date": project.updated_date.isoformat() if project.updated_date else None
+            "last_modified": project.last_modified.isoformat()
         }
     
     def _dict_to_project(self, data: Dict[str, Any]) -> Project:
@@ -692,39 +690,70 @@ class SupabaseProjectRepository(ProjectRepository):
         
         # Handle address conversion
         address = None
-        if data.get("address"):
+        if data.get("address") and data["address"] != {}:
             if isinstance(data["address"], dict):
-                address = Address(**data["address"])
+                address = Address.from_dict(data["address"])
             elif isinstance(data["address"], str):
-                address_data = json.loads(data["address"])
-                address = Address(**address_data)
+                try:
+                    address_data = json.loads(data["address"])
+                    address = Address.from_dict(address_data)
+                except (json.JSONDecodeError, TypeError):
+                    logger.warning(f"Failed to parse address JSON for project {data.get('id')}")
+                    address = None
+        
+        # Parse dates
+        created_date = datetime.now()
+        if data.get("created_date"):
+            try:
+                created_date = datetime.fromisoformat(data["created_date"].replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                created_date = datetime.now()
+        
+        last_modified = datetime.now()
+        if data.get("last_modified"):
+            try:
+                last_modified = datetime.fromisoformat(data["last_modified"].replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                last_modified = datetime.now()
+        
+        start_date = None
+        if data.get("start_date"):
+            try:
+                start_date = datetime.fromisoformat(data["start_date"].replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                start_date = None
+        
+        end_date = None
+        if data.get("end_date"):
+            try:
+                end_date = datetime.fromisoformat(data["end_date"].replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                end_date = None
         
         return Project(
             id=uuid.UUID(data["id"]),
             business_id=uuid.UUID(data["business_id"]),
-            project_number=data["project_number"],
+            project_number=data.get("project_number"),
             name=data["name"],
-            description=data.get("description"),
+            description=data.get("description", ""),
+            created_by=data["created_by"],
+            client_id=uuid.UUID(data["client_id"]),
+            client_name=data.get("client_name", ""),
+            address=address,
             project_type=ProjectType(data["project_type"]),
             status=ProjectStatus(data["status"]),
             priority=ProjectPriority(data["priority"]),
-            contact_id=uuid.UUID(data["contact_id"]) if data.get("contact_id") else None,
-            client_name=data.get("client_name"),
-            client_email=data.get("client_email"),
-            client_phone=data.get("client_phone"),
-            address=address,
-            start_date=datetime.fromisoformat(data["start_date"]).date() if data.get("start_date") else None,
-            end_date=datetime.fromisoformat(data["end_date"]).date() if data.get("end_date") else None,
-            estimated_hours=Decimal(str(data["estimated_hours"])) if data.get("estimated_hours") else None,
-            actual_hours=Decimal(str(data["actual_hours"])) if data.get("actual_hours") else None,
-            budget_amount=Decimal(str(data["budget_amount"])) if data.get("budget_amount") else None,
-            actual_cost=Decimal(str(data["actual_cost"])) if data.get("actual_cost") else None,
+            start_date=start_date,
+            end_date=end_date,
+            estimated_budget=Decimal(str(data.get("estimated_budget", 0))),
+            actual_cost=Decimal(str(data.get("actual_cost", 0))),
+            manager=data.get("manager"),
+            manager_id=uuid.UUID(data["manager_id"]) if data.get("manager_id") else None,
             team_members=data.get("team_members", []),
             tags=data.get("tags", []),
             notes=data.get("notes"),
-            created_by=data["created_by"],
-            created_date=datetime.fromisoformat(data["created_date"]),
-            updated_date=datetime.fromisoformat(data["updated_date"]) if data.get("updated_date") else None
+            created_date=created_date,
+            last_modified=last_modified
         )
 
 

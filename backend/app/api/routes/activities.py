@@ -74,7 +74,7 @@ async def create_activity(
     )
     
     # Create activity
-    activity = await use_case.create_activity(dto, current_user["id"])
+    activity = await use_case.create_activity(dto, current_user["sub"])
     
     return activity
 
@@ -92,7 +92,7 @@ async def get_activity(
     Retrieves detailed information about a specific activity.
     Requires 'view_contacts' permission.
     """
-    activity = await use_case.get_activity(activity_id, current_user["id"])
+    activity = await use_case.get_activity(activity_id, current_user["sub"])
     return activity
 
 
@@ -129,7 +129,7 @@ async def update_activity(
     )
     
     # Update activity
-    activity = await use_case.update_activity(dto, current_user["id"])
+    activity = await use_case.update_activity(dto, current_user["sub"])
     
     return activity
 
@@ -147,7 +147,7 @@ async def delete_activity(
     Permanently deletes an activity and all associated data.
     Requires 'delete_contacts' permission.
     """
-    success = await use_case.delete_activity(activity_id, current_user["id"])
+    success = await use_case.delete_activity(activity_id, current_user["sub"])
     
     if success:
         return MessageResponse(message="Activity deleted successfully")
@@ -215,7 +215,7 @@ async def get_user_activities(
     
     activities = await use_case.get_user_activities(
         business_id=business_context["business_id"],
-        user_id=current_user["id"],
+        user_id=current_user["sub"],
         statuses=status_enums,
         start_date=start_date,
         end_date=end_date,
@@ -242,7 +242,7 @@ async def get_overdue_activities(
     """
     activities = await use_case.get_overdue_activities(
         business_id=business_context["business_id"],
-        user_id=current_user["id"],
+        user_id=current_user["sub"],
         assigned_to=assigned_to
     )
     
@@ -266,7 +266,7 @@ async def get_upcoming_activities(
     """
     activities = await use_case.get_upcoming_activities(
         business_id=business_context["business_id"],
-        user_id=current_user["id"],
+        user_id=current_user["sub"],
         days_ahead=days_ahead,
         assigned_to=assigned_to
     )
@@ -303,7 +303,7 @@ async def get_contact_timeline(
         limit=pagination.limit
     )
     
-    timeline = await use_case.get_contact_timeline(dto, current_user["id"])
+    timeline = await use_case.get_contact_timeline(dto, current_user["sub"])
     
     return timeline
 
@@ -342,7 +342,7 @@ async def bulk_update_activities(
                 notes=bulk_request.notes
             )
             
-            await use_case.update_activity(dto, current_user["id"])
+            await use_case.update_activity(dto, current_user["sub"])
             success_count += 1
             
         except Exception as e:
@@ -385,7 +385,7 @@ async def create_activity_template(
         custom_fields=request.custom_fields
     )
     
-    template = await use_case.create_activity_template(dto, current_user["id"])
+    template = await use_case.create_activity_template(dto, current_user["sub"])
     
     return template
 
@@ -410,7 +410,7 @@ async def get_activity_templates(
     
     templates = await use_case.get_business_templates(
         business_id=business_context["business_id"],
-        user_id=current_user["id"],
+        user_id=current_user["sub"],
         activity_type=activity_type_enum
     )
     
@@ -437,7 +437,7 @@ async def get_activity_statistics(
     """
     statistics = await use_case.get_activity_statistics(
         business_id=business_context["business_id"],
-        user_id=current_user["id"],
+        user_id=current_user["sub"],
         start_date=start_date,
         end_date=end_date,
         filter_user_id=user_filter
@@ -463,7 +463,7 @@ async def get_contact_activity_summary(
     summary = await use_case.get_contact_activity_summary(
         contact_id=contact_id,
         business_id=business_context["business_id"],
-        user_id=current_user["id"]
+        user_id=current_user["sub"]
     )
     
     return ContactActivitySummaryResponse(**summary)
@@ -486,7 +486,7 @@ async def get_pending_reminders(
     """
     reminders = await use_case.get_pending_reminders(
         business_id=business_context["business_id"],
-        user_id=current_user["id"]
+        user_id=current_user["sub"]
     )
     
     return reminders
@@ -509,7 +509,7 @@ async def mark_reminder_sent(
     success = await use_case.mark_reminder_sent(
         activity_id=activity_id,
         reminder_id=reminder_id,
-        user_id=current_user["id"]
+        user_id=current_user["sub"]
     )
     
     if success:
@@ -540,20 +540,20 @@ async def get_dashboard_activities(
     # Get various activity lists
     overdue_activities = await use_case.get_overdue_activities(
         business_id=business_context["business_id"],
-        user_id=current_user["id"],
-        assigned_to=current_user["id"]
+        user_id=current_user["sub"],
+        assigned_to=current_user["sub"]
     )
     
     upcoming_activities = await use_case.get_upcoming_activities(
         business_id=business_context["business_id"],
-        user_id=current_user["id"],
+        user_id=current_user["sub"],
         days_ahead=7,
-        assigned_to=current_user["id"]
+        assigned_to=current_user["sub"]
     )
     
     user_activities = await use_case.get_user_activities(
         business_id=business_context["business_id"],
-        user_id=current_user["id"],
+        user_id=current_user["sub"],
         statuses=[ActivityStatus.COMPLETED],
         skip=0,
         limit=5
@@ -561,13 +561,13 @@ async def get_dashboard_activities(
     
     statistics = await use_case.get_activity_statistics(
         business_id=business_context["business_id"],
-        user_id=current_user["id"],
-        filter_user_id=current_user["id"]
+        user_id=current_user["sub"],
+        filter_user_id=current_user["sub"]
     )
     
     reminders = await use_case.get_pending_reminders(
         business_id=business_context["business_id"],
-        user_id=current_user["id"]
+        user_id=current_user["sub"]
     )
     
     # Count high priority activities

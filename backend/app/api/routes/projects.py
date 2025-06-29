@@ -32,7 +32,8 @@ from ...application.use_cases.project.project_assignment_use_case import Project
 from ...application.use_cases.project.project_template_use_case import ProjectTemplateUseCase
 from ...application.dto.project_dto import (
     ProjectCreateDTO, ProjectUpdateDTO, ProjectSearchDTO, ProjectAssignmentDTO,
-    ProjectTemplateCreateDTO, ProjectTemplateUpdateDTO, ProjectCreateFromTemplateDTO
+    ProjectTemplateCreateDTO, ProjectTemplateUpdateDTO, ProjectCreateFromTemplateDTO,
+    ContactAddressDTO
 )
 from ...application.exceptions.application_exceptions import (
     ValidationError, NotFoundError, PermissionDeniedError, BusinessRuleViolationError
@@ -50,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.post(
-    "/",
+    "",
     response_model=ProjectResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new project",
@@ -67,6 +68,24 @@ async def create_project(
         user_id = current_user["sub"]
         business_id = business_context["business_id"]
         
+        # Convert address if provided
+        address_dto = None
+        if project_data.address:
+            logger.info(f"🔧 ProjectAPI: Converting address: {project_data.address}")
+            address_dto = ContactAddressDTO(
+                street_address=project_data.address.street_address,
+                city=project_data.address.city,
+                state=project_data.address.state,
+                postal_code=project_data.address.postal_code,
+                country=project_data.address.country,
+                latitude=project_data.address.latitude,
+                longitude=project_data.address.longitude,
+                access_notes=project_data.address.access_notes,
+                place_id=project_data.address.place_id,
+                formatted_address=project_data.address.formatted_address,
+                address_type=project_data.address.address_type
+            )
+        
         # Convert request to DTO
         create_dto = ProjectCreateDTO(
             business_id=business_id,
@@ -80,7 +99,7 @@ async def create_project(
             client_name=project_data.client_name,
             client_email=project_data.client_email,
             client_phone=project_data.client_phone,
-            address=project_data.address,
+            address=address_dto,
             start_date=project_data.start_date,
             end_date=project_data.end_date,
             estimated_hours=project_data.estimated_hours,
@@ -93,7 +112,58 @@ async def create_project(
         )
         
         result = await use_case.execute(business_id, create_dto, user_id)
-        return result
+        
+        # Convert DTO to API response schema
+        # Convert ContactAddressDTO to dict if present
+        address_dict = None
+        if result.client_address:
+            address_dict = {
+                "street_address": result.client_address.street_address,
+                "city": result.client_address.city,
+                "state": result.client_address.state,
+                "postal_code": result.client_address.postal_code,
+                "country": result.client_address.country,
+                "latitude": result.client_address.latitude,
+                "longitude": result.client_address.longitude,
+                "access_notes": result.client_address.access_notes,
+                "place_id": result.client_address.place_id,
+                "formatted_address": result.client_address.formatted_address,
+                "address_type": result.client_address.address_type
+            }
+        
+        return ProjectResponse(
+            id=result.id,
+            business_id=result.business_id,
+            project_number=result.project_number,
+            name=result.name,
+            description=result.description,
+            created_by=result.created_by,
+            client_id=result.client_id,
+            client_name=result.client_name,
+            address=address_dict,
+            project_type=result.project_type,
+            status=result.status,
+            priority=result.priority,
+            start_date=result.start_date,
+            end_date=result.end_date,
+            estimated_budget=result.estimated_budget,
+            actual_cost=result.actual_cost,
+            manager=result.manager,
+            manager_id=result.manager_id,
+            team_members=result.team_members,
+            tags=result.tags,
+            notes=result.notes,
+            created_date=result.created_date,
+            last_modified=result.last_modified,
+            is_overdue=result.is_overdue,
+            is_over_budget=result.is_over_budget,
+            budget_variance=result.budget_variance,
+            budget_variance_percentage=result.budget_variance_percentage,
+            duration_days=result.duration_days,
+            status_display=result.status_display,
+            priority_display=result.priority_display,
+            type_display=result.type_display
+        )
         
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -121,7 +191,58 @@ async def get_project(
         user_id = current_user["sub"]
         business_id = business_context["business_id"]
         result = await use_case.execute(project_id, business_id, user_id)
-        return result
+        
+        # Convert DTO to API response schema
+        # Convert ContactAddressDTO to dict if present
+        address_dict = None
+        if result.client_address:
+            address_dict = {
+                "street_address": result.client_address.street_address,
+                "city": result.client_address.city,
+                "state": result.client_address.state,
+                "postal_code": result.client_address.postal_code,
+                "country": result.client_address.country,
+                "latitude": result.client_address.latitude,
+                "longitude": result.client_address.longitude,
+                "access_notes": result.client_address.access_notes,
+                "place_id": result.client_address.place_id,
+                "formatted_address": result.client_address.formatted_address,
+                "address_type": result.client_address.address_type
+            }
+        
+        return ProjectResponse(
+            id=result.id,
+            business_id=result.business_id,
+            project_number=result.project_number,
+            name=result.name,
+            description=result.description,
+            created_by=result.created_by,
+            client_id=result.client_id,
+            client_name=result.client_name,
+            address=address_dict,
+            project_type=result.project_type,
+            status=result.status,
+            priority=result.priority,
+            start_date=result.start_date,
+            end_date=result.end_date,
+            estimated_budget=result.estimated_budget,
+            actual_cost=result.actual_cost,
+            manager=result.manager,
+            manager_id=result.manager_id,
+            team_members=result.team_members,
+            tags=result.tags,
+            notes=result.notes,
+            created_date=result.created_date,
+            last_modified=result.last_modified,
+            is_overdue=result.is_overdue,
+            is_over_budget=result.is_over_budget,
+            budget_variance=result.budget_variance,
+            budget_variance_percentage=result.budget_variance_percentage,
+            duration_days=result.duration_days,
+            status_display=result.status_display,
+            priority_display=result.priority_display,
+            type_display=result.type_display
+        )
         
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -150,8 +271,27 @@ async def update_project(
         user_id = current_user["sub"]
         business_id = business_context["business_id"]
         
+        # Convert address if provided
+        address_dto = None
+        if project_data.address:
+            logger.info(f"🔧 ProjectAPI: Converting address: {project_data.address}")
+            address_dto = ContactAddressDTO(
+                street_address=project_data.address.street_address,
+                city=project_data.address.city,
+                state=project_data.address.state,
+                postal_code=project_data.address.postal_code,
+                country=project_data.address.country,
+                latitude=project_data.address.latitude,
+                longitude=project_data.address.longitude,
+                access_notes=project_data.address.access_notes,
+                place_id=project_data.address.place_id,
+                formatted_address=project_data.address.formatted_address,
+                address_type=project_data.address.address_type
+            )
+        
         # Convert request to DTO
         update_dto = ProjectUpdateDTO(
+            project_id=project_id,
             name=project_data.name,
             description=project_data.description,
             project_type=project_data.project_type,
@@ -161,7 +301,7 @@ async def update_project(
             client_name=project_data.client_name,
             client_email=project_data.client_email,
             client_phone=project_data.client_phone,
-            address=project_data.address,
+            address=address_dto,
             start_date=project_data.start_date,
             end_date=project_data.end_date,
             estimated_hours=project_data.estimated_hours,
@@ -173,8 +313,59 @@ async def update_project(
             notes=project_data.notes
         )
         
-        result = await use_case.execute(project_id, business_id, update_dto, user_id)
-        return result
+        result = await use_case.execute(business_id, update_dto, user_id)
+        
+        # Convert DTO to API response schema
+        # Convert ContactAddressDTO to dict if present
+        address_dict = None
+        if result.client_address:
+            address_dict = {
+                "street_address": result.client_address.street_address,
+                "city": result.client_address.city,
+                "state": result.client_address.state,
+                "postal_code": result.client_address.postal_code,
+                "country": result.client_address.country,
+                "latitude": result.client_address.latitude,
+                "longitude": result.client_address.longitude,
+                "access_notes": result.client_address.access_notes,
+                "place_id": result.client_address.place_id,
+                "formatted_address": result.client_address.formatted_address,
+                "address_type": result.client_address.address_type
+            }
+        
+        return ProjectResponse(
+            id=result.id,
+            business_id=result.business_id,
+            project_number=result.project_number,
+            name=result.name,
+            description=result.description,
+            created_by=result.created_by,
+            client_id=result.client_id,
+            client_name=result.client_name,
+            address=address_dict,
+            project_type=result.project_type,
+            status=result.status,
+            priority=result.priority,
+            start_date=result.start_date,
+            end_date=result.end_date,
+            estimated_budget=result.estimated_budget,
+            actual_cost=result.actual_cost,
+            manager=result.manager,
+            manager_id=result.manager_id,
+            team_members=result.team_members,
+            tags=result.tags,
+            notes=result.notes,
+            created_date=result.created_date,
+            last_modified=result.last_modified,
+            is_overdue=result.is_overdue,
+            is_over_budget=result.is_over_budget,
+            budget_variance=result.budget_variance,
+            budget_variance_percentage=result.budget_variance_percentage,
+            duration_days=result.duration_days,
+            status_display=result.status_display,
+            priority_display=result.priority_display,
+            type_display=result.type_display
+        )
         
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -420,7 +611,58 @@ async def assign_team_members(
         )
         
         result = await use_case.assign_team_members(project_id, business_id, assignment_dto, user_id)
-        return result
+        
+        # Convert DTO to API response schema
+        # Convert ContactAddressDTO to dict if present
+        address_dict = None
+        if result.client_address:
+            address_dict = {
+                "street_address": result.client_address.street_address,
+                "city": result.client_address.city,
+                "state": result.client_address.state,
+                "postal_code": result.client_address.postal_code,
+                "country": result.client_address.country,
+                "latitude": result.client_address.latitude,
+                "longitude": result.client_address.longitude,
+                "access_notes": result.client_address.access_notes,
+                "place_id": result.client_address.place_id,
+                "formatted_address": result.client_address.formatted_address,
+                "address_type": result.client_address.address_type
+            }
+        
+        return ProjectResponse(
+            id=result.id,
+            business_id=result.business_id,
+            project_number=result.project_number,
+            name=result.name,
+            description=result.description,
+            created_by=result.created_by,
+            client_id=result.client_id,
+            client_name=result.client_name,
+            address=address_dict,
+            project_type=result.project_type,
+            status=result.status,
+            priority=result.priority,
+            start_date=result.start_date,
+            end_date=result.end_date,
+            estimated_budget=result.estimated_budget,
+            actual_cost=result.actual_cost,
+            manager=result.manager,
+            manager_id=result.manager_id,
+            team_members=result.team_members,
+            tags=result.tags,
+            notes=result.notes,
+            created_date=result.created_date,
+            last_modified=result.last_modified,
+            is_overdue=result.is_overdue,
+            is_over_budget=result.is_over_budget,
+            budget_variance=result.budget_variance,
+            budget_variance_percentage=result.budget_variance_percentage,
+            duration_days=result.duration_days,
+            status_display=result.status_display,
+            priority_display=result.priority_display,
+            type_display=result.type_display
+        )
         
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -495,6 +737,24 @@ async def create_project_from_template(
         user_id = current_user["sub"]
         business_id = business_context["business_id"]
         
+        # Convert address if provided
+        address_dto = None
+        if project_data.address:
+            logger.info(f"🔧 ProjectAPI: Converting address: {project_data.address}")
+            address_dto = ContactAddressDTO(
+                street_address=project_data.address.street_address,
+                city=project_data.address.city,
+                state=project_data.address.state,
+                postal_code=project_data.address.postal_code,
+                country=project_data.address.country,
+                latitude=project_data.address.latitude,
+                longitude=project_data.address.longitude,
+                access_notes=project_data.address.access_notes,
+                place_id=project_data.address.place_id,
+                formatted_address=project_data.address.formatted_address,
+                address_type=project_data.address.address_type
+            )
+        
         create_dto = ProjectCreateFromTemplateDTO(
             project_number=project_data.project_number,
             name=project_data.name,
@@ -505,7 +765,7 @@ async def create_project_from_template(
             client_name=project_data.client_name,
             client_email=project_data.client_email,
             client_phone=project_data.client_phone,
-            address=project_data.address,
+            address=address_dto,
             start_date=project_data.start_date,
             end_date=project_data.end_date,
             estimated_hours=project_data.estimated_hours,
@@ -516,7 +776,58 @@ async def create_project_from_template(
         )
         
         result = await use_case.create_project_from_template(business_id, template_id, create_dto, user_id)
-        return result
+        
+        # Convert DTO to API response schema
+        # Convert ContactAddressDTO to dict if present
+        address_dict = None
+        if result.client_address:
+            address_dict = {
+                "street_address": result.client_address.street_address,
+                "city": result.client_address.city,
+                "state": result.client_address.state,
+                "postal_code": result.client_address.postal_code,
+                "country": result.client_address.country,
+                "latitude": result.client_address.latitude,
+                "longitude": result.client_address.longitude,
+                "access_notes": result.client_address.access_notes,
+                "place_id": result.client_address.place_id,
+                "formatted_address": result.client_address.formatted_address,
+                "address_type": result.client_address.address_type
+            }
+        
+        return ProjectResponse(
+            id=result.id,
+            business_id=result.business_id,
+            project_number=result.project_number,
+            name=result.name,
+            description=result.description,
+            created_by=result.created_by,
+            client_id=result.client_id,
+            client_name=result.client_name,
+            address=address_dict,
+            project_type=result.project_type,
+            status=result.status,
+            priority=result.priority,
+            start_date=result.start_date,
+            end_date=result.end_date,
+            estimated_budget=result.estimated_budget,
+            actual_cost=result.actual_cost,
+            manager=result.manager,
+            manager_id=result.manager_id,
+            team_members=result.team_members,
+            tags=result.tags,
+            notes=result.notes,
+            created_date=result.created_date,
+            last_modified=result.last_modified,
+            is_overdue=result.is_overdue,
+            is_over_budget=result.is_over_budget,
+            budget_variance=result.budget_variance,
+            budget_variance_percentage=result.budget_variance_percentage,
+            duration_days=result.duration_days,
+            status_display=result.status_display,
+            priority_display=result.priority_display,
+            type_display=result.type_display
+        )
         
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))

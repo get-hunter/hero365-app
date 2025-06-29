@@ -17,6 +17,7 @@ from typing_extensions import Annotated
 from ...utils import format_datetime_utc
 from ...domain.enums import ProjectType, ProjectStatus, ProjectPriority
 from ..converters import EnumConverter, SupabaseConverter
+from .contact_schemas import ContactAddressSchema
 
 # Use centralized enums directly as API schemas  
 ProjectTypeSchema = ProjectType
@@ -27,14 +28,23 @@ ProjectPrioritySchema = ProjectPriority
 # Base schemas
 class ProjectCreateRequest(BaseModel):
     """Schema for project creation request."""
+    project_number: Optional[str] = Field(default=None, max_length=50)
     name: Annotated[str, StringConstraints(min_length=1, max_length=200)]
     description: Annotated[str, StringConstraints(min_length=1, max_length=1000)]
-    client_id: uuid.UUID
     project_type: ProjectTypeSchema
+    status: ProjectStatusSchema
     priority: ProjectPrioritySchema
+    contact_id: Optional[uuid.UUID] = None
+    client_name: Optional[str] = Field(default=None, max_length=200)
+    client_email: Optional[str] = Field(default=None, max_length=200)
+    client_phone: Optional[str] = Field(default=None, max_length=50)
+    address: Optional[ContactAddressSchema] = Field(None, description="Project address")
     start_date: datetime
     end_date: Optional[datetime] = None
-    estimated_budget: Optional[Decimal] = Field(default=None, ge=0, decimal_places=2)
+    estimated_hours: Optional[Decimal] = Field(default=None, ge=0)
+    actual_hours: Optional[Decimal] = Field(default=None, ge=0)
+    budget_amount: Optional[Decimal] = Field(default=None, ge=0, decimal_places=2)
+    actual_cost: Optional[Decimal] = Field(default=None, ge=0, decimal_places=2)
     manager_id: Optional[uuid.UUID] = None
     team_members: Optional[List[str]] = Field(default=None, max_length=20)
     tags: Optional[List[str]] = Field(default=None, max_length=50)
@@ -66,14 +76,26 @@ class ProjectCreateRequest(BaseModel):
     model_config = {
         "json_schema_extra": {
             "example": {
+                "project_number": "PROJ-2024-001",
                 "name": "Kitchen Renovation Project",
                 "description": "Complete kitchen renovation including appliances, cabinets, and flooring",
-                "client_id": "550e8400-e29b-41d4-a716-446655440000",
                 "project_type": "renovation",
+                "status": "planning",
                 "priority": "high",
+                "contact_id": "550e8400-e29b-41d4-a716-446655440000",
+                "client_name": "John Doe",
+                "client_email": "john@example.com",
+                "client_phone": "555-0123",
+                "address": {
+                    "street_address": "123 Main Street",
+                    "city": "Anytown",
+                    "state": "CA",
+                    "postal_code": "12345",
+                    "country": "US"
+                },
                 "start_date": "2024-02-01T09:00:00Z",
                 "end_date": "2024-03-15T17:00:00Z",
-                "estimated_budget": "25000.00",
+                "budget_amount": "25000.00",
                 "manager_id": "550e8400-e29b-41d4-a716-446655440001",
                 "team_members": ["user1", "user2"],
                 "tags": ["kitchen", "renovation", "residential"],
@@ -88,10 +110,18 @@ class ProjectUpdateRequest(BaseModel):
     name: Optional[Annotated[str, StringConstraints(min_length=1, max_length=200)]] = None
     description: Optional[Annotated[str, StringConstraints(min_length=1, max_length=1000)]] = None
     project_type: Optional[ProjectTypeSchema] = None
+    status: Optional[ProjectStatusSchema] = None
     priority: Optional[ProjectPrioritySchema] = None
+    contact_id: Optional[uuid.UUID] = None
+    client_name: Optional[str] = Field(default=None, max_length=200)
+    client_email: Optional[str] = Field(default=None, max_length=200)
+    client_phone: Optional[str] = Field(default=None, max_length=50)
+    address: Optional[ContactAddressSchema] = Field(None, description="Project address")
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
-    estimated_budget: Optional[Decimal] = Field(default=None, ge=0, decimal_places=2)
+    estimated_hours: Optional[Decimal] = Field(default=None, ge=0)
+    actual_hours: Optional[Decimal] = Field(default=None, ge=0)
+    budget_amount: Optional[Decimal] = Field(default=None, ge=0, decimal_places=2)
     actual_cost: Optional[Decimal] = Field(default=None, ge=0, decimal_places=2)
     manager_id: Optional[uuid.UUID] = None
     team_members: Optional[List[str]] = Field(default=None, max_length=20)
@@ -124,9 +154,17 @@ class ProjectUpdateRequest(BaseModel):
             "example": {
                 "name": "Updated Kitchen Renovation Project",
                 "description": "Updated project description",
+                "status": "active",
                 "priority": "critical",
-                "estimated_budget": "30000.00",
+                "budget_amount": "30000.00",
                 "actual_cost": "28500.00",
+                "address": {
+                    "street_address": "123 Updated Street",
+                    "city": "New City",
+                    "state": "CA",
+                    "postal_code": "12345",
+                    "country": "US"
+                },
                 "notes": "Updated project notes"
             }
         }
@@ -222,12 +260,13 @@ class ProjectResponse(BaseModel):
     
     id: uuid.UUID = Field(..., description="Project ID")
     business_id: uuid.UUID = Field(..., description="Business ID")
+    project_number: Optional[str] = Field(None, description="Project number")
     name: str = Field(..., description="Project name")
     description: str = Field(..., description="Project description")
     created_by: str = Field(..., description="Creator user ID")
     client_id: uuid.UUID = Field(..., description="Client ID")
     client_name: str = Field(..., description="Client name")
-    client_address: str = Field(..., description="Client address")
+    address: Optional[ContactAddressSchema] = Field(None, description="Project address")
     project_type: ProjectTypeSchema = Field(..., description="Project type")
     status: ProjectStatusSchema = Field(..., description="Project status")
     priority: ProjectPrioritySchema = Field(..., description="Project priority")
@@ -303,6 +342,7 @@ class ProjectListResponse(BaseModel):
     
     id: uuid.UUID = Field(..., description="Project ID")
     name: str = Field(..., description="Project name")
+    client_id: uuid.UUID = Field(..., description="Client ID")
     client_name: str = Field(..., description="Client name")
     project_type: ProjectTypeSchema = Field(..., description="Project type")
     status: ProjectStatusSchema = Field(..., description="Project status")
@@ -339,6 +379,11 @@ class ProjectListResponse(BaseModel):
     @classmethod
     def validate_datetime_fields(cls, v):
         return SupabaseConverter.safe_datetime_field(v)
+
+    @field_validator('id', 'client_id', mode='before')
+    @classmethod
+    def validate_uuid_fields(cls, v):
+        return SupabaseConverter.safe_uuid_field(v)
 
     @field_serializer('created_date', 'last_modified', 'start_date', 'end_date')
     def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
@@ -494,7 +539,7 @@ class ProjectCreateFromTemplateRequest(BaseModel):
     client_name: Optional[str] = Field(default=None, max_length=200)
     client_email: Optional[str] = Field(default=None, max_length=200)
     client_phone: Optional[str] = Field(default=None, max_length=50)
-    address: Optional[str] = Field(default=None, max_length=500)
+    address: Optional[ContactAddressSchema] = Field(None, description="Project address")
     start_date: datetime
     end_date: Optional[datetime] = None
     estimated_hours: Optional[Decimal] = Field(default=None, ge=0)
@@ -535,6 +580,13 @@ class ProjectCreateFromTemplateRequest(BaseModel):
                 "contact_id": "550e8400-e29b-41d4-a716-446655440000",
                 "client_name": "John Johnson",
                 "client_email": "john@johnson.com",
+                "address": {
+                    "street_address": "123 Main Street",
+                    "city": "Anytown",
+                    "state": "CA",
+                    "postal_code": "12345",
+                    "country": "US"
+                },
                 "start_date": "2024-02-01T09:00:00Z",
                 "budget_amount": "15000.00"
             }

@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from ..enums import ProjectType, ProjectStatus, ProjectPriority
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
+from ..value_objects.address import Address
 
 
 class Project(BaseModel):
@@ -34,12 +35,13 @@ class Project(BaseModel):
     # Required fields
     id: uuid.UUID
     business_id: uuid.UUID
+    project_number: Optional[str] = Field(None, max_length=50, description="Unique project number within business")
     name: str = Field(..., min_length=1, max_length=200)
     description: str = Field(..., min_length=1, max_length=1000)
     created_by: str = Field(..., description="User ID who created this project")
     client_id: uuid.UUID
     client_name: str = Field(..., min_length=1, max_length=200)
-    client_address: str = Field(..., min_length=1, max_length=500)
+    address: Optional[Address] = Field(None, description="Project address using unified address system")
     project_type: ProjectType
     status: ProjectStatus = ProjectStatus.PLANNING
     priority: ProjectPriority
@@ -71,7 +73,7 @@ class Project(BaseModel):
             raise ValueError('End date must be after start date')
         return v
     
-    @field_validator('name', 'description', 'client_name', 'client_address')
+    @field_validator('name', 'description', 'client_name')
     @classmethod
     def validate_required_strings(cls, v):
         """Validate required string fields are not empty."""
@@ -96,8 +98,9 @@ class Project(BaseModel):
     @classmethod
     def create_project(cls, business_id: uuid.UUID, name: str, description: str,
                       created_by: str, client_id: uuid.UUID, client_name: str,
-                      client_address: str, project_type: ProjectType,
+                      address: Optional[Address], project_type: ProjectType,
                       priority: ProjectPriority, start_date: datetime,
+                      project_number: Optional[str] = None,
                       end_date: Optional[datetime] = None,
                       estimated_budget: Optional[Decimal] = None,
                       manager_id: Optional[uuid.UUID] = None,
@@ -109,12 +112,13 @@ class Project(BaseModel):
         project = cls(
             id=uuid.uuid4(),
             business_id=business_id,
+            project_number=project_number,
             name=name,
             description=description,
             created_by=created_by,
             client_id=client_id,
             client_name=client_name,
-            client_address=client_address,
+            address=address,
             project_type=project_type,
             status=ProjectStatus.PLANNING,
             priority=priority,
@@ -149,7 +153,9 @@ class Project(BaseModel):
             ProjectStatus.CANCELLED: []  # Terminal state
         }
         
-        return new_status in allowed_transitions.get(self.status, [])
+        # Handle both string and enum values for current status
+        current_status = ProjectStatus(self.status) if isinstance(self.status, str) else self.status
+        return new_status in allowed_transitions.get(current_status, [])
     
     def assign_team_member(self, user_id: str) -> None:
         """Assign a team member to the project."""
@@ -221,8 +227,11 @@ class Project(BaseModel):
     
     def is_overdue(self) -> bool:
         """Check if project is overdue."""
-        if self.end_date and self.status not in [ProjectStatus.COMPLETED, ProjectStatus.CANCELLED]:
-            return datetime.now(timezone.utc) > self.end_date
+        if self.end_date:
+            # Handle both string and enum values for status
+            status_value = self.status if isinstance(self.status, str) else self.status.value
+            if status_value not in [ProjectStatus.COMPLETED.value, ProjectStatus.CANCELLED.value]:
+                return datetime.now(timezone.utc) > self.end_date
         return False
     
     def get_duration_days(self) -> Optional[int]:
@@ -233,28 +242,37 @@ class Project(BaseModel):
     
     def get_status_display(self) -> str:
         """Get human-readable status."""
+        if isinstance(self.status, str):
+            return ProjectStatus(self.status).get_display()
         return self.status.get_display()
     
     def get_priority_display(self) -> str:
         """Get human-readable priority."""
+        if isinstance(self.priority, str):
+            return ProjectPriority(self.priority).get_display()
         return self.priority.get_display()
     
     def get_type_display(self) -> str:
         """Get human-readable type."""
+        if isinstance(self.project_type, str):
+            return ProjectType(self.project_type).get_display()
         return self.project_type.get_display()
     
     def can_be_deleted(self) -> bool:
         """Check if project can be deleted."""
         # Projects can only be deleted if they are in planning or cancelled status
-        return self.status in [ProjectStatus.PLANNING, ProjectStatus.CANCELLED]
+        status_value = self.status if isinstance(self.status, str) else self.status.value
+        return status_value in [ProjectStatus.PLANNING.value, ProjectStatus.CANCELLED.value]
     
     def is_active(self) -> bool:
         """Check if project is currently active."""
-        return self.status == ProjectStatus.ACTIVE
+        status_value = self.status if isinstance(self.status, str) else self.status.value
+        return status_value == ProjectStatus.ACTIVE.value
     
     def is_completed(self) -> bool:
         """Check if project is completed."""
-        return self.status == ProjectStatus.COMPLETED
+        status_value = self.status if isinstance(self.status, str) else self.status.value
+        return status_value == ProjectStatus.COMPLETED.value
 
 
 class ProjectTemplate(BaseModel):

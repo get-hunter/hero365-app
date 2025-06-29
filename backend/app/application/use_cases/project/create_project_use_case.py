@@ -12,6 +12,7 @@ import logging
 from ...dto.project_dto import ProjectCreateDTO, ProjectResponseDTO
 from ...exceptions.application_exceptions import ValidationError
 from app.domain.entities.project import Project
+from app.domain.value_objects.address import Address
 from app.domain.repositories.project_repository import ProjectRepository
 from app.domain.repositories.contact_repository import ContactRepository
 from .project_helper_service import ProjectHelperService
@@ -72,31 +73,45 @@ class CreateProjectUseCase:
                 await self.project_helper_service.validate_assigned_users(business_id, project_data.team_members)
                 logger.info("Team members validation passed")
             
+            # Convert address DTO to Address value object
+            project_address = None
+            if project_data.address:
+                logger.info("Converting address DTO to Address value object...")
+                project_address = Address(
+                    street_address=project_data.address.street_address or "",
+                    city=project_data.address.city or "",
+                    state=project_data.address.state or "",
+                    postal_code=project_data.address.postal_code or "",
+                    country=project_data.address.country or "US",
+                    latitude=project_data.address.latitude,
+                    longitude=project_data.address.longitude,
+                    access_notes=project_data.address.access_notes,
+                    place_id=project_data.address.place_id,
+                    formatted_address=project_data.address.formatted_address,
+                    address_type=project_data.address.address_type
+                )
+                logger.info("Address conversion completed")
+            
             # Create project entity using Pydantic validation
             logger.info("Creating project entity...")
-            project = Project.create(
+            project = Project.create_project(
                 business_id=business_id,
-                project_number=project_number,
                 name=project_data.name,
                 description=project_data.description,
+                created_by=created_by,
+                client_id=project_data.contact_id or uuid.uuid4(),  # Use contact_id or generate UUID
+                client_name=project_data.client_name or "",
+                address=project_address,
                 project_type=project_data.project_type,
-                status=project_data.status,
                 priority=project_data.priority,
-                contact_id=project_data.contact_id,
-                client_name=project_data.client_name,
-                client_email=project_data.client_email,
-                client_phone=project_data.client_phone,
-                address=project_data.address,
                 start_date=project_data.start_date,
+                project_number=project_number,
                 end_date=project_data.end_date,
-                estimated_hours=project_data.estimated_hours,
-                actual_hours=project_data.actual_hours,
-                budget_amount=project_data.budget_amount,
-                actual_cost=project_data.actual_cost,
+                estimated_budget=project_data.budget_amount,
+                manager_id=project_data.manager_id,
                 team_members=project_data.team_members or [],
                 tags=project_data.tags or [],
-                notes=project_data.notes,
-                created_by=created_by
+                notes=project_data.notes
             )
             logger.info("Project entity created")
             

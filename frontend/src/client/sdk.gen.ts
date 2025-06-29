@@ -3433,7 +3433,7 @@ export class ProjectsService {
   ): CancelablePromise<ProjectsCreateProjectResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/projects/",
+      url: "/api/v1/projects",
       body: data.requestBody,
       mediaType: "application/json",
       errors: {
@@ -3455,7 +3455,7 @@ export class ProjectsService {
   ): CancelablePromise<ProjectsCreateProject1Response> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/projects/",
+      url: "/api/v1/projects",
       body: data.requestBody,
       mediaType: "application/json",
       errors: {
@@ -3478,7 +3478,7 @@ export class ProjectsService {
   ): CancelablePromise<ProjectsListProjectsResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/projects/",
+      url: "/api/v1/projects",
       query: {
         skip: data.skip,
         limit: data.limit,
@@ -3503,7 +3503,7 @@ export class ProjectsService {
   ): CancelablePromise<ProjectsListProjects1Response> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/projects/",
+      url: "/api/v1/projects",
       query: {
         skip: data.skip,
         limit: data.limit,

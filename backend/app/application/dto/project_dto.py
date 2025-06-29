@@ -11,18 +11,29 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field
 from ...domain.enums import ProjectType, ProjectStatus, ProjectPriority
+from .contact_dto import ContactAddressDTO
 
 
 class ProjectCreateDTO(BaseModel):
     """DTO for creating a new project."""
+    business_id: uuid.UUID
+    project_number: Optional[str] = Field(default=None, max_length=50)
     name: str = Field(..., min_length=1, max_length=200)
     description: str = Field(..., min_length=1, max_length=1000)
-    client_id: uuid.UUID
     project_type: ProjectType
+    status: ProjectStatus
     priority: ProjectPriority
+    contact_id: Optional[uuid.UUID] = None
+    client_name: Optional[str] = Field(default=None, max_length=200)
+    client_email: Optional[str] = Field(default=None, max_length=200)
+    client_phone: Optional[str] = Field(default=None, max_length=50)
+    address: Optional[ContactAddressDTO] = None
     start_date: datetime
     end_date: Optional[datetime] = None
-    estimated_budget: Optional[Decimal] = Field(default=None, ge=0)
+    estimated_hours: Optional[Decimal] = Field(default=None, ge=0)
+    actual_hours: Optional[Decimal] = Field(default=None, ge=0)
+    budget_amount: Optional[Decimal] = Field(default=None, ge=0)
+    actual_cost: Optional[Decimal] = Field(default=None, ge=0)
     manager_id: Optional[uuid.UUID] = None
     team_members: Optional[List[str]] = None
     tags: Optional[List[str]] = None
@@ -35,10 +46,18 @@ class ProjectUpdateDTO(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=200)
     description: Optional[str] = Field(default=None, min_length=1, max_length=1000)
     project_type: Optional[ProjectType] = None
+    status: Optional[ProjectStatus] = None
     priority: Optional[ProjectPriority] = None
+    contact_id: Optional[uuid.UUID] = None
+    client_name: Optional[str] = Field(default=None, max_length=200)
+    client_email: Optional[str] = Field(default=None, max_length=200)
+    client_phone: Optional[str] = Field(default=None, max_length=50)
+    address: Optional[ContactAddressDTO] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
-    estimated_budget: Optional[Decimal] = Field(default=None, ge=0)
+    estimated_hours: Optional[Decimal] = Field(default=None, ge=0)
+    actual_hours: Optional[Decimal] = Field(default=None, ge=0)
+    budget_amount: Optional[Decimal] = Field(default=None, ge=0)
     actual_cost: Optional[Decimal] = Field(default=None, ge=0)
     manager_id: Optional[uuid.UUID] = None
     team_members: Optional[List[str]] = None
@@ -57,12 +76,13 @@ class ProjectResponseDTO(BaseModel):
     """DTO for project response data."""
     id: uuid.UUID
     business_id: uuid.UUID
+    project_number: Optional[str]
     name: str
     description: str
     created_by: str
     client_id: uuid.UUID
     client_name: str
-    client_address: str
+    client_address: Optional[ContactAddressDTO]
     project_type: ProjectType
     status: ProjectStatus
     priority: ProjectPriority
@@ -84,12 +104,16 @@ class ProjectResponseDTO(BaseModel):
     budget_variance: Decimal
     budget_variance_percentage: Optional[Decimal]
     duration_days: Optional[int]
+    status_display: str
+    priority_display: str
+    type_display: str
 
 
 class ProjectListDTO(BaseModel):
     """DTO for project list items."""
     id: uuid.UUID
     name: str
+    client_id: uuid.UUID
     client_name: str
     project_type: ProjectType
     status: ProjectStatus
@@ -103,6 +127,9 @@ class ProjectListDTO(BaseModel):
     is_over_budget: bool
     created_date: datetime
     last_modified: datetime
+    status_display: str
+    priority_display: str
+    type_display: str
 
 
 class ProjectSearchDTO(BaseModel):
@@ -178,7 +205,7 @@ class ProjectCreateFromTemplateDTO(BaseModel):
     client_name: Optional[str] = Field(default=None, max_length=200)
     client_email: Optional[str] = Field(default=None, max_length=200)
     client_phone: Optional[str] = Field(default=None, max_length=50)
-    address: Optional[str] = Field(default=None, max_length=500)
+    address: Optional[ContactAddressDTO] = None
     start_date: datetime
     end_date: Optional[datetime] = None
     estimated_hours: Optional[Decimal] = Field(default=None, ge=0)

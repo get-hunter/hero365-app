@@ -9,6 +9,7 @@ import uuid
 from typing import List, Dict, Any
 
 from ...dto.project_dto import ProjectResponseDTO, ProjectListDTO
+from ...dto.contact_dto import ContactAddressDTO
 from ...exceptions.application_exceptions import ValidationError, PermissionDeniedError, NotFoundError
 from app.domain.entities.project import Project
 from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
@@ -67,6 +68,16 @@ class ProjectHelperService:
     
     async def convert_to_response_dto(self, project: Project) -> ProjectResponseDTO:
         """Convert Project entity to response DTO."""
+        # Calculate computed fields
+        budget_variance = project.actual_cost - project.estimated_budget
+        budget_variance_percentage = None
+        if project.estimated_budget > 0:
+            budget_variance_percentage = (budget_variance / project.estimated_budget) * 100
+        
+        duration_days = None
+        if project.end_date:
+            duration_days = (project.end_date.date() - project.start_date.date()).days
+        
         return ProjectResponseDTO(
             id=project.id,
             business_id=project.business_id,
@@ -76,44 +87,54 @@ class ProjectHelperService:
             project_type=project.project_type,
             status=project.status,
             priority=project.priority,
-            contact_id=project.contact_id,
+            client_id=project.client_id,
             client_name=project.client_name,
-            client_email=project.client_email,
-            client_phone=project.client_phone,
-            address=project.address,
+            client_address=self._address_to_dto(project.address) if project.address else None,
             start_date=project.start_date,
             end_date=project.end_date,
-            estimated_hours=project.estimated_hours,
-            actual_hours=project.actual_hours,
-            budget_amount=project.budget_amount,
+            estimated_budget=project.estimated_budget,
             actual_cost=project.actual_cost,
+            manager=project.manager,
+            manager_id=project.manager_id,
             team_members=project.team_members,
             tags=project.tags,
             notes=project.notes,
             created_by=project.created_by,
             created_date=project.created_date,
-            updated_date=project.updated_date
+            last_modified=project.last_modified,
+            # Computed fields
+            is_overdue=project.is_overdue(),
+            is_over_budget=project.is_over_budget(),
+            budget_variance=budget_variance,
+            budget_variance_percentage=budget_variance_percentage,
+            duration_days=duration_days,
+            status_display=project.get_status_display(),
+            priority_display=project.get_priority_display(),
+            type_display=project.get_type_display()
         )
     
     async def convert_to_list_dto(self, project: Project) -> ProjectListDTO:
         """Convert Project entity to list DTO (optimized for lists)."""
         return ProjectListDTO(
             id=project.id,
-            business_id=project.business_id,
-            project_number=project.project_number,
             name=project.name,
-            description=project.description,
+            client_id=project.client_id,
+            client_name=project.client_name,
             project_type=project.project_type,
             status=project.status,
             priority=project.priority,
-            client_name=project.client_name,
             start_date=project.start_date,
             end_date=project.end_date,
-            budget_amount=project.budget_amount,
+            estimated_budget=project.estimated_budget,
             actual_cost=project.actual_cost,
-            team_members=project.team_members,
-            tags=project.tags,
-            created_date=project.created_date
+            manager=project.manager,
+            is_overdue=project.is_overdue(),
+            is_over_budget=project.is_over_budget(),
+            created_date=project.created_date,
+            last_modified=project.last_modified,
+            status_display=project.get_status_display(),
+            priority_display=project.get_priority_display(),
+            type_display=project.get_type_display()
         )
     
     def calculate_project_progress(self, project: Project) -> Dict[str, Any]:
@@ -157,4 +178,20 @@ class ProjectHelperService:
                 project.status.value not in ["completed", "cancelled"]
             )
         
-        return progress 
+        return progress
+    
+    def _address_to_dto(self, address) -> ContactAddressDTO:
+        """Convert Address value object to ContactAddressDTO."""
+        return ContactAddressDTO(
+            street_address=address.street_address,
+            city=address.city,
+            state=address.state,
+            postal_code=address.postal_code,
+            country=address.country,
+            latitude=address.latitude,
+            longitude=address.longitude,
+            access_notes=address.access_notes,
+            place_id=address.place_id,
+            formatted_address=address.formatted_address,
+            address_type=address.address_type
+        ) 

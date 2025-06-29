@@ -3640,7 +3640,10 @@ export type ProjectCreateFromTemplateRequest = {
   client_name?: string | null
   client_email?: string | null
   client_phone?: string | null
-  address?: string | null
+  /**
+   * Project address
+   */
+  address?: ContactAddressSchema | null
   start_date: string
   end_date?: string | null
   estimated_hours?: number | string | null
@@ -3654,14 +3657,26 @@ export type ProjectCreateFromTemplateRequest = {
  * Schema for project creation request.
  */
 export type ProjectCreateRequest = {
+  project_number?: string | null
   name: string
   description: string
-  client_id: string
   project_type: ProjectType
+  status: ProjectStatus
   priority: ProjectPriority
+  contact_id?: string | null
+  client_name?: string | null
+  client_email?: string | null
+  client_phone?: string | null
+  /**
+   * Project address
+   */
+  address?: ContactAddressSchema | null
   start_date: string
   end_date?: string | null
-  estimated_budget?: number | string | null
+  estimated_hours?: number | string | null
+  actual_hours?: number | string | null
+  budget_amount?: number | string | null
+  actual_cost?: number | string | null
   manager_id?: string | null
   team_members?: Array<string> | null
   tags?: Array<string> | null
@@ -3709,6 +3724,10 @@ export type ProjectListResponse = {
    * Project name
    */
   name: string
+  /**
+   * Client ID
+   */
+  client_id: string
   /**
    * Client name
    */
@@ -3793,6 +3812,10 @@ export type ProjectResponse = {
    */
   business_id: string
   /**
+   * Project number
+   */
+  project_number?: string | null
+  /**
    * Project name
    */
   name: string
@@ -3813,9 +3836,9 @@ export type ProjectResponse = {
    */
   client_name: string
   /**
-   * Client address
+   * Project address
    */
-  client_address: string
+  address?: ContactAddressSchema | null
   /**
    * Project type
    */
@@ -4047,10 +4070,21 @@ export type ProjectUpdateRequest = {
   name?: string | null
   description?: string | null
   project_type?: ProjectType | null
+  status?: ProjectStatus | null
   priority?: ProjectPriority | null
+  contact_id?: string | null
+  client_name?: string | null
+  client_email?: string | null
+  client_phone?: string | null
+  /**
+   * Project address
+   */
+  address?: ContactAddressSchema | null
   start_date?: string | null
   end_date?: string | null
-  estimated_budget?: number | string | null
+  estimated_hours?: number | string | null
+  actual_hours?: number | string | null
+  budget_amount?: number | string | null
   actual_cost?: number | string | null
   manager_id?: string | null
   team_members?: Array<string> | null
