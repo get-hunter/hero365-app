@@ -10,7 +10,6 @@ dependencies = [
     "passlib[bcrypt]<2.0.0,>=1.7.4",
     "tenacity<9.0.0,>=8.2.3",
     "pydantic>2.0",
-    "emails<1.0,>=0.6",
     "jinja2<4.0.0,>=3.1.4",
     "alembic<2.0.0,>=1.12.1",
     "httpx<1.0.0,>=0.25.1",
@@ -24,6 +23,8 @@ dependencies = [
     # Supabase integration
     "supabase<3.0.0,>=2.9.1",
     "gotrue<3.0.0,>=2.8.1",
+    # Email service
+    "resend>=0.8.0,<1.0.0",
 ]
 
 [tool.uv]

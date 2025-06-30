@@ -214,8 +214,8 @@ class EstimateListResponseSchema(BaseModel):
 
 class EstimateSearchSchema(BaseModel):
     """Schema for estimate search parameters."""
-    search_term: Optional[str] = Field(None, max_length=100)
-    status: Optional[str] = Field(None, pattern="^(draft|sent|viewed|accepted|rejected|expired|converted)$")
+    search_term: Optional[str] = Field(None, max_length=200)
+    status: Optional[str] = None
     document_type: Optional[str] = Field(None, pattern="^(estimate|quote)$")
     contact_id: Optional[uuid.UUID] = None
     project_id: Optional[uuid.UUID] = None
@@ -230,31 +230,28 @@ class EstimateSearchSchema(BaseModel):
     valid_to: Optional[date] = None
     tags: Optional[List[str]] = None
     created_by: Optional[str] = None
-    include_expired: bool = True
+    include_expired: bool = False
     skip: int = Field(0, ge=0)
     limit: int = Field(100, ge=1, le=1000)
-    sort_by: str = Field("created_date", pattern="^(created_date|estimate_number|title|total_amount|status|valid_until_date)$")
+    sort_by: str = Field("created_date", max_length=50)
     sort_order: str = Field("desc", pattern="^(asc|desc)$")
 
     @validator('max_amount')
-    def validate_amount_range(cls, v, values):
-        if v is not None and 'min_amount' in values and values['min_amount'] is not None:
-            if v < values['min_amount']:
-                raise ValueError('max_amount must be greater than or equal to min_amount')
+    def validate_max_amount(cls, v, values):
+        if v is not None and values.get('min_amount') is not None and v < values['min_amount']:
+            raise ValueError('Max amount must be greater than or equal to min amount')
         return v
 
     @validator('created_to')
-    def validate_created_date_range(cls, v, values):
-        if v is not None and 'created_from' in values and values['created_from'] is not None:
-            if v < values['created_from']:
-                raise ValueError('created_to must be greater than or equal to created_from')
+    def validate_created_to(cls, v, values):
+        if v is not None and values.get('created_from') is not None and v < values['created_from']:
+            raise ValueError('Created to date must be after created from date')
         return v
 
     @validator('valid_to')
-    def validate_valid_date_range(cls, v, values):
-        if v is not None and 'valid_from' in values and values['valid_from'] is not None:
-            if v < values['valid_from']:
-                raise ValueError('valid_to must be greater than or equal to valid_from')
+    def validate_valid_to(cls, v, values):
+        if v is not None and values.get('valid_from') is not None and v < values['valid_from']:
+            raise ValueError('Valid to date must be after valid from date')
         return v
 
     class Config:
@@ -305,3 +302,30 @@ class EstimateAnalyticsResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class EstimateTemplateResponse(BaseModel):
+    """Schema for estimate template responses."""
+    id: uuid.UUID
+    business_id: Optional[uuid.UUID] = None
+    name: str
+    description: Optional[str] = None
+    template_type: str
+    is_active: bool
+    is_default: bool
+    is_system_template: bool
+    usage_count: int
+    last_used_date: Optional[datetime] = None
+    created_by: Optional[str] = None
+    created_date: datetime
+    last_modified: datetime
+    tags: List[str]
+    category: Optional[str] = None
+    version: str
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            uuid.UUID: lambda v: str(v),
+            datetime: lambda v: v.isoformat()
+        }

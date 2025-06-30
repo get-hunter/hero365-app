@@ -11,6 +11,7 @@ from .delete_estimate_use_case import DeleteEstimateUseCase
 from .list_estimates_use_case import ListEstimatesUseCase
 from .search_estimates_use_case import SearchEstimatesUseCase
 from .convert_estimate_to_invoice_use_case import ConvertEstimateToInvoiceUseCase
+from .get_estimate_templates_use_case import GetEstimateTemplatesUseCase
 
 __all__ = [
     "CreateEstimateUseCase",
@@ -19,5 +20,6 @@ __all__ = [
     "DeleteEstimateUseCase",
     "ListEstimatesUseCase",
     "SearchEstimatesUseCase",
-    "ConvertEstimateToInvoiceUseCase"
+    "ConvertEstimateToInvoiceUseCase",
+    "GetEstimateTemplatesUseCase"
 ]

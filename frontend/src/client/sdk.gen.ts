@@ -346,6 +346,10 @@ import type {
   ProjectsRemoveJobFromProjectResponse,
   ProjectsRemoveJobFromProject1Data,
   ProjectsRemoveJobFromProject1Response,
+  TemplatesGetInvoiceTemplatesData,
+  TemplatesGetInvoiceTemplatesResponse,
+  TemplatesGetEstimateTemplatesData,
+  TemplatesGetEstimateTemplatesResponse,
   UsersGetCurrentUserProfileResponse,
   UsersUpdateUserBusinessContextData,
   UsersUpdateUserBusinessContextResponse,
@@ -4818,6 +4822,74 @@ export class ProjectsService {
       path: {
         project_id: data.projectId,
         job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class TemplatesService {
+  /**
+   * Get Invoice Templates
+   * Get invoice templates for the business.
+   *
+   * Returns estimate templates that are suitable for invoice creation.
+   * Since invoices and estimates share the same template system,
+   * this endpoint returns estimate templates filtered for invoice use.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.skip Number of records to skip
+   * @param data.limit Maximum number of records to return
+   * @param data.templateType Filter by template type
+   * @param data.isActive Filter by active status
+   * @returns EstimateTemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static getInvoiceTemplates(
+    data: TemplatesGetInvoiceTemplatesData = {},
+  ): CancelablePromise<TemplatesGetInvoiceTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/templates/invoices",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        template_type: data.templateType,
+        is_active: data.isActive,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Estimate Templates
+   * Get estimate templates for the business.
+   *
+   * Returns estimate templates available for estimate creation.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.skip Number of records to skip
+   * @param data.limit Maximum number of records to return
+   * @param data.templateType Filter by template type
+   * @param data.isActive Filter by active status
+   * @returns EstimateTemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static getEstimateTemplates(
+    data: TemplatesGetEstimateTemplatesData = {},
+  ): CancelablePromise<TemplatesGetEstimateTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/templates/estimates",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        template_type: data.templateType,
+        is_active: data.isActive,
       },
       errors: {
         422: "Validation Error",

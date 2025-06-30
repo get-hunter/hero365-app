@@ -5,9 +5,11 @@ Manages the wiring of dependencies for the clean architecture implementation.
 """
 
 import os
+import logging
 from typing import Dict, Any, Optional
 from supabase import create_client, Client
-import logging
+
+logger = logging.getLogger(__name__)
 
 from ...core.config import settings
 
@@ -36,7 +38,7 @@ from ..database.repositories.supabase_activity_repository import SupabaseActivit
 from ..database.repositories.supabase_project_repository import SupabaseProjectRepository, SupabaseProjectTemplateRepository
 from ..database.repositories.supabase_user_capabilities_repository import SupabaseUserCapabilitiesRepository
 from ..external_services.supabase_auth_adapter import SupabaseAuthAdapter
-from ..external_services.smtp_email_adapter import SMTPEmailAdapter
+from ..external_services.resend_email_adapter import ResendEmailAdapter
 from ..external_services.twilio_sms_adapter import TwilioSMSAdapter
 from ..external_services.google_maps_adapter import GoogleMapsAdapter
 from ..external_services.weather_service_adapter import WeatherServiceAdapter
@@ -120,6 +122,7 @@ from ...application.use_cases.estimate.delete_estimate_use_case import DeleteEst
 from ...application.use_cases.estimate.list_estimates_use_case import ListEstimatesUseCase
 from ...application.use_cases.estimate.search_estimates_use_case import SearchEstimatesUseCase
 from ...application.use_cases.estimate.convert_estimate_to_invoice_use_case import ConvertEstimateToInvoiceUseCase
+from ...application.use_cases.estimate.get_estimate_templates_use_case import GetEstimateTemplatesUseCase
 
 # Invoice Use Cases
 from ...application.use_cases.invoice.create_invoice_use_case import CreateInvoiceUseCase
@@ -191,13 +194,11 @@ class DependencyContainer:
                 supabase_service_key=settings.SUPABASE_SERVICE_KEY
             )
         
-        # Email service
-        self._services['email_service'] = SMTPEmailAdapter(
-            smtp_host=os.getenv("SMTP_HOST", "localhost"),
-            smtp_port=int(os.getenv("SMTP_PORT", "587")),
-            smtp_username=os.getenv("SMTP_USERNAME"),
-            smtp_password=os.getenv("SMTP_PASSWORD"),
-            use_tls=True
+        # Email service - Resend for professional email delivery
+        self._services['email_service'] = ResendEmailAdapter(
+            api_key=settings.RESEND_API_KEY,
+            default_from_email=settings.DEFAULT_FROM_EMAIL,
+            default_from_name=settings.DEFAULT_FROM_NAME
         )
         
         # SMS service (optional - only if Twilio credentials are provided)
@@ -500,6 +501,10 @@ class DependencyContainer:
             estimate_repository=self.get_repository('estimate_repository')
         )
         
+        self._use_cases['get_estimate_templates'] = GetEstimateTemplatesUseCase(
+            estimate_template_repository=self.get_repository('estimate_template_repository')
+        )
+        
         self._use_cases['convert_estimate_to_invoice'] = ConvertEstimateToInvoiceUseCase(
             estimate_repository=self.get_repository('estimate_repository'),
             invoice_repository=self.get_repository('invoice_repository')
@@ -678,7 +683,6 @@ class DependencyContainer:
     
     def get_create_job_use_case(self) -> CreateJobUseCase:
         """Get create job use case."""
-        logger = logging.getLogger(__name__)
         logger.info("Getting create_job use case...")
         use_case = self.get_use_case('create_job')
         logger.info(f"Create job use case retrieved: {use_case}")
@@ -808,6 +812,10 @@ class DependencyContainer:
     def get_search_estimates_use_case(self) -> SearchEstimatesUseCase:
         """Get search estimates use case from container."""
         return self.get_use_case('search_estimates')
+    
+    def get_get_estimate_templates_use_case(self) -> GetEstimateTemplatesUseCase:
+        """Get get estimate templates use case from container."""
+        return self.get_use_case('get_estimate_templates')
     
     def get_convert_estimate_to_invoice_use_case(self) -> ConvertEstimateToInvoiceUseCase:
         """Get convert estimate to invoice use case from container."""
@@ -1125,6 +1133,11 @@ def get_list_estimates_use_case() -> ListEstimatesUseCase:
 def get_search_estimates_use_case() -> SearchEstimatesUseCase:
     """Get search estimates use case from container."""
     return get_container().get_search_estimates_use_case()
+
+
+def get_get_estimate_templates_use_case() -> GetEstimateTemplatesUseCase:
+    """Get get estimate templates use case from container."""
+    return get_container().get_get_estimate_templates_use_case()
 
 
 def get_convert_estimate_to_invoice_use_case() -> ConvertEstimateToInvoiceUseCase:

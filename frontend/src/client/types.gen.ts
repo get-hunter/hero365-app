@@ -2975,6 +2975,28 @@ export type EstimateStatusUpdateSchema = {
 }
 
 /**
+ * Schema for estimate template responses.
+ */
+export type EstimateTemplateResponse = {
+  id: string
+  business_id?: string | null
+  name: string
+  description?: string | null
+  template_type: string
+  is_active: boolean
+  is_default: boolean
+  is_system_template: boolean
+  usage_count: number
+  last_used_date?: string | null
+  created_by?: string | null
+  created_date: string
+  last_modified: string
+  tags: Array<string>
+  category?: string | null
+  version: string
+}
+
+/**
  * Schema for estimate terms.
  */
 export type EstimateTermsSchema = {
@@ -7299,6 +7321,50 @@ export type ProjectsRemoveJobFromProject1Data = {
 }
 
 export type ProjectsRemoveJobFromProject1Response = ProjectActionResponse
+
+export type TemplatesGetInvoiceTemplatesData = {
+  /**
+   * Filter by active status
+   */
+  isActive?: boolean
+  /**
+   * Maximum number of records to return
+   */
+  limit?: number
+  /**
+   * Number of records to skip
+   */
+  skip?: number
+  /**
+   * Filter by template type
+   */
+  templateType?: string | null
+}
+
+export type TemplatesGetInvoiceTemplatesResponse =
+  Array<EstimateTemplateResponse>
+
+export type TemplatesGetEstimateTemplatesData = {
+  /**
+   * Filter by active status
+   */
+  isActive?: boolean
+  /**
+   * Maximum number of records to return
+   */
+  limit?: number
+  /**
+   * Number of records to skip
+   */
+  skip?: number
+  /**
+   * Filter by template type
+   */
+  templateType?: string | null
+}
+
+export type TemplatesGetEstimateTemplatesResponse =
+  Array<EstimateTemplateResponse>
 
 export type UsersGetCurrentUserProfileResponse = UserProfileResponse
 

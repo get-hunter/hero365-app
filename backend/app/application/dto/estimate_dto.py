@@ -209,26 +209,94 @@ class EstimateListFilters:
 @dataclass
 class EstimateSearchCriteria:
     """DTO for estimate search criteria."""
-    search_text: Optional[str] = None
-    statuses: Optional[List[str]] = None
-    contact_ids: Optional[List[uuid.UUID]] = None
-    project_ids: Optional[List[uuid.UUID]] = None
-    job_ids: Optional[List[uuid.UUID]] = None
-    min_amount: Optional[Decimal] = None
-    max_amount: Optional[Decimal] = None
-    date_from: Optional[date] = None
-    date_to: Optional[date] = None
+    search_term: Optional[str] = None
+    status: Optional[str] = None
+    document_type: Optional[str] = None
+    contact_id: Optional[uuid.UUID] = None
+    project_id: Optional[uuid.UUID] = None
+    job_id: Optional[uuid.UUID] = None
+    template_id: Optional[uuid.UUID] = None
+    currency: Optional[str] = None
+    min_amount: Optional[float] = None
+    max_amount: Optional[float] = None
+    created_from: Optional[datetime] = None
+    created_to: Optional[datetime] = None
+    valid_from: Optional[datetime] = None
+    valid_to: Optional[datetime] = None
     tags: Optional[List[str]] = None
     created_by: Optional[str] = None
+    include_expired: bool = False
+    sort_by: str = "created_date"
+    sort_order: str = "desc"
+
+
+@dataclass
+class EstimateTemplateListFilters:
+    """DTO for estimate template list filtering."""
+    business_id: uuid.UUID
+    template_type: Optional[str] = None
+    is_active: Optional[bool] = True
+    is_default: Optional[bool] = None
+    skip: int = 0
+    limit: int = 100
+
+
+@dataclass
+class EstimateTemplateListResponseDTO:
+    """DTO for estimate template list responses."""
+    templates: List['EstimateTemplateResponseDTO']
+    total_count: int
+    page: int
+    per_page: int
+    has_next: bool
+    has_prev: bool
+
+
+@dataclass
+class EstimateTemplateResponseDTO:
+    """DTO for estimate template responses."""
+    # Required fields (no defaults) must come first
+    id: uuid.UUID
+    name: str
+    template_type: str
+    is_active: bool
+    is_default: bool
+    is_system_template: bool
+    usage_count: int
+    created_date: datetime
+    last_modified: datetime
+    
+    # Optional fields (with defaults) come last
+    business_id: Optional[uuid.UUID] = None
+    description: Optional[str] = None
+    last_used_date: Optional[datetime] = None
+    created_by: Optional[str] = None
+    tags: List[str] = None
+    category: Optional[str] = None
+    version: str = "1.0"
 
     def __post_init__(self):
-        if self.statuses is None:
-            self.statuses = []
-        if self.contact_ids is None:
-            self.contact_ids = []
-        if self.project_ids is None:
-            self.project_ids = []
-        if self.job_ids is None:
-            self.job_ids = []
         if self.tags is None:
             self.tags = []
+
+    @classmethod
+    def from_entity(cls, template) -> 'EstimateTemplateResponseDTO':
+        """Create DTO from domain entity."""
+        return cls(
+            id=template.id,
+            name=template.name,
+            template_type=template.template_type.value if hasattr(template.template_type, 'value') else str(template.template_type),
+            is_active=template.is_active,
+            is_default=template.is_default,
+            is_system_template=template.is_system_template,
+            usage_count=template.usage_count,
+            created_date=template.created_date,
+            last_modified=template.last_modified,
+            business_id=template.business_id,
+            description=template.description,
+            last_used_date=template.last_used_date,
+            created_by=template.created_by,
+            tags=template.tags.copy() if template.tags else [],
+            category=template.category,
+            version=template.version
+        )
