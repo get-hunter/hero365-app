@@ -45,10 +45,10 @@ class EstimateLineItemDTO:
             discount_value=line_item.discount_value,
             tax_rate=line_item.tax_rate,
             notes=line_item.notes,
-            line_total=line_item.get_line_total(),
+            line_total=line_item.get_subtotal(),
             discount_amount=line_item.get_discount_amount(),
             tax_amount=line_item.get_tax_amount(),
-            final_total=line_item.get_final_total()
+            final_total=line_item.get_total()
         )
 
 
@@ -65,6 +65,7 @@ class EstimateDTO:
     client_name: Optional[str] = None
     client_email: Optional[str] = None
     client_phone: Optional[str] = None
+    client_address: Optional[Dict[str, Any]] = None
     title: str = ""
     description: Optional[str] = None
     line_items: List[EstimateLineItemDTO] = None
@@ -73,6 +74,8 @@ class EstimateDTO:
     tax_type: str = "percentage"
     overall_discount_type: str = "none"
     overall_discount_value: Decimal = Decimal('0')
+    terms: Optional[Dict[str, Any]] = None
+    advance_payment: Optional[Dict[str, Any]] = None
     template_id: Optional[uuid.UUID] = None
     template_data: Dict[str, Any] = None
     project_id: Optional[uuid.UUID] = None
@@ -84,9 +87,19 @@ class EstimateDTO:
     created_by: Optional[str] = None
     created_date: datetime = None
     last_modified: datetime = None
+    sent_date: Optional[datetime] = None
+    viewed_date: Optional[datetime] = None
+    responded_date: Optional[datetime] = None
     
     # Calculated financial fields
     total_amount: Optional[Decimal] = None
+    subtotal: Optional[Decimal] = None
+    tax_amount: Optional[Decimal] = None
+    discount_amount: Optional[Decimal] = None
+    
+    # Status fields
+    is_expired: Optional[bool] = None
+    days_until_expiry: Optional[int] = None
 
     def __post_init__(self):
         if self.line_items is None:
@@ -97,6 +110,12 @@ class EstimateDTO:
             self.tags = []
         if self.custom_fields is None:
             self.custom_fields = {}
+        if self.client_address is None:
+            self.client_address = {}
+        if self.terms is None:
+            self.terms = {}
+        if self.advance_payment is None:
+            self.advance_payment = {}
 
     @classmethod
     def from_entity(cls, estimate) -> 'EstimateDTO':
@@ -112,6 +131,7 @@ class EstimateDTO:
             client_name=estimate.client_name,
             client_email=estimate.client_email,
             client_phone=estimate.client_phone,
+            client_address=estimate.client_address.to_dict() if estimate.client_address else {},
             title=estimate.title,
             description=estimate.description,
             line_items=[EstimateLineItemDTO.from_entity(item) for item in estimate.line_items],
@@ -120,6 +140,46 @@ class EstimateDTO:
             tax_type=estimate.tax_type.value,
             overall_discount_type=estimate.overall_discount_type.value,
             overall_discount_value=estimate.overall_discount_value,
+            terms={
+                "payment_terms": estimate.terms.payment_terms or "",
+                "validity_period": estimate.terms.validity_days,
+                "work_schedule": "",
+                "materials_policy": "",
+                "change_order_policy": "",
+                "warranty_terms": estimate.terms.warranty_period or "",
+                "cancellation_policy": "",
+                "acceptance_criteria": "",
+                "additional_terms": [],
+                "expiry_date": estimate.terms.get_expiry_date(estimate.created_date.date()).isoformat()
+            } if estimate.terms else {
+                "payment_terms": "",
+                "validity_period": 30,
+                "work_schedule": "",
+                "materials_policy": "",
+                "change_order_policy": "",
+                "warranty_terms": "",
+                "cancellation_policy": "",
+                "acceptance_criteria": "",
+                "additional_terms": []
+            },
+            advance_payment={
+                "amount": estimate.advance_payment.value,
+                "percentage": estimate.advance_payment.value if estimate.advance_payment.type.value == "percentage" else Decimal("0"),
+                "due_date": estimate.advance_payment.due_date,
+                "description": estimate.advance_payment.notes or "",
+                "is_required": estimate.advance_payment.required,
+                # Additional calculated fields for internal use
+                "collected_amount": float(estimate.advance_payment.collected_amount),
+                "required_amount": float(estimate.advance_payment.get_required_amount(estimate.get_total_amount())),
+                "remaining_amount": float(estimate.advance_payment.get_remaining_amount(estimate.get_total_amount())),
+                "is_fully_collected": estimate.advance_payment.is_fully_collected(estimate.get_total_amount())
+            } if estimate.advance_payment else {
+                "amount": Decimal("0"),
+                "percentage": Decimal("0"),
+                "due_date": None,
+                "description": "",
+                "is_required": False
+            },
             template_id=estimate.template_id,
             template_data=estimate.template_data.copy(),
             project_id=estimate.project_id,
@@ -127,11 +187,21 @@ class EstimateDTO:
             tags=estimate.tags.copy(),
             custom_fields=estimate.custom_fields.copy(),
             internal_notes=estimate.internal_notes,
-            valid_until_date=estimate.valid_until_date,
+            valid_until_date=estimate.terms.get_expiry_date(estimate.created_date.date()),
             created_by=estimate.created_by,
             created_date=estimate.created_date,
             last_modified=estimate.last_modified,
-            total_amount=estimate.get_total_amount()
+            sent_date=estimate.sent_date,
+            viewed_date=estimate.viewed_date,
+            responded_date=estimate.responded_date,
+            # Financial calculations
+            total_amount=estimate.get_total_amount(),
+            subtotal=estimate.get_total_before_tax(),
+            tax_amount=estimate.get_tax_amount(),
+            discount_amount=estimate.get_line_items_discount_total() + estimate.get_overall_discount_amount(),
+            # Status calculations
+            is_expired=estimate.is_expired(),
+            days_until_expiry=estimate.days_until_expiry()
         )
 
 

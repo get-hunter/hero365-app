@@ -10,6 +10,8 @@ from datetime import datetime, date
 from decimal import Decimal
 from dataclasses import dataclass
 
+from app.domain.value_objects.address import Address
+
 
 @dataclass
 class InvoiceLineItemDTO:
@@ -98,6 +100,7 @@ class InvoiceDTO:
     client_name: Optional[str] = None
     client_email: Optional[str] = None
     client_phone: Optional[str] = None
+    client_address: Optional[Address] = None
     title: str = ""
     description: Optional[str] = None
     line_items: List[InvoiceLineItemDTO] = None
@@ -155,6 +158,7 @@ class InvoiceDTO:
             client_name=invoice.client_name,
             client_email=invoice.client_email,
             client_phone=invoice.client_phone,
+            client_address=invoice.client_address,
             title=invoice.title,
             description=invoice.description,
             line_items=[InvoiceLineItemDTO.from_entity(item) for item in invoice.line_items],

@@ -304,13 +304,13 @@ class SupabaseInvoiceRepository(InvoiceRepository):
         
         def safe_json_parse(value, default=None):
             if value is None:
-                return default or []
+                return default if default is not None else []
             if isinstance(value, (list, dict)):
                 return value
             try:
                 return json.loads(value) if isinstance(value, str) else value
             except (json.JSONDecodeError, TypeError):
-                return default or []
+                return default if default is not None else []
         
         def safe_uuid_parse(value):
             if value is None:
@@ -387,7 +387,7 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 continue
         
         # Parse payment terms
-        payment_terms_data = safe_json_parse(data.get("payment_terms", {}))
+        payment_terms_data = safe_json_parse(data.get("payment_terms", {}), {})
         payment_terms = PaymentTerms(
             net_days=payment_terms_data.get("net_days", 30),
             discount_percentage=Decimal(str(payment_terms_data.get("discount_percentage", "0"))),
@@ -417,13 +417,13 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             payments=payments,
             payment_terms=payment_terms,
             template_id=safe_uuid_parse(data.get("template_id")),
-            template_data=safe_json_parse(data.get("template_data", {})),
+            template_data=safe_json_parse(data.get("template_data", {}), {}),
             estimate_id=safe_uuid_parse(data.get("estimate_id")),
             project_id=safe_uuid_parse(data.get("project_id")),
             job_id=safe_uuid_parse(data.get("job_id")),
             contact_id=safe_uuid_parse(data.get("contact_id")),
             tags=safe_json_parse(data.get("tags", [])),
-            custom_fields=safe_json_parse(data.get("custom_fields", {})),
+            custom_fields=safe_json_parse(data.get("custom_fields", {}), {}),
             internal_notes=data.get("internal_notes"),
             created_by=data.get("created_by"),
             created_date=safe_datetime_parse(data["created_date"]) or datetime.now(),

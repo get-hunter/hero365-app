@@ -7,7 +7,7 @@ Follows the Repository pattern for clean architecture.
 
 import uuid
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime
 from decimal import Decimal
 
@@ -100,8 +100,8 @@ class EstimateRepository(ABC):
         
         Args:
             business_id: ID of the business
-            start_date: Start date of the range
-            end_date: End date of the range
+            start_date: Start date for filtering
+            end_date: End date for filtering
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
             
@@ -140,7 +140,7 @@ class EstimateRepository(ABC):
         
         Args:
             business_id: ID of the business
-            days: Number of days from now to check for expiration
+            days: Number of days to look ahead for expiration
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
             
@@ -175,7 +175,7 @@ class EstimateRepository(ABC):
     async def get_by_value_range(self, business_id: uuid.UUID, min_value: Decimal,
                                 max_value: Decimal, skip: int = 0, limit: int = 100) -> List[Estimate]:
         """
-        Get estimates within a value range.
+        Get estimates within a specific value range.
         
         Args:
             business_id: ID of the business
@@ -200,7 +200,7 @@ class EstimateRepository(ABC):
         
         Args:
             business_id: ID of the business
-            search_term: Term to search for
+            search_term: Search term to match against
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
             
@@ -346,66 +346,10 @@ class EstimateRepository(ABC):
         """
         pass
     
-
-    
     @abstractmethod
     async def exists(self, estimate_id: uuid.UUID) -> bool:
         """Check if an estimate exists."""
         pass
-
-    @abstractmethod
-    async def get_by_template_id(self, business_id: uuid.UUID, template_id: uuid.UUID,
-                                skip: int = 0, limit: int = 100) -> List[Estimate]:
-        """Get estimates using a specific template within a business."""
-        pass
-
-    @abstractmethod
-    async def get_by_date_range(self, business_id: uuid.UUID, start_date: datetime,
-                               end_date: datetime, skip: int = 0, limit: int = 100) -> List[Estimate]:
-        """Get estimates within a date range."""
-        pass
-
-    @abstractmethod
-    async def get_expired_estimates(self, business_id: uuid.UUID,
-                                   skip: int = 0, limit: int = 100) -> List[Estimate]:
-        """Get estimates that have expired but not yet marked as expired."""
-        pass
-
-    @abstractmethod
-    async def get_expiring_soon(self, business_id: uuid.UUID, days: int = 7,
-                               skip: int = 0, limit: int = 100) -> List[Estimate]:
-        """Get estimates expiring within the specified number of days."""
-        pass
-
-    @abstractmethod
-    async def get_pending_approval(self, business_id: uuid.UUID,
-                                  skip: int = 0, limit: int = 100) -> List[Estimate]:
-        """Get estimates pending client approval (sent but not approved/rejected)."""
-        pass
-
-    @abstractmethod
-    async def search_estimates(self, business_id: uuid.UUID, search_term: str,
-                              skip: int = 0, limit: int = 100) -> List[Estimate]:
-        """Search estimates within a business by title, description, or estimate number."""
-        pass
-
-    @abstractmethod
-    async def bulk_update_status(self, business_id: uuid.UUID, estimate_ids: List[uuid.UUID],
-                                status: EstimateStatus) -> int:
-        """Bulk update estimate status."""
-        pass
-
-    @abstractmethod
-    async def count_by_business(self, business_id: uuid.UUID) -> int:
-        """Count total estimates for a business."""
-        pass
-
-    @abstractmethod
-    async def count_by_status(self, business_id: uuid.UUID, status: EstimateStatus) -> int:
-        """Count estimates by status within a business."""
-        pass
-
-
 
     @abstractmethod
     async def has_duplicate_estimate_number(self, business_id: uuid.UUID, estimate_number: str,
@@ -416,4 +360,24 @@ class EstimateRepository(ABC):
     @abstractmethod
     async def get_next_estimate_number(self, business_id: uuid.UUID, prefix: str = "EST") -> str:
         """Generate next available estimate number for a business."""
+        pass
+
+    @abstractmethod
+    async def list_with_pagination(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100, 
+                                  filters: Optional[Dict[str, Any]] = None) -> Tuple[List[Estimate], int]:
+        """
+        List estimates with pagination and filters.
+        
+        Args:
+            business_id: ID of the business
+            skip: Number of records to skip for pagination
+            limit: Maximum number of records to return
+            filters: Optional dictionary of filters to apply
+            
+        Returns:
+            Tuple of (List of Estimate entities, Total count)
+            
+        Raises:
+            DatabaseError: If retrieval fails
+        """
         pass 

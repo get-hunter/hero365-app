@@ -17,7 +17,7 @@ from ..middleware.permissions import (
 from ..schemas.invoice_schemas import (
     CreateInvoiceSchema, InvoiceSearchSchema, CreateInvoiceFromEstimateSchema,
     UpdateInvoiceSchema, ProcessPaymentSchema, InvoiceResponseSchema, InvoiceListResponseSchema,
-    InvoiceStatusUpdateSchema, PaymentResponse
+    InvoiceStatusUpdateSchema, PaymentResponse, InvoiceLineItemSchema, PaymentSchema
 )
 from ...application.use_cases.invoice.create_invoice_use_case import CreateInvoiceUseCase
 from ...application.use_cases.invoice.get_invoice_use_case import GetInvoiceUseCase
@@ -134,6 +134,67 @@ async def create_invoice(
 
 def _invoice_dto_to_response_from_dto(invoice_dto) -> InvoiceResponseSchema:
     """Convert Invoice DTO to InvoiceResponse."""
+    # Convert line items
+    line_items_schemas = []
+    for item in invoice_dto.line_items:
+        line_items_schemas.append(InvoiceLineItemSchema(
+            id=item.id,
+            description=item.description,
+            quantity=float(item.quantity) if item.quantity else 0.0,
+            unit_price=float(item.unit_price) if item.unit_price else 0.0,
+            unit=item.unit,
+            category=item.category,
+            discount_type=item.discount_type,
+            discount_value=float(item.discount_value) if item.discount_value else 0.0,
+            tax_rate=float(item.tax_rate) if item.tax_rate else 0.0,
+            notes=item.notes,
+            line_total=float(item.line_total) if item.line_total else 0.0,
+            discount_amount=float(item.discount_amount) if item.discount_amount else 0.0,
+            tax_amount=float(item.tax_amount) if item.tax_amount else 0.0,
+            final_total=float(item.final_total) if item.final_total else 0.0
+        ))
+    
+    # Convert payments
+    payment_schemas = []
+    for payment in invoice_dto.payments:
+        payment_schemas.append(PaymentSchema(
+            id=payment.id,
+            amount=float(payment.amount) if payment.amount else 0.0,
+            payment_date=payment.payment_date,
+            payment_method=payment.payment_method,
+            status=payment.status,
+            reference=payment.reference,
+            transaction_id=payment.transaction_id,
+            notes=payment.notes,
+            processed_by=payment.processed_by,
+            refunded_amount=float(payment.refunded_amount) if payment.refunded_amount else 0.0,
+            refund_date=payment.refund_date,
+            refund_reason=payment.refund_reason
+        ))
+    
+    # Calculate financial summary from line items
+    subtotal = sum(float(item.line_total) if item.line_total else 0.0 for item in invoice_dto.line_items)
+    tax_amount = sum(float(item.tax_amount) if item.tax_amount else 0.0 for item in invoice_dto.line_items)
+    discount_amount = sum(float(item.discount_amount) if item.discount_amount else 0.0 for item in invoice_dto.line_items)
+    
+    # Add overall discount if any
+    if invoice_dto.overall_discount_type != "none" and invoice_dto.overall_discount_value:
+        if invoice_dto.overall_discount_type == "percentage":
+            overall_discount = subtotal * (float(invoice_dto.overall_discount_value) / 100.0)
+        else:  # fixed amount
+            overall_discount = float(invoice_dto.overall_discount_value)
+        discount_amount += overall_discount
+    
+    total_amount = float(invoice_dto.total_amount) if invoice_dto.total_amount else 0.0
+    paid_amount = float(invoice_dto.total_payments) if invoice_dto.total_payments else 0.0
+    balance_due = float(invoice_dto.balance_due) if invoice_dto.balance_due else 0.0
+    
+    # Calculate days overdue
+    days_overdue = 0
+    if invoice_dto.due_date and invoice_dto.is_overdue:
+        from datetime import date
+        days_overdue = (date.today() - invoice_dto.due_date).days if invoice_dto.due_date < date.today() else 0
+    
     return InvoiceResponseSchema(
         id=invoice_dto.id,
         business_id=invoice_dto.business_id,
@@ -146,13 +207,13 @@ def _invoice_dto_to_response_from_dto(invoice_dto) -> InvoiceResponseSchema:
         client_address=invoice_dto.client_address.to_dict() if invoice_dto.client_address else None,
         title=invoice_dto.title,
         description=invoice_dto.description,
-        line_items=[],  # TODO: Convert line items properly
+        line_items=line_items_schemas,
         currency=invoice_dto.currency,
         tax_rate=float(invoice_dto.tax_rate) if invoice_dto.tax_rate else 0.0,
         tax_type=invoice_dto.tax_type,
         overall_discount_type=invoice_dto.overall_discount_type,
         overall_discount_value=float(invoice_dto.overall_discount_value) if invoice_dto.overall_discount_value else 0.0,
-        payments=[],  # TODO: Convert payments properly
+        payments=payment_schemas,
         template_id=invoice_dto.template_id,
         template_data=invoice_dto.template_data or {},
         estimate_id=invoice_dto.estimate_id,
@@ -170,17 +231,19 @@ def _invoice_dto_to_response_from_dto(invoice_dto) -> InvoiceResponseSchema:
         due_date=invoice_dto.due_date,
         paid_date=invoice_dto.paid_date,
         financial_summary={
-            "subtotal": float(invoice_dto.total_amount) if invoice_dto.total_amount else 0.0,
-            "tax_amount": 0.0,  # TODO: Calculate properly
-            "discount_amount": 0.0,  # TODO: Calculate properly
-            "total_amount": float(invoice_dto.total_amount) if invoice_dto.total_amount else 0.0,
-            "amount_paid": float(invoice_dto.total_payments) if invoice_dto.total_payments else 0.0,
-            "amount_due": float(invoice_dto.balance_due) if invoice_dto.balance_due else 0.0,
+            "subtotal": subtotal,
+            "tax_amount": tax_amount,
+            "discount_amount": discount_amount,
+            "total_amount": total_amount,
+            "paid_amount": paid_amount,
+            "balance_due": balance_due,
         },
         status_info={
-            "is_paid": invoice_dto.is_paid if invoice_dto.is_paid is not None else False,
             "is_overdue": invoice_dto.is_overdue if invoice_dto.is_overdue is not None else False,
-            "days_overdue": 0,  # TODO: Calculate days overdue
+            "days_overdue": days_overdue,
+            "can_be_paid": balance_due > 0 and invoice_dto.status not in ['paid', 'cancelled', 'void'],
+            "can_be_voided": invoice_dto.status in ['draft', 'sent'],
+            "payment_status": "paid" if invoice_dto.is_paid else ("partially_paid" if paid_amount > 0 else "unpaid")
         }
     )
 

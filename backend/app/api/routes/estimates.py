@@ -493,9 +493,6 @@ async def convert_estimate_to_invoice(
         )
 
 
-
-
-
 def _estimate_dto_to_response(estimate) -> EstimateResponseSchema:
     """Convert estimate entity to response schema."""
     # Implementation
@@ -507,29 +504,47 @@ def _estimate_dto_to_response_from_dto(estimate_dto: EstimateDTO) -> EstimateRes
         id=estimate_dto.id,
         business_id=estimate_dto.business_id,
         estimate_number=estimate_dto.estimate_number,
+        document_type=estimate_dto.document_type,
+        document_type_display=estimate_dto.document_type_display,
         status=estimate_dto.status,
         contact_id=estimate_dto.contact_id,
         client_name=estimate_dto.client_name,
         client_email=estimate_dto.client_email,
         client_phone=estimate_dto.client_phone,
+        client_address=estimate_dto.client_address,
         title=estimate_dto.title,
         description=estimate_dto.description,
-        line_items=estimate_dto.line_items,
+        line_items=estimate_dto.line_items or [],
         currency=estimate_dto.currency,
         tax_rate=estimate_dto.tax_rate,
         tax_type=estimate_dto.tax_type,
         overall_discount_type=estimate_dto.overall_discount_type,
         overall_discount_value=estimate_dto.overall_discount_value,
+        terms=estimate_dto.terms,
+        advance_payment=estimate_dto.advance_payment,
         template_id=estimate_dto.template_id,
-        template_data=estimate_dto.template_data,
+        template_data=estimate_dto.template_data or {},
         project_id=estimate_dto.project_id,
         job_id=estimate_dto.job_id,
-        tags=estimate_dto.tags,
-        custom_fields=estimate_dto.custom_fields,
+        tags=estimate_dto.tags or [],
+        custom_fields=estimate_dto.custom_fields or {},
         internal_notes=estimate_dto.internal_notes,
         valid_until_date=estimate_dto.valid_until_date,
         created_by=estimate_dto.created_by,
         created_date=estimate_dto.created_date,
         last_modified=estimate_dto.last_modified,
-        total_amount=estimate_dto.total_amount
+        sent_date=estimate_dto.sent_date,
+        viewed_date=estimate_dto.viewed_date,
+        accepted_date=estimate_dto.responded_date,  # Map responded_date to accepted_date
+        financial_summary={
+            "subtotal": float(estimate_dto.subtotal) if estimate_dto.subtotal else 0.0,
+            "tax_amount": float(estimate_dto.tax_amount) if estimate_dto.tax_amount else 0.0,
+            "discount_amount": float(estimate_dto.discount_amount) if estimate_dto.discount_amount else 0.0,
+            "total_amount": float(estimate_dto.total_amount) if estimate_dto.total_amount else 0.0,
+        },
+        status_info={
+            "is_expired": estimate_dto.is_expired if estimate_dto.is_expired is not None else False,
+            "days_until_expiry": estimate_dto.days_until_expiry if estimate_dto.days_until_expiry is not None else 0,
+            "can_be_converted": estimate_dto.status in ["approved"],
+        }
     ) 
