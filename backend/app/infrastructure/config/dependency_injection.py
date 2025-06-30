@@ -40,6 +40,18 @@ from ..external_services.smtp_email_adapter import SMTPEmailAdapter
 from ..external_services.twilio_sms_adapter import TwilioSMSAdapter
 from ..external_services.google_maps_adapter import GoogleMapsAdapter
 from ..external_services.weather_service_adapter import WeatherServiceAdapter
+from app.infrastructure.database.repositories import (
+    SupabaseActivityRepository,
+    SupabaseBusinessInvitationRepository,
+    SupabaseBusinessRepository,
+    SupabaseContactRepository,
+    SupabaseJobRepository,
+    SupabaseProjectRepository,
+    SupabaseUserCapabilitiesRepository,
+    SupabaseEstimateRepository,
+    SupabaseInvoiceRepository,
+    SupabaseEstimateTemplateRepository,
+)
 
 # Application Use Cases
 from ...application.use_cases.auth.authenticate_user import AuthenticateUserUseCase
@@ -100,6 +112,26 @@ from ...application.use_cases.project.project_helper_service import ProjectHelpe
 from ...application.use_cases.scheduling.intelligent_scheduling_use_case import IntelligentSchedulingUseCase
 from ...application.use_cases.scheduling.calendar_management_use_case import CalendarManagementUseCase
 
+# Estimate Use Cases
+from ...application.use_cases.estimate.create_estimate_use_case import CreateEstimateUseCase
+from ...application.use_cases.estimate.convert_estimate_to_invoice_use_case import ConvertEstimateToInvoiceUseCase
+
+# Invoice Use Cases
+from ...application.use_cases.invoice.create_invoice_use_case import CreateInvoiceUseCase
+from ...application.use_cases.invoice.process_payment_use_case import ProcessPaymentUseCase
+
+# Repository interfaces
+from app.domain.repositories import (
+    ActivityRepository,
+    BusinessRepository,
+    BusinessInvitationRepository,
+    ContactRepository,
+    JobRepository,
+    ProjectRepository,
+    EstimateRepository,
+    InvoiceRepository,
+    EstimateTemplateRepository,
+)
 
 class DependencyContainer:
     """
@@ -133,6 +165,11 @@ class DependencyContainer:
         self._repositories['project_repository'] = SupabaseProjectRepository(client=supabase_client)
         self._repositories['project_template_repository'] = SupabaseProjectTemplateRepository(client=supabase_client)
         self._repositories['user_capabilities_repository'] = SupabaseUserCapabilitiesRepository(client=supabase_client)
+        
+        # Estimate management repositories
+        self._repositories['estimate_repository'] = SupabaseEstimateRepository(supabase_client=supabase_client)
+        self._repositories['invoice_repository'] = SupabaseInvoiceRepository(supabase_client=supabase_client)
+        self._repositories['estimate_template_repository'] = SupabaseEstimateTemplateRepository(supabase_client=supabase_client)
     
     def _setup_services(self):
         """Initialize external service adapters."""
@@ -420,6 +457,32 @@ class DependencyContainer:
             project_repository=self.get_repository('project_repository'),
             project_helper_service=project_helper_service
         )
+        
+        # Estimate use cases
+        self._use_cases['create_estimate'] = CreateEstimateUseCase(
+            estimate_repository=self.get_repository('estimate_repository'),
+            estimate_template_repository=self.get_repository('estimate_template_repository'),
+            contact_repository=self.get_repository('contact_repository'),
+            project_repository=self.get_repository('project_repository'),
+            job_repository=self.get_repository('job_repository')
+        )
+        
+        self._use_cases['convert_estimate_to_invoice'] = ConvertEstimateToInvoiceUseCase(
+            estimate_repository=self.get_repository('estimate_repository'),
+            invoice_repository=self.get_repository('invoice_repository')
+        )
+        
+        # Invoice use cases
+        self._use_cases['create_invoice'] = CreateInvoiceUseCase(
+            invoice_repository=self.get_repository('invoice_repository'),
+            contact_repository=self.get_repository('contact_repository'),
+            project_repository=self.get_repository('project_repository'),
+            job_repository=self.get_repository('job_repository')
+        )
+        
+        self._use_cases['process_payment'] = ProcessPaymentUseCase(
+            invoice_repository=self.get_repository('invoice_repository')
+        )
 
     def _get_supabase_client(self) -> Client:
         """Get or create Supabase client."""
@@ -655,6 +718,35 @@ class DependencyContainer:
     def get_project_template_use_case(self) -> ProjectTemplateUseCase:
         """Get project template use case."""
         return self.get_use_case('project_template')
+
+    # Estimate management repositories
+    def get_estimate_repository(self) -> EstimateRepository:
+        """Get estimate repository from container."""
+        return self._repositories['estimate_repository']
+    
+    def get_invoice_repository(self) -> InvoiceRepository:
+        """Get invoice repository from container."""
+        return self._repositories['invoice_repository']
+    
+    def get_estimate_template_repository(self) -> EstimateTemplateRepository:
+        """Get estimate template repository from container."""
+        return self._repositories['estimate_template_repository']
+    
+    def get_create_estimate_use_case(self) -> CreateEstimateUseCase:
+        """Get create estimate use case from container."""
+        return self.get_use_case('create_estimate')
+    
+    def get_convert_estimate_to_invoice_use_case(self) -> ConvertEstimateToInvoiceUseCase:
+        """Get convert estimate to invoice use case from container."""
+        return self.get_use_case('convert_estimate_to_invoice')
+    
+    def get_create_invoice_use_case(self) -> CreateInvoiceUseCase:
+        """Get create invoice use case from container."""
+        return self.get_use_case('create_invoice')
+    
+    def get_process_payment_use_case(self) -> ProcessPaymentUseCase:
+        """Get process payment use case from container."""
+        return self.get_use_case('process_payment')
 
     def close(self):
         """Close all connections and cleanup resources."""
@@ -895,3 +987,38 @@ def get_project_assignment_use_case() -> ProjectAssignmentUseCase:
 def get_project_template_use_case() -> ProjectTemplateUseCase:
     """Get project template use case from container."""
     return get_container().get_project_template_use_case()
+
+
+# Global convenience functions for estimate management
+def get_estimate_repository() -> EstimateRepository:
+    """Get estimate repository from container."""
+    return get_container().get_estimate_repository()
+
+def get_invoice_repository() -> InvoiceRepository:
+    """Get invoice repository from container."""
+    return get_container().get_invoice_repository()
+
+def get_estimate_template_repository() -> EstimateTemplateRepository:
+    """Get estimate template repository from container."""
+    return get_container().get_estimate_template_repository()
+
+
+# Estimate and Invoice use case dependencies
+def get_create_estimate_use_case() -> CreateEstimateUseCase:
+    """Get create estimate use case from container."""
+    return get_container().get_create_estimate_use_case()
+
+
+def get_convert_estimate_to_invoice_use_case() -> ConvertEstimateToInvoiceUseCase:
+    """Get convert estimate to invoice use case from container."""
+    return get_container().get_convert_estimate_to_invoice_use_case()
+
+
+def get_create_invoice_use_case() -> CreateInvoiceUseCase:
+    """Get create invoice use case from container."""
+    return get_container().get_create_invoice_use_case()
+
+
+def get_process_payment_use_case() -> ProcessPaymentUseCase:
+    """Get process payment use case from container."""
+    return get_container().get_process_payment_use_case()

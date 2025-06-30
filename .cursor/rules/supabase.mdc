@@ -3,4 +3,4 @@ description:
 globs: 
 alwaysApply: true
 ---
-Always check the current database schema on the folder supabase/migrations. If you need to change the schema, propose a new migration on the folder to push to supabase.
+Always check the current database schema on the folder supabase/migrations. If you need to change the schema, propose a new migration on the folder to push to supabase using npx supabase db push

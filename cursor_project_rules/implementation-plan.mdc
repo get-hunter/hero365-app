@@ -427,3 +427,98 @@ Implemented activity management with timeline aggregation, reminder system, and 
 
 ## Progress Tracking
 Each completed step will be marked with "Done" and include a two-line summary of what was accomplished.
+
+## Phase 10: Estimates & Invoices Management System - **In Progress**
+### Step 10.1: Create estimates and invoices domain entities - **Done**
+- [x] Create Estimate domain entity with status management, financial calculations, and business logic
+- [x] Create Invoice domain entity with payment tracking, status management, and conversion logic
+- [x] Create EstimateLineItem and InvoiceLineItem value objects for itemized pricing
+- [x] Create EstimateTemplate and InvoiceTemplate entities for branding and customization
+- [x] Create Payment entity for invoice payment tracking
+- [x] Define enums for EstimateStatus, InvoiceStatus, PaymentStatus, PaymentMethod, TemplateType
+- [x] Implement financial calculation logic with taxes, discounts, and currency support
+
+Created comprehensive domain entities for estimates, invoices, and templates with complete business logic and financial calculations.
+Added all required enums and value objects for the estimates and invoices management system with proper validation and status workflows.
+
+### Step 10.2: Create repository interfaces - **Done**
+- [x] Create EstimateRepository interface with comprehensive CRUD and search operations
+- [x] Create InvoiceRepository interface with payment tracking and analytics
+- [x] Create EstimateTemplateRepository interface for template management
+- [x] Define filtering, search, and analytics query methods for reporting
+- [x] Update repository package exports with new interfaces
+
+Created comprehensive repository interfaces for EstimateRepository, InvoiceRepository, and EstimateTemplateRepository with full CRUD operations, business-scoped queries, search capabilities, financial analytics, bulk operations, and specialized domain methods.
+Updated repository package __init__.py to export all new interfaces following established patterns in the codebase.
+
+### Step 10.3: Create database schema and migration - **Done**
+- [x] Design comprehensive database schema for estimates, invoices, line_items, templates, payments
+- [x] Create SQL migration with proper relationships, constraints, and indexes
+- [x] Add database functions for automatic calculations and status updates
+- [x] Set up Row Level Security (RLS) policies for business-scoped access
+- [x] Create database triggers for audit trails and status history
+- [x] Include job relationships for estimates and invoices generation from jobs
+- [x] Update repository interfaces to support job-based queries
+
+Created comprehensive database migration (20250201000002_create_estimates_invoices_schema.sql) with 6 tables, 28 indexes, 9 triggers, 6 RLS policies, and 4 utility functions.
+Added job_id relationships to both estimates and invoices tables enabling generation from contacts, projects, or jobs with full business logic automation.
+
+### Step 10.4: Implement Supabase repositories - **Done**
+- [x] Create SupabaseEstimateRepository with full CRUD operations and search
+- [x] Create SupabaseInvoiceRepository with payment integration and analytics
+- [x] Create SupabaseEstimateTemplateRepository with template management operations
+- [x] Add repositories to dependency injection container with proper bindings
+- [x] Update repository package exports and infrastructure layer organization
+
+Created comprehensive Supabase repository implementations for EstimateRepository (797 lines), InvoiceRepository (577 lines), and EstimateTemplateRepository (183 lines) with complete CRUD operations.
+Updated dependency injection container with proper repository bindings and wired all new repositories into the clean architecture infrastructure.
+
+### Step 10.5: Create use cases - **Done**
+- [x] CreateEstimate use case with template application and client validation
+- [x] ConvertEstimateToInvoice use case with business logic and validation
+- [x] CreateInvoice use case for direct invoice creation
+- [x] ProcessPayment use case with payment processing and status management
+- [x] Comprehensive business logic validation and error handling
+- [x] Integration with contact, project, and job entities
+
+Created comprehensive use cases for estimates and invoices management including CreateEstimateUseCase, ConvertEstimateToInvoiceUseCase, CreateInvoiceUseCase, and ProcessPaymentUseCase.
+All use cases include proper business logic validation, permission checking, entity relationships, and comprehensive error handling following clean architecture principles.
+
+### Step 10.6: Create DTOs and schemas - **Done**
+- [x] Estimate and Invoice DTOs with comprehensive financial data
+- [x] Template DTOs with design and customization options
+- [x] Payment DTOs with transaction tracking
+- [x] API request/response schemas with validation rules
+- [x] Search and filter DTOs for advanced querying
+
+Created comprehensive DTDs and schemas for estimates and invoices management including EstimateDTO, InvoiceDTO, CreateEstimateDTO, CreateInvoiceDTO, ProcessPaymentDTO, and all supporting DTOs.
+Implemented complete Pydantic API schemas with validation rules, field constraints, and proper error handling for all estimate and invoice endpoints.
+
+### Step 10.7: Implement API controllers and routes - **Done**
+- [x] EstimateController with full CRUD and status management
+- [x] InvoiceController with payment processing and analytics
+- [x] TemplateController for estimate and invoice templates
+- [x] PaymentController for payment recording and tracking
+- [x] Comprehensive error handling and business rule validation
+
+Created comprehensive API routes for estimates and invoices with full CRUD operations, payment processing, analytics, and status management following established patterns.
+Updated dependency injection container with estimate and invoice use cases and registered new routes in the main application router for complete API integration.
+
+### Step 10.8: Email and PDF integration - **Not Started**
+- [ ] Email service integration for estimate and invoice delivery
+- [ ] PDF generation service with template customization
+- [ ] Email tracking and delivery confirmation
+- [ ] Automated reminder system for overdue invoices
+- [ ] Payment link generation for online payments
+
+### Step 10.9: Update dependency injection and main application - **Not Started**
+- [ ] Add estimates and invoices repositories to DI container
+- [ ] Wire all use cases with proper dependencies
+- [ ] Update main application to include new routes
+- [ ] Verify all operations work end-to-end
+
+### Step 10.10: Create API documentation - **Not Started**
+- [ ] Create comprehensive API documentation for estimates and invoices
+- [ ] Document all endpoints with request/response examples
+- [ ] Include business rules and validation requirements
+- [ ] Add integration examples for mobile app consumption

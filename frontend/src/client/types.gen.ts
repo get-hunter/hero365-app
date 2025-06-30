@@ -740,6 +740,28 @@ export type AdaptedJob = {
 }
 
 /**
+ * Schema for advance payment information.
+ */
+export type AdvancePaymentSchema_Input = {
+  amount?: number | string
+  percentage?: number | string
+  due_date?: string | null
+  description?: string
+  is_required?: boolean
+}
+
+/**
+ * Schema for advance payment information.
+ */
+export type AdvancePaymentSchema_Output = {
+  amount?: string
+  percentage?: string
+  due_date?: string | null
+  description?: string
+  is_required?: boolean
+}
+
+/**
  * Schema for simple message responses.
  */
 export type app__api__schemas__activity_schemas__MessageResponse = {
@@ -2493,6 +2515,91 @@ export type CreateCalendarEventRequest = {
 }
 
 /**
+ * Schema for creating estimates.
+ */
+export type CreateEstimateSchema = {
+  contact_id: string
+  title: string
+  description?: string | null
+  line_items: Array<EstimateLineItemSchema_Input>
+  currency?: string
+  tax_rate?: number | string
+  tax_type?: string
+  overall_discount_type?: string
+  overall_discount_value?: number | string
+  terms?: EstimateTermsSchema | null
+  advance_payment?: AdvancePaymentSchema_Input | null
+  template_id?: string | null
+  template_data?: {
+    [key: string]: unknown
+  } | null
+  project_id?: string | null
+  job_id?: string | null
+  tags?: Array<string> | null
+  custom_fields?: {
+    [key: string]: unknown
+  } | null
+  internal_notes?: string | null
+  valid_until_date?: string | null
+  estimate_number?: string | null
+  number_prefix?: string
+}
+
+/**
+ * Schema for creating invoices from estimates.
+ */
+export type CreateInvoiceFromEstimateSchema = {
+  title?: string | null
+  description?: string | null
+  invoice_number?: string | null
+  number_prefix?: string
+  due_date?: string | null
+  payment_net_days?: number
+  early_payment_discount_percentage?: number | string
+  early_payment_discount_days?: number
+  late_fee_percentage?: number | string
+  late_fee_grace_days?: number
+  payment_instructions?: string | null
+  internal_notes?: string | null
+}
+
+/**
+ * Schema for creating invoices.
+ */
+export type CreateInvoiceSchema = {
+  contact_id: string
+  title: string
+  description?: string | null
+  line_items: Array<InvoiceLineItemSchema_Input>
+  currency?: string
+  tax_rate?: number | string
+  tax_type?: string
+  overall_discount_type?: string
+  overall_discount_value?: number | string
+  template_id?: string | null
+  template_data?: {
+    [key: string]: unknown
+  } | null
+  estimate_id?: string | null
+  project_id?: string | null
+  job_id?: string | null
+  tags?: Array<string> | null
+  custom_fields?: {
+    [key: string]: unknown
+  } | null
+  internal_notes?: string | null
+  invoice_number?: string | null
+  number_prefix?: string
+  due_date?: string | null
+  payment_net_days?: number
+  early_payment_discount_percentage?: number | string
+  early_payment_discount_days?: number
+  late_fee_percentage?: number | string
+  late_fee_grace_days?: number
+  payment_instructions?: string | null
+}
+
+/**
  * Request to create time off.
  */
 export type CreateTimeOffRequest = {
@@ -2686,6 +2793,199 @@ export type DisruptionType =
   | "equipment_failure"
 
 /**
+ * Schema for estimate action responses.
+ */
+export type EstimateActionResponse = {
+  message: string
+  estimate_id: string
+  invoice_id?: string | null
+  success?: boolean
+}
+
+/**
+ * Schema for estimate analytics responses.
+ */
+export type EstimateAnalyticsResponse = {
+  total_estimates?: number
+  draft_estimates?: number
+  sent_estimates?: number
+  accepted_estimates?: number
+  rejected_estimates?: number
+  expired_estimates?: number
+  converted_estimates?: number
+  total_value?: number
+  accepted_value?: number
+  conversion_rate?: number
+  average_value?: number
+  currency?: string
+}
+
+/**
+ * Schema for estimate line items.
+ */
+export type EstimateLineItemSchema_Input = {
+  id?: string | null
+  description: string
+  quantity: number | string
+  unit_price: number | string
+  unit?: string | null
+  category?: string | null
+  discount_type?: string
+  discount_value?: number | string
+  tax_rate?: number | string
+  notes?: string | null
+  line_total?: number | string | null
+  discount_amount?: number | string | null
+  tax_amount?: number | string | null
+  final_total?: number | string | null
+}
+
+/**
+ * Schema for estimate line items.
+ */
+export type EstimateLineItemSchema_Output = {
+  id?: string | null
+  description: string
+  quantity: string
+  unit_price: string
+  unit?: string | null
+  category?: string | null
+  discount_type?: string
+  discount_value?: string
+  tax_rate?: string
+  notes?: string | null
+  line_total?: string | null
+  discount_amount?: string | null
+  tax_amount?: string | null
+  final_total?: string | null
+}
+
+/**
+ * Schema for estimate list responses.
+ */
+export type EstimateListResponseSchema = {
+  estimates: Array<EstimateResponseSchema>
+  total_count: number
+  page: number
+  per_page: number
+  has_next: boolean
+  has_prev: boolean
+}
+
+/**
+ * Schema for estimate responses.
+ */
+export type EstimateResponseSchema = {
+  id: string
+  business_id: string
+  estimate_number: string
+  status: string
+  contact_id?: string | null
+  client_name?: string | null
+  client_email?: string | null
+  client_phone?: string | null
+  client_address?: {
+    [key: string]: unknown
+  } | null
+  title: string
+  description?: string | null
+  line_items: Array<EstimateLineItemSchema_Output>
+  currency: string
+  tax_rate: string
+  tax_type: string
+  overall_discount_type: string
+  overall_discount_value: string
+  terms?: EstimateTermsSchema | null
+  advance_payment?: AdvancePaymentSchema_Output | null
+  template_id?: string | null
+  template_data: {
+    [key: string]: unknown
+  }
+  project_id?: string | null
+  job_id?: string | null
+  tags: Array<string>
+  custom_fields: {
+    [key: string]: unknown
+  }
+  internal_notes?: string | null
+  valid_until_date?: string | null
+  created_by?: string | null
+  created_date: string
+  last_modified: string
+  sent_date?: string | null
+  viewed_date?: string | null
+  accepted_date?: string | null
+  financial_summary: {
+    [key: string]: number | null
+  }
+  status_info: {
+    [key: string]: unknown
+  }
+}
+
+/**
+ * Schema for estimate search parameters.
+ */
+export type EstimateSearchSchema = {
+  search_term?: string | null
+  status?: string | null
+  contact_id?: string | null
+  project_id?: string | null
+  job_id?: string | null
+  template_id?: string | null
+  currency?: string | null
+  min_amount?: number | null
+  max_amount?: number | null
+  created_from?: string | null
+  created_to?: string | null
+  valid_from?: string | null
+  valid_to?: string | null
+  tags?: Array<string> | null
+  created_by?: string | null
+  include_expired?: boolean
+  skip?: number
+  limit?: number
+  sort_by?: string
+  sort_order?: string
+}
+
+/**
+ * Estimate status enumeration.
+ */
+export type EstimateStatus =
+  | "draft"
+  | "sent"
+  | "viewed"
+  | "approved"
+  | "rejected"
+  | "expired"
+  | "converted"
+  | "cancelled"
+
+/**
+ * Schema for updating estimate status.
+ */
+export type EstimateStatusUpdateSchema = {
+  status: string
+  notes?: string | null
+}
+
+/**
+ * Schema for estimate terms.
+ */
+export type EstimateTermsSchema = {
+  payment_terms?: string
+  validity_period?: number
+  work_schedule?: string
+  materials_policy?: string
+  change_order_policy?: string
+  warranty_terms?: string
+  cancellation_policy?: string
+  acceptance_criteria?: string
+  additional_terms?: Array<string>
+}
+
+/**
  * Schema for Google Sign-In with ID token from iOS app.
  */
 export type GoogleSignInRequest = {
@@ -2776,6 +3076,123 @@ export type InvitationStatusSchema =
   | "declined"
   | "expired"
   | "cancelled"
+
+/**
+ * Schema for invoice line items.
+ */
+export type InvoiceLineItemSchema_Input = {
+  id?: string | null
+  description: string
+  quantity: number | string
+  unit_price: number | string
+  unit?: string | null
+  category?: string | null
+  discount_type?: string
+  discount_value?: number | string
+  tax_rate?: number | string
+  notes?: string | null
+  line_total?: number | string | null
+  discount_amount?: number | string | null
+  tax_amount?: number | string | null
+  final_total?: number | string | null
+}
+
+/**
+ * Schema for invoice line items.
+ */
+export type InvoiceLineItemSchema_Output = {
+  id?: string | null
+  description: string
+  quantity: string
+  unit_price: string
+  unit?: string | null
+  category?: string | null
+  discount_type?: string
+  discount_value?: string
+  tax_rate?: string
+  notes?: string | null
+  line_total?: string | null
+  discount_amount?: string | null
+  tax_amount?: string | null
+  final_total?: string | null
+}
+
+/**
+ * Schema for invoice list responses.
+ */
+export type InvoiceListResponseSchema = {
+  invoices: Array<InvoiceResponseSchema>
+  total_count: number
+  page: number
+  per_page: number
+  has_next: boolean
+  has_prev: boolean
+}
+
+/**
+ * Schema for invoice responses.
+ */
+export type InvoiceResponseSchema = {
+  id: string
+  business_id: string
+  invoice_number: string
+  status: string
+  client_id?: string | null
+  client_name?: string | null
+  client_email?: string | null
+  client_phone?: string | null
+  client_address?: {
+    [key: string]: unknown
+  } | null
+  title: string
+  description?: string | null
+  line_items: Array<InvoiceLineItemSchema_Output>
+  currency: string
+  tax_rate: string
+  tax_type: string
+  overall_discount_type: string
+  overall_discount_value: string
+  payments: Array<PaymentSchema>
+  template_id?: string | null
+  template_data: {
+    [key: string]: unknown
+  }
+  estimate_id?: string | null
+  project_id?: string | null
+  job_id?: string | null
+  contact_id?: string | null
+  tags: Array<string>
+  custom_fields: {
+    [key: string]: unknown
+  }
+  internal_notes?: string | null
+  created_by?: string | null
+  created_date: string
+  last_modified: string
+  sent_date?: string | null
+  viewed_date?: string | null
+  due_date?: string | null
+  paid_date?: string | null
+  financial_summary: {
+    [key: string]: number | null
+  }
+  status_info: {
+    [key: string]: unknown
+  }
+}
+
+/**
+ * Invoice status enumeration.
+ */
+export type InvoiceStatus =
+  | "draft"
+  | "sent"
+  | "viewed"
+  | "paid"
+  | "partially_paid"
+  | "overdue"
+  | "cancelled"
+  | "refunded"
 
 /**
  * Schema for job action responses.
@@ -3563,6 +3980,41 @@ export type OTPVerificationRequest = {
   token: string
 }
 
+/**
+ * Schema for payment responses.
+ */
+export type PaymentResponse = {
+  payment_id: string
+  invoice_id: string
+  amount: string
+  payment_method: string
+  payment_date: string
+  status?: string
+  reference?: string | null
+  transaction_id?: string | null
+  notes?: string | null
+  success?: boolean
+  message?: string
+}
+
+/**
+ * Schema for payment entities.
+ */
+export type PaymentSchema = {
+  id: string
+  amount: string
+  payment_date: string
+  payment_method: string
+  status: string
+  reference?: string | null
+  transaction_id?: string | null
+  notes?: string | null
+  processed_by?: string | null
+  refunded_amount?: string
+  refund_date?: string | null
+  refund_reason?: string | null
+}
+
 export type PhoneSignInRequest = {
   phone: string
   password: string
@@ -3598,6 +4050,18 @@ export type PredictiveInsight = {
    * Recommended actions
    */
   recommended_actions: Array<string>
+}
+
+/**
+ * Schema for processing payments.
+ */
+export type ProcessPaymentSchema = {
+  amount: number | string
+  payment_method: string
+  reference?: string | null
+  transaction_id?: string | null
+  notes?: string | null
+  payment_date?: string | null
 }
 
 /**
@@ -4933,6 +5397,32 @@ export type TrendAnalysis = {
 }
 
 /**
+ * Schema for updating estimates.
+ */
+export type UpdateEstimateSchema = {
+  title?: string | null
+  description?: string | null
+  line_items?: Array<EstimateLineItemSchema_Input> | null
+  currency?: string | null
+  tax_rate?: number | string | null
+  tax_type?: string | null
+  overall_discount_type?: string | null
+  overall_discount_value?: number | string | null
+  terms?: EstimateTermsSchema | null
+  advance_payment?: AdvancePaymentSchema_Input | null
+  template_id?: string | null
+  template_data?: {
+    [key: string]: unknown
+  } | null
+  tags?: Array<string> | null
+  custom_fields?: {
+    [key: string]: unknown
+  } | null
+  internal_notes?: string | null
+  valid_until_date?: string | null
+}
+
+/**
  * User availability information.
  */
 export type UserAvailability = {
@@ -5722,6 +6212,153 @@ export type ContactsUpdateContactStatusData = {
 
 export type ContactsUpdateContactStatusResponse = ContactStatusUpdateResponse
 
+export type CreateEstimateNoSlashData = {
+  requestBody: CreateEstimateSchema
+}
+
+export type CreateEstimateNoSlashResponse = EstimateResponseSchema
+
+export type ListEstimatesNoSlashData = {
+  /**
+   * Filter by contact ID
+   */
+  contactId?: string | null
+  /**
+   * Filter by job ID
+   */
+  jobId?: string | null
+  /**
+   * Maximum number of records to return
+   */
+  limit?: number
+  /**
+   * Filter by project ID
+   */
+  projectId?: string | null
+  /**
+   * Number of records to skip
+   */
+  skip?: number
+  /**
+   * Filter by estimate status
+   */
+  status?: EstimateStatus | null
+}
+
+export type ListEstimatesNoSlashResponse = EstimateListResponseSchema
+
+export type EstimatesCreateEstimateData = {
+  requestBody: CreateEstimateSchema
+}
+
+export type EstimatesCreateEstimateResponse = EstimateResponseSchema
+
+export type EstimatesListEstimatesData = {
+  /**
+   * Filter by contact ID
+   */
+  contactId?: string | null
+  /**
+   * Filter by job ID
+   */
+  jobId?: string | null
+  /**
+   * Maximum number of records to return
+   */
+  limit?: number
+  /**
+   * Filter by project ID
+   */
+  projectId?: string | null
+  /**
+   * Number of records to skip
+   */
+  skip?: number
+  /**
+   * Filter by estimate status
+   */
+  status?: EstimateStatus | null
+}
+
+export type EstimatesListEstimatesResponse = EstimateListResponseSchema
+
+export type EstimatesCreateEstimateFromTemplateData = {
+  requestBody: CreateEstimateSchema
+}
+
+export type EstimatesCreateEstimateFromTemplateResponse = EstimateResponseSchema
+
+export type EstimatesGetEstimateData = {
+  /**
+   * Estimate ID
+   */
+  estimateId: string
+}
+
+export type EstimatesGetEstimateResponse = EstimateResponseSchema
+
+export type EstimatesUpdateEstimateData = {
+  /**
+   * Estimate ID
+   */
+  estimateId: string
+  requestBody: UpdateEstimateSchema
+}
+
+export type EstimatesUpdateEstimateResponse = EstimateResponseSchema
+
+export type EstimatesDeleteEstimateData = {
+  /**
+   * Estimate ID
+   */
+  estimateId: string
+}
+
+export type EstimatesDeleteEstimateResponse =
+  app__api__schemas__activity_schemas__MessageResponse
+
+export type EstimatesSearchEstimatesData = {
+  requestBody: EstimateSearchSchema
+}
+
+export type EstimatesSearchEstimatesResponse = EstimateListResponseSchema
+
+export type EstimatesUpdateEstimateStatusData = {
+  /**
+   * Estimate ID
+   */
+  estimateId: string
+  requestBody: EstimateStatusUpdateSchema
+}
+
+export type EstimatesUpdateEstimateStatusResponse = EstimateResponseSchema
+
+export type EstimatesConvertEstimateToInvoiceData = {
+  /**
+   * Optional advance payment amount
+   */
+  advancePaymentAmount?: number | null
+  /**
+   * Estimate ID
+   */
+  estimateId: string
+}
+
+export type EstimatesConvertEstimateToInvoiceResponse = EstimateActionResponse
+
+export type EstimatesGetEstimateAnalyticsData = {
+  /**
+   * Start date for analytics
+   */
+  dateFrom?: string | null
+  /**
+   * End date for analytics
+   */
+  dateTo?: string | null
+}
+
+export type EstimatesGetEstimateAnalyticsResponse = EstimateAnalyticsResponse
+
 export type HealthHealthCheckResponse = unknown
 
 export type IntelligentSchedulingOptimizeScheduleData = {
@@ -5952,6 +6589,109 @@ export type IntelligentSchedulingGetCalendarPreferencesData = {
 
 export type IntelligentSchedulingGetCalendarPreferencesResponse =
   CalendarPreferences
+
+export type CreateInvoiceNoSlashData = {
+  requestBody: CreateInvoiceSchema
+}
+
+export type CreateInvoiceNoSlashResponse = InvoiceResponseSchema
+
+export type ListInvoicesNoSlashData = {
+  /**
+   * Filter by contact ID
+   */
+  contactId?: string | null
+  /**
+   * Filter by job ID
+   */
+  jobId?: string | null
+  /**
+   * Maximum number of records to return
+   */
+  limit?: number
+  /**
+   * Show only overdue invoices
+   */
+  overdueOnly?: boolean
+  /**
+   * Filter by project ID
+   */
+  projectId?: string | null
+  /**
+   * Number of records to skip
+   */
+  skip?: number
+  /**
+   * Filter by invoice status
+   */
+  status?: InvoiceStatus | null
+}
+
+export type ListInvoicesNoSlashResponse = InvoiceListResponseSchema
+
+export type InvoicesCreateInvoiceData = {
+  requestBody: CreateInvoiceSchema
+}
+
+export type InvoicesCreateInvoiceResponse = InvoiceResponseSchema
+
+export type InvoicesListInvoicesData = {
+  /**
+   * Filter by contact ID
+   */
+  contactId?: string | null
+  /**
+   * Filter by job ID
+   */
+  jobId?: string | null
+  /**
+   * Maximum number of records to return
+   */
+  limit?: number
+  /**
+   * Show only overdue invoices
+   */
+  overdueOnly?: boolean
+  /**
+   * Filter by project ID
+   */
+  projectId?: string | null
+  /**
+   * Number of records to skip
+   */
+  skip?: number
+  /**
+   * Filter by invoice status
+   */
+  status?: InvoiceStatus | null
+}
+
+export type InvoicesListInvoicesResponse = InvoiceListResponseSchema
+
+export type InvoicesCreateInvoiceFromEstimateData = {
+  requestBody: CreateInvoiceFromEstimateSchema
+}
+
+export type InvoicesCreateInvoiceFromEstimateResponse = InvoiceResponseSchema
+
+export type InvoicesGetInvoiceData = {
+  /**
+   * Invoice ID
+   */
+  invoiceId: string
+}
+
+export type InvoicesGetInvoiceResponse = InvoiceResponseSchema
+
+export type InvoicesProcessPaymentData = {
+  /**
+   * Invoice ID
+   */
+  invoiceId: string
+  requestBody: ProcessPaymentSchema
+}
+
+export type InvoicesProcessPaymentResponse = PaymentResponse
 
 export type CreateJobNoSlashData = {
   requestBody: JobCreateRequest

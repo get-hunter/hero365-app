@@ -124,6 +124,30 @@ import type {
   ContactsGetContactInteractionsResponse,
   ContactsUpdateContactStatusData,
   ContactsUpdateContactStatusResponse,
+  CreateEstimateNoSlashData,
+  CreateEstimateNoSlashResponse,
+  ListEstimatesNoSlashData,
+  ListEstimatesNoSlashResponse,
+  EstimatesCreateEstimateData,
+  EstimatesCreateEstimateResponse,
+  EstimatesListEstimatesData,
+  EstimatesListEstimatesResponse,
+  EstimatesCreateEstimateFromTemplateData,
+  EstimatesCreateEstimateFromTemplateResponse,
+  EstimatesGetEstimateData,
+  EstimatesGetEstimateResponse,
+  EstimatesUpdateEstimateData,
+  EstimatesUpdateEstimateResponse,
+  EstimatesDeleteEstimateData,
+  EstimatesDeleteEstimateResponse,
+  EstimatesSearchEstimatesData,
+  EstimatesSearchEstimatesResponse,
+  EstimatesUpdateEstimateStatusData,
+  EstimatesUpdateEstimateStatusResponse,
+  EstimatesConvertEstimateToInvoiceData,
+  EstimatesConvertEstimateToInvoiceResponse,
+  EstimatesGetEstimateAnalyticsData,
+  EstimatesGetEstimateAnalyticsResponse,
   HealthHealthCheckResponse,
   IntelligentSchedulingOptimizeScheduleData,
   IntelligentSchedulingOptimizeScheduleResponse,
@@ -173,6 +197,20 @@ import type {
   IntelligentSchedulingUpdateCalendarPreferencesResponse,
   IntelligentSchedulingGetCalendarPreferencesData,
   IntelligentSchedulingGetCalendarPreferencesResponse,
+  CreateInvoiceNoSlashData,
+  CreateInvoiceNoSlashResponse,
+  ListInvoicesNoSlashData,
+  ListInvoicesNoSlashResponse,
+  InvoicesCreateInvoiceData,
+  InvoicesCreateInvoiceResponse,
+  InvoicesListInvoicesData,
+  InvoicesListInvoicesResponse,
+  InvoicesCreateInvoiceFromEstimateData,
+  InvoicesCreateInvoiceFromEstimateResponse,
+  InvoicesGetInvoiceData,
+  InvoicesGetInvoiceResponse,
+  InvoicesProcessPaymentData,
+  InvoicesProcessPaymentResponse,
   CreateJobNoSlashData,
   CreateJobNoSlashResponse,
   CreateJobNoSlash1Data,
@@ -1934,6 +1972,348 @@ export class ContactsService {
   }
 }
 
+export class EstimatesService {
+  /**
+   * Create Estimate
+   * Create a new estimate.
+   *
+   * Creates a new estimate for the current business with the provided information.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns EstimateResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static createEstimateNoSlash(
+    data: CreateEstimateNoSlashData,
+  ): CancelablePromise<CreateEstimateNoSlashResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/estimates",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Estimates
+   * List estimates.
+   *
+   * Retrieves a paginated list of estimates for the current business.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.skip Number of records to skip
+   * @param data.limit Maximum number of records to return
+   * @param data.status Filter by estimate status
+   * @param data.contactId Filter by contact ID
+   * @param data.projectId Filter by project ID
+   * @param data.jobId Filter by job ID
+   * @returns EstimateListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static listEstimatesNoSlash(
+    data: ListEstimatesNoSlashData = {},
+  ): CancelablePromise<ListEstimatesNoSlashResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/estimates",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        status: data.status,
+        contact_id: data.contactId,
+        project_id: data.projectId,
+        job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Estimate
+   * Create a new estimate.
+   *
+   * Creates a new estimate for the current business with the provided information.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns EstimateResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static createEstimate(
+    data: EstimatesCreateEstimateData,
+  ): CancelablePromise<EstimatesCreateEstimateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/estimates/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Estimates
+   * List estimates.
+   *
+   * Retrieves a paginated list of estimates for the current business.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.skip Number of records to skip
+   * @param data.limit Maximum number of records to return
+   * @param data.status Filter by estimate status
+   * @param data.contactId Filter by contact ID
+   * @param data.projectId Filter by project ID
+   * @param data.jobId Filter by job ID
+   * @returns EstimateListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static listEstimates(
+    data: EstimatesListEstimatesData = {},
+  ): CancelablePromise<EstimatesListEstimatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/estimates/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        status: data.status,
+        contact_id: data.contactId,
+        project_id: data.projectId,
+        job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Estimate From Template
+   * Create a new estimate from a template.
+   *
+   * Creates a new estimate using a predefined template with customizable fields.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns EstimateResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static createEstimateFromTemplate(
+    data: EstimatesCreateEstimateFromTemplateData,
+  ): CancelablePromise<EstimatesCreateEstimateFromTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/estimates/from-template",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Estimate
+   * Get an estimate by ID.
+   *
+   * Retrieves detailed information about a specific estimate.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.estimateId Estimate ID
+   * @returns EstimateResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static getEstimate(
+    data: EstimatesGetEstimateData,
+  ): CancelablePromise<EstimatesGetEstimateResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/estimates/{estimate_id}",
+      path: {
+        estimate_id: data.estimateId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Estimate
+   * Update an estimate.
+   *
+   * Updates an existing estimate with the provided information.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.estimateId Estimate ID
+   * @param data.requestBody
+   * @returns EstimateResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static updateEstimate(
+    data: EstimatesUpdateEstimateData,
+  ): CancelablePromise<EstimatesUpdateEstimateResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/estimates/{estimate_id}",
+      path: {
+        estimate_id: data.estimateId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Estimate
+   * Delete an estimate.
+   *
+   * Deletes an estimate. Only draft estimates can be deleted.
+   * Requires 'delete_projects' permission.
+   * @param data The data for the request.
+   * @param data.estimateId Estimate ID
+   * @returns app__api__schemas__activity_schemas__MessageResponse Successful Response
+   * @throws ApiError
+   */
+  public static deleteEstimate(
+    data: EstimatesDeleteEstimateData,
+  ): CancelablePromise<EstimatesDeleteEstimateResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/estimates/{estimate_id}",
+      path: {
+        estimate_id: data.estimateId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search Estimates
+   * Search estimates.
+   *
+   * Searches estimates with various filters and criteria.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns EstimateListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static searchEstimates(
+    data: EstimatesSearchEstimatesData,
+  ): CancelablePromise<EstimatesSearchEstimatesResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/estimates/search",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Estimate Status
+   * Update estimate status.
+   *
+   * Updates the status of an estimate with optional notes.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.estimateId Estimate ID
+   * @param data.requestBody
+   * @returns EstimateResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static updateEstimateStatus(
+    data: EstimatesUpdateEstimateStatusData,
+  ): CancelablePromise<EstimatesUpdateEstimateStatusResponse> {
+    return __request(OpenAPI, {
+      method: "PATCH",
+      url: "/api/v1/estimates/{estimate_id}/status",
+      path: {
+        estimate_id: data.estimateId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Convert Estimate To Invoice
+   * Convert estimate to invoice.
+   *
+   * Converts an approved estimate to an invoice.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.estimateId Estimate ID
+   * @param data.advancePaymentAmount Optional advance payment amount
+   * @returns EstimateActionResponse Successful Response
+   * @throws ApiError
+   */
+  public static convertEstimateToInvoice(
+    data: EstimatesConvertEstimateToInvoiceData,
+  ): CancelablePromise<EstimatesConvertEstimateToInvoiceResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/estimates/{estimate_id}/convert-to-invoice",
+      path: {
+        estimate_id: data.estimateId,
+      },
+      query: {
+        advance_payment_amount: data.advancePaymentAmount,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Estimate Analytics
+   * Get estimate analytics.
+   *
+   * Retrieves comprehensive estimate analytics for the current business.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.dateFrom Start date for analytics
+   * @param data.dateTo End date for analytics
+   * @returns EstimateAnalyticsResponse Successful Response
+   * @throws ApiError
+   */
+  public static getEstimateAnalytics(
+    data: EstimatesGetEstimateAnalyticsData = {},
+  ): CancelablePromise<EstimatesGetEstimateAnalyticsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/estimates/analytics/overview",
+      query: {
+        date_from: data.dateFrom,
+        date_to: data.dateTo,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class HealthService {
   /**
    * Health Check
@@ -2530,6 +2910,214 @@ export class IntelligentSchedulingService {
       path: {
         user_id: data.userId,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class InvoicesService {
+  /**
+   * Create Invoice
+   * Create a new invoice.
+   *
+   * Creates a new invoice for the current business with the provided information.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns InvoiceResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static createInvoiceNoSlash(
+    data: CreateInvoiceNoSlashData,
+  ): CancelablePromise<CreateInvoiceNoSlashResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/invoices",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Invoices
+   * List invoices.
+   *
+   * Retrieves a paginated list of invoices for the current business.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.skip Number of records to skip
+   * @param data.limit Maximum number of records to return
+   * @param data.status Filter by invoice status
+   * @param data.contactId Filter by contact ID
+   * @param data.projectId Filter by project ID
+   * @param data.jobId Filter by job ID
+   * @param data.overdueOnly Show only overdue invoices
+   * @returns InvoiceListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static listInvoicesNoSlash(
+    data: ListInvoicesNoSlashData = {},
+  ): CancelablePromise<ListInvoicesNoSlashResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/invoices",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        status: data.status,
+        contact_id: data.contactId,
+        project_id: data.projectId,
+        job_id: data.jobId,
+        overdue_only: data.overdueOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Invoice
+   * Create a new invoice.
+   *
+   * Creates a new invoice for the current business with the provided information.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns InvoiceResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static createInvoice(
+    data: InvoicesCreateInvoiceData,
+  ): CancelablePromise<InvoicesCreateInvoiceResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/invoices/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Invoices
+   * List invoices.
+   *
+   * Retrieves a paginated list of invoices for the current business.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.skip Number of records to skip
+   * @param data.limit Maximum number of records to return
+   * @param data.status Filter by invoice status
+   * @param data.contactId Filter by contact ID
+   * @param data.projectId Filter by project ID
+   * @param data.jobId Filter by job ID
+   * @param data.overdueOnly Show only overdue invoices
+   * @returns InvoiceListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static listInvoices(
+    data: InvoicesListInvoicesData = {},
+  ): CancelablePromise<InvoicesListInvoicesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/invoices/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        status: data.status,
+        contact_id: data.contactId,
+        project_id: data.projectId,
+        job_id: data.jobId,
+        overdue_only: data.overdueOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Invoice From Estimate
+   * Create a new invoice from an estimate.
+   *
+   * Creates a new invoice based on an existing estimate.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns InvoiceResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static createInvoiceFromEstimate(
+    data: InvoicesCreateInvoiceFromEstimateData,
+  ): CancelablePromise<InvoicesCreateInvoiceFromEstimateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/invoices/from-estimate",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Invoice
+   * Get an invoice by ID.
+   *
+   * Retrieves detailed information about a specific invoice.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.invoiceId Invoice ID
+   * @returns InvoiceResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static getInvoice(
+    data: InvoicesGetInvoiceData,
+  ): CancelablePromise<InvoicesGetInvoiceResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/invoices/{invoice_id}",
+      path: {
+        invoice_id: data.invoiceId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Process Payment
+   * Process a payment for an invoice.
+   *
+   * Records a payment against an invoice and updates the invoice status.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.invoiceId Invoice ID
+   * @param data.requestBody
+   * @returns PaymentResponse Successful Response
+   * @throws ApiError
+   */
+  public static processPayment(
+    data: InvoicesProcessPaymentData,
+  ): CancelablePromise<InvoicesProcessPaymentResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/invoices/{invoice_id}/payments",
+      path: {
+        invoice_id: data.invoiceId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },

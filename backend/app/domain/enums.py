@@ -314,4 +314,251 @@ class ProjectPriority(str, Enum):
             self.HIGH: "High",
             self.CRITICAL: "Critical"
         }
+        return display_map.get(self, self.value.title())
+
+
+# Estimates and Invoices enums
+class EstimateStatus(str, Enum):
+    """Estimate status enumeration."""
+    DRAFT = "draft"
+    SENT = "sent"
+    VIEWED = "viewed"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+    CONVERTED = "converted"
+    CANCELLED = "cancelled"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.DRAFT: "Draft",
+            self.SENT: "Sent",
+            self.VIEWED: "Viewed",
+            self.APPROVED: "Approved",
+            self.REJECTED: "Rejected",
+            self.EXPIRED: "Expired",
+            self.CONVERTED: "Converted",
+            self.CANCELLED: "Cancelled"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class InvoiceStatus(str, Enum):
+    """Invoice status enumeration."""
+    DRAFT = "draft"
+    SENT = "sent"
+    VIEWED = "viewed"
+    PAID = "paid"
+    PARTIALLY_PAID = "partially_paid"  
+    OVERDUE = "overdue"
+    CANCELLED = "cancelled"
+    REFUNDED = "refunded"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.DRAFT: "Draft",
+            self.SENT: "Sent",
+            self.VIEWED: "Viewed",
+            self.PAID: "Paid",
+            self.PARTIALLY_PAID: "Partially Paid",
+            self.OVERDUE: "Overdue",
+            self.CANCELLED: "Cancelled",
+            self.REFUNDED: "Refunded"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class PaymentStatus(str, Enum):
+    """Payment status enumeration."""
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    REFUNDED = "refunded"
+    PARTIALLY_REFUNDED = "partially_refunded"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.PENDING: "Pending",
+            self.PROCESSING: "Processing",
+            self.COMPLETED: "Completed",
+            self.FAILED: "Failed",
+            self.CANCELLED: "Cancelled",
+            self.REFUNDED: "Refunded",
+            self.PARTIALLY_REFUNDED: "Partially Refunded"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class PaymentMethod(str, Enum):
+    """Payment method enumeration."""
+    CASH = "cash"
+    CHECK = "check"
+    CREDIT_CARD = "credit_card"
+    DEBIT_CARD = "debit_card"
+    ACH = "ach"
+    WIRE_TRANSFER = "wire_transfer"
+    PAYPAL = "paypal"
+    STRIPE = "stripe"
+    SQUARE = "square"
+    VENMO = "venmo"
+    ZELLE = "zelle"
+    BANK_TRANSFER = "bank_transfer"
+    OTHER = "other"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.CASH: "Cash",
+            self.CHECK: "Check",
+            self.CREDIT_CARD: "Credit Card",
+            self.DEBIT_CARD: "Debit Card",
+            self.ACH: "ACH Transfer",
+            self.WIRE_TRANSFER: "Wire Transfer",
+            self.PAYPAL: "PayPal",
+            self.STRIPE: "Stripe",
+            self.SQUARE: "Square",
+            self.VENMO: "Venmo",
+            self.ZELLE: "Zelle",
+            self.BANK_TRANSFER: "Bank Transfer",
+            self.OTHER: "Other"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class TemplateType(str, Enum):
+    """Template type enumeration."""
+    PROFESSIONAL = "professional"
+    CREATIVE = "creative"
+    MINIMAL = "minimal"
+    CORPORATE = "corporate"
+    MODERN = "modern"
+    CLASSIC = "classic"
+    INDUSTRIAL = "industrial"
+    SERVICE_FOCUSED = "service_focused"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.PROFESSIONAL: "Professional",
+            self.CREATIVE: "Creative",
+            self.MINIMAL: "Minimal",
+            self.CORPORATE: "Corporate",
+            self.MODERN: "Modern",
+            self.CLASSIC: "Classic",
+            self.INDUSTRIAL: "Industrial",
+            self.SERVICE_FOCUSED: "Service Focused"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class CurrencyCode(str, Enum):
+    """Currency code enumeration (ISO 4217)."""
+    USD = "USD"
+    EUR = "EUR"
+    GBP = "GBP"
+    CAD = "CAD"
+    AUD = "AUD"
+    JPY = "JPY"
+    CHF = "CHF"
+    CNY = "CNY"
+    MXN = "MXN"
+    BRL = "BRL"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.USD: "US Dollar",
+            self.EUR: "Euro",
+            self.GBP: "British Pound",
+            self.CAD: "Canadian Dollar", 
+            self.AUD: "Australian Dollar",
+            self.JPY: "Japanese Yen",
+            self.CHF: "Swiss Franc",
+            self.CNY: "Chinese Yuan",
+            self.MXN: "Mexican Peso",
+            self.BRL: "Brazilian Real"
+        }
+        return display_map.get(self, self.value)
+
+
+class TaxType(str, Enum):
+    """Tax type enumeration."""
+    NONE = "none"
+    PERCENTAGE = "percentage"
+    FIXED_AMOUNT = "fixed_amount"
+    INCLUSIVE = "inclusive"
+    EXCLUSIVE = "exclusive"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.NONE: "No Tax",
+            self.PERCENTAGE: "Percentage",
+            self.FIXED_AMOUNT: "Fixed Amount",
+            self.INCLUSIVE: "Tax Inclusive",
+            self.EXCLUSIVE: "Tax Exclusive"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class DiscountType(str, Enum):
+    """Discount type enumeration."""
+    NONE = "none"
+    PERCENTAGE = "percentage"
+    FIXED_AMOUNT = "fixed_amount"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.NONE: "No Discount",
+            self.PERCENTAGE: "Percentage",
+            self.FIXED_AMOUNT: "Fixed Amount"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class AdvancePaymentType(str, Enum):
+    """Advance payment type enumeration."""
+    NONE = "none"
+    PERCENTAGE = "percentage"
+    FIXED_AMOUNT = "fixed_amount"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.NONE: "No Advance Payment",
+            self.PERCENTAGE: "Percentage",
+            self.FIXED_AMOUNT: "Fixed Amount"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class EmailStatus(str, Enum):
+    """Email delivery status enumeration."""
+    PENDING = "pending"
+    SENT = "sent"
+    DELIVERED = "delivered"
+    OPENED = "opened"
+    CLICKED = "clicked"
+    BOUNCED = "bounced"
+    FAILED = "failed"
+    UNSUBSCRIBED = "unsubscribed"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.PENDING: "Pending",
+            self.SENT: "Sent",
+            self.DELIVERED: "Delivered",
+            self.OPENED: "Opened",
+            self.CLICKED: "Clicked",
+            self.BOUNCED: "Bounced",
+            self.FAILED: "Failed",
+            self.UNSUBSCRIBED: "Unsubscribed"
+        }
         return display_map.get(self, self.value.title()) 

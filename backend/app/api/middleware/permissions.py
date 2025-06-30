@@ -239,6 +239,11 @@ require_edit_contacts_dep = create_permission_dependency([BusinessPermission.EDI
 require_create_contacts_dep = create_permission_dependency([BusinessPermission.CREATE_CONTACTS.value])
 require_delete_contacts_dep = create_permission_dependency([BusinessPermission.DELETE_CONTACTS.value])
 
+# Project permission dependencies
+require_view_projects_dep = create_permission_dependency([BusinessPermission.VIEW_PROJECTS.value])
+require_edit_projects_dep = create_permission_dependency([BusinessPermission.EDIT_PROJECTS.value])
+require_delete_projects_dep = create_permission_dependency([BusinessPermission.DELETE_PROJECTS.value])
+
 
 # Keep the old decorator functions for backward compatibility but make them no-ops
 def require_view_contacts(func: Callable) -> Callable:
