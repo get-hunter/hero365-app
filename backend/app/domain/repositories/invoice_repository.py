@@ -7,7 +7,7 @@ Follows the Repository pattern for clean architecture.
 
 import uuid
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime
 from decimal import Decimal
 
@@ -246,4 +246,10 @@ class InvoiceRepository(ABC):
     @abstractmethod
     async def get_refund_history(self, invoice_id: uuid.UUID) -> List[Dict[str, Any]]:
         """Get refund history for a specific invoice."""
+        pass
+    
+    @abstractmethod
+    async def list_with_pagination(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100, 
+                                  filters: Optional[Dict[str, Any]] = None) -> Tuple[List[Invoice], int]:
+        """List invoices with pagination and filters. Returns (invoices, total_count)."""
         pass 

@@ -44,30 +44,29 @@ class ListInvoicesUseCase:
             # Validate pagination parameters
             self._validate_pagination_params(skip, limit)
             
-            # Get invoices with filters
-            invoices = await self.invoice_repository.get_by_business_id(
-                business_id=business_id,
-                status=filters.status,
-                contact_id=filters.contact_id,
-                project_id=filters.project_id,
-                job_id=filters.job_id,
-                date_from=filters.date_from,
-                date_to=filters.date_to,
-                overdue_only=filters.overdue_only,
-                skip=skip,
-                limit=limit
-            )
+            # Build filters dictionary for repository
+            filter_dict = {}
+            if filters.status:
+                filter_dict["status"] = filters.status
+            if filters.contact_id:
+                filter_dict["contact_id"] = filters.contact_id
+            if filters.project_id:
+                filter_dict["project_id"] = filters.project_id
+            if filters.job_id:
+                filter_dict["job_id"] = filters.job_id
+            if filters.date_from:
+                filter_dict["date_from"] = filters.date_from
+            if filters.date_to:
+                filter_dict["date_to"] = filters.date_to
+            if filters.overdue_only:
+                filter_dict["overdue_only"] = filters.overdue_only
             
-            # Get total count for pagination
-            total_count = await self.invoice_repository.count_by_business_id(
+            # Get invoices with filters (returns both invoices and total count)
+            invoices, total_count = await self.invoice_repository.list_with_pagination(
                 business_id=business_id,
-                status=filters.status,
-                contact_id=filters.contact_id,
-                project_id=filters.project_id,
-                job_id=filters.job_id,
-                date_from=filters.date_from,
-                date_to=filters.date_to,
-                overdue_only=filters.overdue_only
+                skip=skip,
+                limit=limit,
+                filters=filter_dict if filter_dict else None
             )
             
             # Convert to DTOs
