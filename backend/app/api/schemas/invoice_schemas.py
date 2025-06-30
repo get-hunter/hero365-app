@@ -123,6 +123,44 @@ class CreateInvoiceFromEstimateSchema(BaseModel):
         }
 
 
+class UpdateInvoiceSchema(BaseModel):
+    """Schema for updating invoices."""
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=2000)
+    line_items: Optional[List[InvoiceLineItemSchema]] = Field(None, min_items=1)
+    currency: Optional[str] = Field(None, pattern="^[A-Z]{3}$")
+    tax_rate: Optional[Decimal] = Field(None, ge=0, le=100)
+    tax_type: Optional[str] = Field(None, pattern="^(percentage|fixed)$")
+    overall_discount_type: Optional[str] = Field(None, pattern="^(none|percentage|fixed)$")
+    overall_discount_value: Optional[Decimal] = Field(None, ge=0)
+    template_id: Optional[uuid.UUID] = None
+    template_data: Optional[Dict[str, Any]] = None
+    tags: Optional[List[str]] = None
+    custom_fields: Optional[Dict[str, Any]] = None
+    internal_notes: Optional[str] = Field(None, max_length=2000)
+    due_date: Optional[date] = None
+    payment_net_days: Optional[int] = Field(None, ge=0, le=365)
+    early_payment_discount_percentage: Optional[Decimal] = Field(None, ge=0, le=100)
+    early_payment_discount_days: Optional[int] = Field(None, ge=0, le=365)
+    late_fee_percentage: Optional[Decimal] = Field(None, ge=0, le=100)
+    late_fee_grace_days: Optional[int] = Field(None, ge=0, le=365)
+    payment_instructions: Optional[str] = Field(None, max_length=1000)
+
+    @validator('due_date')
+    def validate_due_date(cls, v):
+        if v and v <= date.today():
+            raise ValueError('Due date must be in the future')
+        return v
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            Decimal: lambda v: float(v),
+            uuid.UUID: lambda v: str(v),
+            date: lambda v: v.isoformat()
+        }
+
+
 class ProcessPaymentSchema(BaseModel):
     """Schema for processing payments."""
     amount: Decimal = Field(..., gt=0)

@@ -16,23 +16,31 @@ from ..middleware.permissions import (
 )
 from ..schemas.invoice_schemas import (
     CreateInvoiceSchema, InvoiceSearchSchema, CreateInvoiceFromEstimateSchema,
-    ProcessPaymentSchema, InvoiceResponseSchema, InvoiceListResponseSchema,
+    UpdateInvoiceSchema, ProcessPaymentSchema, InvoiceResponseSchema, InvoiceListResponseSchema,
     InvoiceStatusUpdateSchema, PaymentResponse
 )
 from ...application.use_cases.invoice.create_invoice_use_case import CreateInvoiceUseCase
+from ...application.use_cases.invoice.get_invoice_use_case import GetInvoiceUseCase
+from ...application.use_cases.invoice.update_invoice_use_case import UpdateInvoiceUseCase
+from ...application.use_cases.invoice.delete_invoice_use_case import DeleteInvoiceUseCase
+from ...application.use_cases.invoice.list_invoices_use_case import ListInvoicesUseCase
+from ...application.use_cases.invoice.search_invoices_use_case import SearchInvoicesUseCase
 from ...application.use_cases.invoice.process_payment_use_case import ProcessPaymentUseCase
 from ...application.dto.invoice_dto import (
-    CreateInvoiceDTO, CreateInvoiceFromEstimateDTO, ProcessPaymentDTO,
-    InvoiceLineItemDTO, InvoiceDTO
+    CreateInvoiceDTO, CreateInvoiceFromEstimateDTO, UpdateInvoiceDTO, ProcessPaymentDTO,
+    InvoiceLineItemDTO, InvoiceDTO, InvoiceListFilters, InvoiceSearchCriteria
 )
 from ...application.exceptions.application_exceptions import (
     ValidationError, NotFoundError, PermissionDeniedError, BusinessRuleViolationError
 )
 from ...infrastructure.config.dependency_injection import (
     get_invoice_repository,
-    get_create_invoice_use_case, get_process_payment_use_case
+    get_create_invoice_use_case, get_get_invoice_use_case, get_update_invoice_use_case, 
+    get_delete_invoice_use_case, get_list_invoices_use_case, get_search_invoices_use_case,
+    get_process_payment_use_case
 )
 from ...domain.enums import InvoiceStatus, PaymentMethod, CurrencyCode
+from ..schemas.activity_schemas import MessageResponse
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -124,38 +132,109 @@ async def create_invoice(
         )
 
 
-def _invoice_dto_to_response(invoice_dto) -> InvoiceResponseSchema:
-    """Convert InvoiceDTO to InvoiceResponse."""
+def _invoice_dto_to_response_from_dto(invoice_dto) -> InvoiceResponseSchema:
+    """Convert Invoice DTO to InvoiceResponse."""
     return InvoiceResponseSchema(
-        invoice_id=invoice_dto.invoice_id,
+        id=invoice_dto.id,
         business_id=invoice_dto.business_id,
         invoice_number=invoice_dto.invoice_number,
+        status=invoice_dto.status,
+        client_id=invoice_dto.client_id,
+        client_name=invoice_dto.client_name,
+        client_email=invoice_dto.client_email,
+        client_phone=invoice_dto.client_phone,
+        client_address=invoice_dto.client_address.to_dict() if invoice_dto.client_address else None,
         title=invoice_dto.title,
         description=invoice_dto.description,
-        status=invoice_dto.status,
-        contact_id=invoice_dto.contact_id,
+        line_items=[],  # TODO: Convert line items properly
+        currency=invoice_dto.currency,
+        tax_rate=float(invoice_dto.tax_rate) if invoice_dto.tax_rate else 0.0,
+        tax_type=invoice_dto.tax_type,
+        overall_discount_type=invoice_dto.overall_discount_type,
+        overall_discount_value=float(invoice_dto.overall_discount_value) if invoice_dto.overall_discount_value else 0.0,
+        payments=[],  # TODO: Convert payments properly
+        template_id=invoice_dto.template_id,
+        template_data=invoice_dto.template_data or {},
+        estimate_id=invoice_dto.estimate_id,
         project_id=invoice_dto.project_id,
         job_id=invoice_dto.job_id,
-        estimate_id=invoice_dto.estimate_id,
-        line_items=invoice_dto.line_items,
-        subtotal=invoice_dto.subtotal,
-        tax_rate=invoice_dto.tax_rate,
-        tax_amount=invoice_dto.tax_amount,
-        discount_rate=invoice_dto.discount_rate,
-        discount_amount=invoice_dto.discount_amount,
-        total_amount=invoice_dto.total_amount,
-        amount_paid=invoice_dto.amount_paid,
-        amount_due=invoice_dto.amount_due,
-        currency=invoice_dto.currency,
-        issue_date=invoice_dto.issue_date,
-        due_date=invoice_dto.due_date,
-        payment_terms=invoice_dto.payment_terms,
-        notes=invoice_dto.notes,
-        terms_and_conditions=invoice_dto.terms_and_conditions,
-        created_at=invoice_dto.created_at,
-        updated_at=invoice_dto.updated_at,
+        contact_id=invoice_dto.contact_id,
+        tags=invoice_dto.tags or [],
+        custom_fields=invoice_dto.custom_fields or {},
+        internal_notes=invoice_dto.internal_notes,
         created_by=invoice_dto.created_by,
-        updated_by=invoice_dto.updated_by
+        created_date=invoice_dto.created_date,
+        last_modified=invoice_dto.last_modified,
+        sent_date=invoice_dto.sent_date,
+        viewed_date=invoice_dto.viewed_date,
+        due_date=invoice_dto.due_date,
+        paid_date=invoice_dto.paid_date,
+        financial_summary={
+            "subtotal": float(invoice_dto.total_amount) if invoice_dto.total_amount else 0.0,
+            "tax_amount": 0.0,  # TODO: Calculate properly
+            "discount_amount": 0.0,  # TODO: Calculate properly
+            "total_amount": float(invoice_dto.total_amount) if invoice_dto.total_amount else 0.0,
+            "amount_paid": float(invoice_dto.total_payments) if invoice_dto.total_payments else 0.0,
+            "amount_due": float(invoice_dto.balance_due) if invoice_dto.balance_due else 0.0,
+        },
+        status_info={
+            "is_paid": invoice_dto.is_paid if invoice_dto.is_paid is not None else False,
+            "is_overdue": invoice_dto.is_overdue if invoice_dto.is_overdue is not None else False,
+            "days_overdue": 0,  # TODO: Calculate days overdue
+        }
+    )
+
+
+def _invoice_dto_to_response(invoice) -> InvoiceResponseSchema:
+    """Convert Invoice entity to InvoiceResponse."""
+    return InvoiceResponseSchema(
+        id=invoice.id,
+        business_id=invoice.business_id,
+        invoice_number=invoice.invoice_number,
+        status=invoice.status.value if hasattr(invoice.status, 'value') else str(invoice.status),
+        client_id=invoice.client_id,
+        client_name=invoice.client_name,
+        client_email=invoice.client_email,
+        client_phone=invoice.client_phone,
+        client_address=invoice.client_address.to_dict() if invoice.client_address else None,
+        title=invoice.title,
+        description=invoice.description,
+        line_items=[],  # TODO: Convert line items properly
+        currency=invoice.currency.value if hasattr(invoice.currency, 'value') else str(invoice.currency),
+        tax_rate=invoice.tax_rate,
+        tax_type=invoice.tax_type.value if hasattr(invoice.tax_type, 'value') else str(invoice.tax_type),
+        overall_discount_type=invoice.overall_discount_type.value if hasattr(invoice.overall_discount_type, 'value') else str(invoice.overall_discount_type),
+        overall_discount_value=invoice.overall_discount_value,
+        payments=[],  # TODO: Convert payments properly
+        template_id=invoice.template_id,
+        template_data=invoice.template_data or {},
+        estimate_id=invoice.estimate_id,
+        project_id=invoice.project_id,
+        job_id=invoice.job_id,
+        contact_id=invoice.contact_id,
+        tags=invoice.tags or [],
+        custom_fields=invoice.custom_fields or {},
+        internal_notes=invoice.internal_notes,
+        created_by=invoice.created_by,
+        created_date=invoice.created_date,
+        last_modified=invoice.last_modified,
+        sent_date=invoice.sent_date,
+        viewed_date=invoice.viewed_date,
+        due_date=invoice.due_date,
+        paid_date=invoice.paid_date,
+        financial_summary={
+            "subtotal": float(invoice.get_line_items_subtotal()) if hasattr(invoice, 'get_line_items_subtotal') else 0.0,
+            "tax_amount": float(invoice.get_tax_amount()) if hasattr(invoice, 'get_tax_amount') else 0.0,
+            "discount_amount": float(invoice.get_line_items_discount_total() + invoice.get_overall_discount_amount()) if hasattr(invoice, 'get_line_items_discount_total') else 0.0,
+            "total_amount": float(invoice.get_total_amount()) if hasattr(invoice, 'get_total_amount') else 0.0,
+            "amount_paid": float(invoice.get_total_payments()) if hasattr(invoice, 'get_total_payments') else 0.0,
+            "amount_due": float(invoice.get_balance_due()) if hasattr(invoice, 'get_balance_due') else 0.0,
+        },
+        status_info={
+            "is_paid": invoice.is_paid() if hasattr(invoice, 'is_paid') else False,
+            "is_overdue": invoice.is_overdue() if hasattr(invoice, 'is_overdue') else False,
+            "days_overdue": 0,  # TODO: Calculate days overdue
+        }
     )
 
 
@@ -205,8 +284,9 @@ async def create_invoice_from_estimate(
 @router.get("/{invoice_id}", response_model=InvoiceResponseSchema)
 async def get_invoice(
     invoice_id: uuid.UUID = Path(..., description="Invoice ID"),
+    business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    invoice_repository = Depends(get_invoice_repository),
+    use_case: GetInvoiceUseCase = Depends(get_get_invoice_use_case),
     _: bool = Depends(require_view_projects_dep)
 ):
     """
@@ -215,22 +295,125 @@ async def get_invoice(
     Retrieves detailed information about a specific invoice.
     Requires 'view_projects' permission.
     """
+    business_id = uuid.UUID(business_context["business_id"])
+    logger.info(f"🔧 InvoiceAPI: Getting invoice {invoice_id} for business {business_id}")
+    
     try:
-        invoice = await invoice_repository.get_by_id(invoice_id)
-        if not invoice:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Invoice with ID {invoice_id} not found"
-            )
+        invoice_dto = await use_case.execute(invoice_id, current_user["sub"], business_id)
+        return _invoice_dto_to_response_from_dto(invoice_dto)
         
-        return _invoice_dto_to_response(invoice)
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"❌ InvoiceAPI: Error getting invoice: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.put("/{invoice_id}", response_model=InvoiceResponseSchema)
+async def update_invoice(
+    invoice_id: uuid.UUID = Path(..., description="Invoice ID"),
+    request: UpdateInvoiceSchema = Body(...),
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: UpdateInvoiceUseCase = Depends(get_update_invoice_use_case),
+    _: bool = Depends(require_edit_projects_dep)
+):
+    """
+    Update an invoice.
+    
+    Updates an existing invoice with the provided information.
+    Only draft invoices can be fully updated.
+    Requires 'edit_projects' permission.
+    """
+    business_id = uuid.UUID(business_context["business_id"])
+    logger.info(f"🔧 InvoiceAPI: Starting invoice update for invoice {invoice_id}")
+    
+    try:
+        # Convert line items if provided
+        line_items = None
+        if request.line_items is not None:
+            line_items = []
+            for item in request.line_items:
+                line_items.append(InvoiceLineItemDTO(
+                    id=item.id,
+                    description=item.description,
+                    quantity=item.quantity,
+                    unit_price=item.unit_price,
+                    unit=item.unit,
+                    category=item.category,
+                    discount_type=item.discount_type,
+                    discount_value=item.discount_value,
+                    tax_rate=item.tax_rate,
+                    notes=item.notes
+                ))
+        
+        # Create update DTO
+        update_dto = UpdateInvoiceDTO(
+            invoice_id=invoice_id,
+            business_id=business_id,
+            title=request.title,
+            description=request.description,
+            line_items=line_items,
+            currency=request.currency,
+            tax_rate=request.tax_rate,
+            tax_type=request.tax_type,
+            overall_discount_type=request.overall_discount_type,
+            overall_discount_value=request.overall_discount_value,
+            template_id=request.template_id,
+            template_data=request.template_data,
+            tags=request.tags,
+            custom_fields=request.custom_fields,
+            internal_notes=request.internal_notes,
+            due_date=request.due_date,
+            payment_net_days=request.payment_net_days,
+            early_payment_discount_percentage=request.early_payment_discount_percentage,
+            early_payment_discount_days=request.early_payment_discount_days,
+            late_fee_percentage=request.late_fee_percentage,
+            late_fee_grace_days=request.late_fee_grace_days,
+            payment_instructions=request.payment_instructions,
+            updated_by=current_user["sub"]
+        )
+        
+        # Execute the use case
+        updated_invoice_dto = await use_case.execute(update_dto, current_user["sub"])
+        return _invoice_dto_to_response_from_dto(updated_invoice_dto)
+        
+    except Exception as e:
+        logger.error(f"❌ InvoiceAPI: Error updating invoice: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.delete("/{invoice_id}", response_model=MessageResponse)
+async def delete_invoice(
+    invoice_id: uuid.UUID = Path(..., description="Invoice ID"),
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: DeleteInvoiceUseCase = Depends(get_delete_invoice_use_case),
+    _: bool = Depends(require_delete_projects_dep)
+):
+    """
+    Delete an invoice.
+    
+    Deletes an invoice. Only draft invoices can be deleted.
+    Requires 'delete_projects' permission.
+    """
+    business_id = uuid.UUID(business_context["business_id"])
+    logger.info(f"🔧 InvoiceAPI: Starting invoice deletion for invoice {invoice_id}")
+    
+    try:
+        # Execute the use case
+        result = await use_case.execute(invoice_id, business_id, current_user["sub"])
+        return MessageResponse(message=result["message"])
+        
+    except Exception as e:
+        logger.error(f"❌ InvoiceAPI: Error deleting invoice: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
         )
 
 
@@ -240,13 +423,13 @@ async def list_invoices(
     business_context: dict = Depends(get_business_context),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
-    status: Optional[InvoiceStatus] = Query(None, description="Filter by invoice status"),
+    invoice_status: Optional[InvoiceStatus] = Query(None, description="Filter by invoice status"),
     contact_id: Optional[uuid.UUID] = Query(None, description="Filter by contact ID"),
     project_id: Optional[uuid.UUID] = Query(None, description="Filter by project ID"),
     job_id: Optional[uuid.UUID] = Query(None, description="Filter by job ID"),
     overdue_only: bool = Query(False, description="Show only overdue invoices"),
     current_user: dict = Depends(get_current_user),
-    invoice_repository = Depends(get_invoice_repository),
+    use_case: ListInvoicesUseCase = Depends(get_list_invoices_use_case),
     _: bool = Depends(require_view_projects_dep)
 ):
     """
@@ -256,39 +439,40 @@ async def list_invoices(
     Requires 'view_projects' permission.
     """
     business_id = uuid.UUID(business_context["business_id"])
+    logger.info(f"🔧 InvoiceAPI: Listing invoices for business {business_id}")
     
     try:
-        # Build filters
-        filters = {"business_id": business_id}
-        if status:
-            filters["status"] = status
-        if contact_id:
-            filters["contact_id"] = contact_id
-        if project_id:
-            filters["project_id"] = project_id
-        if job_id:
-            filters["job_id"] = job_id
-        if overdue_only:
-            filters["overdue_only"] = True
-        
-        invoices, total = await invoice_repository.list_with_pagination(
-            business_id=business_id,
-            skip=skip,
-            limit=limit,
-            filters=filters
+        # Create filters DTO
+        filters = InvoiceListFilters(
+            status=invoice_status.value if invoice_status else None,
+            contact_id=contact_id,
+            project_id=project_id,
+            job_id=job_id,
+            overdue_only=overdue_only
         )
         
-        return InvoiceListResponse(
-            invoices=[_invoice_dto_to_response(invoice) for invoice in invoices],
-            total=total,
+        result = await use_case.execute(
+            business_id=business_id,
+            user_id=current_user["sub"],
+            filters=filters,
             skip=skip,
             limit=limit
         )
+        
+        return InvoiceListResponseSchema(
+            invoices=[_invoice_dto_to_response_from_dto(invoice_dto) for invoice_dto in result["invoices"]],
+            total_count=result["total_count"],
+            page=skip // limit + 1,
+            per_page=limit,
+            has_next=result["has_next"],
+            has_prev=result["has_previous"]
+        )
+        
     except Exception as e:
         logger.error(f"❌ InvoiceAPI: Error listing invoices: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
         )
 
 
@@ -313,17 +497,14 @@ async def process_payment(
     try:
         # Create payment DTO
         payment_dto = ProcessPaymentDTO(
-            business_id=business_id,
-            invoice_id=invoice_id,
             amount=request.amount,
-            payment_method=PaymentMethod(request.payment_method.value),
+            payment_method=request.payment_method.value,
             payment_date=request.payment_date,
-            reference_number=request.reference_number,
-            notes=request.notes,
-            processed_by=current_user["sub"]
+            reference=request.reference_number,
+            notes=request.notes
         )
         
-        payment_result = await use_case.execute(payment_dto, current_user["sub"])
+        payment_result = await use_case.execute(invoice_id, payment_dto, current_user["sub"], business_id)
         
         return PaymentResponse(
             payment_id=payment_result.payment_id,
@@ -339,6 +520,68 @@ async def process_payment(
         )
     except Exception as e:
         logger.error(f"❌ InvoiceAPI: Error processing payment: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/search", response_model=InvoiceListResponseSchema)
+async def search_invoices(
+    request: InvoiceSearchSchema,
+    business_context: dict = Depends(get_business_context),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
+    current_user: dict = Depends(get_current_user),
+    use_case: SearchInvoicesUseCase = Depends(get_search_invoices_use_case),
+    _: bool = Depends(require_view_projects_dep)
+):
+    """
+    Search invoices with advanced criteria.
+    
+    Performs advanced search on invoices with multiple filter options.
+    Requires 'view_projects' permission.
+    """
+    business_id = uuid.UUID(business_context["business_id"])
+    logger.info(f"🔧 InvoiceAPI: Searching invoices for business {business_id}")
+    
+    try:
+        # Create search criteria DTO
+        search_criteria = InvoiceSearchCriteria(
+            search_text=request.search_text,
+            statuses=[status.value for status in request.statuses] if request.statuses else [],
+            contact_ids=request.contact_ids,
+            project_ids=request.project_ids,
+            job_ids=request.job_ids,
+            min_amount=request.min_amount,
+            max_amount=request.max_amount,
+            date_from=request.date_from,
+            date_to=request.date_to,
+            tags=request.tags,
+            created_by=request.created_by,
+            overdue_only=request.overdue_only,
+            paid_only=request.paid_only
+        )
+        
+        result = await use_case.execute(
+            business_id=business_id,
+            user_id=current_user["sub"],
+            search_criteria=search_criteria,
+            skip=skip,
+            limit=limit
+        )
+        
+        return InvoiceListResponseSchema(
+            invoices=[_invoice_dto_to_response_from_dto(invoice_dto) for invoice_dto in result["invoices"]],
+            total_count=result["total_count"],
+            page=skip // limit + 1,
+            per_page=limit,
+            has_next=result["has_next"],
+            has_prev=result["has_previous"]
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ InvoiceAPI: Error searching invoices: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)

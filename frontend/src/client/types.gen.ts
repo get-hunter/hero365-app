@@ -3182,6 +3182,33 @@ export type InvoiceResponseSchema = {
 }
 
 /**
+ * Schema for invoice search parameters.
+ */
+export type InvoiceSearchSchema = {
+  search_term?: string | null
+  status?: string | null
+  contact_id?: string | null
+  project_id?: string | null
+  job_id?: string | null
+  estimate_id?: string | null
+  currency?: string | null
+  min_amount?: number | null
+  max_amount?: number | null
+  created_from?: string | null
+  created_to?: string | null
+  due_from?: string | null
+  due_to?: string | null
+  paid_from?: string | null
+  paid_to?: string | null
+  tags?: Array<string> | null
+  created_by?: string | null
+  skip?: number
+  limit?: number
+  sort_by?: string
+  sort_order?: string
+}
+
+/**
  * Invoice status enumeration.
  */
 export type InvoiceStatus =
@@ -5423,6 +5450,36 @@ export type UpdateEstimateSchema = {
 }
 
 /**
+ * Schema for updating invoices.
+ */
+export type UpdateInvoiceSchema = {
+  title?: string | null
+  description?: string | null
+  line_items?: Array<InvoiceLineItemSchema_Input> | null
+  currency?: string | null
+  tax_rate?: number | string | null
+  tax_type?: string | null
+  overall_discount_type?: string | null
+  overall_discount_value?: number | string | null
+  template_id?: string | null
+  template_data?: {
+    [key: string]: unknown
+  } | null
+  tags?: Array<string> | null
+  custom_fields?: {
+    [key: string]: unknown
+  } | null
+  internal_notes?: string | null
+  due_date?: string | null
+  payment_net_days?: number | null
+  early_payment_discount_percentage?: number | string | null
+  early_payment_discount_days?: number | null
+  late_fee_percentage?: number | string | null
+  late_fee_grace_days?: number | null
+  payment_instructions?: string | null
+}
+
+/**
  * User availability information.
  */
 export type UserAvailability = {
@@ -6224,6 +6281,10 @@ export type ListEstimatesNoSlashData = {
    */
   contactId?: string | null
   /**
+   * Filter by estimate status
+   */
+  estimateStatus?: EstimateStatus | null
+  /**
    * Filter by job ID
    */
   jobId?: string | null
@@ -6239,10 +6300,6 @@ export type ListEstimatesNoSlashData = {
    * Number of records to skip
    */
   skip?: number
-  /**
-   * Filter by estimate status
-   */
-  status?: EstimateStatus | null
 }
 
 export type ListEstimatesNoSlashResponse = EstimateListResponseSchema
@@ -6259,6 +6316,10 @@ export type EstimatesListEstimatesData = {
    */
   contactId?: string | null
   /**
+   * Filter by estimate status
+   */
+  estimateStatus?: EstimateStatus | null
+  /**
    * Filter by job ID
    */
   jobId?: string | null
@@ -6274,10 +6335,6 @@ export type EstimatesListEstimatesData = {
    * Number of records to skip
    */
   skip?: number
-  /**
-   * Filter by estimate status
-   */
-  status?: EstimateStatus | null
 }
 
 export type EstimatesListEstimatesResponse = EstimateListResponseSchema
@@ -6602,6 +6659,10 @@ export type ListInvoicesNoSlashData = {
    */
   contactId?: string | null
   /**
+   * Filter by invoice status
+   */
+  invoiceStatus?: InvoiceStatus | null
+  /**
    * Filter by job ID
    */
   jobId?: string | null
@@ -6621,10 +6682,6 @@ export type ListInvoicesNoSlashData = {
    * Number of records to skip
    */
   skip?: number
-  /**
-   * Filter by invoice status
-   */
-  status?: InvoiceStatus | null
 }
 
 export type ListInvoicesNoSlashResponse = InvoiceListResponseSchema
@@ -6641,6 +6698,10 @@ export type InvoicesListInvoicesData = {
    */
   contactId?: string | null
   /**
+   * Filter by invoice status
+   */
+  invoiceStatus?: InvoiceStatus | null
+  /**
    * Filter by job ID
    */
   jobId?: string | null
@@ -6660,10 +6721,6 @@ export type InvoicesListInvoicesData = {
    * Number of records to skip
    */
   skip?: number
-  /**
-   * Filter by invoice status
-   */
-  status?: InvoiceStatus | null
 }
 
 export type InvoicesListInvoicesResponse = InvoiceListResponseSchema
@@ -6683,6 +6740,26 @@ export type InvoicesGetInvoiceData = {
 
 export type InvoicesGetInvoiceResponse = InvoiceResponseSchema
 
+export type InvoicesUpdateInvoiceData = {
+  /**
+   * Invoice ID
+   */
+  invoiceId: string
+  requestBody: UpdateInvoiceSchema
+}
+
+export type InvoicesUpdateInvoiceResponse = InvoiceResponseSchema
+
+export type InvoicesDeleteInvoiceData = {
+  /**
+   * Invoice ID
+   */
+  invoiceId: string
+}
+
+export type InvoicesDeleteInvoiceResponse =
+  app__api__schemas__activity_schemas__MessageResponse
+
 export type InvoicesProcessPaymentData = {
   /**
    * Invoice ID
@@ -6692,6 +6769,20 @@ export type InvoicesProcessPaymentData = {
 }
 
 export type InvoicesProcessPaymentResponse = PaymentResponse
+
+export type InvoicesSearchInvoicesData = {
+  /**
+   * Maximum number of records to return
+   */
+  limit?: number
+  requestBody: InvoiceSearchSchema
+  /**
+   * Number of records to skip
+   */
+  skip?: number
+}
+
+export type InvoicesSearchInvoicesResponse = InvoiceListResponseSchema
 
 export type CreateJobNoSlashData = {
   requestBody: JobCreateRequest

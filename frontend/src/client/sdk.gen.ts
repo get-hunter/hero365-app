@@ -209,8 +209,14 @@ import type {
   InvoicesCreateInvoiceFromEstimateResponse,
   InvoicesGetInvoiceData,
   InvoicesGetInvoiceResponse,
+  InvoicesUpdateInvoiceData,
+  InvoicesUpdateInvoiceResponse,
+  InvoicesDeleteInvoiceData,
+  InvoicesDeleteInvoiceResponse,
   InvoicesProcessPaymentData,
   InvoicesProcessPaymentResponse,
+  InvoicesSearchInvoicesData,
+  InvoicesSearchInvoicesResponse,
   CreateJobNoSlashData,
   CreateJobNoSlashResponse,
   CreateJobNoSlash1Data,
@@ -2007,7 +2013,7 @@ export class EstimatesService {
    * @param data The data for the request.
    * @param data.skip Number of records to skip
    * @param data.limit Maximum number of records to return
-   * @param data.status Filter by estimate status
+   * @param data.estimateStatus Filter by estimate status
    * @param data.contactId Filter by contact ID
    * @param data.projectId Filter by project ID
    * @param data.jobId Filter by job ID
@@ -2023,7 +2029,7 @@ export class EstimatesService {
       query: {
         skip: data.skip,
         limit: data.limit,
-        status: data.status,
+        estimate_status: data.estimateStatus,
         contact_id: data.contactId,
         project_id: data.projectId,
         job_id: data.jobId,
@@ -2068,7 +2074,7 @@ export class EstimatesService {
    * @param data The data for the request.
    * @param data.skip Number of records to skip
    * @param data.limit Maximum number of records to return
-   * @param data.status Filter by estimate status
+   * @param data.estimateStatus Filter by estimate status
    * @param data.contactId Filter by contact ID
    * @param data.projectId Filter by project ID
    * @param data.jobId Filter by job ID
@@ -2084,7 +2090,7 @@ export class EstimatesService {
       query: {
         skip: data.skip,
         limit: data.limit,
-        status: data.status,
+        estimate_status: data.estimateStatus,
         contact_id: data.contactId,
         project_id: data.projectId,
         job_id: data.jobId,
@@ -2952,7 +2958,7 @@ export class InvoicesService {
    * @param data The data for the request.
    * @param data.skip Number of records to skip
    * @param data.limit Maximum number of records to return
-   * @param data.status Filter by invoice status
+   * @param data.invoiceStatus Filter by invoice status
    * @param data.contactId Filter by contact ID
    * @param data.projectId Filter by project ID
    * @param data.jobId Filter by job ID
@@ -2969,7 +2975,7 @@ export class InvoicesService {
       query: {
         skip: data.skip,
         limit: data.limit,
-        status: data.status,
+        invoice_status: data.invoiceStatus,
         contact_id: data.contactId,
         project_id: data.projectId,
         job_id: data.jobId,
@@ -3015,7 +3021,7 @@ export class InvoicesService {
    * @param data The data for the request.
    * @param data.skip Number of records to skip
    * @param data.limit Maximum number of records to return
-   * @param data.status Filter by invoice status
+   * @param data.invoiceStatus Filter by invoice status
    * @param data.contactId Filter by contact ID
    * @param data.projectId Filter by project ID
    * @param data.jobId Filter by job ID
@@ -3032,7 +3038,7 @@ export class InvoicesService {
       query: {
         skip: data.skip,
         limit: data.limit,
-        status: data.status,
+        invoice_status: data.invoiceStatus,
         contact_id: data.contactId,
         project_id: data.projectId,
         job_id: data.jobId,
@@ -3096,6 +3102,62 @@ export class InvoicesService {
   }
 
   /**
+   * Update Invoice
+   * Update an invoice.
+   *
+   * Updates an existing invoice with the provided information.
+   * Only draft invoices can be fully updated.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.invoiceId Invoice ID
+   * @param data.requestBody
+   * @returns InvoiceResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static updateInvoice(
+    data: InvoicesUpdateInvoiceData,
+  ): CancelablePromise<InvoicesUpdateInvoiceResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/invoices/{invoice_id}",
+      path: {
+        invoice_id: data.invoiceId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Invoice
+   * Delete an invoice.
+   *
+   * Deletes an invoice. Only draft invoices can be deleted.
+   * Requires 'delete_projects' permission.
+   * @param data The data for the request.
+   * @param data.invoiceId Invoice ID
+   * @returns app__api__schemas__activity_schemas__MessageResponse Successful Response
+   * @throws ApiError
+   */
+  public static deleteInvoice(
+    data: InvoicesDeleteInvoiceData,
+  ): CancelablePromise<InvoicesDeleteInvoiceResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/invoices/{invoice_id}",
+      path: {
+        invoice_id: data.invoiceId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Process Payment
    * Process a payment for an invoice.
    *
@@ -3115,6 +3177,37 @@ export class InvoicesService {
       url: "/api/v1/invoices/{invoice_id}/payments",
       path: {
         invoice_id: data.invoiceId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search Invoices
+   * Search invoices with advanced criteria.
+   *
+   * Performs advanced search on invoices with multiple filter options.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @param data.skip Number of records to skip
+   * @param data.limit Maximum number of records to return
+   * @returns InvoiceListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static searchInvoices(
+    data: InvoicesSearchInvoicesData,
+  ): CancelablePromise<InvoicesSearchInvoicesResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/invoices/search",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
       },
       body: data.requestBody,
       mediaType: "application/json",

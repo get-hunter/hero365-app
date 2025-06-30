@@ -114,10 +114,20 @@ from ...application.use_cases.scheduling.calendar_management_use_case import Cal
 
 # Estimate Use Cases
 from ...application.use_cases.estimate.create_estimate_use_case import CreateEstimateUseCase
+from ...application.use_cases.estimate.get_estimate_use_case import GetEstimateUseCase
+from ...application.use_cases.estimate.update_estimate_use_case import UpdateEstimateUseCase
+from ...application.use_cases.estimate.delete_estimate_use_case import DeleteEstimateUseCase
+from ...application.use_cases.estimate.list_estimates_use_case import ListEstimatesUseCase
+from ...application.use_cases.estimate.search_estimates_use_case import SearchEstimatesUseCase
 from ...application.use_cases.estimate.convert_estimate_to_invoice_use_case import ConvertEstimateToInvoiceUseCase
 
 # Invoice Use Cases
 from ...application.use_cases.invoice.create_invoice_use_case import CreateInvoiceUseCase
+from ...application.use_cases.invoice.get_invoice_use_case import GetInvoiceUseCase
+from ...application.use_cases.invoice.update_invoice_use_case import UpdateInvoiceUseCase
+from ...application.use_cases.invoice.delete_invoice_use_case import DeleteInvoiceUseCase
+from ...application.use_cases.invoice.list_invoices_use_case import ListInvoicesUseCase
+from ...application.use_cases.invoice.search_invoices_use_case import SearchInvoicesUseCase
 from ...application.use_cases.invoice.process_payment_use_case import ProcessPaymentUseCase
 
 # Repository interfaces
@@ -467,6 +477,29 @@ class DependencyContainer:
             job_repository=self.get_repository('job_repository')
         )
         
+        self._use_cases['get_estimate'] = GetEstimateUseCase(
+            estimate_repository=self.get_repository('estimate_repository')
+        )
+        
+        self._use_cases['update_estimate'] = UpdateEstimateUseCase(
+            estimate_repository=self.get_repository('estimate_repository'),
+            contact_repository=self.get_repository('contact_repository'),
+            project_repository=self.get_repository('project_repository'),
+            job_repository=self.get_repository('job_repository')
+        )
+        
+        self._use_cases['delete_estimate'] = DeleteEstimateUseCase(
+            estimate_repository=self.get_repository('estimate_repository')
+        )
+        
+        self._use_cases['list_estimates'] = ListEstimatesUseCase(
+            estimate_repository=self.get_repository('estimate_repository')
+        )
+        
+        self._use_cases['search_estimates'] = SearchEstimatesUseCase(
+            estimate_repository=self.get_repository('estimate_repository')
+        )
+        
         self._use_cases['convert_estimate_to_invoice'] = ConvertEstimateToInvoiceUseCase(
             estimate_repository=self.get_repository('estimate_repository'),
             invoice_repository=self.get_repository('invoice_repository')
@@ -478,6 +511,26 @@ class DependencyContainer:
             contact_repository=self.get_repository('contact_repository'),
             project_repository=self.get_repository('project_repository'),
             job_repository=self.get_repository('job_repository')
+        )
+        
+        self._use_cases['get_invoice'] = GetInvoiceUseCase(
+            invoice_repository=self.get_repository('invoice_repository')
+        )
+        
+        self._use_cases['update_invoice'] = UpdateInvoiceUseCase(
+            invoice_repository=self.get_repository('invoice_repository')
+        )
+        
+        self._use_cases['delete_invoice'] = DeleteInvoiceUseCase(
+            invoice_repository=self.get_repository('invoice_repository')
+        )
+        
+        self._use_cases['list_invoices'] = ListInvoicesUseCase(
+            invoice_repository=self.get_repository('invoice_repository')
+        )
+        
+        self._use_cases['search_invoices'] = SearchInvoicesUseCase(
+            invoice_repository=self.get_repository('invoice_repository')
         )
         
         self._use_cases['process_payment'] = ProcessPaymentUseCase(
@@ -736,6 +789,26 @@ class DependencyContainer:
         """Get create estimate use case from container."""
         return self.get_use_case('create_estimate')
     
+    def get_get_estimate_use_case(self) -> GetEstimateUseCase:
+        """Get get estimate use case from container."""
+        return self.get_use_case('get_estimate')
+    
+    def get_update_estimate_use_case(self) -> UpdateEstimateUseCase:
+        """Get update estimate use case from container."""
+        return self.get_use_case('update_estimate')
+    
+    def get_delete_estimate_use_case(self) -> DeleteEstimateUseCase:
+        """Get delete estimate use case from container."""
+        return self.get_use_case('delete_estimate')
+    
+    def get_list_estimates_use_case(self) -> ListEstimatesUseCase:
+        """Get list estimates use case from container."""
+        return self.get_use_case('list_estimates')
+    
+    def get_search_estimates_use_case(self) -> SearchEstimatesUseCase:
+        """Get search estimates use case from container."""
+        return self.get_use_case('search_estimates')
+    
     def get_convert_estimate_to_invoice_use_case(self) -> ConvertEstimateToInvoiceUseCase:
         """Get convert estimate to invoice use case from container."""
         return self.get_use_case('convert_estimate_to_invoice')
@@ -743,6 +816,26 @@ class DependencyContainer:
     def get_create_invoice_use_case(self) -> CreateInvoiceUseCase:
         """Get create invoice use case from container."""
         return self.get_use_case('create_invoice')
+    
+    def get_get_invoice_use_case(self) -> GetInvoiceUseCase:
+        """Get get invoice use case from container."""
+        return self.get_use_case('get_invoice')
+    
+    def get_update_invoice_use_case(self) -> UpdateInvoiceUseCase:
+        """Get update invoice use case from container."""
+        return self.get_use_case('update_invoice')
+    
+    def get_delete_invoice_use_case(self) -> DeleteInvoiceUseCase:
+        """Get delete invoice use case from container."""
+        return self.get_use_case('delete_invoice')
+    
+    def get_list_invoices_use_case(self) -> ListInvoicesUseCase:
+        """Get list invoices use case from container."""
+        return self.get_use_case('list_invoices')
+    
+    def get_search_invoices_use_case(self) -> SearchInvoicesUseCase:
+        """Get search invoices use case from container."""
+        return self.get_use_case('search_invoices')
     
     def get_process_payment_use_case(self) -> ProcessPaymentUseCase:
         """Get process payment use case from container."""
@@ -1009,6 +1102,31 @@ def get_create_estimate_use_case() -> CreateEstimateUseCase:
     return get_container().get_create_estimate_use_case()
 
 
+def get_get_estimate_use_case() -> GetEstimateUseCase:
+    """Get get estimate use case from container."""
+    return get_container().get_get_estimate_use_case()
+
+
+def get_update_estimate_use_case() -> UpdateEstimateUseCase:
+    """Get update estimate use case from container."""
+    return get_container().get_update_estimate_use_case()
+
+
+def get_delete_estimate_use_case() -> DeleteEstimateUseCase:
+    """Get delete estimate use case from container."""
+    return get_container().get_delete_estimate_use_case()
+
+
+def get_list_estimates_use_case() -> ListEstimatesUseCase:
+    """Get list estimates use case from container."""
+    return get_container().get_list_estimates_use_case()
+
+
+def get_search_estimates_use_case() -> SearchEstimatesUseCase:
+    """Get search estimates use case from container."""
+    return get_container().get_search_estimates_use_case()
+
+
 def get_convert_estimate_to_invoice_use_case() -> ConvertEstimateToInvoiceUseCase:
     """Get convert estimate to invoice use case from container."""
     return get_container().get_convert_estimate_to_invoice_use_case()
@@ -1017,6 +1135,31 @@ def get_convert_estimate_to_invoice_use_case() -> ConvertEstimateToInvoiceUseCas
 def get_create_invoice_use_case() -> CreateInvoiceUseCase:
     """Get create invoice use case from container."""
     return get_container().get_create_invoice_use_case()
+
+
+def get_get_invoice_use_case() -> GetInvoiceUseCase:
+    """Get get invoice use case from container."""
+    return get_container().get_get_invoice_use_case()
+
+
+def get_update_invoice_use_case() -> UpdateInvoiceUseCase:
+    """Get update invoice use case from container."""
+    return get_container().get_update_invoice_use_case()
+
+
+def get_delete_invoice_use_case() -> DeleteInvoiceUseCase:
+    """Get delete invoice use case from container."""
+    return get_container().get_delete_invoice_use_case()
+
+
+def get_list_invoices_use_case() -> ListInvoicesUseCase:
+    """Get list invoices use case from container."""
+    return get_container().get_list_invoices_use_case()
+
+
+def get_search_invoices_use_case() -> SearchInvoicesUseCase:
+    """Get search invoices use case from container."""
+    return get_container().get_search_invoices_use_case()
 
 
 def get_process_payment_use_case() -> ProcessPaymentUseCase:

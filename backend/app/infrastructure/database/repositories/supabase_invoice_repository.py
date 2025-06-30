@@ -6,7 +6,7 @@ Repository implementation using Supabase client SDK for invoice management opera
 
 import uuid
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime, date
 from decimal import Decimal
 import json
@@ -611,4 +611,38 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             }
             
         except Exception as e:
-            raise DatabaseError(f"Failed to get outstanding balance: {str(e)}") 
+            raise DatabaseError(f"Failed to get outstanding balance: {str(e)}")
+
+    async def list_with_pagination(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None) -> Tuple[List[Invoice], int]:
+        """List invoices with pagination and filters."""
+        try:
+            # Build the base query with count
+            query = self.client.table(self.table_name).select("*", count="exact").eq("business_id", str(business_id))
+            
+            # Apply filters if provided
+            if filters:
+                if "status" in filters:
+                    query = query.eq("status", filters["status"].value if hasattr(filters["status"], 'value') else filters["status"])
+                if "contact_id" in filters:
+                    query = query.eq("contact_id", str(filters["contact_id"]))
+                if "project_id" in filters:
+                    query = query.eq("project_id", str(filters["project_id"]))
+                if "job_id" in filters:
+                    query = query.eq("job_id", str(filters["job_id"]))
+                if "overdue_only" in filters and filters["overdue_only"]:
+                    query = query.eq("status", InvoiceStatus.OVERDUE.value)
+            
+            # Add pagination and ordering
+            query = query.range(skip, skip + limit - 1).order("created_date", desc=True)
+            
+            # Execute the query
+            response = query.execute()
+            
+            # Convert the data to Invoice entities
+            invoices = [self._dict_to_invoice(invoice_data) for invoice_data in response.data]
+            total_count = response.count or 0
+            
+            return invoices, total_count
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to list invoices with pagination: {str(e)}") 

@@ -6,7 +6,7 @@ Repository implementation using Supabase client SDK for estimate management oper
 
 import uuid
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime, date
 from decimal import Decimal
 import json
@@ -496,6 +496,38 @@ class SupabaseEstimateRepository(EstimateRepository):
             # Fallback to simple generation
             today = date.today()
             return f"{prefix}-{today.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+
+    async def list_with_pagination(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None) -> Tuple[List[Estimate], int]:
+        """List estimates with pagination and filters."""
+        try:
+            # Build the base query with count
+            query = self.client.table(self.table_name).select("*", count="exact").eq("business_id", str(business_id))
+            
+            # Apply filters if provided
+            if filters:
+                if "status" in filters:
+                    query = query.eq("status", filters["status"].value if hasattr(filters["status"], 'value') else filters["status"])
+                if "contact_id" in filters:
+                    query = query.eq("contact_id", str(filters["contact_id"]))
+                if "project_id" in filters:
+                    query = query.eq("project_id", str(filters["project_id"]))
+                if "job_id" in filters:
+                    query = query.eq("job_id", str(filters["job_id"]))
+            
+            # Add pagination and ordering
+            query = query.range(skip, skip + limit - 1).order("created_date", desc=True)
+            
+            # Execute the query
+            response = query.execute()
+            
+            # Convert the data to Estimate entities
+            estimates = [self._dict_to_estimate(estimate_data) for estimate_data in response.data]
+            total_count = response.count or 0
+            
+            return estimates, total_count
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to list estimates with pagination: {str(e)}")
     
     def _estimate_to_dict(self, estimate: Estimate) -> dict:
         """Convert Estimate entity to database dictionary."""

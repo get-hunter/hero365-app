@@ -165,3 +165,64 @@ class CreateEstimateDTO:
             self.tags = []
         if self.custom_fields is None:
             self.custom_fields = {}
+
+
+@dataclass
+class UpdateEstimateDTO:
+    """DTO for updating existing estimates."""
+    title: Optional[str] = None
+    description: Optional[str] = None
+    contact_id: Optional[uuid.UUID] = None
+    project_id: Optional[uuid.UUID] = None
+    job_id: Optional[uuid.UUID] = None
+    line_items: Optional[List[dict]] = None
+    currency: Optional[str] = None
+    tax_rate: Optional[float] = None
+    tax_type: Optional[str] = None
+    overall_discount_type: Optional[str] = None
+    overall_discount_value: Optional[float] = None
+    terms: Optional[dict] = None
+    advance_payment: Optional[dict] = None
+    tags: Optional[List[str]] = None
+    custom_fields: Optional[Dict[str, Any]] = None
+    internal_notes: Optional[str] = None
+    valid_until_date: Optional[date] = None
+
+
+@dataclass
+class EstimateListFilters:
+    """DTO for estimate list filtering."""
+    status: Optional[str] = None
+    contact_id: Optional[uuid.UUID] = None
+    project_id: Optional[uuid.UUID] = None
+    job_id: Optional[uuid.UUID] = None
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+
+
+@dataclass
+class EstimateSearchCriteria:
+    """DTO for estimate search criteria."""
+    search_text: Optional[str] = None
+    statuses: Optional[List[str]] = None
+    contact_ids: Optional[List[uuid.UUID]] = None
+    project_ids: Optional[List[uuid.UUID]] = None
+    job_ids: Optional[List[uuid.UUID]] = None
+    min_amount: Optional[Decimal] = None
+    max_amount: Optional[Decimal] = None
+    date_from: Optional[date] = None
+    date_to: Optional[date] = None
+    tags: Optional[List[str]] = None
+    created_by: Optional[str] = None
+
+    def __post_init__(self):
+        if self.statuses is None:
+            self.statuses = []
+        if self.contact_ids is None:
+            self.contact_ids = []
+        if self.project_ids is None:
+            self.project_ids = []
+        if self.job_ids is None:
+            self.job_ids = []
+        if self.tags is None:
+            self.tags = []

@@ -21,16 +21,24 @@ from ..schemas.estimate_schemas import (
 )
 from ..schemas.activity_schemas import MessageResponse
 from ...application.use_cases.estimate.create_estimate_use_case import CreateEstimateUseCase
+from ...application.use_cases.estimate.get_estimate_use_case import GetEstimateUseCase
+from ...application.use_cases.estimate.update_estimate_use_case import UpdateEstimateUseCase
+from ...application.use_cases.estimate.delete_estimate_use_case import DeleteEstimateUseCase
+from ...application.use_cases.estimate.list_estimates_use_case import ListEstimatesUseCase
+from ...application.use_cases.estimate.search_estimates_use_case import SearchEstimatesUseCase
 from ...application.use_cases.estimate.convert_estimate_to_invoice_use_case import ConvertEstimateToInvoiceUseCase
 from ...application.dto.estimate_dto import (
-    CreateEstimateDTO, EstimateLineItemDTO, EstimateDTO
+    CreateEstimateDTO, UpdateEstimateDTO, EstimateLineItemDTO, EstimateDTO,
+    EstimateListFilters, EstimateSearchCriteria
 )
 from ...application.exceptions.application_exceptions import (
     ValidationError, NotFoundError, PermissionDeniedError, BusinessRuleViolationError
 )
 from ...infrastructure.config.dependency_injection import (
     get_estimate_repository, get_estimate_template_repository,
-    get_create_estimate_use_case, get_convert_estimate_to_invoice_use_case
+    get_create_estimate_use_case, get_get_estimate_use_case, get_update_estimate_use_case,
+    get_delete_estimate_use_case, get_list_estimates_use_case, get_search_estimates_use_case,
+    get_convert_estimate_to_invoice_use_case
 )
 from ...domain.enums import EstimateStatus, CurrencyCode
 
@@ -168,8 +176,9 @@ async def create_estimate_from_template(
 @router.get("/{estimate_id}", response_model=EstimateResponseSchema)
 async def get_estimate(
     estimate_id: uuid.UUID = Path(..., description="Estimate ID"),
+    business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    estimate_repository = Depends(get_estimate_repository),
+    use_case: GetEstimateUseCase = Depends(get_get_estimate_use_case),
     _: bool = Depends(require_view_projects_dep)
 ):
     """
@@ -178,17 +187,17 @@ async def get_estimate(
     Retrieves detailed information about a specific estimate.
     Requires 'view_projects' permission.
     """
+    business_id = uuid.UUID(business_context["business_id"])
+    
     try:
-        estimate = await estimate_repository.get_by_id(estimate_id)
-        if not estimate:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Estimate with ID {estimate_id} not found"
-            )
-        
-        return _estimate_dto_to_response(estimate)
-    except HTTPException:
-        raise
+        estimate_dto = await use_case.execute(estimate_id, current_user["sub"], business_id)
+        return _estimate_dto_to_response_from_dto(estimate_dto)
+    except ValidationError as e:
+        logger.error(f"❌ EstimateAPI: Validation error: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except NotFoundError as e:
+        logger.error(f"❌ EstimateAPI: Not found: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         logger.error(f"❌ EstimateAPI: Error getting estimate: {str(e)}")
         raise HTTPException(
@@ -203,7 +212,7 @@ async def update_estimate(
     request: UpdateEstimateSchema = Body(...),
     business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    estimate_repository = Depends(get_estimate_repository),
+    use_case: UpdateEstimateUseCase = Depends(get_update_estimate_use_case),
     _: bool = Depends(require_edit_projects_dep)
 ):
     """
@@ -217,53 +226,63 @@ async def update_estimate(
     
     try:
         # Convert line items if provided
-        line_items = None
+        line_items_dict = None
         if request.line_items is not None:
-            line_items = []
+            line_items_dict = []
             for item in request.line_items:
-                line_items.append(EstimateLineItemDTO(
-                    description=item.description,
-                    quantity=item.quantity,
-                    unit_price=item.unit_price,
-                    unit=item.unit,
-                    category=item.category,
-                    notes=item.notes
-                ))
+                line_items_dict.append({
+                    "description": item.description,
+                    "quantity": item.quantity,
+                    "unit_price": item.unit_price,
+                    "unit": item.unit,
+                    "category": item.category,
+                    "notes": item.notes
+                })
         
         # Create update DTO
-        update_dto = EstimateUpdateDTO(
-            estimate_id=estimate_id,
-            business_id=business_id,
+        update_dto = UpdateEstimateDTO(
             title=request.title,
             description=request.description,
-            line_items=line_items,
-            subtotal=request.subtotal,
+            contact_id=request.contact_id,
+            project_id=request.project_id,
+            job_id=request.job_id,
+            line_items=line_items_dict,
+            currency=request.currency.value if request.currency else None,
             tax_rate=request.tax_rate,
-            tax_amount=request.tax_amount,
-            discount_rate=request.discount_rate,
-            discount_amount=request.discount_amount,
-            total_amount=request.total_amount,
-            valid_until=request.valid_until,
-            notes=request.notes,
-            terms_and_conditions=request.terms_and_conditions,
-            updated_by=current_user["sub"]
+            tax_type=request.tax_type.value if request.tax_type else None,
+            overall_discount_type=request.overall_discount_type.value if request.overall_discount_type else None,
+            overall_discount_value=request.overall_discount_value,
+            tags=request.tags,
+            custom_fields=request.custom_fields,
+            internal_notes=request.internal_notes,
+            valid_until_date=request.valid_until_date
         )
         
-        updated_estimate = await estimate_repository.update(update_dto)
-        return _estimate_dto_to_response(updated_estimate)
+        estimate_dto = await use_case.execute(estimate_id, update_dto, current_user["sub"], business_id)
+        return _estimate_dto_to_response_from_dto(estimate_dto)
+    except ValidationError as e:
+        logger.error(f"❌ EstimateAPI: Validation error: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except NotFoundError as e:
+        logger.error(f"❌ EstimateAPI: Not found: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except BusinessRuleViolationError as e:
+        logger.error(f"❌ EstimateAPI: Business rule violation: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"❌ EstimateAPI: Error updating estimate: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
         )
 
 
 @router.delete("/{estimate_id}", response_model=MessageResponse)
 async def delete_estimate(
     estimate_id: uuid.UUID = Path(..., description="Estimate ID"),
+    business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    estimate_repository = Depends(get_estimate_repository),
+    use_case: DeleteEstimateUseCase = Depends(get_delete_estimate_use_case),
     _: bool = Depends(require_delete_projects_dep)
 ):
     """
@@ -272,14 +291,25 @@ async def delete_estimate(
     Deletes an estimate. Only draft estimates can be deleted.
     Requires 'delete_projects' permission.
     """
+    business_id = uuid.UUID(business_context["business_id"])
+    
     try:
-        await estimate_repository.delete(estimate_id)
+        await use_case.execute(estimate_id, current_user["sub"], business_id)
         return MessageResponse(message=f"Estimate {estimate_id} deleted successfully")
+    except ValidationError as e:
+        logger.error(f"❌ EstimateAPI: Validation error: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except NotFoundError as e:
+        logger.error(f"❌ EstimateAPI: Not found: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except BusinessRuleViolationError as e:
+        logger.error(f"❌ EstimateAPI: Business rule violation: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"❌ EstimateAPI: Error deleting estimate: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
         )
 
 
@@ -289,12 +319,12 @@ async def list_estimates(
     business_context: dict = Depends(get_business_context),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
-    status: Optional[EstimateStatus] = Query(None, description="Filter by estimate status"),
+    estimate_status: Optional[EstimateStatus] = Query(None, description="Filter by estimate status"),
     contact_id: Optional[uuid.UUID] = Query(None, description="Filter by contact ID"),
     project_id: Optional[uuid.UUID] = Query(None, description="Filter by project ID"),
     job_id: Optional[uuid.UUID] = Query(None, description="Filter by job ID"),
     current_user: dict = Depends(get_current_user),
-    estimate_repository = Depends(get_estimate_repository),
+    use_case: ListEstimatesUseCase = Depends(get_list_estimates_use_case),
     _: bool = Depends(require_view_projects_dep)
 ):
     """
@@ -306,30 +336,33 @@ async def list_estimates(
     business_id = uuid.UUID(business_context["business_id"])
     
     try:
-        # Build filters
-        filters = {"business_id": business_id}
-        if status:
-            filters["status"] = status
-        if contact_id:
-            filters["contact_id"] = contact_id
-        if project_id:
-            filters["project_id"] = project_id
-        if job_id:
-            filters["job_id"] = job_id
-        
-        estimates, total = await estimate_repository.list_with_pagination(
-            business_id=business_id,
-            skip=skip,
-            limit=limit,
-            filters=filters
+        # Create filters DTO
+        filters = EstimateListFilters(
+            status=estimate_status.value if estimate_status else None,
+            contact_id=contact_id,
+            project_id=project_id,
+            job_id=job_id
         )
         
-        return EstimateListResponse(
-            estimates=[_estimate_dto_to_response(estimate) for estimate in estimates],
-            total=total,
+        result = await use_case.execute(
+            business_id=business_id,
+            user_id=current_user["sub"],
+            filters=filters,
             skip=skip,
             limit=limit
         )
+        
+        return EstimateListResponseSchema(
+            estimates=[_estimate_dto_to_response_from_dto(estimate_dto) for estimate_dto in result["estimates"]],
+            total_count=result["total_count"],
+            page=skip // limit + 1,
+            per_page=limit,
+            has_next=result["has_next"],
+            has_prev=result["has_previous"]
+        )
+    except ValidationError as e:
+        logger.error(f"❌ EstimateAPI: Validation error: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"❌ EstimateAPI: Error listing estimates: {str(e)}")
         raise HTTPException(
@@ -343,7 +376,7 @@ async def search_estimates(
     request: EstimateSearchSchema,
     business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    estimate_repository = Depends(get_estimate_repository),
+    use_case: SearchEstimatesUseCase = Depends(get_search_estimates_use_case),
     _: bool = Depends(require_view_projects_dep)
 ):
     """
@@ -355,32 +388,38 @@ async def search_estimates(
     business_id = uuid.UUID(business_context["business_id"])
     
     try:
-        # Create search DTO
-        search_dto = EstimateSearchDTO(
-            business_id=business_id,
-            query=request.query,
-            status_filters=request.status_filters,
-            contact_id=request.contact_id,
-            project_id=request.project_id,
-            job_id=request.job_id,
+        # Create search criteria DTO
+        search_criteria = EstimateSearchCriteria(
+            search_text=request.query,
+            statuses=request.status_filters,
+            contact_ids=[request.contact_id] if request.contact_id else None,
+            project_ids=[request.project_id] if request.project_id else None,
+            job_ids=[request.job_id] if request.job_id else None,
+            min_amount=request.amount_min,
+            max_amount=request.amount_max,
             date_from=request.date_from,
-            date_to=request.date_to,
-            amount_min=request.amount_min,
-            amount_max=request.amount_max,
-            skip=request.skip,
-            limit=request.limit,
-            sort_by=request.sort_by,
-            sort_order=request.sort_order
+            date_to=request.date_to
         )
         
-        estimates, total = await estimate_repository.search(search_dto)
-        
-        return EstimateListResponse(
-            estimates=[_estimate_dto_to_response(estimate) for estimate in estimates],
-            total=total,
+        result = await use_case.execute(
+            business_id=business_id,
+            user_id=current_user["sub"],
+            search_criteria=search_criteria,
             skip=request.skip,
             limit=request.limit
         )
+        
+        return EstimateListResponseSchema(
+            estimates=[_estimate_dto_to_response_from_dto(estimate_dto) for estimate_dto in result["estimates"]],
+            total_count=result["total_count"],
+            page=request.skip // request.limit + 1,
+            per_page=request.limit,
+            has_next=result["has_next"],
+            has_prev=result["has_previous"]
+        )
+    except ValidationError as e:
+        logger.error(f"❌ EstimateAPI: Validation error: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"❌ EstimateAPI: Error searching estimates: {str(e)}")
         raise HTTPException(
@@ -487,32 +526,40 @@ async def get_estimate_analytics(
         )
 
 
-def _estimate_dto_to_response(estimate_dto) -> EstimateResponseSchema:
-    """Convert EstimateDTO to EstimateResponse."""
+def _estimate_dto_to_response(estimate) -> EstimateResponseSchema:
+    """Convert estimate entity to response schema."""
+    # Implementation
+    pass  # Will be replaced with proper implementation
+
+def _estimate_dto_to_response_from_dto(estimate_dto: EstimateDTO) -> EstimateResponseSchema:
+    """Convert estimate DTO to response schema."""
     return EstimateResponseSchema(
-        estimate_id=estimate_dto.estimate_id,
+        id=estimate_dto.id,
         business_id=estimate_dto.business_id,
         estimate_number=estimate_dto.estimate_number,
-        title=estimate_dto.title,
-        description=estimate_dto.description,
         status=estimate_dto.status,
         contact_id=estimate_dto.contact_id,
+        client_name=estimate_dto.client_name,
+        client_email=estimate_dto.client_email,
+        client_phone=estimate_dto.client_phone,
+        title=estimate_dto.title,
+        description=estimate_dto.description,
+        line_items=estimate_dto.line_items,
+        currency=estimate_dto.currency,
+        tax_rate=estimate_dto.tax_rate,
+        tax_type=estimate_dto.tax_type,
+        overall_discount_type=estimate_dto.overall_discount_type,
+        overall_discount_value=estimate_dto.overall_discount_value,
+        template_id=estimate_dto.template_id,
+        template_data=estimate_dto.template_data,
         project_id=estimate_dto.project_id,
         job_id=estimate_dto.job_id,
-        line_items=estimate_dto.line_items,
-        subtotal=estimate_dto.subtotal,
-        tax_rate=estimate_dto.tax_rate,
-        tax_amount=estimate_dto.tax_amount,
-        discount_rate=estimate_dto.discount_rate,
-        discount_amount=estimate_dto.discount_amount,
-        total_amount=estimate_dto.total_amount,
-        currency=estimate_dto.currency,
-        valid_until=estimate_dto.valid_until,
-        notes=estimate_dto.notes,
-        terms_and_conditions=estimate_dto.terms_and_conditions,
-        template_id=estimate_dto.template_id,
-        created_at=estimate_dto.created_at,
-        updated_at=estimate_dto.updated_at,
+        tags=estimate_dto.tags,
+        custom_fields=estimate_dto.custom_fields,
+        internal_notes=estimate_dto.internal_notes,
+        valid_until_date=estimate_dto.valid_until_date,
         created_by=estimate_dto.created_by,
-        updated_by=estimate_dto.updated_by
+        created_date=estimate_dto.created_date,
+        last_modified=estimate_dto.last_modified,
+        total_amount=estimate_dto.total_amount
     ) 

@@ -232,6 +232,8 @@ class CreateInvoiceDTO:
 @dataclass
 class CreateInvoiceFromEstimateDTO:
     """DTO for creating invoices from estimates."""
+    business_id: uuid.UUID
+    estimate_id: uuid.UUID
     title: Optional[str] = None
     description: Optional[str] = None
     invoice_number: Optional[str] = None
@@ -244,6 +246,36 @@ class CreateInvoiceFromEstimateDTO:
     late_fee_grace_days: Optional[int] = 0
     payment_instructions: Optional[str] = None
     internal_notes: Optional[str] = None
+    advance_payment_amount: Optional[float] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
+class UpdateInvoiceDTO:
+    """DTO for updating existing invoices."""
+    invoice_id: uuid.UUID
+    business_id: uuid.UUID
+    title: Optional[str] = None
+    description: Optional[str] = None
+    line_items: Optional[List[InvoiceLineItemDTO]] = None
+    currency: Optional[str] = None
+    tax_rate: Optional[Decimal] = None
+    tax_type: Optional[str] = None
+    overall_discount_type: Optional[str] = None
+    overall_discount_value: Optional[Decimal] = None
+    template_id: Optional[uuid.UUID] = None
+    template_data: Optional[Dict[str, Any]] = None
+    tags: Optional[List[str]] = None
+    custom_fields: Optional[Dict[str, Any]] = None
+    internal_notes: Optional[str] = None
+    due_date: Optional[date] = None
+    payment_net_days: Optional[int] = None
+    early_payment_discount_percentage: Optional[Decimal] = None
+    early_payment_discount_days: Optional[int] = None
+    late_fee_percentage: Optional[Decimal] = None
+    late_fee_grace_days: Optional[int] = None
+    payment_instructions: Optional[str] = None
+    updated_by: Optional[str] = None
 
 
 @dataclass
@@ -255,3 +287,45 @@ class ProcessPaymentDTO:
     transaction_id: Optional[str] = None
     notes: Optional[str] = None
     payment_date: Optional[datetime] = None
+
+
+@dataclass
+class InvoiceListFilters:
+    """DTO for invoice list filtering."""
+    status: Optional[str] = None
+    contact_id: Optional[uuid.UUID] = None
+    project_id: Optional[uuid.UUID] = None
+    job_id: Optional[uuid.UUID] = None
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+    overdue_only: Optional[bool] = False
+
+
+@dataclass
+class InvoiceSearchCriteria:
+    """DTO for invoice search criteria."""
+    search_text: Optional[str] = None
+    statuses: Optional[List[str]] = None
+    contact_ids: Optional[List[uuid.UUID]] = None
+    project_ids: Optional[List[uuid.UUID]] = None
+    job_ids: Optional[List[uuid.UUID]] = None
+    min_amount: Optional[Decimal] = None
+    max_amount: Optional[Decimal] = None
+    date_from: Optional[date] = None
+    date_to: Optional[date] = None
+    tags: Optional[List[str]] = None
+    created_by: Optional[str] = None
+    overdue_only: Optional[bool] = False
+    paid_only: Optional[bool] = False
+
+    def __post_init__(self):
+        if self.statuses is None:
+            self.statuses = []
+        if self.contact_ids is None:
+            self.contact_ids = []
+        if self.project_ids is None:
+            self.project_ids = []
+        if self.job_ids is None:
+            self.job_ids = []
+        if self.tags is None:
+            self.tags = []
