@@ -239,11 +239,12 @@ def _invoice_dto_to_response_from_dto(invoice_dto) -> InvoiceResponseSchema:
             "balance_due": balance_due,
         },
         status_info={
+            "is_paid": invoice_dto.is_paid if invoice_dto.is_paid is not None else False,
             "is_overdue": invoice_dto.is_overdue if invoice_dto.is_overdue is not None else False,
             "days_overdue": days_overdue,
             "can_be_paid": balance_due > 0 and invoice_dto.status not in ['paid', 'cancelled', 'void'],
             "can_be_voided": invoice_dto.status in ['draft', 'sent'],
-            "payment_status": "paid" if invoice_dto.is_paid else ("partially_paid" if paid_amount > 0 else "unpaid")
+            "payment_status": "paid" if (invoice_dto.is_paid if invoice_dto.is_paid is not None else False) else ("partially_paid" if paid_amount > 0 else "unpaid")
         }
     )
 

@@ -36,7 +36,9 @@ class ListInvoicesUseCase:
     ) -> Dict[str, Any]:
         """Execute the list invoices use case."""
         try:
-            logger.info(f"Listing invoices for business {business_id} by user {user_id}")
+            logger.info(f"🔧 ListInvoicesUseCase: Starting execution for business {business_id} by user {user_id}")
+            logger.info(f"🔧 ListInvoicesUseCase: Filters: {filters}")
+            logger.info(f"🔧 ListInvoicesUseCase: Pagination - skip: {skip}, limit: {limit}")
             
             # Validate business context and permissions
             await self._validate_permissions(business_id, user_id)
@@ -61,7 +63,10 @@ class ListInvoicesUseCase:
             if filters.overdue_only:
                 filter_dict["overdue_only"] = filters.overdue_only
             
+            logger.info(f"🔧 ListInvoicesUseCase: Built filter dict: {filter_dict}")
+            
             # Get invoices with filters (returns both invoices and total count)
+            logger.info(f"🔧 ListInvoicesUseCase: Calling repository.list_with_pagination...")
             invoices, total_count = await self.invoice_repository.list_with_pagination(
                 business_id=business_id,
                 skip=skip,
@@ -69,8 +74,35 @@ class ListInvoicesUseCase:
                 filters=filter_dict if filter_dict else None
             )
             
+            logger.info(f"🔧 ListInvoicesUseCase: Repository returned {len(invoices)} invoices, total_count: {total_count}")
+            
+            # Log details about each invoice entity
+            for i, invoice in enumerate(invoices):
+                logger.info(f"🔧 ListInvoicesUseCase: Invoice {i+1}: ID={invoice.id}, number={invoice.invoice_number}")
+                logger.info(f"🔧 ListInvoicesUseCase: Invoice {i+1}: status={invoice.status}, line_items_count={len(invoice.line_items)}")
+                if hasattr(invoice, 'get_total_amount'):
+                    logger.info(f"🔧 ListInvoicesUseCase: Invoice {i+1}: total_amount={invoice.get_total_amount()}")
+                else:
+                    logger.info(f"🔧 ListInvoicesUseCase: Invoice {i+1}: No get_total_amount method")
+                
+                # Log line items details
+                for j, item in enumerate(invoice.line_items):
+                    logger.info(f"🔧 ListInvoicesUseCase: Invoice {i+1}, LineItem {j+1}: {item.description}, qty={item.quantity}, price={item.unit_price}")
+                    if hasattr(item, 'get_line_total'):
+                        logger.info(f"🔧 ListInvoicesUseCase: Invoice {i+1}, LineItem {j+1}: line_total={item.get_line_total()}")
+            
             # Convert to DTOs
-            invoice_dtos = [InvoiceDTO.from_entity(invoice) for invoice in invoices]
+            logger.info(f"🔧 ListInvoicesUseCase: Converting {len(invoices)} invoices to DTOs...")
+            invoice_dtos = []
+            for i, invoice in enumerate(invoices):
+                logger.info(f"🔧 ListInvoicesUseCase: Converting invoice {i+1} to DTO...")
+                try:
+                    dto = InvoiceDTO.from_entity(invoice)
+                    logger.info(f"🔧 ListInvoicesUseCase: DTO {i+1}: total_amount={dto.total_amount}, line_items_count={len(dto.line_items)}")
+                    invoice_dtos.append(dto)
+                except Exception as e:
+                    logger.error(f"❌ ListInvoicesUseCase: Error converting invoice {i+1} to DTO: {e}")
+                    raise
             
             # Calculate pagination info
             has_next = skip + len(invoices) < total_count
@@ -86,7 +118,8 @@ class ListInvoicesUseCase:
                 "has_previous": has_previous
             }
             
-            logger.info(f"Successfully listed {len(invoice_dtos)} invoices (total: {total_count})")
+            logger.info(f"🔧 ListInvoicesUseCase: Successfully prepared result with {len(invoice_dtos)} DTOs")
+            logger.info(f"🔧 ListInvoicesUseCase: Result summary - total_count: {total_count}, has_next: {has_next}, has_previous: {has_previous}")
             
             return result
             
@@ -94,7 +127,10 @@ class ListInvoicesUseCase:
             logger.warning(f"Business rule violation listing invoices: {e}")
             raise AppValidationError(str(e))
         except Exception as e:
-            logger.error(f"Unexpected error listing invoices: {e}")
+            logger.error(f"❌ ListInvoicesUseCase: Unexpected error listing invoices: {e}")
+            logger.error(f"❌ ListInvoicesUseCase: Error type: {type(e)}")
+            import traceback
+            logger.error(f"❌ ListInvoicesUseCase: Traceback: {traceback.format_exc()}")
             raise ApplicationError(f"Failed to list invoices: {str(e)}")
     
     async def _validate_permissions(self, business_id: uuid.UUID, user_id: str) -> None:

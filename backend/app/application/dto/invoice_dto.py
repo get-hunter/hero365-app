@@ -47,10 +47,10 @@ class InvoiceLineItemDTO:
             discount_value=line_item.discount_value,
             tax_rate=line_item.tax_rate,
             notes=line_item.notes,
-            line_total=line_item.get_line_total(),
+            line_total=line_item.get_subtotal(),
             discount_amount=line_item.get_discount_amount(),
             tax_amount=line_item.get_tax_amount(),
-            final_total=line_item.get_final_total()
+            final_total=line_item.get_total()
         )
 
 

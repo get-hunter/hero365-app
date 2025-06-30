@@ -378,11 +378,7 @@ INSERT INTO contacts (
     email,
     phone,
     mobile_phone,
-    street_address,
-    city,
-    state,
-    postal_code,
-    country,
+    address,
     contact_type,
     source,
     status,
@@ -406,11 +402,7 @@ INSERT INTO contacts (
     'john.smith@email.com',
     '+1-512-555-2001',
     '+1-512-555-2001',
-    '1234 Elm Street',
-    'Austin',
-    'TX',
-    '78701',
-    'US',
+    '{"street_address": "1234 Elm Street", "city": "Austin", "state": "TX", "postal_code": "78701", "country": "US"}',
     'customer',
     'referral',
     'active',
@@ -433,11 +425,7 @@ INSERT INTO contacts (
     'mary.johnson@email.com',
     '+1-512-555-2002',
     '+1-512-555-2002',
-    '5678 Oak Avenue',
-    'Austin',
-    'TX',
-    '78704',
-    'US',
+    '{"street_address": "5678 Oak Avenue", "city": "Austin", "state": "TX", "postal_code": "78704", "country": "US"}',
     'lead',
     'website',
     'active',
@@ -461,11 +449,7 @@ INSERT INTO contacts (
     'robert@austinpm.com',
     '+1-512-555-2003',
     '+1-512-555-2003',
-    '999 Business Park Dr',
-    'Austin',
-    'TX',
-    '78759',
-    'US',
+    '{"street_address": "999 Business Park Dr", "city": "Austin", "state": "TX", "postal_code": "78759", "country": "US"}',
     'customer',
     'referral',
     'active',
@@ -488,11 +472,7 @@ INSERT INTO contacts (
     'lisa@sunshinerestaurant.com',
     '+1-512-555-2004',
     '+1-512-555-2004',
-    '246 Restaurant Row',
-    'Austin',
-    'TX',
-    '78701',
-    'US',
+    '{"street_address": "246 Restaurant Row", "city": "Austin", "state": "TX", "postal_code": "78701", "country": "US"}',
     'prospect',
     'google_ads',
     'active',
@@ -575,23 +555,14 @@ INSERT INTO jobs (
     source,
     contact_id,
     assigned_to,
-    estimated_duration_hours,
-    actual_duration_hours,
-    estimated_cost,
-    actual_cost,
+    job_address,
+    time_tracking,
+    cost_estimate,
     scheduled_start,
     scheduled_end,
     actual_start,
     actual_end,
-    location_address,
-    location_city,
-    location_state,
-    location_postal_code,
-    location_country,
-    location_latitude,
-    location_longitude,
-    special_instructions,
-    internal_notes,
+    notes,
     created_by,
     is_active
 ) VALUES 
@@ -608,24 +579,15 @@ INSERT INTO jobs (
     'phone',
     'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     ARRAY['550e8400-e29b-41d4-a716-446655440003'::uuid],
-    2.0,
-    1.5,
-    150.00,
-    125.00,
+    '{"street_address": "1234 Elm Street", "city": "Austin", "state": "TX", "postal_code": "78701", "country": "US", "latitude": 30.266667, "longitude": -97.733330, "access_notes": "Customer prefers morning appointments. Use side entrance."}'::jsonb,
+    '{"estimated_hours": 2.0, "actual_hours": 1.5, "billable_hours": 1.5, "start_time": null, "end_time": null, "break_time_minutes": 0}'::jsonb,
+    '{"labor_cost": 150.00, "material_cost": 0, "equipment_cost": 0, "overhead_cost": 0, "markup_percentage": 20, "tax_percentage": 0, "discount_amount": 0}'::jsonb,
     (now() - interval '7 days'),
     (now() - interval '7 days' + interval '2 hours'),
     (now() - interval '7 days'),
     (now() - interval '7 days' + interval '1.5 hours'),
-    '1234 Elm Street',
-    'Austin',
-    'TX',
-    '78701',
-    'US',
-    30.266667,
-    -97.733330,
-    'Customer prefers morning appointments. Use side entrance.',
     'Customer very satisfied. Mentioned potential bathroom project.',
-    '550e8400-e29b-41d4-a716-446655440004'::uuid,
+    '550e8400-e29b-41d4-a716-446655440004',
     true
 ),
 -- Scheduled Job
@@ -641,24 +603,15 @@ INSERT INTO jobs (
     'emergency',
     'bb0e8400-e29b-41d4-a716-446655440002'::uuid,
     ARRAY['550e8400-e29b-41d4-a716-446655440003'::uuid, '550e8400-e29b-41d4-a716-446655440005'::uuid],
-    4.0,
-    NULL,
-    350.00,
-    NULL,
+    '{"street_address": "5678 Oak Avenue", "city": "Austin", "state": "TX", "postal_code": "78704", "country": "US", "latitude": 30.250000, "longitude": -97.750000, "access_notes": "Emergency access code: 1234. Water shut off at main."}'::jsonb,
+    '{"estimated_hours": 4.0, "actual_hours": null, "billable_hours": null, "start_time": null, "end_time": null, "break_time_minutes": 0}'::jsonb,
+    '{"labor_cost": 350.00, "material_cost": 0, "equipment_cost": 0, "overhead_cost": 0, "markup_percentage": 20, "tax_percentage": 0, "discount_amount": 0}'::jsonb,
     (now() + interval '2 hours'),
     (now() + interval '6 hours'),
     NULL,
     NULL,
-    '5678 Oak Avenue',
-    'Austin',
-    'TX',
-    '78704',
-    'US',
-    30.250000,
-    -97.750000,
-    'Emergency access code: 1234. Water shut off at main.',
     'High priority - customer has flooded basement.',
-    '550e8400-e29b-41d4-a716-446655440002'::uuid,
+    '550e8400-e29b-41d4-a716-446655440002',
     true
 ),
 -- In Progress Job
@@ -674,24 +627,15 @@ INSERT INTO jobs (
     'contract',
     'bb0e8400-e29b-41d4-a716-446655440003'::uuid,
     ARRAY['550e8400-e29b-41d4-a716-446655440002'::uuid],
-    3.0,
-    NULL,
-    200.00,
-    NULL,
+    '{"street_address": "999 Business Park Dr", "city": "Austin", "state": "TX", "postal_code": "78759", "country": "US", "latitude": 30.400000, "longitude": -97.700000, "access_notes": "Check all units. Property manager available until 4 PM."}'::jsonb,
+    '{"estimated_hours": 3.0, "actual_hours": null, "billable_hours": null, "start_time": null, "end_time": null, "break_time_minutes": 0}'::jsonb,
+    '{"labor_cost": 200.00, "material_cost": 0, "equipment_cost": 0, "overhead_cost": 0, "markup_percentage": 20, "tax_percentage": 0, "discount_amount": 0}'::jsonb,
     (now() - interval '1 hour'),
     (now() + interval '2 hours'),
     (now() - interval '1 hour'),
     NULL,
-    '999 Business Park Dr',
-    'Austin',
-    'TX',
-    '78759',
-    'US',
-    30.400000,
-    -97.700000,
-    'Check all units. Property manager available until 4 PM.',
     'Monthly contract work. Building has 12 units to check.',
-    '550e8400-e29b-41d4-a716-446655440001'::uuid,
+    '550e8400-e29b-41d4-a716-446655440001',
     true
 );
 
@@ -702,7 +646,6 @@ INSERT INTO job_templates (
     name,
     description,
     job_type,
-    estimated_duration_hours,
     estimated_cost,
     checklist,
     required_skills,
@@ -715,7 +658,6 @@ INSERT INTO job_templates (
     'Standard Sink Repair',
     'Template for common sink repairs',
     'repair',
-    2.0,
     150.00,
     '["Check faucet connections", "Inspect under-sink plumbing", "Test water pressure", "Replace worn parts", "Test for leaks"]'::jsonb,
     ARRAY['basic_plumbing', 'hand_tools'],
@@ -728,7 +670,6 @@ INSERT INTO job_templates (
     'Emergency Pipe Repair',
     'Template for emergency pipe repairs',
     'emergency',
-    4.0,
     350.00,
     '["Assess damage", "Turn off water supply", "Remove damaged section", "Install replacement", "Test system", "Clean up area"]'::jsonb,
     ARRAY['pipe_fitting', 'emergency_response', 'power_tools'],
@@ -1157,7 +1098,7 @@ INSERT INTO project_templates (
 ) VALUES 
 -- Business-specific templates
 (
-    'pt0e8400-e29b-41d4-a716-446655440001'::uuid,
+    '550e8400-e29b-41d4-a716-446655440050'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
     'Complete Plumbing System Installation',
     'Full residential plumbing system installation including main lines, fixtures, and testing',
@@ -1169,7 +1110,7 @@ INSERT INTO project_templates (
     false
 ),
 (
-    'pt0e8400-e29b-41d4-a716-446655440002'::uuid,
+    '550e8400-e29b-41d4-a716-446655440051'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
     'Bathroom Renovation Project',
     'Complete bathroom renovation including plumbing fixtures, tile work, and vanity installation',
@@ -1181,7 +1122,7 @@ INSERT INTO project_templates (
     false
 ),
 (
-    'pt0e8400-e29b-41d4-a716-446655440003'::uuid,
+    '550e8400-e29b-41d4-a716-446655440052'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
     'Commercial Maintenance Contract',
     'Monthly maintenance contract for commercial properties',
@@ -1197,12 +1138,12 @@ INSERT INTO project_templates (
 INSERT INTO projects (
     id,
     business_id,
+    project_number,
     name,
     description,
     created_by,
     client_id,
     client_name,
-    client_address,
     project_type,
     status,
     priority,
@@ -1218,14 +1159,14 @@ INSERT INTO projects (
 ) VALUES 
 -- Completed Project
 (
-    'NULL'::uuid,
+    '550e8400-e29b-41d4-a716-446655440120'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    'PROJ-2024-001',
     'Smith Kitchen Renovation',
     'Complete kitchen plumbing renovation including new fixtures, dishwasher connection, and garbage disposal installation',
     '550e8400-e29b-41d4-a716-446655440001',
     'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     'John Smith',
-    '1234 Elm Street, Austin, TX 78701',
     'renovation',
     'completed',
     'medium',
@@ -1241,14 +1182,14 @@ INSERT INTO projects (
 ),
 -- Active Project
 (
-    'NULL'::uuid,
+    '550e8400-e29b-41d4-a716-446655440121'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    'PROJ-2024-002',
     'Austin Property Management - Quarterly Maintenance',
     'Quarterly maintenance project covering all 50+ rental units with comprehensive plumbing inspections and repairs',
     '550e8400-e29b-41d4-a716-446655440001',
     'bb0e8400-e29b-41d4-a716-446655440003'::uuid,
     'Robert Davis - Austin Property Management',
-    '999 Business Park Dr, Austin, TX 78759',
     'maintenance',
     'active',
     'high',
@@ -1264,14 +1205,14 @@ INSERT INTO projects (
 ),
 -- Planned Project
 (
-    'NULL'::uuid,
+    '550e8400-e29b-41d4-a716-446655440122'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    'PROJ-2024-003',
     'Sunshine Restaurant Grease Trap Installation',
     'Installation of new commercial grease trap system with maintenance agreement setup',
     '550e8400-e29b-41d4-a716-446655440004',
     'bb0e8400-e29b-41d4-a716-446655440004'::uuid,
     'Lisa Anderson - Sunshine Restaurant',
-    '246 Restaurant Row, Austin, TX 78701',
     'installation',
     'planning',
     'medium',
@@ -1287,14 +1228,14 @@ INSERT INTO projects (
 ),
 -- Emergency Project  
 (
-    'NULL'::uuid,
+    '550e8400-e29b-41d4-a716-446655440123'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    'PROJ-2024-004',
     'Johnson Emergency Water Damage Restoration',
     'Emergency plumbing repair and water damage mitigation for burst pipe in basement',
     '550e8400-e29b-41d4-a716-446655440002',
     'bb0e8400-e29b-41d4-a716-446655440002'::uuid,
     'Mary Johnson',
-    '5678 Oak Avenue, Austin, TX 78704',
     'emergency',
     'active',
     'critical',
@@ -1310,13 +1251,13 @@ INSERT INTO projects (
 );
 
 -- Update Jobs to link to projects
-UPDATE jobs SET project_id = 'NULL'::uuid 
+UPDATE jobs SET project_id = NULL 
 WHERE id = 'ee0e8400-e29b-41d4-a716-446655440001'::uuid;
 
-UPDATE jobs SET project_id = 'NULL'::uuid 
+UPDATE jobs SET project_id = NULL 
 WHERE id = 'ee0e8400-e29b-41d4-a716-446655440002'::uuid;
 
-UPDATE jobs SET project_id = 'NULL'::uuid 
+UPDATE jobs SET project_id = NULL 
 WHERE id = 'ee0e8400-e29b-41d4-a716-446655440003'::uuid;
 
 -- Update sequence counters to continue from our demo data
@@ -1504,7 +1445,7 @@ INSERT INTO estimates (
     'Installation of new commercial grease trap system including permits, installation, testing, and maintenance setup',
     'draft',
     'bb0e8400-e29b-41d4-a716-446655440004'::uuid,
-    'NULL'::uuid,
+    NULL,
     NULL,
     '550e8400-e29b-41d4-a716-446655440020'::uuid,
     'Mike Johnson',
@@ -1539,7 +1480,7 @@ INSERT INTO estimates (
     'Emergency plumbing repair and water damage mitigation for burst pipe in basement including extraction, drying, and repairs',
     'approved',
     'bb0e8400-e29b-41d4-a716-446655440002'::uuid,
-    'NULL'::uuid,
+    NULL,
     'ee0e8400-e29b-41d4-a716-446655440002'::uuid,
     '550e8400-e29b-41d4-a716-446655440021'::uuid,
     'David Chen',
@@ -1625,7 +1566,7 @@ INSERT INTO estimate_line_items (
 ) VALUES 
 -- Kitchen Renovation Estimate Line Items
 (
-    'el1e8400-e29b-41d4-a716-446655440001'::uuid,
+    '550e8400-e29b-41d4-a716-446655440061'::uuid,
     '550e8400-e29b-41d4-a716-446655440030'::uuid,
     1,
     'Kitchen Sink & Faucet Installation',
@@ -1646,7 +1587,7 @@ INSERT INTO estimate_line_items (
     now() - interval '2 months'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440002'::uuid,
+    '550e8400-e29b-41d4-a716-446655440062'::uuid,
     '550e8400-e29b-41d4-a716-446655440030'::uuid,
     2,
     'Dishwasher Connection',
@@ -1667,7 +1608,7 @@ INSERT INTO estimate_line_items (
     now() - interval '2 months'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440003'::uuid,
+    '550e8400-e29b-41d4-a716-446655440063'::uuid,
     '550e8400-e29b-41d4-a716-446655440030'::uuid,
     3,
     'Garbage Disposal Installation',
@@ -1688,7 +1629,7 @@ INSERT INTO estimate_line_items (
     now() - interval '2 months'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440004'::uuid,
+    '550e8400-e29b-41d4-a716-446655440064'::uuid,
     '550e8400-e29b-41d4-a716-446655440030'::uuid,
     4,
     'Water Line Upgrades',
@@ -1709,7 +1650,7 @@ INSERT INTO estimate_line_items (
     now() - interval '2 months'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440005'::uuid,
+    '550e8400-e29b-41d4-a716-446655440065'::uuid,
     '550e8400-e29b-41d4-a716-446655440030'::uuid,
     5,
     'Labor & Installation',
@@ -1732,7 +1673,7 @@ INSERT INTO estimate_line_items (
 
 -- Maintenance Contract Estimate Line Items
 (
-    'el1e8400-e29b-41d4-a716-446655440006'::uuid,
+    '550e8400-e29b-41d4-a716-446655440066'::uuid,
     '550e8400-e29b-41d4-a716-446655440031'::uuid,
     1,
     'Quarterly Inspections - All Units',
@@ -1753,7 +1694,7 @@ INSERT INTO estimate_line_items (
     now() - interval '10 days'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440007'::uuid,
+    '550e8400-e29b-41d4-a716-446655440067'::uuid,
     '550e8400-e29b-41d4-a716-446655440031'::uuid,
     2,
     'Preventive Maintenance',
@@ -1774,7 +1715,7 @@ INSERT INTO estimate_line_items (
     now() - interval '10 days'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440008'::uuid,
+    '550e8400-e29b-41d4-a716-446655440068'::uuid,
     '550e8400-e29b-41d4-a716-446655440031'::uuid,
     3,
     '24/7 Emergency Response',
@@ -1795,7 +1736,7 @@ INSERT INTO estimate_line_items (
     now() - interval '10 days'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440009'::uuid,
+    '550e8400-e29b-41d4-a716-446655440069'::uuid,
     '550e8400-e29b-41d4-a716-446655440031'::uuid,
     4,
     'Reporting & Documentation',
@@ -1818,7 +1759,7 @@ INSERT INTO estimate_line_items (
 
 -- Grease Trap Installation Estimate Line Items
 (
-    'el1e8400-e29b-41d4-a716-446655440010'::uuid,
+    '550e8400-e29b-41d4-a716-446655440070'::uuid,
     '550e8400-e29b-41d4-a716-446655440032'::uuid,
     1,
     'Commercial Grease Trap System',
@@ -1839,7 +1780,7 @@ INSERT INTO estimate_line_items (
     now() - interval '1 day'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440011'::uuid,
+    '550e8400-e29b-41d4-a716-446655440071'::uuid,
     '550e8400-e29b-41d4-a716-446655440032'::uuid,
     2,
     'Installation & Connection',
@@ -1860,7 +1801,7 @@ INSERT INTO estimate_line_items (
     now() - interval '1 day'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440012'::uuid,
+    '550e8400-e29b-41d4-a716-446655440072'::uuid,
     '550e8400-e29b-41d4-a716-446655440032'::uuid,
     3,
     'Permits & Inspections',
@@ -1881,7 +1822,7 @@ INSERT INTO estimate_line_items (
     now() - interval '1 day'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440013'::uuid,
+    '550e8400-e29b-41d4-a716-446655440073'::uuid,
     '550e8400-e29b-41d4-a716-446655440032'::uuid,
     4,
     'Testing & Commissioning',
@@ -1904,7 +1845,7 @@ INSERT INTO estimate_line_items (
 
 -- Emergency Water Damage Estimate Line Items
 (
-    'el1e8400-e29b-41d4-a716-446655440014'::uuid,
+    '550e8400-e29b-41d4-a716-446655440074'::uuid,
     '550e8400-e29b-41d4-a716-446655440033'::uuid,
     1,
     'Emergency Pipe Repair',
@@ -1925,7 +1866,7 @@ INSERT INTO estimate_line_items (
     now() - interval '6 hours'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440015'::uuid,
+    '550e8400-e29b-41d4-a716-446655440075'::uuid,
     '550e8400-e29b-41d4-a716-446655440033'::uuid,
     2,
     'Water Extraction',
@@ -1946,7 +1887,7 @@ INSERT INTO estimate_line_items (
     now() - interval '6 hours'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440016'::uuid,
+    '550e8400-e29b-41d4-a716-446655440076'::uuid,
     '550e8400-e29b-41d4-a716-446655440033'::uuid,
     3,
     'Drying & Dehumidification',
@@ -1967,7 +1908,7 @@ INSERT INTO estimate_line_items (
     now() - interval '6 hours'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440017'::uuid,
+    '550e8400-e29b-41d4-a716-446655440077'::uuid,
     '550e8400-e29b-41d4-a716-446655440033'::uuid,
     4,
     'Damage Assessment & Repairs',
@@ -1990,7 +1931,7 @@ INSERT INTO estimate_line_items (
 
 -- Bathroom Renovation Estimate Line Items
 (
-    'el1e8400-e29b-41d4-a716-446655440018'::uuid,
+    '550e8400-e29b-41d4-a716-446655440078'::uuid,
     '550e8400-e29b-41d4-a716-446655440034'::uuid,
     1,
     'Bathroom Fixture Package',
@@ -2011,7 +1952,7 @@ INSERT INTO estimate_line_items (
     now() - interval '5 days'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440019'::uuid,
+    '550e8400-e29b-41d4-a716-446655440079'::uuid,
     '550e8400-e29b-41d4-a716-446655440034'::uuid,
     2,
     'Plumbing Rough-In',
@@ -2032,7 +1973,7 @@ INSERT INTO estimate_line_items (
     now() - interval '5 days'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440020'::uuid,
+    '550e8400-e29b-41d4-a716-446655440080'::uuid,
     '550e8400-e29b-41d4-a716-446655440034'::uuid,
     3,
     'Fixture Installation',
@@ -2053,7 +1994,7 @@ INSERT INTO estimate_line_items (
     now() - interval '5 days'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440021'::uuid,
+    '550e8400-e29b-41d4-a716-446655440081'::uuid,
     '550e8400-e29b-41d4-a716-446655440034'::uuid,
     4,
     'Tile Work Coordination',
@@ -2074,7 +2015,7 @@ INSERT INTO estimate_line_items (
     now() - interval '5 days'
 ),
 (
-    'el1e8400-e29b-41d4-a716-446655440022'::uuid,
+    '550e8400-e29b-41d4-a716-446655440082'::uuid,
     '550e8400-e29b-41d4-a716-446655440034'::uuid,
     5,
     'Project Management & Cleanup',
@@ -2144,7 +2085,7 @@ INSERT INTO invoices (
     'Completed kitchen plumbing renovation including new fixtures, dishwasher hookup, garbage disposal installation, and pipe upgrades',
     'paid',
     'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
-    'NULL'::uuid,
+    NULL,
     'ee0e8400-e29b-41d4-a716-446655440001'::uuid,
     '550e8400-e29b-41d4-a716-446655440030'::uuid,
     '550e8400-e29b-41d4-a716-446655440020'::uuid,
@@ -2158,9 +2099,9 @@ INSERT INTO invoices (
     'percentage',
     8.25,
     321.34,
+    5918.22,
     4216.34,
-    4216.34,
-    0.00,
+    1701.88,
     0.00,
     (now() - interval '1 month'),
     (now() - interval '1 month' + interval '30 days'),
@@ -2184,23 +2125,23 @@ INSERT INTO invoices (
     'Emergency plumbing repair and water damage mitigation for burst pipe in basement including extraction, drying, and repairs',
     'partially_paid',
     'bb0e8400-e29b-41d4-a716-446655440002'::uuid,
-    'NULL'::uuid,
+    NULL,
     'ee0e8400-e29b-41d4-a716-446655440002'::uuid,
     '550e8400-e29b-41d4-a716-446655440033'::uuid,
     '550e8400-e29b-41d4-a716-446655440021'::uuid,
     'David Chen',
     '550e8400-e29b-41d4-a716-446655440003'::uuid,
     'USD',
-    3200.00,
+    3247.52,
     'none',
     0.00,
     0.00,
     'percentage',
     8.25,
-    264.00,
-    3464.00,
+    247.52,
+    3495.04,
     2000.00,
-    1464.00,
+    1495.04,
     0.00,
     (now() - interval '5 days'),
     (now() + interval '25 days'),
@@ -2224,23 +2165,23 @@ INSERT INTO invoices (
     'Monthly maintenance service for commercial property including inspections, minor repairs, and preventive maintenance',
     'sent',
     'bb0e8400-e29b-41d4-a716-446655440003'::uuid,
-    'NULL'::uuid,
+    NULL,
     'ee0e8400-e29b-41d4-a716-446655440003'::uuid,
     NULL,
     '550e8400-e29b-41d4-a716-446655440020'::uuid,
     'Sarah Wilson',
     '550e8400-e29b-41d4-a716-446655440002'::uuid,
     'USD',
-    1850.00,
+    2018.87,
     'none',
     0.00,
     0.00,
     'percentage',
     8.25,
-    152.63,
-    2002.63,
+    153.87,
+    2172.74,
     0.00,
-    2002.63,
+    2172.74,
     0.00,
     (now() - interval '15 days'),
     (now() + interval '15 days'),
@@ -2271,16 +2212,16 @@ INSERT INTO invoices (
     'Alex Thompson',
     '550e8400-e29b-41d4-a716-446655440005'::uuid,
     'USD',
-    485.00,
+    597.01,
     'none',
     0.00,
     0.00,
     'percentage',
     8.25,
-    40.01,
-    525.01,
+    45.51,
+    642.52,
     0.00,
-    525.01,
+    650.40,
     0.00,
     (now() - interval '45 days'),
     (now() - interval '15 days'),
@@ -2311,16 +2252,16 @@ INSERT INTO invoices (
     'David Chen',
     '550e8400-e29b-41d4-a716-446655440003'::uuid,
     'USD',
-    5200.00,
+    5087.76,
     'percentage',
     10.00,
-    520.00,
+    0.00,
     'percentage',
     8.25,
-    386.10,
-    5066.10,
+    387.76,
+    5475.52,
     0.00,
-    5066.10,
+    5475.52,
     0.00,
     now(),
     (now() + interval '30 days'),
@@ -2360,7 +2301,7 @@ INSERT INTO invoice_line_items (
 ) VALUES 
 -- Kitchen Renovation Invoice Line Items (matches estimate)
 (
-    'il2e8400-e29b-41d4-a716-446655440001'::uuid,
+    '550e8400-e29b-41d4-a716-446655440090'::uuid,
     '550e8400-e29b-41d4-a716-446655440040'::uuid,
     1,
     'Kitchen Sink & Faucet Installation',
@@ -2381,7 +2322,7 @@ INSERT INTO invoice_line_items (
     now() - interval '1 month'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440002'::uuid,
+    '550e8400-e29b-41d4-a716-446655440091'::uuid,
     '550e8400-e29b-41d4-a716-446655440040'::uuid,
     2,
     'Dishwasher Connection',
@@ -2402,7 +2343,7 @@ INSERT INTO invoice_line_items (
     now() - interval '1 month'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440003'::uuid,
+    '550e8400-e29b-41d4-a716-446655440092'::uuid,
     '550e8400-e29b-41d4-a716-446655440040'::uuid,
     3,
     'Garbage Disposal Installation',
@@ -2423,7 +2364,7 @@ INSERT INTO invoice_line_items (
     now() - interval '1 month'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440004'::uuid,
+    '550e8400-e29b-41d4-a716-446655440093'::uuid,
     '550e8400-e29b-41d4-a716-446655440040'::uuid,
     4,
     'Water Line Upgrades',
@@ -2444,7 +2385,7 @@ INSERT INTO invoice_line_items (
     now() - interval '1 month'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440005'::uuid,
+    '550e8400-e29b-41d4-a716-446655440094'::uuid,
     '550e8400-e29b-41d4-a716-446655440040'::uuid,
     5,
     'Labor & Installation',
@@ -2467,7 +2408,7 @@ INSERT INTO invoice_line_items (
 
 -- Emergency Water Damage Invoice Line Items (matches estimate)
 (
-    'il2e8400-e29b-41d4-a716-446655440006'::uuid,
+    '550e8400-e29b-41d4-a716-446655440095'::uuid,
     '550e8400-e29b-41d4-a716-446655440041'::uuid,
     1,
     'Emergency Pipe Repair',
@@ -2488,7 +2429,7 @@ INSERT INTO invoice_line_items (
     now() - interval '4 days'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440007'::uuid,
+    '550e8400-e29b-41d4-a716-446655440096'::uuid,
     '550e8400-e29b-41d4-a716-446655440041'::uuid,
     2,
     'Water Extraction',
@@ -2509,7 +2450,7 @@ INSERT INTO invoice_line_items (
     now() - interval '4 days'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440008'::uuid,
+    '550e8400-e29b-41d4-a716-446655440097'::uuid,
     '550e8400-e29b-41d4-a716-446655440041'::uuid,
     3,
     'Drying & Dehumidification',
@@ -2530,7 +2471,7 @@ INSERT INTO invoice_line_items (
     now() - interval '4 days'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440009'::uuid,
+    '550e8400-e29b-41d4-a716-446655440098'::uuid,
     '550e8400-e29b-41d4-a716-446655440041'::uuid,
     4,
     'Damage Assessment & Repairs',
@@ -2553,7 +2494,7 @@ INSERT INTO invoice_line_items (
 
 -- Monthly Maintenance Invoice Line Items
 (
-    'il2e8400-e29b-41d4-a716-446655440010'::uuid,
+    '550e8400-e29b-41d4-a716-446655440099'::uuid,
     '550e8400-e29b-41d4-a716-446655440042'::uuid,
     1,
     'Unit Inspections',
@@ -2574,7 +2515,7 @@ INSERT INTO invoice_line_items (
     now() - interval '15 days'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440011'::uuid,
+    '550e8400-e29b-41d4-a716-446655440100'::uuid,
     '550e8400-e29b-41d4-a716-446655440042'::uuid,
     2,
     'Preventive Maintenance',
@@ -2595,7 +2536,7 @@ INSERT INTO invoice_line_items (
     now() - interval '15 days'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440012'::uuid,
+    '550e8400-e29b-41d4-a716-446655440101'::uuid,
     '550e8400-e29b-41d4-a716-446655440042'::uuid,
     3,
     'Repair Materials & Supplies',
@@ -2616,7 +2557,7 @@ INSERT INTO invoice_line_items (
     now() - interval '15 days'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440013'::uuid,
+    '550e8400-e29b-41d4-a716-446655440102'::uuid,
     '550e8400-e29b-41d4-a716-446655440042'::uuid,
     4,
     'Reporting & Documentation',
@@ -2639,7 +2580,7 @@ INSERT INTO invoice_line_items (
 
 -- Overdue Sink Repair Invoice Line Items
 (
-    'il2e8400-e29b-41d4-a716-446655440014'::uuid,
+    '550e8400-e29b-41d4-a716-446655440103'::uuid,
     '550e8400-e29b-41d4-a716-446655440043'::uuid,
     1,
     'Kitchen Faucet Replacement',
@@ -2660,7 +2601,7 @@ INSERT INTO invoice_line_items (
     now() - interval '10 days'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440015'::uuid,
+    '550e8400-e29b-41d4-a716-446655440104'::uuid,
     '550e8400-e29b-41d4-a716-446655440043'::uuid,
     2,
     'Sink Drain Repair',
@@ -2681,7 +2622,7 @@ INSERT INTO invoice_line_items (
     now() - interval '10 days'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440016'::uuid,
+    '550e8400-e29b-41d4-a716-446655440105'::uuid,
     '550e8400-e29b-41d4-a716-446655440043'::uuid,
     3,
     'Service Call & Labor',
@@ -2704,7 +2645,7 @@ INSERT INTO invoice_line_items (
 
 -- Draft Bathroom Invoice Line Items
 (
-    'il2e8400-e29b-41d4-a716-446655440017'::uuid,
+    '550e8400-e29b-41d4-a716-446655440106'::uuid,
     '550e8400-e29b-41d4-a716-446655440044'::uuid,
     1,
     'Bathroom Rough-In Plumbing',
@@ -2725,7 +2666,7 @@ INSERT INTO invoice_line_items (
     now() - interval '1 day'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440018'::uuid,
+    '550e8400-e29b-41d4-a716-446655440107'::uuid,
     '550e8400-e29b-41d4-a716-446655440044'::uuid,
     2,
     'Permit & Inspection Fees',
@@ -2746,7 +2687,7 @@ INSERT INTO invoice_line_items (
     now() - interval '1 day'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440019'::uuid,
+    '550e8400-e29b-41d4-a716-446655440108'::uuid,
     '550e8400-e29b-41d4-a716-446655440044'::uuid,
     3,
     'Fixture Preparation',
@@ -2767,7 +2708,7 @@ INSERT INTO invoice_line_items (
     now() - interval '1 day'
 ),
 (
-    'il2e8400-e29b-41d4-a716-446655440020'::uuid,
+    '550e8400-e29b-41d4-a716-446655440109'::uuid,
     '550e8400-e29b-41d4-a716-446655440044'::uuid,
     4,
     'Project Management - Phase 1',
@@ -2810,7 +2751,7 @@ INSERT INTO payments (
 ) VALUES 
 -- Kitchen Renovation Invoice - Full Payment
 (
-    'py0e8400-e29b-41d4-a716-446655440001'::uuid,
+    '550e8400-e29b-41d4-a716-446655440110'::uuid,
     '550e8400-e29b-41d4-a716-446655440040'::uuid,
     (now() - interval '3 weeks'),
     4216.34,
@@ -2830,7 +2771,7 @@ INSERT INTO payments (
 ),
 -- Emergency Water Damage Invoice - Insurance Payment (Partial)
 (
-    'py0e8400-e29b-41d4-a716-446655440002'::uuid,
+    '550e8400-e29b-41d4-a716-446655440111'::uuid,
     '550e8400-e29b-41d4-a716-446655440041'::uuid,
     (now() - interval '3 days'),
     2000.00,

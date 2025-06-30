@@ -5,7 +5,7 @@ API endpoints for managing user's business context and switching between busines
 """
 
 import logging
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel, Field
 import uuid
@@ -45,7 +45,7 @@ class SwitchBusinessContextRequest(BaseModel):
 class BusinessContextInfoResponse(BaseModel):
     """Schema for current business context information."""
     
-    current_business_id: str = Field(None, description="Current business ID")
+    current_business_id: Optional[str] = Field(None, description="Current business ID")
     available_businesses: List[dict] = Field(..., description="List of businesses user can access")
     user_id: str = Field(..., description="User ID")
 

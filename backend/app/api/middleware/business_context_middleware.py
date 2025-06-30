@@ -60,6 +60,7 @@ class BusinessContextMiddleware(BaseHTTPMiddleware):
         
         # Extract business context from request
         business_id = self._extract_business_id_from_request(request)
+        logger.info(f"BusinessContextMiddleware: Extracted business_id: {business_id}")
         
         if business_id:
             # Validate business context
@@ -75,7 +76,9 @@ class BusinessContextMiddleware(BaseHTTPMiddleware):
             # Add validated business context to request state
             request.state.business_id = business_id
             request.state.business_context_validated = True
-            logger.info(f"Business context validated for business {business_id}")
+            logger.info(f"Business context validated and set in request state for business {business_id}")
+        else:
+            logger.warning(f"No business context could be extracted for path: {path}")
         
         # Continue with request processing
         return await call_next(request)
@@ -131,6 +134,20 @@ class BusinessContextMiddleware(BaseHTTPMiddleware):
         current_business_id = user.get('current_business_id')
         if current_business_id:
             return current_business_id
+        
+        # Fallback: if user has business memberships but no current business context,
+        # use the first one (similar to deps.py logic)
+        business_memberships = user.get('business_memberships', [])
+        if business_memberships:
+            first_business_id = business_memberships[0].get("business_id")
+            if first_business_id:
+                try:
+                    # Validate UUID format
+                    uuid.UUID(first_business_id)
+                    logger.info(f"BusinessContextMiddleware: Using first business membership as fallback context: {first_business_id}")
+                    return first_business_id
+                except (ValueError, TypeError):
+                    pass
         
         return None
     

@@ -301,57 +301,60 @@ class SupabaseInvoiceRepository(InvoiceRepository):
     
     def _dict_to_invoice(self, data: dict) -> Invoice:
         """Convert database dictionary to Invoice entity."""
-        
         def safe_json_parse(value, default=None):
             if value is None:
-                return default if default is not None else []
-            if isinstance(value, (list, dict)):
+                return default
+            if isinstance(value, (dict, list)):
                 return value
             try:
                 return json.loads(value) if isinstance(value, str) else value
             except (json.JSONDecodeError, TypeError):
-                return default if default is not None else []
-        
+                return default
+
         def safe_uuid_parse(value):
             if value is None:
                 return None
             try:
-                return uuid.UUID(value)
+                return uuid.UUID(str(value))
             except (ValueError, TypeError):
                 return None
-        
+
         def safe_datetime_parse(value):
             if value is None:
                 return None
             try:
-                if isinstance(value, str):
-                    return datetime.fromisoformat(value.replace('Z', '+00:00'))
-                return value
+                if isinstance(value, datetime):
+                    return value
+                return datetime.fromisoformat(str(value).replace('Z', '+00:00'))
             except (ValueError, TypeError):
                 return None
-        
+
         def safe_date_parse(value):
             if value is None:
                 return None
             try:
-                if isinstance(value, str):
-                    return date.fromisoformat(value)
-                return value
+                if isinstance(value, date):
+                    return value
+                return datetime.fromisoformat(str(value)).date()
             except (ValueError, TypeError):
                 return None
+
+        # Parse line items (from separate table or JSON field)
+        line_items_data = data.get("line_items", [])
+        # If it's a string, try to parse as JSON (backward compatibility)
+        if isinstance(line_items_data, str):
+            line_items_data = safe_json_parse(line_items_data, [])
         
-        # Parse line items
-        line_items_data = safe_json_parse(data.get("line_items", []))
         line_items = []
         for item_data in line_items_data:
             try:
                 line_item = InvoiceLineItem(
-                    id=uuid.UUID(item_data["id"]),
-                    description=item_data.get("description", ""),
+                    id=safe_uuid_parse(item_data.get("id")) or uuid.uuid4(),
+                    description=item_data.get("name") or item_data.get("description", ""),  # DB uses 'name' field
                     quantity=Decimal(str(item_data.get("quantity", "1"))),
                     unit_price=Decimal(str(item_data.get("unit_price", "0"))),
                     unit=item_data.get("unit"),
-                    category=item_data.get("category"),
+                    category=item_data.get("category"),  # May not exist in DB, will be None
                     discount_type=DiscountType(item_data.get("discount_type", "none")),
                     discount_value=Decimal(str(item_data.get("discount_value", "0"))),
                     tax_rate=Decimal(str(item_data.get("tax_rate", "0"))),
@@ -359,33 +362,37 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 )
                 line_items.append(line_item)
             except Exception as e:
-                logger.warning(f"Failed to parse line item: {e}")
+                # Skip invalid line items but log the error
+                print(f"Warning: Skipping invalid line item: {e}")
                 continue
+
+        # Parse payments (from separate table or JSON field)
+        payments_data = data.get("payments", [])
+        # If it's a string, try to parse as JSON (backward compatibility)
+        if isinstance(payments_data, str):
+            payments_data = safe_json_parse(payments_data, [])
         
-        # Parse payments
-        payments_data = safe_json_parse(data.get("payments", []))
         payments = []
         for payment_data in payments_data:
             try:
                 payment = Payment(
-                    id=uuid.UUID(payment_data["id"]),
+                    id=safe_uuid_parse(payment_data.get("id")) or uuid.uuid4(),
                     amount=Decimal(str(payment_data.get("amount", "0"))),
-                    payment_date=safe_datetime_parse(payment_data.get("payment_date")),
+                    payment_date=safe_datetime_parse(payment_data.get("payment_date")) or datetime.now(),
                     payment_method=PaymentMethod(payment_data.get("payment_method", "cash")),
-                    status=PaymentStatus(payment_data.get("status", "completed")),
-                    reference=payment_data.get("reference"),
+                    status=PaymentStatus(payment_data.get("payment_status") or payment_data.get("status", "completed")),
+                    reference=payment_data.get("reference_number") or payment_data.get("reference"),
                     transaction_id=payment_data.get("transaction_id"),
                     notes=payment_data.get("notes"),
-                    processed_by=payment_data.get("processed_by"),
-                    refunded_amount=Decimal(str(payment_data.get("refunded_amount", "0"))),
-                    refund_date=safe_datetime_parse(payment_data.get("refund_date")),
-                    refund_reason=payment_data.get("refund_reason")
+                    processed_by=payment_data.get("created_by") or payment_data.get("processed_by"),
+                    refunded_amount=Decimal(str(payment_data.get("refund_amount", "0")))
                 )
                 payments.append(payment)
             except Exception as e:
-                logger.warning(f"Failed to parse payment: {e}")
+                # Skip invalid payments but log the error
+                print(f"Warning: Skipping invalid payment: {e}")
                 continue
-        
+
         # Parse payment terms
         payment_terms_data = safe_json_parse(data.get("payment_terms", {}), {})
         payment_terms = PaymentTerms(
@@ -397,13 +404,38 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             payment_instructions=payment_terms_data.get("payment_instructions")
         )
         
+        # Handle client_name - fetch from contact if missing
+        client_name = data.get("client_name")
+        contact_id = safe_uuid_parse(data.get("contact_id"))
+        
+        # If client_name is missing but contact_id is present, fetch contact details
+        if not client_name and contact_id:
+            try:
+                contact_response = self.client.table("contacts").select("first_name, last_name, company_name").eq("id", str(contact_id)).execute()
+                if contact_response.data:
+                    contact = contact_response.data[0]
+                    first_name = contact.get("first_name", "")
+                    last_name = contact.get("last_name", "")
+                    company_name = contact.get("company_name", "")
+                    
+                    if company_name:
+                        client_name = company_name
+                    elif first_name or last_name:
+                        client_name = f"{first_name} {last_name}".strip()
+                    else:
+                        client_name = "Unknown Client"
+            except Exception as e:
+                # If contact fetch fails, use a default
+                print(f"Warning: Could not fetch contact details for invoice: {e}")
+                client_name = "Unknown Client"
+        
         return Invoice(
             id=uuid.UUID(data["id"]),
             business_id=uuid.UUID(data["business_id"]),
             invoice_number=data.get("invoice_number"),
             status=InvoiceStatus(data.get("status", "draft")),
             client_id=safe_uuid_parse(data.get("client_id")),
-            client_name=data.get("client_name"),
+            client_name=client_name,
             client_email=data.get("client_email"),
             client_phone=data.get("client_phone"),
             title=data.get("title", ""),
@@ -421,7 +453,7 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             estimate_id=safe_uuid_parse(data.get("estimate_id")),
             project_id=safe_uuid_parse(data.get("project_id")),
             job_id=safe_uuid_parse(data.get("job_id")),
-            contact_id=safe_uuid_parse(data.get("contact_id")),
+            contact_id=contact_id,
             tags=safe_json_parse(data.get("tags", [])),
             custom_fields=safe_json_parse(data.get("custom_fields", {}), {}),
             internal_notes=data.get("internal_notes"),
@@ -529,8 +561,6 @@ class SupabaseInvoiceRepository(InvoiceRepository):
         except Exception as e:
             raise DatabaseError(f"Failed to count invoices by contact: {str(e)}")
 
-
-
     async def exists(self, invoice_id: uuid.UUID) -> bool:
         try:
             response = self.client.table(self.table_name).select("id").eq("id", str(invoice_id)).execute()
@@ -552,15 +582,11 @@ class SupabaseInvoiceRepository(InvoiceRepository):
         today = date.today()
         return f"{prefix}-{today.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
 
-
-
     async def get_payment_history(self, invoice_id: uuid.UUID) -> List[Dict[str, Any]]:
         return []  # Placeholder
 
     async def get_refund_history(self, invoice_id: uuid.UUID) -> List[Dict[str, Any]]:
         return []  # Placeholder
-
-
 
     async def list_with_pagination(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None) -> Tuple[List[Invoice], int]:
         """List invoices with pagination and filters."""
@@ -587,8 +613,23 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             # Execute the query
             response = query.execute()
             
-            # Convert the data to Invoice entities
-            invoices = [self._dict_to_invoice(invoice_data) for invoice_data in response.data]
+            # Enrich each invoice with line items and payments
+            enriched_invoices_data = []
+            for invoice_data in response.data:
+                invoice_id = invoice_data["id"]
+                
+                # Fetch line items for this invoice
+                line_items_response = self.client.table("invoice_line_items").select("*").eq("invoice_id", invoice_id).order("sort_order").execute()
+                invoice_data["line_items"] = line_items_response.data
+                
+                # Fetch payments for this invoice
+                payments_response = self.client.table("payments").select("*").eq("invoice_id", invoice_id).order("payment_date").execute()
+                invoice_data["payments"] = payments_response.data
+                
+                enriched_invoices_data.append(invoice_data)
+            
+            # Convert the enriched data to Invoice entities
+            invoices = [self._dict_to_invoice(invoice_data) for invoice_data in enriched_invoices_data]
             total_count = response.count or 0
             
             return invoices, total_count
