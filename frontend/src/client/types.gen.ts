@@ -2521,6 +2521,7 @@ export type CreateEstimateSchema = {
   contact_id: string
   title: string
   description?: string | null
+  document_type?: string
   line_items: Array<EstimateLineItemSchema_Input>
   currency?: string
   tax_rate?: number | string
@@ -2879,6 +2880,8 @@ export type EstimateResponseSchema = {
   id: string
   business_id: string
   estimate_number: string
+  document_type: string
+  document_type_display: string
   status: string
   contact_id?: string | null
   client_name?: string | null
@@ -2929,6 +2932,7 @@ export type EstimateResponseSchema = {
 export type EstimateSearchSchema = {
   search_term?: string | null
   status?: string | null
+  document_type?: string | null
   contact_id?: string | null
   project_id?: string | null
   job_id?: string | null
@@ -5429,6 +5433,7 @@ export type TrendAnalysis = {
 export type UpdateEstimateSchema = {
   title?: string | null
   description?: string | null
+  document_type?: string | null
   line_items?: Array<EstimateLineItemSchema_Input> | null
   currency?: string | null
   tax_rate?: number | string | null

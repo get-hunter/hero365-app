@@ -59,6 +59,8 @@ class EstimateDTO:
     business_id: uuid.UUID
     estimate_number: str
     status: str
+    document_type: str = "estimate"
+    document_type_display: str = "Estimate"
     contact_id: Optional[uuid.UUID] = None
     client_name: Optional[str] = None
     client_email: Optional[str] = None
@@ -103,6 +105,8 @@ class EstimateDTO:
             id=estimate.id,
             business_id=estimate.business_id,
             estimate_number=estimate.estimate_number,
+            document_type=estimate.document_type.value,
+            document_type_display=estimate.document_type.get_display(),
             status=estimate.status.value,
             contact_id=estimate.contact_id,
             client_name=estimate.client_name,
@@ -137,6 +141,7 @@ class CreateEstimateDTO:
     contact_id: uuid.UUID
     title: str
     description: Optional[str] = None
+    document_type: Optional[str] = "estimate"
     line_items: List[dict] = None
     currency: Optional[str] = "USD"
     tax_rate: Optional[float] = 0.0
@@ -172,6 +177,7 @@ class UpdateEstimateDTO:
     """DTO for updating existing estimates."""
     title: Optional[str] = None
     description: Optional[str] = None
+    document_type: Optional[str] = None
     contact_id: Optional[uuid.UUID] = None
     project_id: Optional[uuid.UUID] = None
     job_id: Optional[uuid.UUID] = None

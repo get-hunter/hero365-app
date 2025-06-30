@@ -75,6 +75,7 @@ class CreateEstimateSchema(BaseModel):
     contact_id: uuid.UUID
     title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=2000)
+    document_type: str = Field("estimate", pattern="^(estimate|quote)$")
     line_items: List[EstimateLineItemSchema] = Field(..., min_items=1)
     currency: str = Field("USD", pattern="^[A-Z]{3}$")
     tax_rate: Decimal = Field(Decimal('0'), ge=0, le=100)
@@ -113,6 +114,7 @@ class UpdateEstimateSchema(BaseModel):
     """Schema for updating estimates."""
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=2000)
+    document_type: Optional[str] = Field(None, pattern="^(estimate|quote)$")
     line_items: Optional[List[EstimateLineItemSchema]] = Field(None, min_items=1)
     currency: Optional[str] = Field(None, pattern="^[A-Z]{3}$")
     tax_rate: Optional[Decimal] = Field(None, ge=0, le=100)
@@ -148,6 +150,8 @@ class EstimateResponseSchema(BaseModel):
     id: uuid.UUID
     business_id: uuid.UUID
     estimate_number: str
+    document_type: str
+    document_type_display: str
     status: str
     contact_id: Optional[uuid.UUID] = None
     client_name: Optional[str] = None
@@ -212,6 +216,7 @@ class EstimateSearchSchema(BaseModel):
     """Schema for estimate search parameters."""
     search_term: Optional[str] = Field(None, max_length=100)
     status: Optional[str] = Field(None, pattern="^(draft|sent|viewed|accepted|rejected|expired|converted)$")
+    document_type: Optional[str] = Field(None, pattern="^(estimate|quote)$")
     contact_id: Optional[uuid.UUID] = None
     project_id: Optional[uuid.UUID] = None
     job_id: Optional[uuid.UUID] = None

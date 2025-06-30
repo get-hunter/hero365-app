@@ -14,7 +14,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
 from ..enums import (
     EstimateStatus, CurrencyCode, TaxType, DiscountType, 
-    AdvancePaymentType, EmailStatus, TemplateType
+    AdvancePaymentType, EmailStatus, TemplateType, DocumentType
 )
 from ..value_objects.address import Address
 
@@ -190,6 +190,7 @@ class Estimate:
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     business_id: uuid.UUID = field(default_factory=uuid.uuid4)
     estimate_number: Optional[str] = None
+    document_type: DocumentType = DocumentType.ESTIMATE
     
     # Status and lifecycle
     status: EstimateStatus = EstimateStatus.DRAFT
@@ -591,6 +592,8 @@ class Estimate:
             "id": str(self.id),
             "business_id": str(self.business_id),
             "estimate_number": self.estimate_number,
+            "document_type": self.document_type.value,
+            "document_type_display": self.document_type.get_display(),
             "status": self.status.value,
             "status_display": self.get_status_display(),
             "client_id": str(self.client_id) if self.client_id else None,

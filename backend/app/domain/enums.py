@@ -538,6 +538,20 @@ class AdvancePaymentType(str, Enum):
         return display_map.get(self, self.value.title())
 
 
+class DocumentType(str, Enum):
+    """Document type enumeration for estimates and quotes."""
+    ESTIMATE = "estimate"
+    QUOTE = "quote"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.ESTIMATE: "Estimate",
+            self.QUOTE: "Quote"
+        }
+        return display_map.get(self, self.value.title())
+
+
 class EmailStatus(str, Enum):
     """Email delivery status enumeration."""
     PENDING = "pending"
@@ -555,7 +569,7 @@ class EmailStatus(str, Enum):
             self.PENDING: "Pending",
             self.SENT: "Sent",
             self.DELIVERED: "Delivered",
-            self.OPENED: "Opened",
+            self.OPENED: "Opened", 
             self.CLICKED: "Clicked",
             self.BOUNCED: "Bounced",
             self.FAILED: "Failed",

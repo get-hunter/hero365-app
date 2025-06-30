@@ -12,7 +12,7 @@ from decimal import Decimal
 
 from app.domain.entities.estimate import Estimate, EstimateLineItem, EstimateTerms, AdvancePayment
 from app.domain.entities.estimate_template import EstimateTemplate
-from app.domain.enums import EstimateStatus, CurrencyCode, TaxType, DiscountType
+from app.domain.enums import EstimateStatus, CurrencyCode, TaxType, DiscountType, DocumentType
 from app.domain.repositories.estimate_repository import EstimateRepository
 from app.domain.repositories.estimate_template_repository import EstimateTemplateRepository
 from app.domain.repositories.contact_repository import ContactRepository
@@ -86,6 +86,7 @@ class CreateEstimateUseCase:
                 id=uuid.uuid4(),
                 business_id=business_id,
                 estimate_number=estimate_number,
+                document_type=DocumentType(request.document_type) if request.document_type else DocumentType.ESTIMATE,
                 status=EstimateStatus.DRAFT,
                 contact_id=request.contact_id,
                 client_name=contact.get_display_name(),

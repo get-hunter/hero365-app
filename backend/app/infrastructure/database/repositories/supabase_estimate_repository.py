@@ -20,7 +20,7 @@ from app.domain.entities.estimate import (
 )
 from app.domain.enums import (
     EstimateStatus, CurrencyCode, TaxType, DiscountType, 
-    AdvancePaymentType, EmailStatus, TemplateType
+    AdvancePaymentType, EmailStatus, TemplateType, DocumentType
 )
 from app.domain.value_objects.address import Address
 from app.domain.exceptions.domain_exceptions import (
@@ -535,6 +535,7 @@ class SupabaseEstimateRepository(EstimateRepository):
             "id": str(estimate.id),
             "business_id": str(estimate.business_id),
             "estimate_number": estimate.estimate_number,
+            "document_type": estimate.document_type.value,
             "status": estimate.status.value,
             "client_id": str(estimate.client_id) if estimate.client_id else None,
             "client_name": estimate.client_name,
@@ -793,6 +794,7 @@ class SupabaseEstimateRepository(EstimateRepository):
             id=uuid.UUID(data["id"]),
             business_id=uuid.UUID(data["business_id"]),
             estimate_number=data.get("estimate_number"),
+            document_type=DocumentType(data.get("document_type", "estimate")),
             status=EstimateStatus(data.get("status", "draft")),
             status_history=status_history,
             client_id=safe_uuid_parse(data.get("client_id")),
