@@ -17,7 +17,7 @@ from ..middleware.permissions import (
 from ..schemas.estimate_schemas import (
     CreateEstimateSchema, UpdateEstimateSchema, EstimateSearchSchema,
     EstimateStatusUpdateSchema, EstimateResponseSchema, 
-    EstimateListResponseSchema, EstimateActionResponse, EstimateAnalyticsResponse
+    EstimateListResponseSchema, EstimateActionResponse
 )
 from ..schemas.activity_schemas import MessageResponse
 from ...application.use_cases.estimate.create_estimate_use_case import CreateEstimateUseCase
@@ -493,37 +493,7 @@ async def convert_estimate_to_invoice(
         )
 
 
-@router.get("/analytics/overview", response_model=EstimateAnalyticsResponse)
-async def get_estimate_analytics(
-    business_context: dict = Depends(get_business_context),
-    date_from: Optional[datetime] = Query(None, description="Start date for analytics"),
-    date_to: Optional[datetime] = Query(None, description="End date for analytics"),
-    current_user: dict = Depends(get_current_user),
-    estimate_repository = Depends(get_estimate_repository),
-    _: bool = Depends(require_view_projects_dep)
-):
-    """
-    Get estimate analytics.
-    
-    Retrieves comprehensive estimate analytics for the current business.
-    Requires 'view_projects' permission.
-    """
-    business_id = uuid.UUID(business_context["business_id"])
-    
-    try:
-        analytics = await estimate_repository.get_analytics(
-            business_id=business_id,
-            date_from=date_from,
-            date_to=date_to
-        )
-        
-        return analytics
-    except Exception as e:
-        logger.error(f"❌ EstimateAPI: Error getting estimate analytics: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
-        )
+
 
 
 def _estimate_dto_to_response(estimate) -> EstimateResponseSchema:

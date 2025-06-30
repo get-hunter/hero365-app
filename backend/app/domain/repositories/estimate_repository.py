@@ -346,70 +346,7 @@ class EstimateRepository(ABC):
         """
         pass
     
-    @abstractmethod
-    async def get_estimate_statistics(self, business_id: uuid.UUID) -> Dict[str, Any]:
-        """
-        Get comprehensive estimate statistics for a business.
-        
-        Args:
-            business_id: ID of the business
-            
-        Returns:
-            Dictionary containing estimate statistics including:
-            - Total estimates
-            - Status breakdown
-            - Conversion rates
-            - Average estimate value
-            - Total estimate value
-            - Currency breakdown
-            
-        Raises:
-            DatabaseError: If statistics retrieval fails
-        """
-        pass
-    
-    @abstractmethod
-    async def get_conversion_analytics(self, business_id: uuid.UUID, start_date: datetime,
-                                      end_date: datetime) -> Dict[str, Any]:
-        """
-        Get estimate conversion analytics for a period.
-        
-        Args:
-            business_id: ID of the business
-            start_date: Start date of the analysis period
-            end_date: End date of the analysis period
-            
-        Returns:
-            Dictionary containing conversion analytics including:
-            - Conversion rate by status
-            - Average time to conversion
-            - Revenue from converted estimates
-            - Lost opportunity value
-            
-        Raises:
-            DatabaseError: If analytics retrieval fails
-        """
-        pass
-    
-    @abstractmethod
-    async def get_revenue_pipeline(self, business_id: uuid.UUID) -> Dict[str, Any]:
-        """
-        Get revenue pipeline from pending estimates.
-        
-        Args:
-            business_id: ID of the business
-            
-        Returns:
-            Dictionary containing pipeline data including:
-            - Total pipeline value
-            - Pipeline by status
-            - Expected conversion revenue
-            - Pipeline by assigned user
-            
-        Raises:
-            DatabaseError: If pipeline retrieval fails
-        """
-        pass
+
     
     @abstractmethod
     async def exists(self, estimate_id: uuid.UUID) -> bool:
@@ -468,10 +405,7 @@ class EstimateRepository(ABC):
         """Count estimates by status within a business."""
         pass
 
-    @abstractmethod
-    async def get_estimate_statistics(self, business_id: uuid.UUID) -> Dict[str, Any]:
-        """Get comprehensive estimate statistics for a business."""
-        pass
+
 
     @abstractmethod
     async def has_duplicate_estimate_number(self, business_id: uuid.UUID, estimate_number: str,

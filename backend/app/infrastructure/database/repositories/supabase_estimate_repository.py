@@ -415,44 +415,7 @@ class SupabaseEstimateRepository(EstimateRepository):
         except Exception as e:
             raise DatabaseError(f"Failed to count estimates by contact: {str(e)}")
     
-    async def get_estimate_statistics(self, business_id: uuid.UUID) -> Dict[str, Any]:
-        """Get comprehensive estimate statistics for a business."""
-        try:
-            response = self.client.rpc("get_estimate_statistics", {
-                "p_business_id": str(business_id)
-            }).execute()
-            
-            return response.data[0] if response.data else {}
-            
-        except Exception as e:
-            raise DatabaseError(f"Failed to get estimate statistics: {str(e)}")
-    
-    async def get_conversion_analytics(self, business_id: uuid.UUID, start_date: datetime,
-                                      end_date: datetime) -> Dict[str, Any]:
-        """Get conversion analytics for a period."""
-        try:
-            response = self.client.rpc("get_estimate_conversion_analytics", {
-                "p_business_id": str(business_id),
-                "p_start_date": start_date.isoformat(),
-                "p_end_date": end_date.isoformat()
-            }).execute()
-            
-            return response.data[0] if response.data else {}
-            
-        except Exception as e:
-            raise DatabaseError(f"Failed to get conversion analytics: {str(e)}")
-    
-    async def get_revenue_pipeline(self, business_id: uuid.UUID) -> Dict[str, Any]:
-        """Get revenue pipeline data for a business."""
-        try:
-            response = self.client.rpc("get_estimate_revenue_pipeline", {
-                "p_business_id": str(business_id)
-            }).execute()
-            
-            return response.data[0] if response.data else {}
-            
-        except Exception as e:
-            raise DatabaseError(f"Failed to get revenue pipeline: {str(e)}")
+
     
     async def exists(self, estimate_id: uuid.UUID) -> bool:
         """Check if an estimate exists."""

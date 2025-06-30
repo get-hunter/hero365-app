@@ -285,23 +285,7 @@ class EstimateActionResponse(BaseModel):
         }
 
 
-class EstimateAnalyticsResponse(BaseModel):
-    """Schema for estimate analytics responses."""
-    total_estimates: int = 0
-    draft_estimates: int = 0
-    sent_estimates: int = 0
-    accepted_estimates: int = 0
-    rejected_estimates: int = 0
-    expired_estimates: int = 0
-    converted_estimates: int = 0
-    total_value: float = 0.0
-    accepted_value: float = 0.0
-    conversion_rate: float = 0.0
-    average_value: float = 0.0
-    currency: str = "USD"
 
-    class Config:
-        from_attributes = True
 
 
 class EstimateTemplateResponse(BaseModel):

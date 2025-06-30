@@ -529,14 +529,7 @@ class SupabaseInvoiceRepository(InvoiceRepository):
         except Exception as e:
             raise DatabaseError(f"Failed to count invoices by contact: {str(e)}")
 
-    async def get_invoice_statistics(self, business_id: uuid.UUID) -> Dict[str, Any]:
-        return {}  # Placeholder
 
-    async def get_payment_analytics(self, business_id: uuid.UUID, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
-        return {}  # Placeholder
-
-    async def get_revenue_analytics(self, business_id: uuid.UUID, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
-        return {}  # Placeholder
 
     async def exists(self, invoice_id: uuid.UUID) -> bool:
         try:
@@ -559,17 +552,7 @@ class SupabaseInvoiceRepository(InvoiceRepository):
         today = date.today()
         return f"{prefix}-{today.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
 
-    async def get_user_workload(self, business_id: uuid.UUID, user_id: str) -> Dict[str, Any]:
-        return {}  # Placeholder
 
-    async def get_monthly_revenue(self, business_id: uuid.UUID, year: int, month: int) -> Dict[str, Any]:
-        return {}  # Placeholder
-
-    async def get_top_clients_by_revenue(self, business_id: uuid.UUID, limit: int = 10) -> List[Dict[str, Any]]:
-        return []  # Placeholder
-
-    async def get_aging_report(self, business_id: uuid.UUID) -> Dict[str, Any]:
-        return {}  # Placeholder
 
     async def get_payment_history(self, invoice_id: uuid.UUID) -> List[Dict[str, Any]]:
         return []  # Placeholder
@@ -577,41 +560,7 @@ class SupabaseInvoiceRepository(InvoiceRepository):
     async def get_refund_history(self, invoice_id: uuid.UUID) -> List[Dict[str, Any]]:
         return []  # Placeholder
 
-    async def get_outstanding_balance(self, business_id: uuid.UUID) -> Dict[str, Any]:
-        """Get outstanding balance summary for a business."""
-        try:
-            # Get all unpaid and partially paid invoices
-            response = self.client.table(self.table_name).select("total_amount, amount_paid, status").eq(
-                "business_id", str(business_id)
-            ).in_("status", [InvoiceStatus.SENT.value, InvoiceStatus.VIEWED.value, InvoiceStatus.PARTIALLY_PAID.value, InvoiceStatus.OVERDUE.value]).execute()
-            
-            total_outstanding = Decimal('0')
-            overdue_amount = Decimal('0')
-            partial_payments = Decimal('0')
-            
-            for invoice_data in response.data:
-                total_amount = Decimal(str(invoice_data.get("total_amount", "0")))
-                amount_paid = Decimal(str(invoice_data.get("amount_paid", "0")))
-                outstanding = total_amount - amount_paid
-                
-                total_outstanding += outstanding
-                
-                if invoice_data.get("status") == InvoiceStatus.OVERDUE.value:
-                    overdue_amount += outstanding
-                
-                if amount_paid > 0:
-                    partial_payments += amount_paid
-            
-            return {
-                "total_outstanding": float(total_outstanding),
-                "overdue_amount": float(overdue_amount),
-                "partial_payments": float(partial_payments),
-                "total_invoices": len(response.data),
-                "currency": "USD"  # Default currency
-            }
-            
-        except Exception as e:
-            raise DatabaseError(f"Failed to get outstanding balance: {str(e)}")
+
 
     async def list_with_pagination(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None) -> Tuple[List[Invoice], int]:
         """List invoices with pagination and filters."""

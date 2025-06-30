@@ -146,8 +146,6 @@ import type {
   EstimatesUpdateEstimateStatusResponse,
   EstimatesConvertEstimateToInvoiceData,
   EstimatesConvertEstimateToInvoiceResponse,
-  EstimatesGetEstimateAnalyticsData,
-  EstimatesGetEstimateAnalyticsResponse,
   HealthHealthCheckResponse,
   IntelligentSchedulingOptimizeScheduleData,
   IntelligentSchedulingOptimizeScheduleResponse,
@@ -2288,34 +2286,6 @@ export class EstimatesService {
       },
       query: {
         advance_payment_amount: data.advancePaymentAmount,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Estimate Analytics
-   * Get estimate analytics.
-   *
-   * Retrieves comprehensive estimate analytics for the current business.
-   * Requires 'view_projects' permission.
-   * @param data The data for the request.
-   * @param data.dateFrom Start date for analytics
-   * @param data.dateTo End date for analytics
-   * @returns EstimateAnalyticsResponse Successful Response
-   * @throws ApiError
-   */
-  public static getEstimateAnalytics(
-    data: EstimatesGetEstimateAnalyticsData = {},
-  ): CancelablePromise<EstimatesGetEstimateAnalyticsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/estimates/analytics/overview",
-      query: {
-        date_from: data.dateFrom,
-        date_to: data.dateTo,
       },
       errors: {
         422: "Validation Error",

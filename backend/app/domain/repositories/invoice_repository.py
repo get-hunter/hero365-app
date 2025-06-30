@@ -180,27 +180,7 @@ class InvoiceRepository(ABC):
         """Count invoices for a specific contact."""
         pass
     
-    @abstractmethod
-    async def get_invoice_statistics(self, business_id: uuid.UUID) -> Dict[str, Any]:
-        """Get comprehensive invoice statistics for a business."""
-        pass
-    
-    @abstractmethod
-    async def get_payment_analytics(self, business_id: uuid.UUID, start_date: datetime,
-                                   end_date: datetime) -> Dict[str, Any]:
-        """Get payment analytics for a period."""
-        pass
-    
-    @abstractmethod
-    async def get_revenue_analytics(self, business_id: uuid.UUID, start_date: datetime,
-                                   end_date: datetime) -> Dict[str, Any]:
-        """Get revenue analytics for a period."""
-        pass
-    
-    @abstractmethod
-    async def get_outstanding_balance(self, business_id: uuid.UUID) -> Dict[str, Any]:
-        """Get outstanding balance summary for a business."""
-        pass
+
     
     @abstractmethod
     async def exists(self, invoice_id: uuid.UUID) -> bool:
@@ -218,25 +198,7 @@ class InvoiceRepository(ABC):
         """Generate next available invoice number for a business."""
         pass
     
-    @abstractmethod
-    async def get_user_workload(self, business_id: uuid.UUID, user_id: str) -> Dict[str, Any]:
-        """Get invoice workload statistics for a user."""
-        pass
-    
-    @abstractmethod
-    async def get_monthly_revenue(self, business_id: uuid.UUID, year: int, month: int) -> Dict[str, Any]:
-        """Get monthly revenue statistics."""
-        pass
-    
-    @abstractmethod
-    async def get_top_clients_by_revenue(self, business_id: uuid.UUID, limit: int = 10) -> List[Dict[str, Any]]:
-        """Get top clients by total revenue."""
-        pass
-    
-    @abstractmethod
-    async def get_aging_report(self, business_id: uuid.UUID) -> Dict[str, Any]:
-        """Get accounts receivable aging report."""
-        pass
+
     
     @abstractmethod
     async def get_payment_history(self, invoice_id: uuid.UUID) -> List[Dict[str, Any]]:

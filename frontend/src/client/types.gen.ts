@@ -2804,24 +2804,6 @@ export type EstimateActionResponse = {
 }
 
 /**
- * Schema for estimate analytics responses.
- */
-export type EstimateAnalyticsResponse = {
-  total_estimates?: number
-  draft_estimates?: number
-  sent_estimates?: number
-  accepted_estimates?: number
-  rejected_estimates?: number
-  expired_estimates?: number
-  converted_estimates?: number
-  total_value?: number
-  accepted_value?: number
-  conversion_rate?: number
-  average_value?: number
-  currency?: string
-}
-
-/**
  * Schema for estimate line items.
  */
 export type EstimateLineItemSchema_Input = {
@@ -6429,19 +6411,6 @@ export type EstimatesConvertEstimateToInvoiceData = {
 }
 
 export type EstimatesConvertEstimateToInvoiceResponse = EstimateActionResponse
-
-export type EstimatesGetEstimateAnalyticsData = {
-  /**
-   * Start date for analytics
-   */
-  dateFrom?: string | null
-  /**
-   * End date for analytics
-   */
-  dateTo?: string | null
-}
-
-export type EstimatesGetEstimateAnalyticsResponse = EstimateAnalyticsResponse
 
 export type HealthHealthCheckResponse = unknown
 
