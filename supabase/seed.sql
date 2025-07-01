@@ -1370,7 +1370,7 @@ INSERT INTO estimates (
 (
     '550e8400-e29b-41d4-a716-446655440030'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'EST-2024-001',
+    'EST-0000001',
     'Kitchen Plumbing Renovation - Complete Package',
     'Comprehensive kitchen plumbing renovation including new fixtures, dishwasher hookup, garbage disposal installation, and pipe upgrades',
     'approved',
@@ -1405,7 +1405,7 @@ INSERT INTO estimates (
 (
     '550e8400-e29b-41d4-a716-446655440031'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'EST-2024-002',
+    'EST-0000002',
     'Quarterly Maintenance Contract - 50+ Units',
     'Comprehensive quarterly maintenance contract covering all rental units with inspections, repairs, and emergency response',
     'sent',
@@ -1440,7 +1440,7 @@ INSERT INTO estimates (
 (
     '550e8400-e29b-41d4-a716-446655440032'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'EST-2024-003',
+    'EST-0000003',
     'Commercial Grease Trap Installation',
     'Installation of new commercial grease trap system including permits, installation, testing, and maintenance setup',
     'draft',
@@ -1475,7 +1475,7 @@ INSERT INTO estimates (
 (
     '550e8400-e29b-41d4-a716-446655440033'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'EST-2024-004',
+    'EST-0000004',
     'Emergency Water Damage Restoration',
     'Emergency plumbing repair and water damage mitigation for burst pipe in basement including extraction, drying, and repairs',
     'approved',
@@ -1510,7 +1510,7 @@ INSERT INTO estimates (
 (
     '550e8400-e29b-41d4-a716-446655440034'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'EST-2024-005',
+    'EST-0000005',
     'Master Bathroom Renovation',
     'Complete master bathroom renovation including new fixtures, vanity, shower, and plumbing updates',
     'viewed',

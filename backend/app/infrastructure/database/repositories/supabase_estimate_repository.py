@@ -496,17 +496,24 @@ class SupabaseEstimateRepository(EstimateRepository):
     async def get_next_estimate_number(self, business_id: uuid.UUID, prefix: str = "EST") -> str:
         """Generate next estimate number for a business."""
         try:
-            response = self.client.rpc("get_next_estimate_number", {
-                "p_business_id": str(business_id),
-                "p_prefix": prefix
+            # Determine document type from prefix
+            document_type = "quote" if prefix == "QUO" else "estimate"
+            
+            response = self.client.rpc("get_next_document_number", {
+                "business_uuid": str(business_id),
+                "doc_type": document_type
             }).execute()
             
-            return response.data[0]["next_number"] if response.data else f"{prefix}-0001"
-            
+            if response.data:
+                return response.data
+            else:
+                # Fallback to simple sequential number
+                return f"{prefix}-000001"
+                
         except Exception as e:
-            # Fallback to simple generation
-            today = date.today()
-            return f"{prefix}-{today.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+            # Log the error but don't fail - use fallback
+            logger.warning(f"Failed to get next estimate number from database: {str(e)}")
+            return f"{prefix}-000001"
 
     async def list_with_pagination(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None) -> Tuple[List[Estimate], int]:
         """List estimates with pagination and filters."""

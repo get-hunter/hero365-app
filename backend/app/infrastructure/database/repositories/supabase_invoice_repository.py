@@ -699,8 +699,23 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             raise DatabaseError(f"Failed to check duplicate invoice number: {str(e)}")
 
     async def get_next_invoice_number(self, business_id: uuid.UUID, prefix: str = "INV") -> str:
-        today = date.today()
-        return f"{prefix}-{today.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+        """Generate next invoice number for a business using database function."""
+        try:
+            response = self.client.rpc("get_next_invoice_number", {
+                "business_uuid": str(business_id),
+                "prefix": prefix
+            }).execute()
+            
+            if response.data:
+                return response.data
+            else:
+                # Fallback to simple sequential number
+                return f"{prefix}-000001"
+                
+        except Exception as e:
+            # Log the error but don't fail - use fallback
+            logger.warning(f"Failed to get next invoice number from database: {str(e)}")
+            return f"{prefix}-000001"
 
     async def get_payment_history(self, invoice_id: uuid.UUID) -> List[Dict[str, Any]]:
         return []  # Placeholder

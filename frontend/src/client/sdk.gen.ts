@@ -134,6 +134,8 @@ import type {
   EstimatesListEstimatesResponse,
   EstimatesCreateEstimateFromTemplateData,
   EstimatesCreateEstimateFromTemplateResponse,
+  EstimatesGetNextEstimateNumberData,
+  EstimatesGetNextEstimateNumberResponse,
   EstimatesGetEstimateData,
   EstimatesGetEstimateResponse,
   EstimatesUpdateEstimateData,
@@ -205,6 +207,8 @@ import type {
   InvoicesListInvoicesResponse,
   InvoicesCreateInvoiceFromEstimateData,
   InvoicesCreateInvoiceFromEstimateResponse,
+  InvoicesGetNextInvoiceNumberData,
+  InvoicesGetNextInvoiceNumberResponse,
   InvoicesGetInvoiceData,
   InvoicesGetInvoiceResponse,
   InvoicesUpdateInvoiceData,
@@ -2129,6 +2133,35 @@ export class EstimatesService {
   }
 
   /**
+   * Get Next Estimate Number
+   * Get the next available estimate or quote number.
+   *
+   * Returns the next available document number without creating an estimate.
+   * This is useful for showing users what number their next document will have.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.prefix Prefix for the document number
+   * @param data.documentType Type of document: estimate or quote
+   * @returns NextEstimateNumberSchema Successful Response
+   * @throws ApiError
+   */
+  public static getNextEstimateNumber(
+    data: EstimatesGetNextEstimateNumberData = {},
+  ): CancelablePromise<EstimatesGetNextEstimateNumberResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/estimates/next-number",
+      query: {
+        prefix: data.prefix,
+        document_type: data.documentType,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Get Estimate
    * Get an estimate by ID.
    *
@@ -3043,6 +3076,33 @@ export class InvoicesService {
       url: "/api/v1/invoices/from-estimate",
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Next Invoice Number
+   * Get the next available invoice number.
+   *
+   * Returns the next available invoice number without creating an invoice.
+   * This is useful for showing users what number their next invoice will have.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.prefix Prefix for the invoice number
+   * @returns NextInvoiceNumberSchema Successful Response
+   * @throws ApiError
+   */
+  public static getNextInvoiceNumber(
+    data: InvoicesGetNextInvoiceNumberData = {},
+  ): CancelablePromise<InvoicesGetNextInvoiceNumberResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/invoices/next-number",
+      query: {
+        prefix: data.prefix,
+      },
       errors: {
         422: "Validation Error",
       },

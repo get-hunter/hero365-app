@@ -346,6 +346,45 @@ async def create_invoice_from_estimate(
         )
 
 
+@router.get("/next-number", response_model=NextInvoiceNumberSchema)
+async def get_next_invoice_number(
+    prefix: str = Query("INV", description="Prefix for the invoice number"),
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: GetNextInvoiceNumberUseCase = Depends(get_get_next_invoice_number_use_case),
+    _: bool = Depends(require_view_projects_dep)
+):
+    """
+    Get the next available invoice number.
+    
+    Returns the next available invoice number without creating an invoice.
+    This is useful for showing users what number their next invoice will have.
+    Requires 'view_projects' permission.
+    """
+    business_id = uuid.UUID(business_context["business_id"])
+    
+    try:
+        next_number = await use_case.execute(
+            business_id=business_id,
+            user_id=current_user["sub"],
+            prefix=prefix
+        )
+        
+        return NextInvoiceNumberSchema(
+            next_number=next_number,
+            prefix=prefix
+        )
+    except ValidationError as e:
+        logger.error(f"❌ InvoiceAPI: Validation error: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"❌ InvoiceAPI: Error getting next invoice number: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
 @router.get("/{invoice_id}", response_model=InvoiceResponseSchema)
 async def get_invoice(
     invoice_id: uuid.UUID = Path(..., description="Invoice ID"),
@@ -588,45 +627,6 @@ async def process_payment(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
-        )
-
-
-@router.get("/next-number", response_model=NextInvoiceNumberSchema)
-async def get_next_invoice_number(
-    prefix: str = Query("INV", description="Prefix for the invoice number"),
-    business_context: dict = Depends(get_business_context),
-    current_user: dict = Depends(get_current_user),
-    use_case: GetNextInvoiceNumberUseCase = Depends(get_get_next_invoice_number_use_case),
-    _: bool = Depends(require_view_projects_dep)
-):
-    """
-    Get the next available invoice number.
-    
-    Returns the next available invoice number without creating an invoice.
-    This is useful for showing users what number their next invoice will have.
-    Requires 'view_projects' permission.
-    """
-    business_id = uuid.UUID(business_context["business_id"])
-    
-    try:
-        next_number = await use_case.execute(
-            business_id=business_id,
-            user_id=current_user["sub"],
-            prefix=prefix
-        )
-        
-        return NextInvoiceNumberSchema(
-            next_number=next_number,
-            prefix=prefix
-        )
-    except ValidationError as e:
-        logger.error(f"❌ InvoiceAPI: Validation error: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        logger.error(f"❌ InvoiceAPI: Error getting next invoice number: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
         )
 
 

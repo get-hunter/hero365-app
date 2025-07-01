@@ -998,7 +998,7 @@ export type BusinessContextInfoResponse = {
   /**
    * Current business ID
    */
-  current_business_id?: string
+  current_business_id?: string | null
   /**
    * List of businesses user can access
    */
@@ -3892,6 +3892,38 @@ export type MiddlewareTestResponse = {
 }
 
 /**
+ * Schema for next estimate number response.
+ */
+export type NextEstimateNumberSchema = {
+  /**
+   * The next available estimate number
+   */
+  next_number: string
+  /**
+   * The prefix used for the number
+   */
+  prefix: string
+  /**
+   * Type of document (estimate or quote)
+   */
+  document_type: string
+}
+
+/**
+ * Schema for next invoice number response.
+ */
+export type NextInvoiceNumberSchema = {
+  /**
+   * The next available invoice number
+   */
+  next_number: string
+  /**
+   * The prefix used for the number
+   */
+  prefix: string
+}
+
+/**
  * Schema for OAuth sign-in response.
  */
 export type OAuthSignInResponse = {
@@ -6354,6 +6386,19 @@ export type EstimatesCreateEstimateFromTemplateData = {
 
 export type EstimatesCreateEstimateFromTemplateResponse = EstimateResponseSchema
 
+export type EstimatesGetNextEstimateNumberData = {
+  /**
+   * Type of document: estimate or quote
+   */
+  documentType?: string
+  /**
+   * Prefix for the document number
+   */
+  prefix?: string
+}
+
+export type EstimatesGetNextEstimateNumberResponse = NextEstimateNumberSchema
+
 export type EstimatesGetEstimateData = {
   /**
    * Estimate ID
@@ -6726,6 +6771,15 @@ export type InvoicesCreateInvoiceFromEstimateData = {
 }
 
 export type InvoicesCreateInvoiceFromEstimateResponse = InvoiceResponseSchema
+
+export type InvoicesGetNextInvoiceNumberData = {
+  /**
+   * Prefix for the invoice number
+   */
+  prefix?: string
+}
+
+export type InvoicesGetNextInvoiceNumberResponse = NextInvoiceNumberSchema
 
 export type InvoicesGetInvoiceData = {
   /**

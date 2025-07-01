@@ -174,6 +174,48 @@ async def create_estimate_from_template(
         )
 
 
+@router.get("/next-number", response_model=NextEstimateNumberSchema)
+async def get_next_estimate_number(
+    prefix: str = Query("EST", description="Prefix for the document number"),
+    document_type: str = Query("estimate", description="Type of document: estimate or quote"),
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: GetNextEstimateNumberUseCase = Depends(get_get_next_estimate_number_use_case),
+    _: bool = Depends(require_view_projects_dep)
+):
+    """
+    Get the next available estimate or quote number.
+    
+    Returns the next available document number without creating an estimate.
+    This is useful for showing users what number their next document will have.
+    Requires 'view_projects' permission.
+    """
+    business_id = uuid.UUID(business_context["business_id"])
+    
+    try:
+        next_number = await use_case.execute(
+            business_id=business_id,
+            user_id=current_user["sub"],
+            prefix=prefix,
+            document_type=document_type
+        )
+        
+        return NextEstimateNumberSchema(
+            next_number=next_number,
+            prefix=prefix,
+            document_type=document_type
+        )
+    except ValidationError as e:
+        logger.error(f"❌ EstimateAPI: Validation error: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"❌ EstimateAPI: Error getting next estimate number: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
 @router.get("/{estimate_id}", response_model=EstimateResponseSchema)
 async def get_estimate(
     estimate_id: uuid.UUID = Path(..., description="Estimate ID"),
@@ -457,48 +499,6 @@ async def update_estimate_status(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
-        )
-
-
-@router.get("/next-number", response_model=NextEstimateNumberSchema)
-async def get_next_estimate_number(
-    prefix: str = Query("EST", description="Prefix for the document number"),
-    document_type: str = Query("estimate", description="Type of document: estimate or quote"),
-    business_context: dict = Depends(get_business_context),
-    current_user: dict = Depends(get_current_user),
-    use_case: GetNextEstimateNumberUseCase = Depends(get_get_next_estimate_number_use_case),
-    _: bool = Depends(require_view_projects_dep)
-):
-    """
-    Get the next available estimate number.
-    
-    Returns the next available document number for estimates or quotes without creating a document.
-    This is useful for showing users what number their next document will have.
-    Requires 'view_projects' permission.
-    """
-    business_id = uuid.UUID(business_context["business_id"])
-    
-    try:
-        next_number = await use_case.execute(
-            business_id=business_id,
-            user_id=current_user["sub"],
-            prefix=prefix,
-            document_type=document_type
-        )
-        
-        return NextEstimateNumberSchema(
-            next_number=next_number,
-            prefix=prefix,
-            document_type=document_type
-        )
-    except ValidationError as e:
-        logger.error(f"❌ EstimateAPI: Validation error: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        logger.error(f"❌ EstimateAPI: Error getting next estimate number: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
         )
 
 

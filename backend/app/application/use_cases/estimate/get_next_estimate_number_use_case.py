@@ -53,9 +53,11 @@ class GetNextEstimateNumberUseCase:
             if document_type not in ["estimate", "quote"]:
                 raise AppValidationError("Document type must be 'estimate' or 'quote'")
             
-            # Set default prefix based on document type if not provided
-            if not prefix:
-                prefix = "QUO" if document_type == "quote" else "EST"
+            # Set the correct prefix based on document type
+            if document_type == "quote":
+                prefix = "QUO"
+            else:
+                prefix = "EST"
             
             # Get next number from repository
             next_number = await self.estimate_repository.get_next_estimate_number(

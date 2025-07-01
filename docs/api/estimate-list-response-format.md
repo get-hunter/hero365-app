@@ -63,7 +63,7 @@ Each estimate in the `estimates` array contains the following structure:
 {
   "id": "01234567-89ab-cdef-0123-456789abcdef",
   "business_id": "01234567-89ab-cdef-0123-456789abcdef",
-  "estimate_number": "EST-2024-001",
+  "estimate_number": "EST-0000001",
   "document_type": "estimate",
   "document_type_display": "Estimate",
   "status": "sent",
@@ -268,7 +268,7 @@ The `advance_payment` object structure:
     {
       "id": "01234567-89ab-cdef-0123-456789abcdef",
       "business_id": "01234567-89ab-cdef-0123-456789abcdef",
-      "estimate_number": "EST-2024-001",
+      "estimate_number": "EST-0000001",
       "document_type": "estimate",
       "document_type_display": "Estimate",
       "status": "sent",
