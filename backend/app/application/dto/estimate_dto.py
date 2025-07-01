@@ -84,6 +84,8 @@ class EstimateDTO:
     custom_fields: Dict[str, Any] = None
     internal_notes: Optional[str] = None
     valid_until_date: Optional[date] = None
+    po_number: Optional[str] = None
+    issue_date: Optional[date] = None
     created_by: Optional[str] = None
     created_date: datetime = None
     last_modified: datetime = None
@@ -188,6 +190,8 @@ class EstimateDTO:
             custom_fields=estimate.custom_fields.copy(),
             internal_notes=estimate.internal_notes,
             valid_until_date=estimate.terms.get_expiry_date(estimate.created_date.date()),
+            po_number=estimate.po_number,
+            issue_date=estimate.issue_date,
             created_by=estimate.created_by,
             created_date=estimate.created_date,
             last_modified=estimate.last_modified,
@@ -230,6 +234,8 @@ class CreateEstimateDTO:
     valid_until_date: Optional[date] = None
     estimate_number: Optional[str] = None
     number_prefix: Optional[str] = "EST"
+    po_number: Optional[str] = None
+    issue_date: Optional[date] = None
 
     def __post_init__(self):
         if self.line_items is None:
@@ -263,6 +269,8 @@ class UpdateEstimateDTO:
     custom_fields: Optional[Dict[str, Any]] = None
     internal_notes: Optional[str] = None
     valid_until_date: Optional[date] = None
+    po_number: Optional[str] = None
+    issue_date: Optional[date] = None
 
 
 @dataclass

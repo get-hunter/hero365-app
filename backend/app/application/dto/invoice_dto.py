@@ -119,11 +119,13 @@ class InvoiceDTO:
     tags: List[str] = None
     custom_fields: Dict[str, Any] = None
     internal_notes: Optional[str] = None
+    po_number: Optional[str] = None
     created_by: Optional[str] = None
     created_date: datetime = None
     last_modified: datetime = None
     sent_date: Optional[datetime] = None
     viewed_date: Optional[datetime] = None
+    issue_date: Optional[date] = None
     due_date: Optional[date] = None
     paid_date: Optional[datetime] = None
     
@@ -177,11 +179,13 @@ class InvoiceDTO:
             tags=invoice.tags.copy(),
             custom_fields=invoice.custom_fields.copy(),
             internal_notes=invoice.internal_notes,
+            po_number=invoice.po_number,
             created_by=invoice.created_by,
             created_date=invoice.created_date,
             last_modified=invoice.last_modified,
             sent_date=invoice.sent_date,
             viewed_date=invoice.viewed_date,
+            issue_date=invoice.issue_date,
             due_date=invoice.due_date,
             paid_date=invoice.paid_date,
             total_amount=invoice.get_total_amount(),
@@ -214,6 +218,8 @@ class CreateInvoiceDTO:
     internal_notes: Optional[str] = None
     invoice_number: Optional[str] = None
     number_prefix: Optional[str] = "INV"
+    po_number: Optional[str] = None
+    issue_date: Optional[date] = None
     due_date: Optional[date] = None
     payment_net_days: Optional[int] = 30
     early_payment_discount_percentage: Optional[float] = 0.0
@@ -242,6 +248,8 @@ class CreateInvoiceFromEstimateDTO:
     description: Optional[str] = None
     invoice_number: Optional[str] = None
     number_prefix: Optional[str] = "INV"
+    po_number: Optional[str] = None
+    issue_date: Optional[date] = None
     due_date: Optional[date] = None
     payment_net_days: Optional[int] = 30
     early_payment_discount_percentage: Optional[float] = 0.0

@@ -184,16 +184,18 @@ class StatusHistoryEntry:
 @dataclass
 class Estimate:
     """
-    Estimate domain entity representing a quote for work to be performed.
+    Estimate domain entity representing a price quote for potential work.
     
-    Contains comprehensive business logic for status management, financial calculations,
-    client communication, and conversion to invoices.
+    Contains comprehensive business logic for estimate creation, validation,
+    expiry tracking, and conversion to invoices.
     """
     
     # Core identification
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     business_id: uuid.UUID = field(default_factory=uuid.uuid4)
     estimate_number: Optional[str] = None
+    
+    # Document classification
     document_type: DocumentType = DocumentType.ESTIMATE
     
     # Status and lifecycle
@@ -201,45 +203,47 @@ class Estimate:
     status_history: List[StatusHistoryEntry] = field(default_factory=list)
     
     # Client information
-    client_id: Optional[uuid.UUID] = None
+    contact_id: Optional[uuid.UUID] = None
     client_name: Optional[str] = None
     client_email: Optional[str] = None
     client_phone: Optional[str] = None
     client_address: Optional[Address] = None
     
-    # Estimate details
+    # Core content
     title: str = ""
     description: Optional[str] = None
-    line_items: List[EstimateLineItem] = field(default_factory=list)
+    po_number: Optional[str] = None
     
-    # Financial information
+    # Line items and pricing
+    line_items: List[EstimateLineItem] = field(default_factory=list)
     currency: CurrencyCode = CurrencyCode.USD
-    tax_rate: Decimal = Decimal("0")
+    tax_rate: Decimal = field(default=Decimal('0'))
     tax_type: TaxType = TaxType.PERCENTAGE
     overall_discount_type: DiscountType = DiscountType.NONE
-    overall_discount_value: Decimal = Decimal("0")
-    
-    # Advance payment
-    advance_payment: AdvancePayment = field(default_factory=AdvancePayment)
+    overall_discount_value: Decimal = field(default=Decimal('0'))
     
     # Terms and conditions
-    terms: EstimateTerms = field(default_factory=EstimateTerms)
-    
-    # Template and branding
-    template_id: Optional[uuid.UUID] = None
-    template_data: Dict[str, Any] = field(default_factory=dict)
-    
-    # Communication tracking
-    email_history: List[EmailTracking] = field(default_factory=list)
+    terms: Optional[EstimateTerms] = None
+    advance_payment: Optional[AdvancePayment] = None
     
     # Project relationships
     project_id: Optional[uuid.UUID] = None
     job_id: Optional[uuid.UUID] = None
-    contact_id: Optional[uuid.UUID] = None
+    
+    # Template information
+    template_id: Optional[uuid.UUID] = None
+    template_data: Dict[str, Any] = field(default_factory=dict)
+    
+    # Time tracking
+    issue_date: Optional[date] = None
+    valid_until_date: Optional[date] = None
+    conversion_date: Optional[datetime] = None
+    
+    # Communication tracking
+    email_history: List[EmailTracking] = field(default_factory=list)
     
     # Conversion tracking
     converted_to_invoice_id: Optional[uuid.UUID] = None
-    conversion_date: Optional[datetime] = None
     
     # Metadata
     tags: List[str] = field(default_factory=list)
@@ -261,6 +265,10 @@ class Estimate:
         
         if not self.business_id:
             raise DomainValidationError("Business ID is required")
+        
+        # Set issue_date to created_date if not provided
+        if not self.issue_date:
+            self.issue_date = self.created_date.date()
         
         # Generate estimate number if not provided
         if not self.estimate_number:
@@ -603,13 +611,14 @@ class Estimate:
             "document_type_display": self.document_type.get_display(),
             "status": self.status.value,
             "status_display": self.get_status_display(),
-            "client_id": str(self.client_id) if self.client_id else None,
+            "client_id": str(self.contact_id) if self.contact_id else None,
             "client_name": self.client_name,
             "client_email": self.client_email,
             "client_phone": self.client_phone,
             "client_address": self.client_address.to_dict() if self.client_address else None,
             "title": self.title,
             "description": self.description,
+            "po_number": self.po_number,
             "line_items": [
                 {
                     "id": str(item.id),

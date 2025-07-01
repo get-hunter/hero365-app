@@ -263,6 +263,7 @@ class Invoice:
     # Invoice details
     title: str = ""
     description: Optional[str] = None
+    po_number: Optional[str] = None
     line_items: List[InvoiceLineItem] = field(default_factory=list)
     
     # Financial information
@@ -300,6 +301,7 @@ class Invoice:
     last_modified: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     sent_date: Optional[datetime] = None
     viewed_date: Optional[datetime] = None
+    issue_date: Optional[date] = None
     due_date: Optional[date] = None
     paid_date: Optional[datetime] = None
     
@@ -311,13 +313,17 @@ class Invoice:
         if not self.business_id:
             raise DomainValidationError("Business ID is required")
         
+        # Set issue_date to created_date if not provided
+        if not self.issue_date:
+            self.issue_date = self.created_date.date()
+        
         # Generate invoice number if not provided
         if not self.invoice_number:
             self.invoice_number = self._generate_invoice_number()
         
         # Set due date if not provided
         if not self.due_date and self.status != InvoiceStatus.DRAFT:
-            self.due_date = self.payment_terms.get_due_date(self.created_date.date())
+            self.due_date = self.payment_terms.get_due_date(self.issue_date)
         
         # Initialize status history if empty
         if not self.status_history:
@@ -395,7 +401,7 @@ class Invoice:
         """Calculate current late fee amount."""
         return self.payment_terms.get_late_fee_amount(
             self.get_total_amount(), 
-            self.created_date.date()
+            self.issue_date
         )
     
     def get_amount_due(self) -> Decimal:
@@ -428,7 +434,7 @@ class Invoice:
         """Check if invoice is overdue."""
         if self.is_paid() or not self.due_date:
             return False
-        return self.payment_terms.is_overdue(self.created_date.date())
+        return self.payment_terms.is_overdue(self.issue_date)
     
     def days_overdue(self) -> int:
         """Get number of days overdue."""
@@ -471,7 +477,7 @@ class Invoice:
         
         # Set due date if not already set
         if not self.due_date:
-            self.due_date = self.payment_terms.get_due_date(self.created_date.date())
+            self.due_date = self.payment_terms.get_due_date(self.issue_date)
     
     def mark_as_viewed(self, viewed_by: Optional[str] = None) -> None:
         """Mark invoice as viewed by client."""
@@ -734,6 +740,7 @@ class Invoice:
             "client_address": self.client_address.to_dict() if self.client_address else None,
             "title": self.title,
             "description": self.description,
+            "po_number": self.po_number,
             "line_items": [
                 {
                     "id": str(item.id),
@@ -794,6 +801,7 @@ class Invoice:
             "last_modified": self.last_modified.isoformat(),
             "sent_date": self.sent_date.isoformat() if self.sent_date else None,
             "viewed_date": self.viewed_date.isoformat() if self.viewed_date else None,
+            "issue_date": self.issue_date.isoformat() if self.issue_date else None,
             "due_date": self.due_date.isoformat() if self.due_date else None,
             "paid_date": self.paid_date.isoformat() if self.paid_date else None,
             # Calculated fields

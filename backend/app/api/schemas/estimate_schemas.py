@@ -94,10 +94,21 @@ class CreateEstimateSchema(BaseModel):
     valid_until_date: Optional[date] = None
     estimate_number: Optional[str] = Field(None, max_length=50)
     number_prefix: str = Field("EST", max_length=10)
+    po_number: Optional[str] = Field(None, max_length=100, description="Purchase Order number")
+    issue_date: Optional[date] = Field(None, description="Custom issue date, defaults to current date if not provided")
+
+    @validator('issue_date')
+    def validate_issue_date(cls, v):
+        if v and v > date.today():
+            raise ValueError('Issue date cannot be in the future')
+        return v
 
     @validator('valid_until_date')
-    def validate_valid_until_date(cls, v):
-        if v and v <= date.today():
+    def validate_valid_until_date(cls, v, values):
+        if v and 'issue_date' in values and values['issue_date']:
+            if v < values['issue_date']:
+                raise ValueError('Valid until date must be greater than or equal to issue date')
+        elif v and v <= date.today():
             raise ValueError('Valid until date must be in the future')
         return v
 
@@ -129,10 +140,21 @@ class UpdateEstimateSchema(BaseModel):
     custom_fields: Optional[Dict[str, Any]] = None
     internal_notes: Optional[str] = Field(None, max_length=2000)
     valid_until_date: Optional[date] = None
+    po_number: Optional[str] = Field(None, max_length=100, description="Purchase Order number")
+    issue_date: Optional[date] = Field(None, description="Custom issue date")
+
+    @validator('issue_date')
+    def validate_issue_date(cls, v):
+        if v and v > date.today():
+            raise ValueError('Issue date cannot be in the future')
+        return v
 
     @validator('valid_until_date')
-    def validate_valid_until_date(cls, v):
-        if v and v <= date.today():
+    def validate_valid_until_date(cls, v, values):
+        if v and 'issue_date' in values and values['issue_date']:
+            if v < values['issue_date']:
+                raise ValueError('Valid until date must be greater than or equal to issue date')
+        elif v and v <= date.today():
             raise ValueError('Valid until date must be in the future')
         return v
 
@@ -176,6 +198,8 @@ class EstimateResponseSchema(BaseModel):
     custom_fields: Dict[str, Any]
     internal_notes: Optional[str] = None
     valid_until_date: Optional[date] = None
+    po_number: Optional[str] = None
+    issue_date: Optional[date] = None
     created_by: Optional[str] = None
     created_date: datetime
     last_modified: datetime

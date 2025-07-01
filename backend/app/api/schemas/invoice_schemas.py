@@ -83,6 +83,8 @@ class CreateInvoiceSchema(BaseModel):
     internal_notes: Optional[str] = Field(None, max_length=2000)
     invoice_number: Optional[str] = Field(None, max_length=50)
     number_prefix: str = Field("INV", max_length=10)
+    po_number: Optional[str] = Field(None, max_length=100, description="Purchase Order number")
+    issue_date: Optional[date] = Field(None, description="Custom issue date, defaults to current date if not provided")
     due_date: Optional[date] = None
     payment_net_days: int = Field(30, ge=0, le=365)
     early_payment_discount_percentage: Decimal = Field(Decimal('0'), ge=0, le=100)
@@ -90,6 +92,19 @@ class CreateInvoiceSchema(BaseModel):
     late_fee_percentage: Decimal = Field(Decimal('0'), ge=0, le=100)
     late_fee_grace_days: int = Field(0, ge=0, le=365)
     payment_instructions: Optional[str] = Field(None, max_length=1000)
+
+    @validator('issue_date')
+    def validate_issue_date(cls, v):
+        if v and v > date.today():
+            raise ValueError('Issue date cannot be in the future')
+        return v
+
+    @validator('due_date')
+    def validate_due_date(cls, v, values):
+        if v and 'issue_date' in values and values['issue_date']:
+            if v < values['issue_date']:
+                raise ValueError('Due date must be greater than or equal to issue date')
+        return v
 
     class Config:
         from_attributes = True
@@ -106,6 +121,8 @@ class CreateInvoiceFromEstimateSchema(BaseModel):
     description: Optional[str] = Field(None, max_length=2000)
     invoice_number: Optional[str] = Field(None, max_length=50)
     number_prefix: str = Field("INV", max_length=10)
+    po_number: Optional[str] = Field(None, max_length=100, description="Purchase Order number")
+    issue_date: Optional[date] = Field(None, description="Custom issue date, defaults to current date if not provided")
     due_date: Optional[date] = None
     payment_net_days: int = Field(30, ge=0, le=365)
     early_payment_discount_percentage: Decimal = Field(Decimal('0'), ge=0, le=100)
@@ -114,6 +131,19 @@ class CreateInvoiceFromEstimateSchema(BaseModel):
     late_fee_grace_days: int = Field(0, ge=0, le=365)
     payment_instructions: Optional[str] = Field(None, max_length=1000)
     internal_notes: Optional[str] = Field(None, max_length=2000)
+
+    @validator('issue_date')
+    def validate_issue_date(cls, v):
+        if v and v > date.today():
+            raise ValueError('Issue date cannot be in the future')
+        return v
+
+    @validator('due_date')
+    def validate_due_date(cls, v, values):
+        if v and 'issue_date' in values and values['issue_date']:
+            if v < values['issue_date']:
+                raise ValueError('Due date must be greater than or equal to issue date')
+        return v
 
     class Config:
         from_attributes = True
@@ -213,11 +243,13 @@ class InvoiceResponseSchema(BaseModel):
     tags: List[str]
     custom_fields: Dict[str, Any]
     internal_notes: Optional[str] = None
+    po_number: Optional[str] = None
     created_by: Optional[str] = None
     created_date: datetime
     last_modified: datetime
     sent_date: Optional[datetime] = None
     viewed_date: Optional[datetime] = None
+    issue_date: Optional[date] = None
     due_date: Optional[date] = None
     paid_date: Optional[datetime] = None
     

@@ -2544,6 +2544,14 @@ export type CreateEstimateSchema = {
   valid_until_date?: string | null
   estimate_number?: string | null
   number_prefix?: string
+  /**
+   * Purchase Order number
+   */
+  po_number?: string | null
+  /**
+   * Custom issue date, defaults to current date if not provided
+   */
+  issue_date?: string | null
 }
 
 /**
@@ -2554,6 +2562,14 @@ export type CreateInvoiceFromEstimateSchema = {
   description?: string | null
   invoice_number?: string | null
   number_prefix?: string
+  /**
+   * Purchase Order number
+   */
+  po_number?: string | null
+  /**
+   * Custom issue date, defaults to current date if not provided
+   */
+  issue_date?: string | null
   due_date?: string | null
   payment_net_days?: number
   early_payment_discount_percentage?: number | string
@@ -2591,6 +2607,14 @@ export type CreateInvoiceSchema = {
   internal_notes?: string | null
   invoice_number?: string | null
   number_prefix?: string
+  /**
+   * Purchase Order number
+   */
+  po_number?: string | null
+  /**
+   * Custom issue date, defaults to current date if not provided
+   */
+  issue_date?: string | null
   due_date?: string | null
   payment_net_days?: number
   early_payment_discount_percentage?: number | string
@@ -2894,6 +2918,8 @@ export type EstimateResponseSchema = {
   }
   internal_notes?: string | null
   valid_until_date?: string | null
+  po_number?: string | null
+  issue_date?: string | null
   created_by?: string | null
   created_date: string
   last_modified: string
@@ -3174,11 +3200,13 @@ export type InvoiceResponseSchema = {
     [key: string]: unknown
   }
   internal_notes?: string | null
+  po_number?: string | null
   created_by?: string | null
   created_date: string
   last_modified: string
   sent_date?: string | null
   viewed_date?: string | null
+  issue_date?: string | null
   due_date?: string | null
   paid_date?: string | null
   financial_summary: {
@@ -5488,6 +5516,14 @@ export type UpdateEstimateSchema = {
   } | null
   internal_notes?: string | null
   valid_until_date?: string | null
+  /**
+   * Purchase Order number
+   */
+  po_number?: string | null
+  /**
+   * Custom issue date
+   */
+  issue_date?: string | null
 }
 
 /**

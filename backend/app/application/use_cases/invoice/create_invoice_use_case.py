@@ -74,7 +74,8 @@ class CreateInvoiceUseCase:
             payment_terms = self._create_payment_terms(request)
             
             # Calculate due date
-            due_date = request.due_date or (date.today() + timedelta(days=payment_terms.net_days))
+            issue_date = request.issue_date or date.today()
+            due_date = request.due_date or (issue_date + timedelta(days=payment_terms.net_days))
             
             # Create the invoice entity
             invoice = Invoice(
@@ -89,6 +90,7 @@ class CreateInvoiceUseCase:
                 client_address=contact.address,
                 title=request.title,
                 description=request.description,
+                po_number=request.po_number,
                 line_items=line_items,
                 currency=CurrencyCode(request.currency) if request.currency else CurrencyCode.USD,
                 tax_rate=Decimal(str(request.tax_rate)) if request.tax_rate else Decimal('0'),
@@ -109,6 +111,7 @@ class CreateInvoiceUseCase:
                 created_by=user_id,
                 created_date=datetime.utcnow(),
                 last_modified=datetime.utcnow(),
+                issue_date=request.issue_date,
                 due_date=due_date
             )
             
