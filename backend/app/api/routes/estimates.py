@@ -17,7 +17,7 @@ from ..middleware.permissions import (
 from ..schemas.estimate_schemas import (
     CreateEstimateSchema, UpdateEstimateSchema, EstimateSearchSchema,
     EstimateStatusUpdateSchema, EstimateResponseSchema, 
-    EstimateListResponseSchema, EstimateActionResponse
+    EstimateListResponseSchema, EstimateActionResponse, NextEstimateNumberSchema
 )
 from ..schemas.activity_schemas import MessageResponse
 from ...application.use_cases.estimate.create_estimate_use_case import CreateEstimateUseCase
@@ -27,6 +27,7 @@ from ...application.use_cases.estimate.delete_estimate_use_case import DeleteEst
 from ...application.use_cases.estimate.list_estimates_use_case import ListEstimatesUseCase
 from ...application.use_cases.estimate.search_estimates_use_case import SearchEstimatesUseCase
 from ...application.use_cases.estimate.convert_estimate_to_invoice_use_case import ConvertEstimateToInvoiceUseCase
+from ...application.use_cases.estimate.get_next_estimate_number_use_case import GetNextEstimateNumberUseCase
 from ...application.dto.estimate_dto import (
     CreateEstimateDTO, UpdateEstimateDTO, EstimateLineItemDTO, EstimateDTO,
     EstimateListFilters, EstimateSearchCriteria
@@ -38,7 +39,7 @@ from ...infrastructure.config.dependency_injection import (
     get_estimate_repository, get_estimate_template_repository,
     get_create_estimate_use_case, get_get_estimate_use_case, get_update_estimate_use_case,
     get_delete_estimate_use_case, get_list_estimates_use_case, get_search_estimates_use_case,
-    get_convert_estimate_to_invoice_use_case
+    get_convert_estimate_to_invoice_use_case, get_get_next_estimate_number_use_case
 )
 from ...domain.enums import EstimateStatus, CurrencyCode
 
@@ -456,6 +457,48 @@ async def update_estimate_status(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+
+
+@router.get("/next-number", response_model=NextEstimateNumberSchema)
+async def get_next_estimate_number(
+    prefix: str = Query("EST", description="Prefix for the document number"),
+    document_type: str = Query("estimate", description="Type of document: estimate or quote"),
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: GetNextEstimateNumberUseCase = Depends(get_get_next_estimate_number_use_case),
+    _: bool = Depends(require_view_projects_dep)
+):
+    """
+    Get the next available estimate number.
+    
+    Returns the next available document number for estimates or quotes without creating a document.
+    This is useful for showing users what number their next document will have.
+    Requires 'view_projects' permission.
+    """
+    business_id = uuid.UUID(business_context["business_id"])
+    
+    try:
+        next_number = await use_case.execute(
+            business_id=business_id,
+            user_id=current_user["sub"],
+            prefix=prefix,
+            document_type=document_type
+        )
+        
+        return NextEstimateNumberSchema(
+            next_number=next_number,
+            prefix=prefix,
+            document_type=document_type
+        )
+    except ValidationError as e:
+        logger.error(f"❌ EstimateAPI: Validation error: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"❌ EstimateAPI: Error getting next estimate number: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
         )
 
 

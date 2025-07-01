@@ -123,6 +123,7 @@ from ...application.use_cases.estimate.list_estimates_use_case import ListEstima
 from ...application.use_cases.estimate.search_estimates_use_case import SearchEstimatesUseCase
 from ...application.use_cases.estimate.convert_estimate_to_invoice_use_case import ConvertEstimateToInvoiceUseCase
 from ...application.use_cases.estimate.get_estimate_templates_use_case import GetEstimateTemplatesUseCase
+from ...application.use_cases.estimate.get_next_estimate_number_use_case import GetNextEstimateNumberUseCase
 
 # Invoice Use Cases
 from ...application.use_cases.invoice.create_invoice_use_case import CreateInvoiceUseCase
@@ -132,6 +133,7 @@ from ...application.use_cases.invoice.delete_invoice_use_case import DeleteInvoi
 from ...application.use_cases.invoice.list_invoices_use_case import ListInvoicesUseCase
 from ...application.use_cases.invoice.search_invoices_use_case import SearchInvoicesUseCase
 from ...application.use_cases.invoice.process_payment_use_case import ProcessPaymentUseCase
+from ...application.use_cases.invoice.get_next_invoice_number_use_case import GetNextInvoiceNumberUseCase
 
 # Repository interfaces
 from app.domain.repositories import (
@@ -505,6 +507,10 @@ class DependencyContainer:
             estimate_template_repository=self.get_repository('estimate_template_repository')
         )
         
+        self._use_cases['get_next_estimate_number'] = GetNextEstimateNumberUseCase(
+            estimate_repository=self.get_repository('estimate_repository')
+        )
+        
         self._use_cases['convert_estimate_to_invoice'] = ConvertEstimateToInvoiceUseCase(
             estimate_repository=self.get_repository('estimate_repository'),
             invoice_repository=self.get_repository('invoice_repository')
@@ -539,6 +545,10 @@ class DependencyContainer:
         )
         
         self._use_cases['process_payment'] = ProcessPaymentUseCase(
+            invoice_repository=self.get_repository('invoice_repository')
+        )
+        
+        self._use_cases['get_next_invoice_number'] = GetNextInvoiceNumberUseCase(
             invoice_repository=self.get_repository('invoice_repository')
         )
 
@@ -816,6 +826,10 @@ class DependencyContainer:
     def get_get_estimate_templates_use_case(self) -> GetEstimateTemplatesUseCase:
         """Get get estimate templates use case from container."""
         return self.get_use_case('get_estimate_templates')
+
+    def get_get_next_estimate_number_use_case(self) -> GetNextEstimateNumberUseCase:
+        """Get next estimate number use case from container."""
+        return self.get_use_case('get_next_estimate_number')
     
     def get_convert_estimate_to_invoice_use_case(self) -> ConvertEstimateToInvoiceUseCase:
         """Get convert estimate to invoice use case from container."""
@@ -848,6 +862,10 @@ class DependencyContainer:
     def get_process_payment_use_case(self) -> ProcessPaymentUseCase:
         """Get process payment use case from container."""
         return self.get_use_case('process_payment')
+
+    def get_get_next_invoice_number_use_case(self) -> GetNextInvoiceNumberUseCase:
+        """Get next invoice number use case from container."""
+        return self.get_use_case('get_next_invoice_number')
 
     def close(self):
         """Close all connections and cleanup resources."""
@@ -1140,6 +1158,11 @@ def get_get_estimate_templates_use_case() -> GetEstimateTemplatesUseCase:
     return get_container().get_get_estimate_templates_use_case()
 
 
+def get_get_next_estimate_number_use_case() -> GetNextEstimateNumberUseCase:
+    """Get next estimate number use case from container."""
+    return get_container().get_get_next_estimate_number_use_case()
+
+
 def get_convert_estimate_to_invoice_use_case() -> ConvertEstimateToInvoiceUseCase:
     """Get convert estimate to invoice use case from container."""
     return get_container().get_convert_estimate_to_invoice_use_case()
@@ -1178,3 +1201,8 @@ def get_search_invoices_use_case() -> SearchInvoicesUseCase:
 def get_process_payment_use_case() -> ProcessPaymentUseCase:
     """Get process payment use case from container."""
     return get_container().get_process_payment_use_case()
+
+
+def get_get_next_invoice_number_use_case() -> GetNextInvoiceNumberUseCase:
+    """Get next invoice number use case from container."""
+    return get_container().get_get_next_invoice_number_use_case()

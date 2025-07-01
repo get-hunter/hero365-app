@@ -8,7 +8,7 @@ import uuid
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 from decimal import Decimal
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, field_validator
 
 
 class EstimateLineItemSchema(BaseModel):
@@ -285,9 +285,6 @@ class EstimateActionResponse(BaseModel):
         }
 
 
-
-
-
 class EstimateTemplateResponse(BaseModel):
     """Schema for estimate template responses."""
     id: uuid.UUID
@@ -313,3 +310,20 @@ class EstimateTemplateResponse(BaseModel):
             uuid.UUID: lambda v: str(v),
             datetime: lambda v: v.isoformat()
         }
+
+
+class NextEstimateNumberSchema(BaseModel):
+    """Schema for next estimate number response."""
+    next_number: str = Field(..., description="The next available estimate number")
+    prefix: str = Field(..., description="The prefix used for the number")
+    document_type: str = Field(..., description="Type of document (estimate or quote)")
+    
+    class Config:
+        from_attributes = True
+
+    @field_validator('document_type')
+    @classmethod
+    def validate_document_type(cls, v):
+        if v not in ['estimate', 'quote']:
+            raise ValueError('Document type must be estimate or quote')
+        return v

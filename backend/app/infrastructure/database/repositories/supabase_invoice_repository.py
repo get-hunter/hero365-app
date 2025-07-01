@@ -503,12 +503,15 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 address_data = safe_json_parse(data["client_address"])
                 if address_data:
                     from app.domain.value_objects.address import Address
+                    # Handle both legacy and new address formats
+                    street_address = address_data.get("street_address") or address_data.get("street", "")
+                    
                     client_address = Address(
-                        street=address_data.get("street", ""),
+                        street_address=street_address,
                         city=address_data.get("city", ""),
                         state=address_data.get("state", ""),
                         postal_code=address_data.get("postal_code", ""),
-                        country=address_data.get("country", "")
+                        country=address_data.get("country", "US")
                     )
             except Exception as e:
                 print(f"Warning: Failed to parse client address: {e}")

@@ -319,3 +319,12 @@ class PaymentResponse(BaseModel):
             uuid.UUID: lambda v: str(v),
             datetime: lambda v: v.isoformat()
         }
+
+
+class NextInvoiceNumberSchema(BaseModel):
+    """Schema for next invoice number response."""
+    next_number: str = Field(..., description="The next available invoice number")
+    prefix: str = Field(..., description="The prefix used for the number")
+    
+    class Config:
+        from_attributes = True
