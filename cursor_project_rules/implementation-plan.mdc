@@ -522,3 +522,140 @@ Updated dependency injection container with estimate and invoice use cases and r
 - [ ] Document all endpoints with request/response examples
 - [ ] Include business rules and validation requirements
 - [ ] Add integration examples for mobile app consumption
+
+## Phase 11: Products & Inventory Management System - **In Progress**
+
+### Step 11.1: Enhanced Domain Foundation - **Done**
+- [x] Create comprehensive inventory management enums in domain/enums.py
+- [x] Add ProductType, ProductStatus, PricingModel, UnitOfMeasure enums
+- [x] Add InventoryMethod, CostingMethod, StockMovementType, StockStatus enums
+- [x] Add PurchaseOrderStatus, SupplierStatus enums with display methods
+- [x] Implement all enum display methods for user-friendly representations
+
+Enhanced domain layer with comprehensive inventory management enums supporting product types, pricing models, inventory tracking methods, stock movements, and supplier management.
+Added complete enumeration system with display methods for mobile app integration and user-friendly representations.
+
+### Step 11.2: Core Product Domain Entity - **Done**
+- [x] Implement comprehensive Product entity with Pydantic validation
+- [x] Add ProductPricingTier for volume-based pricing tiers
+- [x] Add ProductLocation for multi-location inventory tracking
+- [x] Add ProductSupplier for supplier relationship management
+- [x] Implement cost tracking with multiple costing methods (FIFO, LIFO, Weighted Average)
+- [x] Add comprehensive pricing calculations and business rule validation
+- [x] Implement inventory availability and reorder point logic
+
+Created comprehensive Product domain entity (520 lines) with full inventory management capabilities including multi-location tracking, supplier management, tiered pricing, cost accounting, and complete business logic validation.
+Product entity supports all inventory management features required for mobile app integration and ERP functionality.
+
+### Step 11.3: Product Category Hierarchical System - **Done**
+- [x] Create ProductCategory entity with hierarchical structure support
+- [x] Add CategoryDefaults for category-level product defaults
+- [x] Implement category hierarchy validation (10-level max depth)
+- [x] Add category product counting and status management
+- [x] Implement category default application to products
+- [x] Add comprehensive business logic for category management
+
+Created ProductCategory entity with hierarchical organization supporting up to 10 levels of categorization with automatic path generation and product count tracking.
+Implemented category defaults system allowing category-level tax rates, markup percentages, and inventory settings to be applied to products automatically.
+
+### Step 11.4: Stock Movement Audit Trail System - **Done**
+- [x] Create StockMovement entity for comprehensive inventory tracking
+- [x] Add StockMovementContext for detailed movement metadata
+- [x] Implement all movement types (purchase, sale, transfer, adjustment, etc.)
+- [x] Add before/after quantity snapshots for audit trail
+- [x] Implement cost tracking and landed cost calculations
+- [x] Add movement validation and reversal capabilities
+
+Created comprehensive StockMovement entity with complete audit trail capabilities tracking all inventory changes with before/after snapshots, cost information, and business context.
+Implemented movement reversal system and comprehensive validation ensuring data integrity and regulatory compliance.
+
+### Step 11.5: Supplier Management System - **Done**
+- [x] Create Supplier entity with comprehensive contact management
+- [x] Add SupplierContact for multiple contact persons per supplier
+- [x] Add PaymentTerms with discount calculation methods
+- [x] Add SupplierPerformance with automated metrics tracking
+- [x] Implement supplier status management and approval workflows
+- [x] Add performance scoring and grade calculation system
+
+Created comprehensive Supplier entity (535 lines) with full supplier relationship management including multiple contacts, payment terms, performance tracking, and automated scoring system.
+Implemented supplier performance metrics with on-time delivery tracking, quality scoring, and overall performance grading for supplier optimization.
+
+### Step 11.6: Purchase Order Management System - **Done**
+- [x] Create PurchaseOrder entity with comprehensive workflow support
+- [x] Add PurchaseOrderLineItem for detailed line-level tracking
+- [x] Implement approval workflow with multi-level authorization
+- [x] Add receiving tracking with partial receipt support
+- [x] Implement cost calculations with taxes and additional costs
+- [x] Add delivery performance tracking and overdue monitoring
+
+Created comprehensive PurchaseOrder entity with full procurement workflow including line items, approval processes, receiving tracking, and delivery performance monitoring.
+Implemented complete purchase order lifecycle from draft creation through approval, sending, confirmation, receiving, and closure with comprehensive business rule validation.
+
+### Step 11.7: Repository Interfaces - **Not Started**
+- [ ] Create ProductRepository interface with comprehensive CRUD and search operations
+- [ ] Create ProductCategoryRepository interface with hierarchy management
+- [ ] Create StockMovementRepository interface with audit trail queries
+- [ ] Create SupplierRepository interface with performance analytics
+- [ ] Create PurchaseOrderRepository interface with workflow support
+- [ ] Define filtering, search, and analytics query methods for inventory reporting
+
+### Step 11.8: Database Schema and Migration - **Not Started**
+- [ ] Design comprehensive database schema for inventory management
+- [ ] Create SQL migration with proper relationships, constraints, and indexes
+- [ ] Add database functions for automatic cost calculations and reorder alerts
+- [ ] Set up Row Level Security (RLS) policies for business-scoped access
+- [ ] Create database triggers for automatic stock movement recording
+- [ ] Include performance optimization with proper indexing strategy
+
+### Step 11.9: Implement Supabase Repositories - **Not Started**
+- [ ] Create SupabaseProductRepository with full CRUD and inventory operations
+- [ ] Create SupabaseProductCategoryRepository with hierarchy management
+- [ ] Create SupabaseStockMovementRepository with audit trail functionality
+- [ ] Create SupabaseSupplierRepository with performance tracking
+- [ ] Create SupabasePurchaseOrderRepository with workflow management
+- [ ] Add repositories to dependency injection container with proper bindings
+
+### Step 11.10: Create Use Cases - **Not Started**
+- [ ] CreateProduct use case with category integration and validation
+- [ ] ManageInventory use case with stock movement automation
+- [ ] ProcessPurchaseOrder use case with approval workflow
+- [ ] SupplierPerformanceTracking use case with automated metrics
+- [ ] InventoryReorderManagement use case with automated reorder suggestions
+- [ ] Integration with estimate and invoice creation for inventory deduction
+
+### Step 11.11: Create DTOs and Schemas - **Not Started**
+- [ ] Product and Category DTOs with comprehensive inventory data
+- [ ] Stock Movement DTOs with audit trail information
+- [ ] Supplier and Purchase Order DTOs with workflow status
+- [ ] Mobile-optimized API schemas for inventory management
+- [ ] Search and filter DTOs for advanced inventory querying
+
+### Step 11.12: Implement API Controllers and Routes - **Not Started**
+- [ ] ProductController with full CRUD and inventory management
+- [ ] InventoryController with stock movement and reorder management
+- [ ] SupplierController with performance tracking and management
+- [ ] PurchaseOrderController with approval workflow and receiving
+- [ ] Mobile-optimized endpoints for estimate/invoice item selection
+- [ ] Comprehensive error handling and business rule validation
+
+### Step 11.13: Mobile App Integration Endpoints - **Not Started**
+- [ ] Product catalog endpoints optimized for mobile consumption
+- [ ] Inventory availability checking for estimate/invoice creation
+- [ ] Real-time stock level updates for mobile app
+- [ ] Product search and filtering with category navigation
+- [ ] Barcode scanning integration for product identification
+- [ ] Offline synchronization support for inventory data
+
+### Step 11.14: Update Dependency Injection and Main Application - **Not Started**
+- [ ] Add inventory management repositories to DI container
+- [ ] Wire all inventory use cases with proper dependencies
+- [ ] Update main application to include new inventory routes
+- [ ] Verify all inventory operations work end-to-end
+- [ ] Add inventory management to business context validation
+
+### Step 11.15: Create API Documentation - **Not Started**
+- [ ] Create comprehensive API documentation for inventory management
+- [ ] Document all endpoints with request/response examples for mobile app
+- [ ] Include business rules and inventory management workflows
+- [ ] Add integration examples for estimate/invoice item management
+- [ ] Document real-time inventory updates and mobile synchronization
