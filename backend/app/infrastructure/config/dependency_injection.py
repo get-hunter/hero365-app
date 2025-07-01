@@ -53,6 +53,11 @@ from app.infrastructure.database.repositories import (
     SupabaseEstimateRepository,
     SupabaseInvoiceRepository,
     SupabaseEstimateTemplateRepository,
+    SupabaseProductRepository,
+    SupabaseProductCategoryRepository,
+    SupabaseStockMovementRepository,
+    SupabaseSupplierRepository,
+    SupabasePurchaseOrderRepository,
 )
 
 # Application Use Cases
@@ -146,6 +151,11 @@ from app.domain.repositories import (
     EstimateRepository,
     InvoiceRepository,
     EstimateTemplateRepository,
+    ProductRepository,
+    ProductCategoryRepository,
+    StockMovementRepository,
+    SupplierRepository,
+    PurchaseOrderRepository,
 )
 
 class DependencyContainer:
@@ -185,6 +195,13 @@ class DependencyContainer:
         self._repositories['estimate_repository'] = SupabaseEstimateRepository(supabase_client=supabase_client)
         self._repositories['invoice_repository'] = SupabaseInvoiceRepository(supabase_client=supabase_client)
         self._repositories['estimate_template_repository'] = SupabaseEstimateTemplateRepository(supabase_client=supabase_client)
+        
+        # Inventory management repositories
+        self._repositories['product_repository'] = SupabaseProductRepository(supabase_client=supabase_client)
+        self._repositories['product_category_repository'] = SupabaseProductCategoryRepository(supabase_client=supabase_client)
+        self._repositories['stock_movement_repository'] = SupabaseStockMovementRepository(supabase_client=supabase_client)
+        self._repositories['supplier_repository'] = SupabaseSupplierRepository(supabase_client=supabase_client)
+        self._repositories['purchase_order_repository'] = SupabasePurchaseOrderRepository(supabase_client=supabase_client)
     
     def _setup_services(self):
         """Initialize external service adapters."""
@@ -799,6 +816,27 @@ class DependencyContainer:
         """Get estimate template repository from container."""
         return self._repositories['estimate_template_repository']
     
+    # Inventory management repositories
+    def get_product_repository(self) -> ProductRepository:
+        """Get product repository from container."""
+        return self._repositories['product_repository']
+    
+    def get_product_category_repository(self) -> ProductCategoryRepository:
+        """Get product category repository from container."""
+        return self._repositories['product_category_repository']
+    
+    def get_stock_movement_repository(self) -> StockMovementRepository:
+        """Get stock movement repository from container."""
+        return self._repositories['stock_movement_repository']
+    
+    def get_supplier_repository(self) -> SupplierRepository:
+        """Get supplier repository from container."""
+        return self._repositories['supplier_repository']
+    
+    def get_purchase_order_repository(self) -> PurchaseOrderRepository:
+        """Get purchase order repository from container."""
+        return self._repositories['purchase_order_repository']
+    
     def get_create_estimate_use_case(self) -> CreateEstimateUseCase:
         """Get create estimate use case from container."""
         return self.get_use_case('create_estimate')
@@ -1120,6 +1158,32 @@ def get_invoice_repository() -> InvoiceRepository:
 def get_estimate_template_repository() -> EstimateTemplateRepository:
     """Get estimate template repository from container."""
     return get_container().get_estimate_template_repository()
+
+
+# Inventory management dependencies
+def get_product_repository() -> ProductRepository:
+    """Get product repository from container."""
+    return get_container().get_product_repository()
+
+
+def get_product_category_repository() -> ProductCategoryRepository:
+    """Get product category repository from container."""
+    return get_container().get_product_category_repository()
+
+
+def get_stock_movement_repository() -> StockMovementRepository:
+    """Get stock movement repository from container."""
+    return get_container().get_stock_movement_repository()
+
+
+def get_supplier_repository() -> SupplierRepository:
+    """Get supplier repository from container."""
+    return get_container().get_supplier_repository()
+
+
+def get_purchase_order_repository() -> PurchaseOrderRepository:
+    """Get purchase order repository from container."""
+    return get_container().get_purchase_order_repository()
 
 
 # Estimate and Invoice use case dependencies

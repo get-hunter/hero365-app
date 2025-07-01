@@ -14,6 +14,11 @@ from .supabase_user_capabilities_repository import SupabaseUserCapabilitiesRepos
 from .supabase_estimate_repository import SupabaseEstimateRepository
 from .supabase_invoice_repository import SupabaseInvoiceRepository
 from .supabase_estimate_template_repository import SupabaseEstimateTemplateRepository
+from .supabase_product_repository import SupabaseProductRepository
+from .supabase_product_category_repository import SupabaseProductCategoryRepository
+from .supabase_stock_movement_repository import SupabaseStockMovementRepository
+from .supabase_supplier_repository import SupabaseSupplierRepository
+from .supabase_purchase_order_repository import SupabasePurchaseOrderRepository
 
 __all__ = [
     "SupabaseActivityRepository",
@@ -26,4 +31,9 @@ __all__ = [
     "SupabaseEstimateRepository",
     "SupabaseInvoiceRepository",
     "SupabaseEstimateTemplateRepository",
+    "SupabaseProductRepository",
+    "SupabaseProductCategoryRepository",
+    "SupabaseStockMovementRepository",
+    "SupabaseSupplierRepository",
+    "SupabasePurchaseOrderRepository",
 ] 
