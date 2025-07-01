@@ -4,6 +4,13 @@
 
 This document describes the response format for the invoice list endpoint in the Hero365 API. The endpoint provides a paginated list of invoices with comprehensive filtering, financial data, and rich status information.
 
+## Performance Optimizations
+The invoice listing endpoints have been optimized to reduce database queries:
+- **Before**: N+2 queries (1 for invoices + N for line items + N for payments) 
+- **After**: 3 queries total (1 for invoices + 1 bulk for all line items + 1 bulk for all payments)
+
+This provides significant performance improvements for paginated invoice lists, especially with larger datasets.
+
 ## API Endpoint
 
 - **Method**: `GET`

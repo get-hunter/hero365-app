@@ -78,6 +78,52 @@ class SupabaseInvoiceRepository(InvoiceRepository):
         except Exception as e:
             raise DatabaseError(f"Failed to get invoice by number: {str(e)}")
     
+    async def _enrich_invoices_with_details(self, invoice_data_list: List[dict]) -> List[dict]:
+        """
+        Efficiently fetch and attach line items and payments to invoice data.
+        
+        Args:
+            invoice_data_list: List of invoice dictionaries from database
+            
+        Returns:
+            List of enriched invoice dictionaries with line_items and payments
+        """
+        if not invoice_data_list:
+            return invoice_data_list
+        
+        # Extract all invoice IDs for bulk fetching
+        invoice_ids = [invoice_data["id"] for invoice_data in invoice_data_list]
+        
+        # Bulk fetch line items for all invoices in one query
+        line_items_response = self.client.table("invoice_line_items").select("*").in_("invoice_id", invoice_ids).order("invoice_id").order("sort_order").execute()
+        
+        # Bulk fetch payments for all invoices in one query  
+        payments_response = self.client.table("payments").select("*").in_("invoice_id", invoice_ids).order("invoice_id").order("payment_date").execute()
+        
+        # Group line items by invoice_id
+        line_items_by_invoice = {}
+        for line_item in line_items_response.data:
+            invoice_id = line_item["invoice_id"]
+            if invoice_id not in line_items_by_invoice:
+                line_items_by_invoice[invoice_id] = []
+            line_items_by_invoice[invoice_id].append(line_item)
+        
+        # Group payments by invoice_id
+        payments_by_invoice = {}
+        for payment in payments_response.data:
+            invoice_id = payment["invoice_id"]
+            if invoice_id not in payments_by_invoice:
+                payments_by_invoice[invoice_id] = []
+            payments_by_invoice[invoice_id].append(payment)
+        
+        # Attach line items and payments to their respective invoices
+        for invoice_data in invoice_data_list:
+            invoice_id = invoice_data["id"]
+            invoice_data["line_items"] = line_items_by_invoice.get(invoice_id, [])
+            invoice_data["payments"] = payments_by_invoice.get(invoice_id, [])
+        
+        return invoice_data_list
+
     async def get_by_business_id(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[Invoice]:
         """Get invoices by business ID with pagination."""
         try:
@@ -85,7 +131,10 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 "business_id", str(business_id)
             ).range(skip, skip + limit - 1).order("created_date", desc=True).execute()
             
-            return [self._dict_to_invoice(invoice_data) for invoice_data in response.data]
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(invoice_data) for invoice_data in enriched_data]
             
         except Exception as e:
             raise DatabaseError(f"Failed to get invoices by business: {str(e)}")
@@ -97,7 +146,10 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 "contact_id", str(contact_id)
             ).range(skip, skip + limit - 1).order("created_date", desc=True).execute()
             
-            return [self._dict_to_invoice(invoice_data) for invoice_data in response.data]
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(invoice_data) for invoice_data in enriched_data]
             
         except Exception as e:
             raise DatabaseError(f"Failed to get invoices by contact: {str(e)}")
@@ -112,7 +164,10 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 skip, skip + limit - 1
             ).order("created_date", desc=True).execute()
             
-            return [self._dict_to_invoice(invoice_data) for invoice_data in response.data]
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(invoice_data) for invoice_data in enriched_data]
             
         except Exception as e:
             raise DatabaseError(f"Failed to get invoices by project: {str(e)}")
@@ -127,7 +182,10 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 skip, skip + limit - 1
             ).order("created_date", desc=True).execute()
             
-            return [self._dict_to_invoice(invoice_data) for invoice_data in response.data]
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(invoice_data) for invoice_data in enriched_data]
             
         except Exception as e:
             raise DatabaseError(f"Failed to get invoices by job: {str(e)}")
@@ -142,7 +200,10 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 skip, skip + limit - 1
             ).order("created_date", desc=True).execute()
             
-            return [self._dict_to_invoice(invoice_data) for invoice_data in response.data]
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(invoice_data) for invoice_data in enriched_data]
             
         except Exception as e:
             raise DatabaseError(f"Failed to get invoices by estimate: {str(e)}")
@@ -157,7 +218,10 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 skip, skip + limit - 1
             ).order("created_date", desc=True).execute()
             
-            return [self._dict_to_invoice(invoice_data) for invoice_data in response.data]
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(invoice_data) for invoice_data in enriched_data]
             
         except Exception as e:
             raise DatabaseError(f"Failed to get invoices by status: {str(e)}")
@@ -172,7 +236,10 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 skip, skip + limit - 1
             ).order("due_date", desc=False).execute()
             
-            return [self._dict_to_invoice(invoice_data) for invoice_data in response.data]
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(invoice_data) for invoice_data in enriched_data]
             
         except Exception as e:
             raise DatabaseError(f"Failed to get overdue invoices: {str(e)}")
@@ -470,21 +537,33 @@ class SupabaseInvoiceRepository(InvoiceRepository):
     async def get_by_assigned_user(self, business_id: uuid.UUID, user_id: str, skip: int = 0, limit: int = 100) -> List[Invoice]:
         try:
             response = self.client.table(self.table_name).select("*").eq("business_id", str(business_id)).eq("created_by", user_id).range(skip, skip + limit - 1).execute()
-            return [self._dict_to_invoice(data) for data in response.data]
+            
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(data) for data in enriched_data]
         except Exception as e:
             raise DatabaseError(f"Failed to get invoices by assigned user: {str(e)}")
 
     async def get_by_template_id(self, business_id: uuid.UUID, template_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[Invoice]:
         try:
             response = self.client.table(self.table_name).select("*").eq("business_id", str(business_id)).eq("template_id", str(template_id)).range(skip, skip + limit - 1).execute()
-            return [self._dict_to_invoice(data) for data in response.data]
+            
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(data) for data in enriched_data]
         except Exception as e:
             raise DatabaseError(f"Failed to get invoices by template: {str(e)}")
 
     async def get_by_date_range(self, business_id: uuid.UUID, start_date: datetime, end_date: datetime, skip: int = 0, limit: int = 100) -> List[Invoice]:
         try:
             response = self.client.table(self.table_name).select("*").eq("business_id", str(business_id)).gte("created_date", start_date.isoformat()).lte("created_date", end_date.isoformat()).range(skip, skip + limit - 1).execute()
-            return [self._dict_to_invoice(data) for data in response.data]
+            
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(data) for data in enriched_data]
         except Exception as e:
             raise DatabaseError(f"Failed to get invoices by date range: {str(e)}")
 
@@ -495,14 +574,22 @@ class SupabaseInvoiceRepository(InvoiceRepository):
     async def get_unpaid_invoices(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[Invoice]:
         try:
             response = self.client.table(self.table_name).select("*").eq("business_id", str(business_id)).eq("is_paid", False).range(skip, skip + limit - 1).execute()
-            return [self._dict_to_invoice(data) for data in response.data]
+            
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(data) for data in enriched_data]
         except Exception as e:
             raise DatabaseError(f"Failed to get unpaid invoices: {str(e)}")
 
     async def get_partially_paid_invoices(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[Invoice]:
         try:
             response = self.client.table(self.table_name).select("*").eq("business_id", str(business_id)).eq("status", InvoiceStatus.PARTIALLY_PAID.value).range(skip, skip + limit - 1).execute()
-            return [self._dict_to_invoice(data) for data in response.data]
+            
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(data) for data in enriched_data]
         except Exception as e:
             raise DatabaseError(f"Failed to get partially paid invoices: {str(e)}")
 
@@ -513,21 +600,33 @@ class SupabaseInvoiceRepository(InvoiceRepository):
     async def get_by_value_range(self, business_id: uuid.UUID, min_value: Decimal, max_value: Decimal, skip: int = 0, limit: int = 100) -> List[Invoice]:
         try:
             response = self.client.table(self.table_name).select("*").eq("business_id", str(business_id)).gte("total_amount", float(min_value)).lte("total_amount", float(max_value)).range(skip, skip + limit - 1).execute()
-            return [self._dict_to_invoice(data) for data in response.data]
+            
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(data) for data in enriched_data]
         except Exception as e:
             raise DatabaseError(f"Failed to get invoices by value range: {str(e)}")
 
     async def search_invoices(self, business_id: uuid.UUID, search_term: str, skip: int = 0, limit: int = 100) -> List[Invoice]:
         try:
             response = self.client.table(self.table_name).select("*").eq("business_id", str(business_id)).or_(f"title.ilike.%{search_term}%,description.ilike.%{search_term}%,invoice_number.ilike.%{search_term}%").range(skip, skip + limit - 1).execute()
-            return [self._dict_to_invoice(data) for data in response.data]
+            
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(data) for data in enriched_data]
         except Exception as e:
             raise DatabaseError(f"Failed to search invoices: {str(e)}")
 
     async def get_by_currency(self, business_id: uuid.UUID, currency: CurrencyCode, skip: int = 0, limit: int = 100) -> List[Invoice]:
         try:
             response = self.client.table(self.table_name).select("*").eq("business_id", str(business_id)).eq("currency", currency.value).range(skip, skip + limit - 1).execute()
-            return [self._dict_to_invoice(data) for data in response.data]
+            
+            # Enrich with line items and payments
+            enriched_data = await self._enrich_invoices_with_details(response.data)
+            
+            return [self._dict_to_invoice(data) for data in enriched_data]
         except Exception as e:
             raise DatabaseError(f"Failed to get invoices by currency: {str(e)}")
 
@@ -613,23 +712,15 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             # Execute the query
             response = query.execute()
             
-            # Enrich each invoice with line items and payments
-            enriched_invoices_data = []
-            for invoice_data in response.data:
-                invoice_id = invoice_data["id"]
-                
-                # Fetch line items for this invoice
-                line_items_response = self.client.table("invoice_line_items").select("*").eq("invoice_id", invoice_id).order("sort_order").execute()
-                invoice_data["line_items"] = line_items_response.data
-                
-                # Fetch payments for this invoice
-                payments_response = self.client.table("payments").select("*").eq("invoice_id", invoice_id).order("payment_date").execute()
-                invoice_data["payments"] = payments_response.data
-                
-                enriched_invoices_data.append(invoice_data)
+            # Early return if no invoices found
+            if not response.data:
+                return [], 0
+            
+            # Enrich with line items and payments using helper method
+            enriched_data = await self._enrich_invoices_with_details(response.data)
             
             # Convert the enriched data to Invoice entities
-            invoices = [self._dict_to_invoice(invoice_data) for invoice_data in enriched_invoices_data]
+            invoices = [self._dict_to_invoice(invoice_data) for invoice_data in enriched_data]
             total_count = response.count or 0
             
             return invoices, total_count
