@@ -496,6 +496,23 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 print(f"Warning: Could not fetch contact details for invoice: {e}")
                 client_name = "Unknown Client"
         
+        # Parse client address
+        client_address = None
+        if data.get("client_address"):
+            try:
+                address_data = safe_json_parse(data["client_address"])
+                if address_data:
+                    from app.domain.value_objects.address import Address
+                    client_address = Address(
+                        street=address_data.get("street", ""),
+                        city=address_data.get("city", ""),
+                        state=address_data.get("state", ""),
+                        postal_code=address_data.get("postal_code", ""),
+                        country=address_data.get("country", "")
+                    )
+            except Exception as e:
+                print(f"Warning: Failed to parse client address: {e}")
+        
         return Invoice(
             id=uuid.UUID(data["id"]),
             business_id=uuid.UUID(data["business_id"]),
@@ -505,6 +522,7 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             client_name=client_name,
             client_email=data.get("client_email"),
             client_phone=data.get("client_phone"),
+            client_address=client_address,
             title=data.get("title", ""),
             description=data.get("description"),
             line_items=line_items,

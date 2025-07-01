@@ -6,6 +6,7 @@ financial calculations, status management, and client communication tracking.
 """
 
 import uuid
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, date, timezone, timedelta
 from typing import Optional, List, Dict, Any
@@ -17,6 +18,9 @@ from ..enums import (
     AdvancePaymentType, EmailStatus, TemplateType, DocumentType
 )
 from ..value_objects.address import Address
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -285,13 +289,8 @@ class Estimate:
         if self.overall_discount_type == DiscountType.PERCENTAGE and self.overall_discount_value > 100:
             raise DomainValidationError("Percentage discount cannot exceed 100%")
         
-        # Validate client information
-        if self.status != EstimateStatus.DRAFT and not self.client_name:
-            raise DomainValidationError("Client name is required for sent estimates")
-        
-        # Validate line items
-        if not self.line_items and self.status != EstimateStatus.DRAFT:
-            raise DomainValidationError("At least one line item is required for sent estimates")
+        # Client and line item validation is enforced in send_estimate() method
+        # This allows loading legacy data without validation errors
     
     # Financial calculation methods
     def get_line_items_subtotal(self) -> Decimal:
@@ -381,7 +380,15 @@ class Estimate:
     def send_estimate(self, sent_by: Optional[str] = None) -> None:
         """Send estimate to client."""
         if not self.can_send():
-            raise BusinessRuleViolationError("Estimate cannot be sent in current state")
+            missing_requirements = []
+            if not self.client_name:
+                missing_requirements.append("client name")
+            if not self.line_items:
+                missing_requirements.append("line items") 
+            if not (self.client_email or self.client_phone):
+                missing_requirements.append("client email or phone")
+            
+            raise BusinessRuleViolationError(f"Estimate cannot be sent - missing: {', '.join(missing_requirements)}")
         
         self.update_status(EstimateStatus.SENT, sent_by, "Estimate sent to client")
         self.sent_date = datetime.now(timezone.utc)

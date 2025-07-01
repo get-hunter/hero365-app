@@ -56,8 +56,22 @@ class SupabaseEstimateRepository(EstimateRepository):
             logger.info(f"Supabase response received: data={response.data is not None}")
             
             if response.data:
-                logger.info(f"Estimate created successfully in Supabase: {response.data[0]['id']}")
-                return self._dict_to_estimate(response.data[0])
+                estimate_id = uuid.UUID(response.data[0]['id'])
+                logger.info(f"Estimate created successfully in Supabase: {estimate_id}")
+                
+                # Create line items separately
+                if estimate.line_items:
+                    line_items_data = []
+                    for i, line_item in enumerate(estimate.line_items):
+                        line_item_data = self._line_item_to_dict(line_item, estimate_id, i)
+                        line_items_data.append(line_item_data)
+                    
+                    logger.info(f"Creating {len(line_items_data)} line items")
+                    line_items_response = self.client.table("estimate_line_items").insert(line_items_data).execute()
+                    logger.info(f"Line items created: {len(line_items_response.data) if line_items_response.data else 0}")
+                
+                # Fetch the complete estimate with line items
+                return await self.get_by_id(estimate_id)
             else:
                 logger.error("Failed to create estimate - no data returned from Supabase")
                 raise DatabaseError("Failed to create estimate - no data returned")
@@ -71,11 +85,22 @@ class SupabaseEstimateRepository(EstimateRepository):
     async def get_by_id(self, estimate_id: uuid.UUID) -> Optional[Estimate]:
         """Get estimate by ID."""
         try:
+            # Fetch estimate
             response = self.client.table(self.table_name).select("*").eq("id", str(estimate_id)).execute()
             
-            if response.data:
-                return self._dict_to_estimate(response.data[0])
-            return None
+            if not response.data:
+                return None
+            
+            # Fetch line items
+            line_items_response = self.client.table("estimate_line_items").select("*").eq(
+                "estimate_id", str(estimate_id)
+            ).order("sort_order").execute()
+            
+            # Add line items to estimate data
+            estimate_data = response.data[0]
+            estimate_data["_line_items"] = line_items_response.data
+            
+            return self._dict_to_estimate(estimate_data)
             
         except Exception as e:
             raise DatabaseError(f"Failed to get estimate by ID: {str(e)}")
@@ -97,11 +122,34 @@ class SupabaseEstimateRepository(EstimateRepository):
     async def get_by_business_id(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[Estimate]:
         """Get estimates by business ID with pagination."""
         try:
+            # Fetch estimates
             response = self.client.table(self.table_name).select("*").eq(
                 "business_id", str(business_id)
             ).range(skip, skip + limit - 1).order("created_date", desc=True).execute()
             
-            return [self._dict_to_estimate(estimate_data) for estimate_data in response.data]
+            # Fetch line items for all estimates in one query
+            estimate_ids = [estimate["id"] for estimate in response.data]
+            line_items_response = []
+            if estimate_ids:
+                line_items_response = self.client.table("estimate_line_items").select("*").in_(
+                    "estimate_id", estimate_ids
+                ).order("sort_order").execute()
+            
+            # Group line items by estimate_id
+            line_items_by_estimate = {}
+            for item in line_items_response.data:
+                estimate_id = item["estimate_id"]
+                if estimate_id not in line_items_by_estimate:
+                    line_items_by_estimate[estimate_id] = []
+                line_items_by_estimate[estimate_id].append(item)
+            
+            # Convert to entities with line items
+            estimates = []
+            for estimate_data in response.data:
+                estimate_data["_line_items"] = line_items_by_estimate.get(estimate_data["id"], [])
+                estimates.append(self._dict_to_estimate(estimate_data))
+            
+            return estimates
             
         except Exception as e:
             raise DatabaseError(f"Failed to get estimates by business: {str(e)}")
@@ -483,8 +531,28 @@ class SupabaseEstimateRepository(EstimateRepository):
             # Execute the query
             response = query.execute()
             
-            # Convert the data to Estimate entities
-            estimates = [self._dict_to_estimate(estimate_data) for estimate_data in response.data]
+            # Fetch line items for all estimates in one query
+            estimate_ids = [estimate["id"] for estimate in response.data]
+            line_items_response = []
+            if estimate_ids:
+                line_items_response = self.client.table("estimate_line_items").select("*").in_(
+                    "estimate_id", estimate_ids
+                ).order("sort_order").execute()
+            
+            # Group line items by estimate_id
+            line_items_by_estimate = {}
+            for item in line_items_response.data:
+                estimate_id = item["estimate_id"]
+                if estimate_id not in line_items_by_estimate:
+                    line_items_by_estimate[estimate_id] = []
+                line_items_by_estimate[estimate_id].append(item)
+            
+            # Convert the data to Estimate entities with line items
+            estimates = []
+            for estimate_data in response.data:
+                estimate_data["_line_items"] = line_items_by_estimate.get(estimate_data["id"], [])
+                estimates.append(self._dict_to_estimate(estimate_data))
+            
             total_count = response.count or 0
             
             return estimates, total_count
@@ -498,62 +566,59 @@ class SupabaseEstimateRepository(EstimateRepository):
             "id": str(estimate.id),
             "business_id": str(estimate.business_id),
             "estimate_number": estimate.estimate_number,
-            "document_type": estimate.document_type.value,
-            "status": estimate.status.value,
-            "client_id": str(estimate.client_id) if estimate.client_id else None,
-            "client_name": estimate.client_name,
-            "client_email": estimate.client_email,
-            "client_phone": estimate.client_phone,
-            "client_address": estimate.client_address.to_dict() if estimate.client_address else None,
             "title": estimate.title,
             "description": estimate.description,
-            "line_items": [self._line_item_to_dict(item) for item in estimate.line_items],
-            "currency": estimate.currency.value,
-            "tax_rate": float(estimate.tax_rate),
-            "tax_type": estimate.tax_type.value,
-            "overall_discount_type": estimate.overall_discount_type.value,
-            "overall_discount_value": float(estimate.overall_discount_value),
-            "advance_payment": self._advance_payment_to_dict(estimate.advance_payment),
-            "terms": self._terms_to_dict(estimate.terms),
-            "template_id": str(estimate.template_id) if estimate.template_id else None,
-            "template_data": estimate.template_data,
-            "email_history": [self._email_tracking_to_dict(email) for email in estimate.email_history],
+            "status": estimate.status.value,
+            "contact_id": str(estimate.contact_id) if estimate.contact_id else None,
             "project_id": str(estimate.project_id) if estimate.project_id else None,
             "job_id": str(estimate.job_id) if estimate.job_id else None,
-            "contact_id": str(estimate.contact_id) if estimate.contact_id else None,
-            "converted_to_invoice_id": str(estimate.converted_to_invoice_id) if estimate.converted_to_invoice_id else None,
-            "conversion_date": estimate.conversion_date.isoformat() if estimate.conversion_date else None,
-            "tags": estimate.tags,
-            "custom_fields": estimate.custom_fields,
-            "internal_notes": estimate.internal_notes,
-            "created_by": estimate.created_by,
-            "created_date": estimate.created_date.isoformat(),
-            "last_modified": estimate.last_modified.isoformat(),
-            "sent_date": estimate.sent_date.isoformat() if estimate.sent_date else None,
-            "viewed_date": estimate.viewed_date.isoformat() if estimate.viewed_date else None,
-            "responded_date": estimate.responded_date.isoformat() if estimate.responded_date else None,
-            "status_history": [self._status_history_to_dict(entry) for entry in estimate.status_history],
-            # Calculated fields for database storage
-            "line_items_subtotal": float(estimate.get_line_items_subtotal()),
-            "total_discount": float(estimate.get_line_items_discount_total() + estimate.get_overall_discount_amount()),
+            "template_id": str(estimate.template_id) if estimate.template_id else None,
+            "assigned_to": estimate.created_by,  # Map to assigned_to field
+            "currency": estimate.currency.value,
+            "subtotal": float(estimate.get_line_items_subtotal()),
+            "discount_type": estimate.overall_discount_type.value,
+            "discount_value": float(estimate.overall_discount_value),
+            "discount_amount": float(estimate.get_overall_discount_amount()),
+            "tax_type": estimate.tax_type.value,
+            "tax_rate": float(estimate.tax_rate),
             "tax_amount": float(estimate.get_tax_amount()),
             "total_amount": float(estimate.get_total_amount()),
-            "balance_due": float(estimate.get_balance_due()),
-            "is_expired": estimate.is_expired()
+            "advance_payment_type": estimate.advance_payment.type.value,
+            "advance_payment_value": float(estimate.advance_payment.value),
+            "advance_payment_amount": float(estimate.advance_payment.get_required_amount(estimate.get_total_amount())),
+            "advance_payment_due_date": estimate.advance_payment.due_date.isoformat() if estimate.advance_payment.due_date else None,
+            "advance_payment_received": estimate.advance_payment.collected_amount > 0,
+            "advance_payment_received_date": estimate.advance_payment.collected_date.isoformat() if estimate.advance_payment.collected_date else None,
+            "valid_until": estimate.terms.get_expiry_date(estimate.created_date.date()).isoformat() if estimate.terms else None,
+            "terms_and_conditions": estimate.terms.terms_and_conditions if estimate.terms else None,
+            "notes": estimate.internal_notes,
+            "email_tracking": [self._email_tracking_to_dict(email) for email in estimate.email_history],
+            "status_history": [self._status_history_to_dict(entry) for entry in estimate.status_history],
+            "converted_to_invoice_id": str(estimate.converted_to_invoice_id) if estimate.converted_to_invoice_id else None,
+            "created_by": estimate.created_by,
+            "created_date": estimate.created_date.isoformat(),
+            "last_modified": estimate.last_modified.isoformat()
         }
     
-    def _line_item_to_dict(self, line_item: EstimateLineItem) -> dict:
-        """Convert EstimateLineItem to dictionary."""
+    def _line_item_to_dict(self, line_item: EstimateLineItem, estimate_id: uuid.UUID, sort_order: int = 0) -> dict:
+        """Convert EstimateLineItem to dictionary for database storage."""
         return {
             "id": str(line_item.id),
-            "description": line_item.description,
+            "estimate_id": str(estimate_id),
+            "sort_order": sort_order,
+            "name": line_item.description,  # Map description to name field
+            "description": line_item.notes,  # Map notes to description field  
             "quantity": float(line_item.quantity),
+            "unit": line_item.unit or "each",
             "unit_price": float(line_item.unit_price),
-            "unit": line_item.unit,
-            "category": line_item.category,
             "discount_type": line_item.discount_type.value,
             "discount_value": float(line_item.discount_value),
+            "discount_amount": float(line_item.get_discount_amount()),
+            "tax_type": "percentage",  # Map tax_rate to tax_type
             "tax_rate": float(line_item.tax_rate),
+            "tax_amount": float(line_item.get_tax_amount()),
+            "total_amount": float(line_item.get_total()),
+            "is_taxable": line_item.tax_rate > 0,
             "notes": line_item.notes
         }
     
@@ -650,18 +715,18 @@ class SupabaseEstimateRepository(EstimateRepository):
             except (ValueError, TypeError):
                 return None
         
-        # Parse line items
-        line_items_data = safe_json_parse(data.get("line_items", []))
+        # Parse line items from separate table data
+        line_items_data = data.get("_line_items", [])
         line_items = []
         for item_data in line_items_data:
             try:
                 line_item = EstimateLineItem(
                     id=uuid.UUID(item_data["id"]),
-                    description=item_data.get("description", ""),
+                    description=item_data.get("name", ""),  # Schema uses 'name' not 'description'
                     quantity=Decimal(str(item_data.get("quantity", "1"))),
                     unit_price=Decimal(str(item_data.get("unit_price", "0"))),
                     unit=item_data.get("unit"),
-                    category=item_data.get("category"),
+                    category=None,  # Not in current schema
                     discount_type=DiscountType(item_data.get("discount_type", "none")),
                     discount_value=Decimal(str(item_data.get("discount_value", "0"))),
                     tax_rate=Decimal(str(item_data.get("tax_rate", "0"))),
@@ -724,8 +789,11 @@ class SupabaseEstimateRepository(EstimateRepository):
         status_history = []
         for status_data in status_history_data:
             try:
+                # Use safe_uuid_parse for status history ID and generate fallback if needed
+                status_id = safe_uuid_parse(status_data.get("id")) or uuid.uuid4()
+                
                 status_entry = StatusHistoryEntry(
-                    id=uuid.UUID(status_data["id"]),
+                    id=status_id,
                     from_status=EstimateStatus(status_data["from_status"]) if status_data.get("from_status") else None,
                     to_status=EstimateStatus(status_data["to_status"]),
                     timestamp=safe_datetime_parse(status_data["timestamp"]),
@@ -743,12 +811,15 @@ class SupabaseEstimateRepository(EstimateRepository):
         if data.get("client_address"):
             try:
                 address_data = safe_json_parse(data["client_address"])
+                # Handle both legacy and new address formats
+                street_address = address_data.get("street_address") or address_data.get("street", "")
+                
                 client_address = Address(
-                    street=address_data.get("street", ""),
+                    street_address=street_address,
                     city=address_data.get("city", ""),
                     state=address_data.get("state", ""),
                     postal_code=address_data.get("postal_code", ""),
-                    country=address_data.get("country", "")
+                    country=address_data.get("country", "US")
                 )
             except Exception as e:
                 logger.warning(f"Failed to parse client address: {e}")
