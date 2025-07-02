@@ -140,6 +140,12 @@ from ...application.use_cases.invoice.search_invoices_use_case import SearchInvo
 from ...application.use_cases.invoice.process_payment_use_case import ProcessPaymentUseCase
 from ...application.use_cases.invoice.get_next_invoice_number_use_case import GetNextInvoiceNumberUseCase
 
+# Product Use Cases
+from ...application.use_cases.product.create_product_use_case import CreateProductUseCase
+from ...application.use_cases.product.manage_inventory_use_case import ManageInventoryUseCase
+from ...application.use_cases.product.inventory_reorder_management_use_case import InventoryReorderManagementUseCase
+from ...application.use_cases.product.process_purchase_order_use_case import ProcessPurchaseOrderUseCase
+
 # Repository interfaces
 from app.domain.repositories import (
     ActivityRepository,
@@ -568,6 +574,30 @@ class DependencyContainer:
         self._use_cases['get_next_invoice_number'] = GetNextInvoiceNumberUseCase(
             invoice_repository=self.get_repository('invoice_repository')
         )
+        
+        # Product use cases
+        self._use_cases['create_product'] = CreateProductUseCase(
+            product_repository=self.get_repository('product_repository'),
+            category_repository=self.get_repository('product_category_repository'),
+            supplier_repository=self.get_repository('supplier_repository')
+        )
+        
+        self._use_cases['manage_inventory'] = ManageInventoryUseCase(
+            product_repository=self.get_repository('product_repository'),
+            stock_movement_repository=self.get_repository('stock_movement_repository')
+        )
+        
+        self._use_cases['inventory_reorder_management'] = InventoryReorderManagementUseCase(
+            product_repository=self.get_repository('product_repository'),
+            supplier_repository=self.get_repository('supplier_repository'),
+            purchase_order_repository=self.get_repository('purchase_order_repository')
+        )
+        
+        self._use_cases['process_purchase_order'] = ProcessPurchaseOrderUseCase(
+            purchase_order_repository=self.get_repository('purchase_order_repository'),
+            product_repository=self.get_repository('product_repository'),
+            supplier_repository=self.get_repository('supplier_repository')
+        )
 
     def _get_supabase_client(self) -> Client:
         """Get or create Supabase client."""
@@ -904,6 +934,22 @@ class DependencyContainer:
     def get_get_next_invoice_number_use_case(self) -> GetNextInvoiceNumberUseCase:
         """Get next invoice number use case from container."""
         return self.get_use_case('get_next_invoice_number')
+
+    def get_create_product_use_case(self) -> CreateProductUseCase:
+        """Get create product use case."""
+        return self.get_use_case('create_product')
+
+    def get_manage_inventory_use_case(self) -> ManageInventoryUseCase:
+        """Get manage inventory use case."""
+        return self.get_use_case('manage_inventory')
+
+    def get_inventory_reorder_management_use_case(self) -> InventoryReorderManagementUseCase:
+        """Get inventory reorder management use case."""
+        return self.get_use_case('inventory_reorder_management')
+
+    def get_process_purchase_order_use_case(self) -> ProcessPurchaseOrderUseCase:
+        """Get process purchase order use case."""
+        return self.get_use_case('process_purchase_order')
 
     def close(self):
         """Close all connections and cleanup resources."""
@@ -1270,3 +1316,20 @@ def get_process_payment_use_case() -> ProcessPaymentUseCase:
 def get_get_next_invoice_number_use_case() -> GetNextInvoiceNumberUseCase:
     """Get next invoice number use case from container."""
     return get_container().get_get_next_invoice_number_use_case()
+
+# Product use case global getters
+def get_create_product_use_case() -> CreateProductUseCase:
+    """Get create product use case from container."""
+    return get_container().get_create_product_use_case()
+
+def get_manage_inventory_use_case() -> ManageInventoryUseCase:
+    """Get manage inventory use case from container."""
+    return get_container().get_manage_inventory_use_case()
+
+def get_inventory_reorder_management_use_case() -> InventoryReorderManagementUseCase:
+    """Get inventory reorder management use case from container."""
+    return get_container().get_inventory_reorder_management_use_case()
+
+def get_process_purchase_order_use_case() -> ProcessPurchaseOrderUseCase:
+    """Get process purchase order use case from container."""
+    return get_container().get_process_purchase_order_use_case()

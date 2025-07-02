@@ -290,6 +290,28 @@ import type {
   MiddlewareHealthGetMiddlewareConfigResponse,
   MiddlewareHealthTestAuthenticationRequiredResponse,
   MiddlewareHealthTestBusinessContextRequiredResponse,
+  CreateProductNoSlashData,
+  CreateProductNoSlashResponse,
+  ListProductsNoSlashData,
+  ListProductsNoSlashResponse,
+  ProductsCreateProductData,
+  ProductsCreateProductResponse,
+  ProductsListProductsData,
+  ProductsListProductsResponse,
+  ProductsGetProductData,
+  ProductsGetProductResponse,
+  ProductsUpdateProductData,
+  ProductsUpdateProductResponse,
+  ProductsDeleteProductData,
+  ProductsDeleteProductResponse,
+  ProductsSearchProductsData,
+  ProductsSearchProductsResponse,
+  ProductsAdjustStockData,
+  ProductsAdjustStockResponse,
+  ProductsReserveStockData,
+  ProductsReserveStockResponse,
+  ProductsGetReorderSuggestionsData,
+  ProductsGetReorderSuggestionsResponse,
   ProjectsCreateProjectData,
   ProjectsCreateProjectResponse,
   ProjectsCreateProject1Data,
@@ -348,6 +370,40 @@ import type {
   ProjectsRemoveJobFromProjectResponse,
   ProjectsRemoveJobFromProject1Data,
   ProjectsRemoveJobFromProject1Response,
+  PurchaseOrdersCreatePurchaseOrderData,
+  PurchaseOrdersCreatePurchaseOrderResponse,
+  PurchaseOrdersListPurchaseOrdersData,
+  PurchaseOrdersListPurchaseOrdersResponse,
+  PurchaseOrdersGetPurchaseOrderData,
+  PurchaseOrdersGetPurchaseOrderResponse,
+  PurchaseOrdersApprovePurchaseOrderData,
+  PurchaseOrdersApprovePurchaseOrderResponse,
+  PurchaseOrdersSendPurchaseOrderData,
+  PurchaseOrdersSendPurchaseOrderResponse,
+  PurchaseOrdersReceivePurchaseOrderData,
+  PurchaseOrdersReceivePurchaseOrderResponse,
+  PurchaseOrdersSearchPurchaseOrdersData,
+  PurchaseOrdersSearchPurchaseOrdersResponse,
+  PurchaseOrdersGetPendingApprovalOrdersData,
+  PurchaseOrdersGetPendingApprovalOrdersResponse,
+  PurchaseOrdersGetPendingReceiptOrdersData,
+  PurchaseOrdersGetPendingReceiptOrdersResponse,
+  SuppliersCreateSupplierData,
+  SuppliersCreateSupplierResponse,
+  SuppliersListSuppliersData,
+  SuppliersListSuppliersResponse,
+  SuppliersGetSupplierData,
+  SuppliersGetSupplierResponse,
+  SuppliersUpdateSupplierData,
+  SuppliersUpdateSupplierResponse,
+  SuppliersDeleteSupplierData,
+  SuppliersDeleteSupplierResponse,
+  SuppliersSearchSuppliersData,
+  SuppliersSearchSuppliersResponse,
+  SuppliersGetSupplierPerformanceData,
+  SuppliersGetSupplierPerformanceResponse,
+  SuppliersGetSupplierOrdersData,
+  SuppliersGetSupplierOrdersResponse,
   TemplatesGetInvoiceTemplatesData,
   TemplatesGetInvoiceTemplatesResponse,
   TemplatesGetEstimateTemplatesData,
@@ -4134,6 +4190,322 @@ export class MiddlewareHealthService {
   }
 }
 
+export class ProductsService {
+  /**
+   * Create Product
+   * Create a new product.
+   *
+   * Creates a new product in the inventory system with the provided information.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ProductResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static createProductNoSlash(
+    data: CreateProductNoSlashData,
+  ): CancelablePromise<CreateProductNoSlashResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/products",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Products
+   * List products.
+   *
+   * Retrieves a paginated list of products with optional filtering.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.skip Number of records to skip
+   * @param data.limit Maximum number of records to return
+   * @param data.status Filter by product status
+   * @param data.categoryId Filter by category ID
+   * @param data.supplierId Filter by supplier ID
+   * @param data.lowStockOnly Show only low stock items
+   * @returns ProductListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static listProductsNoSlash(
+    data: ListProductsNoSlashData = {},
+  ): CancelablePromise<ListProductsNoSlashResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/products",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        status: data.status,
+        category_id: data.categoryId,
+        supplier_id: data.supplierId,
+        low_stock_only: data.lowStockOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Product
+   * Create a new product.
+   *
+   * Creates a new product in the inventory system with the provided information.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ProductResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static createProduct(
+    data: ProductsCreateProductData,
+  ): CancelablePromise<ProductsCreateProductResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/products/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Products
+   * List products.
+   *
+   * Retrieves a paginated list of products with optional filtering.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.skip Number of records to skip
+   * @param data.limit Maximum number of records to return
+   * @param data.status Filter by product status
+   * @param data.categoryId Filter by category ID
+   * @param data.supplierId Filter by supplier ID
+   * @param data.lowStockOnly Show only low stock items
+   * @returns ProductListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static listProducts(
+    data: ProductsListProductsData = {},
+  ): CancelablePromise<ProductsListProductsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/products/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        status: data.status,
+        category_id: data.categoryId,
+        supplier_id: data.supplierId,
+        low_stock_only: data.lowStockOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Product
+   * Get a product by ID.
+   *
+   * Retrieves detailed information about a specific product.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.productId Product ID
+   * @returns ProductResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static getProduct(
+    data: ProductsGetProductData,
+  ): CancelablePromise<ProductsGetProductResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/products/{product_id}",
+      path: {
+        product_id: data.productId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Product
+   * Update a product.
+   *
+   * Updates an existing product with the provided information.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.productId Product ID
+   * @param data.requestBody
+   * @returns ProductResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static updateProduct(
+    data: ProductsUpdateProductData,
+  ): CancelablePromise<ProductsUpdateProductResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/products/{product_id}",
+      path: {
+        product_id: data.productId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Product
+   * Delete a product.
+   *
+   * Soft deletes a product from the inventory system.
+   * Requires 'delete_projects' permission.
+   * @param data The data for the request.
+   * @param data.productId Product ID
+   * @returns app__api__schemas__activity_schemas__MessageResponse Successful Response
+   * @throws ApiError
+   */
+  public static deleteProduct(
+    data: ProductsDeleteProductData,
+  ): CancelablePromise<ProductsDeleteProductResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/products/{product_id}",
+      path: {
+        product_id: data.productId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search Products
+   * Search products.
+   *
+   * Advanced search for products with comprehensive filtering options.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ProductListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static searchProducts(
+    data: ProductsSearchProductsData,
+  ): CancelablePromise<ProductsSearchProductsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/products/search",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Adjust Stock
+   * Adjust product stock.
+   *
+   * Performs a stock adjustment (increase or decrease) for a product.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.productId Product ID
+   * @param data.requestBody
+   * @returns StockActionResponse Successful Response
+   * @throws ApiError
+   */
+  public static adjustStock(
+    data: ProductsAdjustStockData,
+  ): CancelablePromise<ProductsAdjustStockResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/products/{product_id}/adjust-stock",
+      path: {
+        product_id: data.productId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Reserve Stock
+   * Reserve product stock.
+   *
+   * Reserves stock for orders, estimates, or other references.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.productId Product ID
+   * @param data.requestBody
+   * @returns StockActionResponse Successful Response
+   * @throws ApiError
+   */
+  public static reserveStock(
+    data: ProductsReserveStockData,
+  ): CancelablePromise<ProductsReserveStockResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/products/{product_id}/reserve",
+      path: {
+        product_id: data.productId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Reorder Suggestions
+   * Get reorder suggestions.
+   *
+   * Returns automated reorder suggestions for products that need restocking.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.categoryId Filter by category
+   * @param data.supplierId Filter by supplier
+   * @returns ReorderSuggestionsResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static getReorderSuggestions(
+    data: ProductsGetReorderSuggestionsData = {},
+  ): CancelablePromise<ProductsGetReorderSuggestionsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/products/reorder/suggestions",
+      query: {
+        category_id: data.categoryId,
+        supplier_id: data.supplierId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class ProjectsService {
   /**
    * Create a new project
@@ -4852,6 +5224,460 @@ export class ProjectsService {
       path: {
         project_id: data.projectId,
         job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class PurchaseOrdersService {
+  /**
+   * Create Purchase Order
+   * Create a new purchase order with line items
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static createPurchaseOrder(
+    data: PurchaseOrdersCreatePurchaseOrderData,
+  ): CancelablePromise<PurchaseOrdersCreatePurchaseOrderResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/purchase-orders/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Purchase Orders
+   * Get paginated list of purchase orders with optional filtering
+   * @param data The data for the request.
+   * @param data.page Page number
+   * @param data.pageSize Page size
+   * @param data.status Filter by status
+   * @param data.supplierId Filter by supplier
+   * @param data.startDate Start date (YYYY-MM-DD)
+   * @param data.endDate End date (YYYY-MM-DD)
+   * @returns PurchaseOrderListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static listPurchaseOrders(
+    data: PurchaseOrdersListPurchaseOrdersData = {},
+  ): CancelablePromise<PurchaseOrdersListPurchaseOrdersResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/purchase-orders/",
+      query: {
+        page: data.page,
+        page_size: data.pageSize,
+        status: data.status,
+        supplier_id: data.supplierId,
+        start_date: data.startDate,
+        end_date: data.endDate,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Purchase Order
+   * Get purchase order details by ID
+   * @param data The data for the request.
+   * @param data.purchaseOrderId
+   * @returns PurchaseOrderResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static getPurchaseOrder(
+    data: PurchaseOrdersGetPurchaseOrderData,
+  ): CancelablePromise<PurchaseOrdersGetPurchaseOrderResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/purchase-orders/{purchase_order_id}",
+      path: {
+        purchase_order_id: data.purchaseOrderId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Approve Purchase Order
+   * Approve a purchase order to allow it to be sent
+   * @param data The data for the request.
+   * @param data.purchaseOrderId
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static approvePurchaseOrder(
+    data: PurchaseOrdersApprovePurchaseOrderData,
+  ): CancelablePromise<PurchaseOrdersApprovePurchaseOrderResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/purchase-orders/{purchase_order_id}/approve",
+      path: {
+        purchase_order_id: data.purchaseOrderId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Send Purchase Order
+   * Send approved purchase order to supplier
+   * @param data The data for the request.
+   * @param data.purchaseOrderId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static sendPurchaseOrder(
+    data: PurchaseOrdersSendPurchaseOrderData,
+  ): CancelablePromise<PurchaseOrdersSendPurchaseOrderResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/purchase-orders/{purchase_order_id}/send",
+      path: {
+        purchase_order_id: data.purchaseOrderId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Receive Purchase Order Items
+   * Record receipt of purchase order items and update inventory
+   * @param data The data for the request.
+   * @param data.purchaseOrderId
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static receivePurchaseOrder(
+    data: PurchaseOrdersReceivePurchaseOrderData,
+  ): CancelablePromise<PurchaseOrdersReceivePurchaseOrderResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/purchase-orders/{purchase_order_id}/receive",
+      path: {
+        purchase_order_id: data.purchaseOrderId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search Purchase Orders
+   * Advanced search for purchase orders with multiple criteria
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @param data.page Page number
+   * @param data.pageSize Page size
+   * @returns PurchaseOrderListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static searchPurchaseOrders(
+    data: PurchaseOrdersSearchPurchaseOrdersData,
+  ): CancelablePromise<PurchaseOrdersSearchPurchaseOrdersResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/purchase-orders/search",
+      query: {
+        page: data.page,
+        page_size: data.pageSize,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Purchase Orders Pending Approval
+   * Get purchase orders that require approval
+   * @param data The data for the request.
+   * @param data.page Page number
+   * @param data.pageSize Page size
+   * @returns PurchaseOrderListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static getPendingApprovalOrders(
+    data: PurchaseOrdersGetPendingApprovalOrdersData = {},
+  ): CancelablePromise<PurchaseOrdersGetPendingApprovalOrdersResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/purchase-orders/pending/approval",
+      query: {
+        page: data.page,
+        page_size: data.pageSize,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Purchase Orders Pending Receipt
+   * Get purchase orders that are pending receipt of items
+   * @param data The data for the request.
+   * @param data.page Page number
+   * @param data.pageSize Page size
+   * @param data.overdueOnly Show only overdue orders
+   * @returns PurchaseOrderListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static getPendingReceiptOrders(
+    data: PurchaseOrdersGetPendingReceiptOrdersData = {},
+  ): CancelablePromise<PurchaseOrdersGetPendingReceiptOrdersResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/purchase-orders/pending/receipt",
+      query: {
+        page: data.page,
+        page_size: data.pageSize,
+        overdue_only: data.overdueOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class SuppliersService {
+  /**
+   * Create Supplier
+   * Create a new supplier with comprehensive information
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns SupplierResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static createSupplier(
+    data: SuppliersCreateSupplierData,
+  ): CancelablePromise<SuppliersCreateSupplierResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/suppliers/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Suppliers
+   * Get paginated list of suppliers with optional filtering
+   * @param data The data for the request.
+   * @param data.page Page number
+   * @param data.pageSize Page size
+   * @param data.status Filter by status
+   * @param data.category Filter by category
+   * @param data.isPreferred Filter by preferred status
+   * @param data.search Search by name or code
+   * @returns SupplierListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static listSuppliers(
+    data: SuppliersListSuppliersData = {},
+  ): CancelablePromise<SuppliersListSuppliersResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/suppliers/",
+      query: {
+        page: data.page,
+        page_size: data.pageSize,
+        status: data.status,
+        category: data.category,
+        is_preferred: data.isPreferred,
+        search: data.search,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Supplier
+   * Get supplier details by ID
+   * @param data The data for the request.
+   * @param data.supplierId
+   * @returns SupplierResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static getSupplier(
+    data: SuppliersGetSupplierData,
+  ): CancelablePromise<SuppliersGetSupplierResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/suppliers/{supplier_id}",
+      path: {
+        supplier_id: data.supplierId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Supplier
+   * Update supplier information
+   * @param data The data for the request.
+   * @param data.supplierId
+   * @param data.requestBody
+   * @returns SupplierResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static updateSupplier(
+    data: SuppliersUpdateSupplierData,
+  ): CancelablePromise<SuppliersUpdateSupplierResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/suppliers/{supplier_id}",
+      path: {
+        supplier_id: data.supplierId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Supplier
+   * Delete supplier (soft delete)
+   * @param data The data for the request.
+   * @param data.supplierId
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static deleteSupplier(
+    data: SuppliersDeleteSupplierData,
+  ): CancelablePromise<SuppliersDeleteSupplierResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/suppliers/{supplier_id}",
+      path: {
+        supplier_id: data.supplierId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Advanced Supplier Search
+   * Advanced search for suppliers with multiple criteria
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @param data.page Page number
+   * @param data.pageSize Page size
+   * @returns SupplierListResponseSchema Successful Response
+   * @throws ApiError
+   */
+  public static searchSuppliers(
+    data: SuppliersSearchSuppliersData,
+  ): CancelablePromise<SuppliersSearchSuppliersResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/suppliers/search",
+      query: {
+        page: data.page,
+        page_size: data.pageSize,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Supplier Performance
+   * Get comprehensive performance metrics for a supplier
+   * @param data The data for the request.
+   * @param data.supplierId
+   * @param data.startDate Start date (YYYY-MM-DD)
+   * @param data.endDate End date (YYYY-MM-DD)
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getSupplierPerformance(
+    data: SuppliersGetSupplierPerformanceData,
+  ): CancelablePromise<SuppliersGetSupplierPerformanceResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/suppliers/{supplier_id}/performance",
+      path: {
+        supplier_id: data.supplierId,
+      },
+      query: {
+        start_date: data.startDate,
+        end_date: data.endDate,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Supplier Order History
+   * Get purchase order history for a supplier
+   * @param data The data for the request.
+   * @param data.supplierId
+   * @param data.page Page number
+   * @param data.pageSize Page size
+   * @param data.startDate Start date (YYYY-MM-DD)
+   * @param data.endDate End date (YYYY-MM-DD)
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getSupplierOrders(
+    data: SuppliersGetSupplierOrdersData,
+  ): CancelablePromise<SuppliersGetSupplierOrdersResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/suppliers/{supplier_id}/orders",
+      path: {
+        supplier_id: data.supplierId,
+      },
+      query: {
+        page: data.page,
+        page_size: data.pageSize,
+        start_date: data.startDate,
+        end_date: data.endDate,
       },
       errors: {
         422: "Validation Error",

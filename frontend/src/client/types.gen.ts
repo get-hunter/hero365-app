@@ -740,6 +740,18 @@ export type AdaptedJob = {
 }
 
 /**
+ * Schema for address information.
+ */
+export type AddressSchema = {
+  street_address: string
+  street_address_2?: string | null
+  city: string
+  state?: string | null
+  postal_code?: string | null
+  country: string
+}
+
+/**
  * Schema for advance payment information.
  */
 export type AdvancePaymentSchema_Input = {
@@ -809,6 +821,13 @@ export type AppleSignInRequest = {
    * Full name from Apple (if provided)
    */
   full_name?: string | null
+}
+
+/**
+ * Schema for approving a purchase order.
+ */
+export type ApprovePurchaseOrderSchema = {
+  approval_notes?: string | null
 }
 
 /**
@@ -967,6 +986,25 @@ export type AvailableTimeSlotsResponse = {
    * Deadline to book these slots
    */
   booking_deadline?: string | null
+}
+
+export type Body_products_reserve_stock = {
+  /**
+   * Quantity to reserve
+   */
+  quantity: number
+  /**
+   * Reference ID (order, estimate, etc.)
+   */
+  reference_id: string
+  /**
+   * Reference type
+   */
+  reference_type: string
+  /**
+   * Optional notes
+   */
+  notes?: string | null
 }
 
 /**
@@ -2625,6 +2663,183 @@ export type CreateInvoiceSchema = {
 }
 
 /**
+ * Schema for creating products.
+ */
+export type CreateProductSchema = {
+  /**
+   * Stock Keeping Unit
+   */
+  sku: string
+  /**
+   * Product name
+   */
+  name: string
+  /**
+   * Product description
+   */
+  description?: string | null
+  /**
+   * Product type
+   */
+  product_type?: string
+  /**
+   * Product status
+   */
+  status?: string
+  /**
+   * Product category identifier
+   */
+  category_id?: string | null
+  /**
+   * Pricing model
+   */
+  pricing_model?: string
+  /**
+   * Base unit price
+   */
+  unit_price?: number | string
+  /**
+   * Unit cost
+   */
+  cost_price?: number | string
+  /**
+   * Markup percentage over cost
+   */
+  markup_percentage?: number | string | null
+  /**
+   * Currency code
+   */
+  currency?: string
+  /**
+   * Whether to track inventory
+   */
+  track_inventory?: boolean
+  /**
+   * Unit of measure
+   */
+  unit_of_measure?: string
+  /**
+   * Initial stock quantity
+   */
+  initial_quantity?: number | string
+  /**
+   * Reorder point quantity
+   */
+  reorder_point?: number | string | null
+  /**
+   * Quantity to reorder
+   */
+  reorder_quantity?: number | string | null
+  /**
+   * Minimum stock level
+   */
+  minimum_quantity?: number | string | null
+  /**
+   * Maximum stock level
+   */
+  maximum_quantity?: number | string | null
+  /**
+   * Cost calculation method
+   */
+  costing_method?: string
+  /**
+   * Product weight
+   */
+  weight?: number | string | null
+  /**
+   * Weight unit
+   */
+  weight_unit?: string | null
+  /**
+   * Product dimensions
+   */
+  dimensions?: {
+    [key: string]: number | string
+  } | null
+  /**
+   * Tax rate percentage
+   */
+  tax_rate?: number | string | null
+  /**
+   * Tax code
+   */
+  tax_code?: string | null
+  /**
+   * Whether product is taxable
+   */
+  is_taxable?: boolean
+  /**
+   * Primary supplier identifier
+   */
+  primary_supplier_id?: string | null
+  /**
+   * Product barcode
+   */
+  barcode?: string | null
+  /**
+   * Manufacturer name
+   */
+  manufacturer?: string | null
+  /**
+   * Manufacturer SKU
+   */
+  manufacturer_sku?: string | null
+  /**
+   * Brand name
+   */
+  brand?: string | null
+  /**
+   * Product image URLs
+   */
+  image_urls?: Array<string> | null
+}
+
+/**
+ * Schema for creating a new purchase order.
+ */
+export type CreatePurchaseOrderSchema = {
+  supplier_id: string
+  line_items: Array<PurchaseOrderLineItemSchema>
+  notes?: string | null
+  reference_number?: string | null
+  /**
+   * Expected delivery date (YYYY-MM-DD)
+   */
+  expected_delivery_date?: string | null
+  delivery_address?: {
+    [key: string]: unknown
+  } | null
+  payment_terms_days?: number | null
+}
+
+/**
+ * Schema for creating a new supplier.
+ */
+export type CreateSupplierSchema = {
+  name: string
+  display_name?: string | null
+  supplier_code?: string | null
+  category?: string | null
+  is_preferred?: boolean
+  contacts?: Array<SupplierContactSchema>
+  primary_email?: string | null
+  primary_phone?: string | null
+  website?: string | null
+  billing_address?: AddressSchema | null
+  shipping_address?: AddressSchema | null
+  tax_id?: string | null
+  business_registration?: string | null
+  industry?: string | null
+  payment_terms?: PaymentTermsSchema | null
+  lead_time_days?: number | null
+  minimum_order_amount?: number | null
+  shipping_terms?: string | null
+  notes?: string | null
+  internal_notes?: string | null
+  tags?: Array<string>
+}
+
+/**
  * Request to create time off.
  */
 export type CreateTimeOffRequest = {
@@ -4110,6 +4325,16 @@ export type PaymentSchema = {
   refund_reason?: string | null
 }
 
+/**
+ * Schema for payment terms.
+ */
+export type PaymentTermsSchema = {
+  payment_days?: number
+  early_discount_percentage?: number | null
+  early_discount_days?: number | null
+  late_fee_percentage?: number | null
+}
+
 export type PhoneSignInRequest = {
   phone: string
   password: string
@@ -4157,6 +4382,221 @@ export type ProcessPaymentSchema = {
   transaction_id?: string | null
   notes?: string | null
   payment_date?: string | null
+}
+
+/**
+ * Schema for product list responses.
+ */
+export type ProductListResponseSchema = {
+  products: Array<ProductResponseSchema>
+  total_count: number
+  page: number
+  per_page: number
+  has_next: boolean
+  has_prev: boolean
+}
+
+/**
+ * Schema for product location inventory.
+ */
+export type ProductLocationSchema = {
+  location_id: string
+  location_name: string
+  quantity_on_hand?: string
+  quantity_reserved?: string
+  bin_location?: string | null
+  last_counted_date?: string | null
+}
+
+/**
+ * Schema for product pricing tiers.
+ */
+export type ProductPricingTierSchema = {
+  /**
+   * Minimum quantity for this tier
+   */
+  min_quantity: string
+  /**
+   * Maximum quantity for this tier
+   */
+  max_quantity?: string | null
+  /**
+   * Unit price for this tier
+   */
+  unit_price: string
+  /**
+   * Discount percentage
+   */
+  discount_percentage?: string | null
+}
+
+/**
+ * Schema for product responses.
+ */
+export type ProductResponseSchema = {
+  id: string
+  business_id: string
+  sku: string
+  name: string
+  description?: string | null
+  product_type: string
+  product_type_display: string
+  status: string
+  status_display: string
+  category_id?: string | null
+  category_name?: string | null
+  pricing_model: string
+  unit_price: string
+  currency: string
+  unit_cost: string
+  average_cost: string
+  markup_percentage?: string | null
+  margin_percentage?: string | null
+  track_inventory: boolean
+  quantity_on_hand?: string
+  quantity_reserved?: string
+  quantity_available?: string
+  quantity_on_order?: string
+  reorder_point?: string | null
+  reorder_quantity?: string | null
+  minimum_quantity?: string | null
+  maximum_quantity?: string | null
+  needs_reorder?: boolean
+  is_low_stock?: boolean
+  is_out_of_stock?: boolean
+  unit_of_measure: string
+  weight?: string | null
+  weight_unit?: string | null
+  dimensions?: {
+    [key: string]: string
+  } | null
+  tax_rate: string
+  tax_code?: string | null
+  is_taxable: boolean
+  primary_supplier_id?: string | null
+  suppliers?: Array<ProductSupplierSchema>
+  locations?: Array<ProductLocationSchema>
+  pricing_tiers?: Array<ProductPricingTierSchema>
+  barcode?: string | null
+  manufacturer?: string | null
+  manufacturer_sku?: string | null
+  brand?: string | null
+  image_urls?: Array<string>
+  times_sold?: number
+  last_sale_date?: string | null
+  last_purchase_date?: string | null
+  inventory_value?: string
+  created_by: string
+  created_date: string
+  last_modified: string
+}
+
+/**
+ * Schema for product search parameters.
+ */
+export type ProductSearchSchema = {
+  /**
+   * Search in SKU, name, description
+   */
+  search_term?: string | null
+  /**
+   * Filter by category
+   */
+  category_id?: string | null
+  /**
+   * Filter by status
+   */
+  status?: string | null
+  /**
+   * Filter by product type
+   */
+  product_type?: string | null
+  /**
+   * Filter by supplier
+   */
+  supplier_id?: string | null
+  /**
+   * Show only low stock items
+   */
+  low_stock_only?: boolean
+  /**
+   * Show only out of stock items
+   */
+  out_of_stock_only?: boolean
+  /**
+   * Show only items needing reorder
+   */
+  needs_reorder_only?: boolean
+  /**
+   * Minimum unit price
+   */
+  min_price?: number | string | null
+  /**
+   * Maximum unit price
+   */
+  max_price?: number | string | null
+  /**
+   * Minimum quantity on hand
+   */
+  min_quantity?: number | string | null
+  /**
+   * Maximum quantity on hand
+   */
+  max_quantity?: number | string | null
+  /**
+   * Filter by barcode
+   */
+  barcode?: string | null
+  /**
+   * Filter by manufacturer
+   */
+  manufacturer?: string | null
+  /**
+   * Filter by brand
+   */
+  brand?: string | null
+  /**
+   * Created from date
+   */
+  created_from?: string | null
+  /**
+   * Created to date
+   */
+  created_to?: string | null
+  /**
+   * Filter by creator
+   */
+  created_by?: string | null
+  /**
+   * Number of records to skip
+   */
+  skip?: number
+  /**
+   * Maximum number of records to return
+   */
+  limit?: number
+  /**
+   * Field to sort by
+   */
+  sort_by?: string
+  /**
+   * Sort order
+   */
+  sort_order?: string
+}
+
+/**
+ * Schema for product supplier information.
+ */
+export type ProductSupplierSchema = {
+  supplier_id: string
+  supplier_name: string
+  supplier_sku?: string | null
+  cost_price: string
+  lead_time_days?: number | null
+  minimum_order_quantity?: string | null
+  is_preferred?: boolean
+  last_order_date?: string | null
 }
 
 /**
@@ -4652,6 +5092,99 @@ export type ProjectUpdateRequest = {
 }
 
 /**
+ * Schema for purchase order line item.
+ */
+export type PurchaseOrderLineItemSchema = {
+  product_id: string
+  quantity: number
+  unit_cost: number
+  description?: string | null
+  discount_percentage?: number | null
+  tax_rate?: number | null
+}
+
+/**
+ * Schema for purchase order list response.
+ */
+export type PurchaseOrderListResponseSchema = {
+  purchase_orders: Array<PurchaseOrderResponseSchema>
+  total_count: number
+  page: number
+  page_size: number
+  has_next: boolean
+  has_previous: boolean
+}
+
+/**
+ * Schema for purchase order response.
+ */
+export type PurchaseOrderResponseSchema = {
+  id: string
+  business_id: string
+  po_number: string
+  supplier_id: string
+  supplier_name: string
+  status: string
+  order_date: string
+  expected_delivery_date: string | null
+  actual_delivery_date: string | null
+  subtotal: number
+  tax_amount: number
+  total_amount: number
+  currency: string
+  line_items: Array<{
+    [key: string]: unknown
+  }>
+  notes: string | null
+  internal_notes: string | null
+  reference_number: string | null
+  approved_by: string | null
+  approved_date: string | null
+  sent_date: string | null
+  received_date: string | null
+  is_approved: boolean
+  is_sent: boolean
+  is_fully_received: boolean
+  is_partially_received: boolean
+  can_be_edited: boolean
+  can_be_approved: boolean
+  can_be_sent: boolean
+  created_by: string
+  created_date: string
+  last_modified: string
+}
+
+/**
+ * Schema for purchase order search parameters.
+ */
+export type PurchaseOrderSearchSchema = {
+  status?: PurchaseOrderStatus | null
+  supplier_id?: string | null
+  /**
+   * Start date (YYYY-MM-DD)
+   */
+  start_date?: string | null
+  /**
+   * End date (YYYY-MM-DD)
+   */
+  end_date?: string | null
+  po_number?: string | null
+  reference_number?: string | null
+}
+
+/**
+ * Purchase order status enumeration.
+ */
+export type PurchaseOrderStatus =
+  | "draft"
+  | "sent"
+  | "confirmed"
+  | "partially_received"
+  | "received"
+  | "cancelled"
+  | "closed"
+
+/**
  * Request for real-time schedule adaptation.
  */
 export type RealTimeAdaptationRequest = {
@@ -4769,6 +5302,24 @@ export type RealTimeScheduleStatusResponse = {
   system_health: string
 }
 
+/**
+ * Schema for receiving purchase order items.
+ */
+export type ReceiveItemSchema = {
+  line_item_id: string
+  quantity_received: number
+  notes?: string | null
+}
+
+/**
+ * Schema for receiving purchase order items.
+ */
+export type ReceivePurchaseOrderSchema = {
+  received_items: Array<ReceiveItemSchema>
+  notes?: string | null
+  partial_receipt?: boolean
+}
+
 export type RecurrenceType =
   | "none"
   | "daily"
@@ -4799,6 +5350,40 @@ export type RelationshipStatus =
   | "closed_won"
   | "closed_lost"
   | "dormant"
+
+/**
+ * Schema for reorder suggestions.
+ */
+export type ReorderSuggestionSchema = {
+  product_id: string
+  sku: string
+  name: string
+  current_stock: string
+  available_stock: string
+  reorder_point?: string | null
+  suggested_quantity: string
+  unit_cost: string
+  suggested_cost: string
+  priority: string
+  days_until_stockout?: number | null
+  supplier_id?: string | null
+  supplier_name?: string | null
+  lead_time_days?: number | null
+  category_name?: string | null
+}
+
+/**
+ * Schema for reorder suggestions response.
+ */
+export type ReorderSuggestionsResponseSchema = {
+  suggestions: Array<ReorderSuggestionSchema>
+  total_items: number
+  total_suggested_value: string
+  high_priority_count: number
+  medium_priority_count: number
+  low_priority_count: number
+  generated_at: string
+}
 
 /**
  * Response for scheduling analytics.
@@ -5039,6 +5624,127 @@ export type StatusHistoryEntrySchema = {
    */
   reason?: string | null
 }
+
+/**
+ * Schema for stock action responses.
+ */
+export type StockActionResponse = {
+  success?: boolean
+  message: string
+  movement_id?: string | null
+  quantity_before?: string | null
+  quantity_after?: string | null
+  quantity_change?: string | null
+}
+
+/**
+ * Schema for stock adjustments.
+ */
+export type StockAdjustmentSchema = {
+  product_id: string
+  /**
+   * Quantity change (positive for increase, negative for decrease)
+   */
+  quantity_change: number | string
+  /**
+   * Reason for adjustment
+   */
+  adjustment_reason: string
+  /**
+   * Reference number
+   */
+  reference_number?: string | null
+  /**
+   * Additional notes
+   */
+  notes?: string | null
+}
+
+/**
+ * Schema for supplier contact information.
+ */
+export type SupplierContactSchema = {
+  name: string
+  title?: string | null
+  email?: string | null
+  phone?: string | null
+  mobile?: string | null
+  is_primary?: boolean
+}
+
+/**
+ * Schema for supplier list response.
+ */
+export type SupplierListResponseSchema = {
+  suppliers: Array<SupplierResponseSchema>
+  total_count: number
+  page: number
+  page_size: number
+  has_next: boolean
+  has_previous: boolean
+}
+
+/**
+ * Schema for supplier response.
+ */
+export type SupplierResponseSchema = {
+  id: string
+  business_id: string
+  name: string
+  display_name: string | null
+  supplier_code: string | null
+  status: string
+  category: string | null
+  is_preferred: boolean
+  contacts: Array<{
+    [key: string]: unknown
+  }>
+  primary_email: string | null
+  primary_phone: string | null
+  website: string | null
+  billing_address: {
+    [key: string]: unknown
+  } | null
+  shipping_address: {
+    [key: string]: unknown
+  } | null
+  tax_id: string | null
+  business_registration: string | null
+  industry: string | null
+  payment_terms: {
+    [key: string]: unknown
+  }
+  performance: {
+    [key: string]: unknown
+  }
+  lead_time_days: number | null
+  minimum_order_amount: number | null
+  shipping_terms: string | null
+  notes: string | null
+  internal_notes: string | null
+  tags: Array<string>
+  created_by: string
+  created_date: string
+  last_modified: string
+  last_contact_date: string | null
+}
+
+/**
+ * Schema for supplier search parameters.
+ */
+export type SupplierSearchSchema = {
+  query?: string | null
+  status?: SupplierStatus | null
+  category?: string | null
+  is_preferred?: boolean | null
+  country?: string | null
+  has_active_orders?: boolean | null
+}
+
+/**
+ * Supplier status enumeration.
+ */
+export type SupplierStatus = "active" | "inactive" | "pending" | "suspended"
 
 /**
  * Schema for switching business context.
@@ -5554,6 +6260,66 @@ export type UpdateInvoiceSchema = {
   late_fee_percentage?: number | string | null
   late_fee_grace_days?: number | null
   payment_instructions?: string | null
+}
+
+/**
+ * Schema for updating products.
+ */
+export type UpdateProductSchema = {
+  name?: string | null
+  description?: string | null
+  status?: string | null
+  category_id?: string | null
+  unit_price?: number | string | null
+  cost_price?: number | string | null
+  markup_percentage?: number | string | null
+  track_inventory?: boolean | null
+  reorder_point?: number | string | null
+  reorder_quantity?: number | string | null
+  minimum_quantity?: number | string | null
+  maximum_quantity?: number | string | null
+  weight?: number | string | null
+  weight_unit?: string | null
+  dimensions?: {
+    [key: string]: number | string
+  } | null
+  tax_rate?: number | string | null
+  tax_code?: string | null
+  is_taxable?: boolean | null
+  primary_supplier_id?: string | null
+  barcode?: string | null
+  manufacturer?: string | null
+  manufacturer_sku?: string | null
+  brand?: string | null
+  image_urls?: Array<string> | null
+}
+
+/**
+ * Schema for updating an existing supplier.
+ */
+export type UpdateSupplierSchema = {
+  name?: string | null
+  display_name?: string | null
+  supplier_code?: string | null
+  category?: string | null
+  is_preferred?: boolean | null
+  status?: SupplierStatus | null
+  contacts?: Array<SupplierContactSchema> | null
+  primary_email?: string | null
+  primary_phone?: string | null
+  website?: string | null
+  billing_address?: AddressSchema | null
+  shipping_address?: AddressSchema | null
+  tax_id?: string | null
+  business_registration?: string | null
+  industry?: string | null
+  payment_terms?: PaymentTermsSchema | null
+  lead_time_days?: number | null
+  minimum_order_amount?: number | null
+  shipping_terms?: string | null
+  notes?: string | null
+  internal_notes?: string | null
+  tags?: Array<string> | null
 }
 
 /**
@@ -7147,6 +7913,145 @@ export type MiddlewareHealthTestBusinessContextRequiredResponse = {
   [key: string]: unknown
 }
 
+export type CreateProductNoSlashData = {
+  requestBody: CreateProductSchema
+}
+
+export type CreateProductNoSlashResponse = ProductResponseSchema
+
+export type ListProductsNoSlashData = {
+  /**
+   * Filter by category ID
+   */
+  categoryId?: string | null
+  /**
+   * Maximum number of records to return
+   */
+  limit?: number
+  /**
+   * Show only low stock items
+   */
+  lowStockOnly?: boolean
+  /**
+   * Number of records to skip
+   */
+  skip?: number
+  /**
+   * Filter by product status
+   */
+  status?: string | null
+  /**
+   * Filter by supplier ID
+   */
+  supplierId?: string | null
+}
+
+export type ListProductsNoSlashResponse = ProductListResponseSchema
+
+export type ProductsCreateProductData = {
+  requestBody: CreateProductSchema
+}
+
+export type ProductsCreateProductResponse = ProductResponseSchema
+
+export type ProductsListProductsData = {
+  /**
+   * Filter by category ID
+   */
+  categoryId?: string | null
+  /**
+   * Maximum number of records to return
+   */
+  limit?: number
+  /**
+   * Show only low stock items
+   */
+  lowStockOnly?: boolean
+  /**
+   * Number of records to skip
+   */
+  skip?: number
+  /**
+   * Filter by product status
+   */
+  status?: string | null
+  /**
+   * Filter by supplier ID
+   */
+  supplierId?: string | null
+}
+
+export type ProductsListProductsResponse = ProductListResponseSchema
+
+export type ProductsGetProductData = {
+  /**
+   * Product ID
+   */
+  productId: string
+}
+
+export type ProductsGetProductResponse = ProductResponseSchema
+
+export type ProductsUpdateProductData = {
+  /**
+   * Product ID
+   */
+  productId: string
+  requestBody: UpdateProductSchema
+}
+
+export type ProductsUpdateProductResponse = ProductResponseSchema
+
+export type ProductsDeleteProductData = {
+  /**
+   * Product ID
+   */
+  productId: string
+}
+
+export type ProductsDeleteProductResponse =
+  app__api__schemas__activity_schemas__MessageResponse
+
+export type ProductsSearchProductsData = {
+  requestBody: ProductSearchSchema
+}
+
+export type ProductsSearchProductsResponse = ProductListResponseSchema
+
+export type ProductsAdjustStockData = {
+  /**
+   * Product ID
+   */
+  productId: string
+  requestBody: StockAdjustmentSchema
+}
+
+export type ProductsAdjustStockResponse = StockActionResponse
+
+export type ProductsReserveStockData = {
+  /**
+   * Product ID
+   */
+  productId: string
+  requestBody: Body_products_reserve_stock
+}
+
+export type ProductsReserveStockResponse = StockActionResponse
+
+export type ProductsGetReorderSuggestionsData = {
+  /**
+   * Filter by category
+   */
+  categoryId?: string | null
+  /**
+   * Filter by supplier
+   */
+  supplierId?: string | null
+}
+
+export type ProductsGetReorderSuggestionsResponse =
+  ReorderSuggestionsResponseSchema
+
 export type ProjectsCreateProjectData = {
   requestBody: ProjectCreateRequest
 }
@@ -7380,6 +8285,227 @@ export type ProjectsRemoveJobFromProject1Data = {
 }
 
 export type ProjectsRemoveJobFromProject1Response = ProjectActionResponse
+
+export type PurchaseOrdersCreatePurchaseOrderData = {
+  requestBody: CreatePurchaseOrderSchema
+}
+
+export type PurchaseOrdersCreatePurchaseOrderResponse = {
+  [key: string]: unknown
+}
+
+export type PurchaseOrdersListPurchaseOrdersData = {
+  /**
+   * End date (YYYY-MM-DD)
+   */
+  endDate?: string | null
+  /**
+   * Page number
+   */
+  page?: number
+  /**
+   * Page size
+   */
+  pageSize?: number
+  /**
+   * Start date (YYYY-MM-DD)
+   */
+  startDate?: string | null
+  /**
+   * Filter by status
+   */
+  status?: PurchaseOrderStatus | null
+  /**
+   * Filter by supplier
+   */
+  supplierId?: string | null
+}
+
+export type PurchaseOrdersListPurchaseOrdersResponse =
+  PurchaseOrderListResponseSchema
+
+export type PurchaseOrdersGetPurchaseOrderData = {
+  purchaseOrderId: string
+}
+
+export type PurchaseOrdersGetPurchaseOrderResponse = PurchaseOrderResponseSchema
+
+export type PurchaseOrdersApprovePurchaseOrderData = {
+  purchaseOrderId: string
+  requestBody: ApprovePurchaseOrderSchema
+}
+
+export type PurchaseOrdersApprovePurchaseOrderResponse = {
+  [key: string]: unknown
+}
+
+export type PurchaseOrdersSendPurchaseOrderData = {
+  purchaseOrderId: string
+}
+
+export type PurchaseOrdersSendPurchaseOrderResponse = {
+  [key: string]: unknown
+}
+
+export type PurchaseOrdersReceivePurchaseOrderData = {
+  purchaseOrderId: string
+  requestBody: ReceivePurchaseOrderSchema
+}
+
+export type PurchaseOrdersReceivePurchaseOrderResponse = {
+  [key: string]: unknown
+}
+
+export type PurchaseOrdersSearchPurchaseOrdersData = {
+  /**
+   * Page number
+   */
+  page?: number
+  /**
+   * Page size
+   */
+  pageSize?: number
+  requestBody: PurchaseOrderSearchSchema
+}
+
+export type PurchaseOrdersSearchPurchaseOrdersResponse =
+  PurchaseOrderListResponseSchema
+
+export type PurchaseOrdersGetPendingApprovalOrdersData = {
+  /**
+   * Page number
+   */
+  page?: number
+  /**
+   * Page size
+   */
+  pageSize?: number
+}
+
+export type PurchaseOrdersGetPendingApprovalOrdersResponse =
+  PurchaseOrderListResponseSchema
+
+export type PurchaseOrdersGetPendingReceiptOrdersData = {
+  /**
+   * Show only overdue orders
+   */
+  overdueOnly?: boolean
+  /**
+   * Page number
+   */
+  page?: number
+  /**
+   * Page size
+   */
+  pageSize?: number
+}
+
+export type PurchaseOrdersGetPendingReceiptOrdersResponse =
+  PurchaseOrderListResponseSchema
+
+export type SuppliersCreateSupplierData = {
+  requestBody: CreateSupplierSchema
+}
+
+export type SuppliersCreateSupplierResponse = SupplierResponseSchema
+
+export type SuppliersListSuppliersData = {
+  /**
+   * Filter by category
+   */
+  category?: string | null
+  /**
+   * Filter by preferred status
+   */
+  isPreferred?: boolean | null
+  /**
+   * Page number
+   */
+  page?: number
+  /**
+   * Page size
+   */
+  pageSize?: number
+  /**
+   * Search by name or code
+   */
+  search?: string | null
+  /**
+   * Filter by status
+   */
+  status?: SupplierStatus | null
+}
+
+export type SuppliersListSuppliersResponse = SupplierListResponseSchema
+
+export type SuppliersGetSupplierData = {
+  supplierId: string
+}
+
+export type SuppliersGetSupplierResponse = SupplierResponseSchema
+
+export type SuppliersUpdateSupplierData = {
+  requestBody: UpdateSupplierSchema
+  supplierId: string
+}
+
+export type SuppliersUpdateSupplierResponse = SupplierResponseSchema
+
+export type SuppliersDeleteSupplierData = {
+  supplierId: string
+}
+
+export type SuppliersDeleteSupplierResponse = void
+
+export type SuppliersSearchSuppliersData = {
+  /**
+   * Page number
+   */
+  page?: number
+  /**
+   * Page size
+   */
+  pageSize?: number
+  requestBody: SupplierSearchSchema
+}
+
+export type SuppliersSearchSuppliersResponse = SupplierListResponseSchema
+
+export type SuppliersGetSupplierPerformanceData = {
+  /**
+   * End date (YYYY-MM-DD)
+   */
+  endDate?: string | null
+  /**
+   * Start date (YYYY-MM-DD)
+   */
+  startDate?: string | null
+  supplierId: string
+}
+
+export type SuppliersGetSupplierPerformanceResponse = unknown
+
+export type SuppliersGetSupplierOrdersData = {
+  /**
+   * End date (YYYY-MM-DD)
+   */
+  endDate?: string | null
+  /**
+   * Page number
+   */
+  page?: number
+  /**
+   * Page size
+   */
+  pageSize?: number
+  /**
+   * Start date (YYYY-MM-DD)
+   */
+  startDate?: string | null
+  supplierId: string
+}
+
+export type SuppliersGetSupplierOrdersResponse = unknown
 
 export type TemplatesGetInvoiceTemplatesData = {
   /**

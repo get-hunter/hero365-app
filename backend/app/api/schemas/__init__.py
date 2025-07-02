@@ -91,6 +91,23 @@ from .invoice_schemas import (
     InvoiceLineItemSchema,
     PaymentSchema,
 )
+from .product_schemas import (
+    ProductResponseSchema,
+    CreateProductSchema,
+    UpdateProductSchema,
+    ProductSummarySchema,
+    ProductSearchSchema,
+    ProductListResponseSchema,
+    StockAdjustmentSchema,
+    StockMovementResponseSchema,
+    ReorderSuggestionSchema,
+    ReorderSuggestionsResponseSchema,
+    ProductActionResponse,
+    StockActionResponse,
+    ProductPricingTierSchema,
+    ProductLocationSchema,
+    ProductSupplierSchema,
+)
 
 __all__ = [
     # Activity schemas
@@ -172,4 +189,20 @@ __all__ = [
     "InvoiceStatusUpdateSchema",
     "InvoiceLineItemSchema",
     "PaymentSchema",
+    # Product schemas
+    "ProductResponseSchema",
+    "CreateProductSchema",
+    "UpdateProductSchema",
+    "ProductSummarySchema",
+    "ProductSearchSchema",
+    "ProductListResponseSchema",
+    "StockAdjustmentSchema",
+    "StockMovementResponseSchema",
+    "ReorderSuggestionSchema",
+    "ReorderSuggestionsResponseSchema",
+    "ProductActionResponse",
+    "StockActionResponse",
+    "ProductPricingTierSchema",
+    "ProductLocationSchema",
+    "ProductSupplierSchema",
 ] 

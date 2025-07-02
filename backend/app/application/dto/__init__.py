@@ -78,6 +78,14 @@ from .invoice_dto import (
     InvoiceLineItemDTO,
     PaymentDTO,
 )
+from .product_dto import (
+    ProductDTO,
+    CreateProductDTO,
+    ProductSummaryDTO,
+    ProductSearchCriteria,
+    ProductListDTO,
+    StockAdjustmentDTO,
+)
 
 __all__ = [
     # Activity DTOs
@@ -146,4 +154,11 @@ __all__ = [
     "ProcessPaymentDTO",
     "InvoiceLineItemDTO",
     "PaymentDTO",
+    # Product DTOs
+    "ProductDTO",
+    "CreateProductDTO",
+    "ProductSummaryDTO",
+    "ProductSearchCriteria",
+    "ProductListDTO",
+    "StockAdjustmentDTO",
 ] 

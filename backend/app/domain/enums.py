@@ -575,7 +575,7 @@ class EmailStatus(str, Enum):
             self.FAILED: "Failed",
             self.UNSUBSCRIBED: "Unsubscribed"
         }
-        return display_map.get(self, self.value.title())
+        return display_map.get(self, self.value.title()) 
 
 
 # Inventory Management Enums
