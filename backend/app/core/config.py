@@ -108,6 +108,10 @@ class Settings(BaseSettings):
     LIVEKIT_API_KEY: str | None = None
     LIVEKIT_API_SECRET: str | None = None
     
+    # SIP Configuration for Outbound Calls
+    SIP_OUTBOUND_TRUNK_ID: str | None = None
+    SIP_DEFAULT_TRANSFER_NUMBER: str | None = None
+    
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SUPABASE_ANON_KEY(self) -> str:

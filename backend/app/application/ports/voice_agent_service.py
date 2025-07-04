@@ -54,11 +54,36 @@ class OutboundCallConfig:
     business_id: uuid.UUID
     recipient_phone: str
     recipient_name: str
+    
+    # SIP Configuration
+    sip_trunk_id: Optional[str] = None
+    transfer_to: Optional[str] = None
+    wait_until_answered: bool = True
+    
+    # Call Configuration
     campaign_id: Optional[uuid.UUID] = None
     script_instructions: Optional[str] = None
     max_duration_minutes: int = 10
     priority: int = 1
+    max_attempts: int = 3
+    
+    # Agent Configuration
     tools: List[str] = None
+    agent_instructions: Optional[str] = None
+    
+    # Dial Information
+    dial_info: Optional[Dict[str, Any]] = None
+    
+    def __post_init__(self):
+        """Initialize dial_info if not provided."""
+        if self.dial_info is None:
+            self.dial_info = {
+                "phone_number": self.recipient_phone,
+                "transfer_to": self.transfer_to,
+                "recipient_name": self.recipient_name,
+                "sip_trunk_id": self.sip_trunk_id,
+                "wait_until_answered": self.wait_until_answered
+            }
 
 
 @dataclass
@@ -206,6 +231,46 @@ class VoiceAgentServicePort(ABC):
         
         Returns:
             Health status dictionary
+        """
+        pass
+    
+    @abstractmethod
+    async def transfer_call(self, session_id: uuid.UUID, transfer_to: str) -> VoiceAgentResult:
+        """
+        Transfer an active call to another number.
+        
+        Args:
+            session_id: Session identifier
+            transfer_to: Phone number to transfer to
+            
+        Returns:
+            VoiceAgentResult with transfer status
+        """
+        pass
+    
+    @abstractmethod
+    async def hangup_call(self, session_id: uuid.UUID) -> VoiceAgentResult:
+        """
+        Hang up an active call.
+        
+        Args:
+            session_id: Session identifier
+            
+        Returns:
+            VoiceAgentResult with hangup status
+        """
+        pass
+    
+    @abstractmethod
+    async def handle_answering_machine(self, session_id: uuid.UUID) -> VoiceAgentResult:
+        """
+        Handle detection of answering machine/voicemail.
+        
+        Args:
+            session_id: Session identifier
+            
+        Returns:
+            VoiceAgentResult with handling status
         """
         pass
 

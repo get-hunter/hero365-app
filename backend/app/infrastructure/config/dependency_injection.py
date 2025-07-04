@@ -43,7 +43,7 @@ from ..external_services.resend_email_adapter import ResendEmailAdapter
 from ..external_services.twilio_sms_adapter import TwilioSMSAdapter
 from ..external_services.google_maps_adapter import GoogleMapsAdapter
 from ..external_services.weather_service_adapter import WeatherServiceAdapter
-from ..external_services.livekit_voice_agent_adapter import LiveKitVoiceAgentAdapter
+from ..external_services.livekit_voice_agent_service import create_livekit_voice_agent_service
 from app.infrastructure.database.repositories import (
     SupabaseActivityRepository,
     SupabaseBusinessInvitationRepository,
@@ -269,11 +269,7 @@ class DependencyContainer:
         
         # Voice agent service (LiveKit integration) - Optional dependency
         try:
-            self._services['voice_agent_service'] = LiveKitVoiceAgentAdapter(
-                livekit_url=settings.LIVEKIT_URL,
-                livekit_api_key=settings.LIVEKIT_API_KEY,
-                livekit_api_secret=settings.LIVEKIT_API_SECRET
-            )
+            self._services['voice_agent_service'] = create_livekit_voice_agent_service()
         except ImportError as e:
             # LiveKit packages not installed - voice agent service will be unavailable
             self._services['voice_agent_service'] = None
