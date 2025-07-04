@@ -40,6 +40,10 @@ from ...application.ports.voice_agent_service import (
 )
 from ...domain.enums import AgentType, VoiceSessionStatus, CallStatus
 from ...core.config import settings
+from .voice_agent_tools import (
+    create_voice_agent_tools, VoiceAgentToolFactory, BaseVoiceAgentTool,
+    VoiceAgentContext as EnhancedVoiceAgentContext
+)
 
 logger = logging.getLogger(__name__)
 
@@ -490,6 +494,7 @@ class LiveKitVoiceAgentService(VoiceAgentServicePort):
     """
     
     def __init__(self, 
+                 use_case_container: Any = None,
                  livekit_url: Optional[str] = None,
                  livekit_api_key: Optional[str] = None,
                  livekit_api_secret: Optional[str] = None,
@@ -497,6 +502,9 @@ class LiveKitVoiceAgentService(VoiceAgentServicePort):
         
         if not LIVEKIT_AVAILABLE:
             raise ImportError("LiveKit packages are required. Install with: pip install livekit livekit-agents")
+        
+        # Store use case container for dependency injection
+        self.use_case_container = use_case_container
         
         # LiveKit configuration
         self.livekit_url = livekit_url or settings.LIVEKIT_URL or "ws://localhost:7880"
@@ -520,11 +528,19 @@ class LiveKitVoiceAgentService(VoiceAgentServicePort):
         # Active sessions tracking
         self.active_sessions: Dict[str, Dict[str, Any]] = {}
         
-        # Agent configurations
+        # Initialize tool factory and advanced tools
+        if self.use_case_container:
+            self.tool_factory = VoiceAgentToolFactory(self.use_case_container)
+            self.advanced_tools = self.tool_factory.create_all_tools()
+        else:
+            self.tool_factory = None
+            self.advanced_tools = []
+        
+        # Agent configurations with enhanced tools
         self.agent_configs = {
-            AgentType.PERSONAL_ASSISTANT: LiveKitAgentConfigurations.get_personal_assistant_config(),
-            AgentType.OUTBOUND_CALLER: LiveKitAgentConfigurations.get_outbound_caller_config(),
-            AgentType.SALES_AGENT: LiveKitAgentConfigurations.get_sales_agent_config()
+            AgentType.PERSONAL_ASSISTANT: self._get_enhanced_personal_assistant_config(),
+            AgentType.OUTBOUND_CALLER: self._get_enhanced_outbound_caller_config(),
+            AgentType.SALES_AGENT: self._get_enhanced_sales_agent_config()
         }
         
         # Tool registry
@@ -540,14 +556,119 @@ class LiveKitVoiceAgentService(VoiceAgentServicePort):
         self._register_default_tools()
         
         logger.info(f"LiveKit Voice Agent Service initialized with URL: {self.livekit_url}")
+        if self.use_case_container:
+            logger.info(f"Advanced tools registered: {len(self.advanced_tools)}")
+    
+    def _get_enhanced_personal_assistant_config(self) -> AgentConfiguration:
+        """Get enhanced Personal Assistant configuration with advanced tools."""
+        # Get base configuration
+        base_config = LiveKitAgentConfigurations.get_personal_assistant_config()
+        
+        # Add advanced tools if available
+        enhanced_tools = []
+        enhanced_tools.extend(base_config.tools)  # Keep basic tools
+        
+        if self.advanced_tools:
+            # Add specific advanced tools for personal assistant
+            tool_names = [
+                "advanced_availability_lookup",
+                "intelligent_appointment_booking",
+                "calendar_availability_check",
+                "appointment_rescheduling",
+                "customer_lookup",
+                "emergency_scheduling"
+            ]
+            
+            for tool in self.advanced_tools:
+                if tool.name in tool_names:
+                    enhanced_tools.append(tool)
+        
+        return AgentConfiguration(
+            name=base_config.name,
+            description=base_config.description,
+            instructions=base_config.instructions,
+            tools=enhanced_tools,
+            max_duration_minutes=base_config.max_duration_minutes,
+            voice_settings=base_config.voice_settings
+        )
+    
+    def _get_enhanced_outbound_caller_config(self) -> AgentConfiguration:
+        """Get enhanced Outbound Caller configuration with advanced tools."""
+        # Get base configuration
+        base_config = LiveKitAgentConfigurations.get_outbound_caller_config()
+        
+        # Add advanced tools if available
+        enhanced_tools = []
+        enhanced_tools.extend(base_config.tools)  # Keep basic tools
+        
+        if self.advanced_tools:
+            # Add specific advanced tools for outbound caller
+            tool_names = [
+                "advanced_availability_lookup",
+                "intelligent_appointment_booking",
+                "customer_lookup",
+                "intelligent_quote_generation"
+            ]
+            
+            for tool in self.advanced_tools:
+                if tool.name in tool_names:
+                    enhanced_tools.append(tool)
+        
+        return AgentConfiguration(
+            name=base_config.name,
+            description=base_config.description,
+            instructions=base_config.instructions,
+            tools=enhanced_tools,
+            max_duration_minutes=base_config.max_duration_minutes,
+            voice_settings=base_config.voice_settings
+        )
+    
+    def _get_enhanced_sales_agent_config(self) -> AgentConfiguration:
+        """Get enhanced Sales Agent configuration with advanced tools."""
+        # Get base configuration
+        base_config = LiveKitAgentConfigurations.get_sales_agent_config()
+        
+        # Add advanced tools if available
+        enhanced_tools = []
+        enhanced_tools.extend(base_config.tools)  # Keep basic tools
+        
+        if self.advanced_tools:
+            # Add specific advanced tools for sales agent
+            tool_names = [
+                "customer_lookup",
+                "intelligent_quote_generation",
+                "estimate_to_invoice_conversion",
+                "advanced_availability_lookup",
+                "intelligent_appointment_booking"
+            ]
+            
+            for tool in self.advanced_tools:
+                if tool.name in tool_names:
+                    enhanced_tools.append(tool)
+        
+        return AgentConfiguration(
+            name=base_config.name,
+            description=base_config.description,
+            instructions=base_config.instructions,
+            tools=enhanced_tools,
+            max_duration_minutes=base_config.max_duration_minutes,
+            voice_settings=base_config.voice_settings
+        )
     
     def _register_default_tools(self):
         """Register default tools for each agent type."""
         # Register tools from configurations
         for agent_type, config in self.agent_configs.items():
             for tool in config.tools:
+                # Handle both old simple tools and new advanced tools
+                tool_name = tool.name if hasattr(tool, 'name') else getattr(tool, '__class__').__name__
+                self.tools[tool_name] = tool
+                self.agent_tools[agent_type].add(tool_name)
+        
+        # Register advanced tools separately for easier access
+        if self.advanced_tools:
+            for tool in self.advanced_tools:
                 self.tools[tool.name] = tool
-                self.agent_tools[agent_type].add(tool.name)
     
     async def create_voice_session(self, config: VoiceSessionConfig) -> VoiceAgentResult:
         """Create a new voice session."""
@@ -1126,6 +1247,6 @@ class LiveKitVoiceAgentService(VoiceAgentServicePort):
 
 
 # Factory function for dependency injection
-def create_livekit_voice_agent_service() -> LiveKitVoiceAgentService:
-    """Create LiveKit voice agent service instance."""
-    return LiveKitVoiceAgentService() 
+def create_livekit_voice_agent_service(use_case_container: Any = None) -> LiveKitVoiceAgentService:
+    """Create LiveKit voice agent service instance with dependency injection."""
+    return LiveKitVoiceAgentService(use_case_container=use_case_container) 

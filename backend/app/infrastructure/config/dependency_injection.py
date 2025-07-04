@@ -269,7 +269,7 @@ class DependencyContainer:
         
         # Voice agent service (LiveKit integration) - Optional dependency
         try:
-            self._services['voice_agent_service'] = create_livekit_voice_agent_service()
+            self._services['voice_agent_service'] = create_livekit_voice_agent_service(use_case_container=self)
         except ImportError as e:
             # LiveKit packages not installed - voice agent service will be unavailable
             self._services['voice_agent_service'] = None
