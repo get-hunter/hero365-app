@@ -692,3 +692,241 @@ Successfully updated dependency injection container with all inventory managemen
 
 **Completed:**
 Created comprehensive API documentation (docs/api/inventory-management-api.md) covering the complete inventory management system. The documentation includes detailed endpoint specifications for products, suppliers, purchase orders, and stock movements with comprehensive request/response schemas, authentication requirements, error handling, mobile app integration examples, business rules, workflow descriptions, and integration patterns with other systems. The documentation follows the established format and provides complete guidance for mobile app developers to consume the inventory management APIs.
+
+**✅ PHASE 11 COMPLETION SUMMARY:**
+Successfully implemented a comprehensive Products & Inventory Management System for Hero365 with:
+- **5 Domain Entities**: Product (520 lines), ProductCategory, StockMovement, Supplier (535 lines), PurchaseOrder with complete business logic
+- **5 Repository Interfaces & Implementations**: Full CRUD, search, analytics, and mobile optimization 
+- **4 Major Use Cases**: Product creation, inventory management, purchase order processing, reorder automation
+- **763-Line Database Migration**: Complete schema with RLS policies, triggers, and performance indexing
+- **2,107 Lines of API Routes**: Products (607), Suppliers (771), Purchase Orders (729) with comprehensive functionality
+- **Complete API Documentation**: 800+ lines covering all endpoints, schemas, and integration patterns
+- **Dependency Injection Integration**: All components properly wired with clean architecture patterns
+- **OpenAPI Generation**: Successfully validated - application starts and generates complete API specification
+
+The inventory management system provides complete functionality for product catalog management, stock tracking with audit trails, supplier relationship management with performance metrics, purchase order workflow with approvals, automated reorder suggestions, cost management with multiple costing methods, and mobile-optimized APIs. All implementation follows clean architecture practices and integrates seamlessly with existing Hero365 systems.
+
+## Phase 12: Voice Agent Integration System - **In Progress**
+
+### Step 12.1: Voice Agent Domain Foundation - **Done**
+- [x] Create voice agent domain entities (VoiceSession, VoiceCommand, VoiceResponse, OutboundCall)
+- [x] Add voice agent enums (CallStatus, CallPurpose, VoiceSessionStatus, AgentType)
+- [x] Create voice context entities (BusinessContext, UserContext, CallContext)
+- [x] Implement voice agent business logic and validation
+- [x] Add voice session lifecycle management
+
+**Completed:**
+Successfully created comprehensive voice agent domain layer with 8 new enums (VoiceSessionStatus, AgentType, CallStatus, CallPurpose, VoiceCommandType, VoiceResponseType, CallOutcome, VoiceAnalyticsMetric) and 3 main entities: VoiceSession (340 lines) with analytics and context tracking, VoiceCommand (330 lines) with execution tracking and audio metrics, and OutboundCall (472 lines) with complete call management and campaign integration. Implemented complete business logic for voice interactions, session management, call automation, and comprehensive validation following clean architecture principles. Added all entities to domain exports.
+
+### Step 12.2: Voice Agent Repository Interfaces - **Done**
+- [x] Create VoiceSessionRepository interface with session management operations
+- [x] Create OutboundCallRepository interface with call scheduling and tracking
+- [x] Define voice agent search, filtering, and reporting methods
+- [x] Update repository package exports with new voice interfaces
+- [x] Simplified by removing VoiceAnalyticsRepository (can be added later)
+
+**Completed:**
+Successfully created simplified voice agent repository interfaces following established patterns: VoiceSessionRepository (200 lines) with session management, basic analytics, emergency handling, and mobile optimization; OutboundCallRepository (320 lines) with call scheduling, campaign management, follow-up tracking, and basic reporting capabilities. Both interfaces include extensive CRUD operations, search functionality, bulk operations, and mobile-optimized methods. Simplified implementation by removing dedicated analytics repository - basic analytics are included in the main repositories. Updated repository package exports.
+
+### Step 12.3: LiveKit Agents 1.0 Infrastructure - **Done**
+- [x] Create LiveKit service adapter following clean architecture
+- [x] Implement voice agent factory for personal assistant and outbound caller
+- [x] Set up LiveKit Agents 1.0 configuration and session management
+- [x] Create voice tool registry system for dynamic tool discovery
+- [x] Implement voice command processor with natural language parsing
+
+**Completed:**
+Successfully implemented comprehensive LiveKit Agents 1.0 infrastructure foundation including:
+1. VoiceAgentServicePort interface (250 lines) - Abstract interface defining contracts for voice session management, agent creation, tool registration, and LiveKit integration
+2. LiveKitVoiceAgentAdapter (613 lines) - Complete implementation using LiveKit Agents 1.0 with session management, room creation, JWT token generation, health monitoring, and STT-LLM-TTS pipeline setup
+3. VoiceAgentFactory (441 lines) - Factory for creating and configuring different agent types with predefined configurations for Personal Assistant and Outbound Caller, including tool management and health validation
+4. InMemoryVoiceToolRegistry - Dynamic tool discovery and registration system for voice agents
+5. OpenAIVoiceCommandProcessor - Natural language processing for voice command intent recognition and parameter extraction
+
+All components follow clean architecture patterns, include comprehensive error handling, support emergency modes, mobile optimization, and provide foundation for both personal assistant and outbound calling capabilities. Updated external services package exports to include new infrastructure components.
+
+### Step 12.4: Personal Voice Assistant Implementation - **Done**
+- [x] Create Hero365PersonalAssistant agent for hands-free mobile use
+- [x] Implement personal assistant tools (schedule, jobs, navigation, inventory)
+- [x] Add emergency scheduling and route optimization features
+- [x] Create field notes and voice photo tagging capabilities
+- [x] Implement business intelligence and voice analytics tools
+
+**Completed:**
+Successfully implemented comprehensive personal voice assistant system with 10 use cases totaling 4,609 lines of code:
+1. VoiceAgentHelperService (379 lines) - Common voice agent functionality with permission checking, session validation, and business context
+2. StartVoiceSessionUseCase (241 lines) - Complete session startup flow with LiveKit integration and emergency mode support
+3. ProcessVoiceCommandUseCase (570 lines) - Voice command processing with 9 command handlers for business operations
+4. EndVoiceSessionUseCase (268 lines) - Session termination with analytics and cleanup
+5. PersonalAssistantToolsUseCase (733 lines) - 15 business tools for hands-free operation including scheduling, navigation, inventory
+6. EmergencySchedulingUseCase (741 lines) - Emergency response handling with 6 emergency types and automatic response
+7. VoiceFieldNotesUseCase (745 lines) - Voice-to-text documentation with 9 note types and photo tagging
+8. ScheduleOutboundCallUseCase (367 lines) - Outbound call scheduling with do-not-call validation
+9. CampaignManagementUseCase (565 lines) - Campaign creation and management with bulk operations
+All use cases include mobile optimization, safety features for driving scenarios, and comprehensive business logic validation.
+
+### Step 12.5: Multi-Agent Handoff System Implementation - **Done**
+- [x] Enhanced LiveKit adapter with multi-agent handoff support
+- [x] Created specialized agent classes (PersonalAssistant, OutboundCaller, EmergencyResponse)
+- [x] Implemented AgentHandoffOrchestrator for seamless agent transitions
+- [x] Added MultiAgentVoiceCommandProcessor with handoff decision logic
+- [x] Enhanced voice command processing with agent recommendations
+- [x] Added EMERGENCY_RESPONSE agent type to domain enums
+
+**Completed:**
+Successfully implemented comprehensive multi-agent handoff system with LiveKit Agents 1.0 integration:
+1. Hero365BaseAgent (ABC) - Abstract base class for specialized agents with handoff contracts
+2. Hero365PersonalAssistant - Handles daily business management, scheduling, navigation with 90%+ confidence for core tasks
+3. Hero365OutboundCaller - Manages calling, lead generation, campaigns with 95% confidence for communication tasks  
+4. Hero365EmergencyResponse - Handles urgent situations, crisis management with immediate priority override
+5. AgentHandoffOrchestrator - Intelligent agent selection and seamless handoff execution with conversation context preservation
+6. MultiAgentVoiceCommandProcessor - Enhanced OpenAI-powered command processing with agent recommendations and handoff decisions
+7. Enhanced LiveKitVoiceAgentAdapter with session-specific orchestrators and handoff management methods
+
+Multi-agent handoff features:
+- Intelligent agent selection based on intent confidence scoring
+- Context-aware handoff decisions with business context preservation
+- Emergency priority override system for critical situations
+- Natural conversation flow with handoff greetings and context summaries
+- Per-session orchestrator management with cleanup on session end
+- Comprehensive agent capability mapping and skill-based routing
+All components follow clean architecture patterns with proper error handling and logging.
+
+### Step 12.5.1: Enhanced Agent Triage System - **Done**
+- [x] Sophisticated confidence threshold management (0.7 minimum threshold)
+- [x] Multi-factor context weighting (priority, user role, time of day, conversation history)
+- [x] Performance-based agent selection with learning capabilities
+- [x] Emergency detection with multiple criteria and immediate priority override
+- [x] Disambiguation logic for close scoring scenarios
+- [x] Low confidence fallback strategies with escalation warnings
+- [x] Agent performance tracking and continuous learning system
+
+**Completed:**
+Implemented production-ready agent triage system with advanced decision-making capabilities:
+1. **Emergency Detection**: Multi-criteria emergency situation detection with immediate priority routing
+2. **Enhanced Scoring**: Context-weighted confidence calculation considering priority, user role, conversation history, time of day, and agent performance metrics
+3. **Sophisticated Selection Logic**: Confidence thresholds, disambiguation for close scores, fallback strategies for low confidence scenarios
+4. **Performance Learning**: Real-time agent performance tracking (success rate, response time, user satisfaction) with exponential moving average updates
+5. **Contextual Disambiguation**: Conversation continuity preference, user preferences, performance-based tiebreaking, business hours consideration
+6. **Comprehensive Logging**: Decision logging for analytics and continuous improvement
+7. **Fallback Mechanisms**: Intelligent defaults for unknown requests with escalation suggestions
+
+The enhanced triage system ensures optimal agent selection through multi-layered decision making, continuous learning from performance feedback, and sophisticated context analysis for the best possible user experience.
+
+### Step 12.6: Voice Agent Use Cases - **Not Started**
+- [ ] StartVoiceSessionUseCase for session initialization
+- [ ] ProcessVoiceCommandUseCase for command routing and execution
+- [ ] ScheduleOutboundCallUseCase for automated call scheduling
+- [ ] CampaignManagementUseCase for automated marketing campaigns
+
+### Step 12.7: Voice Agent Database Schema - **Done**
+- [x] Design simplified voice sessions and outbound calls tables
+- [x] Create Supabase migration with voice agent schema
+- [x] Add indexes for voice session performance optimization
+- [x] Set up RLS policies for voice data isolation
+- [x] Create triggers for voice session lifecycle management
+- [x] Remove voice_commands table in favor of tool execution tracking
+- [x] Remove VoiceCommand entity and related enums for simplified architecture
+
+Created comprehensive database migration (20250207000000_create_voice_agent_schema.sql) with simplified schema focusing on voice_sessions and outbound_calls tables.
+Removed voice_commands table and VoiceCommand entity, implementing tool execution tracking within voice session analytics for cleaner conversational AI architecture.
+
+### Step 12.8: Supabase Voice Repositories - **Done**
+- [x] Create SupabaseVoiceSessionRepository with session management
+- [x] Create SupabaseOutboundCallRepository with call tracking
+- [x] Add voice repositories to dependency injection container
+- [x] Update infrastructure layer with voice repository implementations
+
+**Completed:**
+Successfully implemented comprehensive Supabase repository layer for voice agent system:
+1. SupabaseVoiceSessionRepository (442 lines) - Complete session management with CRUD operations, LiveKit integration, tool execution tracking, conversation transcript management, analytics updates, session cleanup, and mobile optimization
+2. SupabaseOutboundCallRepository (286 lines) - Call scheduling and tracking with campaign management, status updates, call outcome processing, follow-up management, retry logic, and comprehensive campaign analytics
+3. Updated infrastructure repositories __init__.py with new voice repositories
+4. Both repositories follow established patterns with proper error handling, business context isolation, logging, and domain entity conversion methods
+5. Repositories leverage Supabase RLS, real-time features, and performance optimization patterns
+
+Key features implemented:
+- Session lifecycle management with timeout and cleanup
+- Real-time tool execution tracking within session analytics
+- Conversation transcript management with incremental updates
+- Campaign analytics with success rates and outcome tracking
+- Business context isolation and multi-tenant support
+- Mobile-optimized query patterns and pagination
+- Comprehensive error handling and logging patterns
+All voice repositories are now ready for dependency injection integration and API controller implementation.
+
+### Step 12.9: Voice Agent DTOs and Schemas - **Done**
+- [x] Voice session DTOs with business context and user information
+- [x] Outbound call DTOs with campaign and scheduling data
+- [x] Voice command DTOs with natural language processing
+- [x] Mobile-optimized voice API schemas
+
+**Completed:**
+Successfully created comprehensive DTOs and schemas for voice agent system:
+1. VoiceSessionDTO (436 lines) - Complete session management with 11 DTOs including VoiceSessionResponseDTO, VoiceSessionSummaryDTO, CreateVoiceSessionDTO, UpdateVoiceSessionDTO, VoiceSessionListDTO, VoiceSessionSearchDTO, MobileVoiceSessionDTO, VoiceSessionStatisticsDTO, VoiceSessionContextDTO, VoiceSessionAnalyticsDTO, and VoiceToolExecutionDTO
+2. OutboundCallDTO (548 lines) - Complete call management with 13 DTOs including OutboundCallResponseDTO, OutboundCallSummaryDTO, CreateOutboundCallDTO, UpdateOutboundCallDTO, OutboundCallListDTO, OutboundCallSearchDTO, MobileOutboundCallDTO, OutboundCallStatisticsDTO, OutboundCallRecipientDTO, OutboundCallScriptDTO, OutboundCallResultDTO, CampaignSummaryDTO, and CallQueueStatusDTO
+3. VoiceSessionSchemas (287 lines) - Complete Pydantic API schemas for voice session endpoints with validation, field constraints, and mobile optimization
+4. OutboundCallSchemas (409 lines) - Complete Pydantic API schemas for outbound call endpoints with recipient validation, script validation, and comprehensive request/response models
+5. Enhanced API converters with 6 new enum converters for voice agent enums
+6. Updated domain enums with CampaignType and CampaignStatus enums
+All DTOs include mobile optimization, comprehensive validation, business context isolation, and proper error handling patterns. Fixed dataclass field ordering and Pydantic v2 compatibility issues for production readiness.
+
+### Step 12.10: Voice Agent API Controllers and Routes - **Not Started**
+- [ ] VoiceSessionController for session management and mobile integration
+- [ ] OutboundCallController for call scheduling and campaign management
+- [ ] Comprehensive error handling and voice-specific validation
+- [ ] LiveKit token generation and session authentication
+
+### Step 12.11: Voice Tool Integration System - **Not Started**
+- [ ] Personal assistant tools (daily schedule, job updates, emergency handling)
+- [ ] Inventory management tools (stock checking, ordering, voice search)
+- [ ] Client communication tools (notifications, updates, appointment scheduling)
+- [ ] Supplier management tools (quotes, orders, payment reminders)
+
+### Step 12.12: Advanced Voice Features - **Not Started**
+- [ ] Voice authentication and biometric security
+- [ ] Multi-business voice context switching
+- [ ] Voice-powered campaign management and automation
+- [ ] Voice compliance and regulatory management
+
+### Step 12.13: Mobile Voice Integration - **Not Started**
+- [ ] Mobile voice button and hands-free activation
+- [ ] Background voice processing and offline capabilities
+- [ ] Voice search across all business data
+- [ ] Voice dictation for forms and field notes
+- [ ] Emergency voice commands and safety features
+
+### Step 12.14: Production Voice Deployment - **Not Started**
+- [ ] Voice agent worker services and process management
+- [ ] LiveKit Agents 1.0 production configuration
+- [ ] Voice session monitoring and alerting
+- [ ] Performance optimization and scaling
+- [ ] Voice security and compliance validation
+
+### Step 12.15: Voice Agent Documentation - **Not Started**
+- [ ] Create comprehensive voice agent API documentation
+- [ ] Document voice commands and tool capabilities
+- [ ] Include mobile integration examples and SDK guidance
+- [ ] Create voice agent deployment and configuration guides
+
+**🎯 PHASE 12 OBJECTIVES:**
+Implement a comprehensive voice agent system with two main components:
+1. **Personal Voice Assistant**: Hands-free business management for mobile/driving scenarios
+2. **Outbound Caller System**: Automated lead generation, client communication, and supplier management
+
+**Key Features:**
+- LiveKit Agents 1.0 integration with STT-LLM-TTS pipeline
+- Voice-enabled access to all Hero365 business functions
+- Automated outbound calling with SIP integration
+- Campaign management and lead generation automation
+- Voice analytics and business intelligence
+- Mobile-optimized hands-free operation
+- Enterprise-grade security and compliance
+
+**Success Metrics:**
+- 40% reduction in mobile app navigation time
+- 60% faster job updates via voice
+- 25% improvement in client response time
+- 15% increase in job completion rate
+- Automated lead generation and qualification
+- Proactive client communication and engagement

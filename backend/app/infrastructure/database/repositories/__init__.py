@@ -19,6 +19,8 @@ from .supabase_product_category_repository import SupabaseProductCategoryReposit
 from .supabase_stock_movement_repository import SupabaseStockMovementRepository
 from .supabase_supplier_repository import SupabaseSupplierRepository
 from .supabase_purchase_order_repository import SupabasePurchaseOrderRepository
+from .supabase_voice_session_repository import SupabaseVoiceSessionRepository
+from .supabase_outbound_call_repository import SupabaseOutboundCallRepository
 
 __all__ = [
     "SupabaseActivityRepository",
@@ -36,4 +38,6 @@ __all__ = [
     "SupabaseStockMovementRepository",
     "SupabaseSupplierRepository",
     "SupabasePurchaseOrderRepository",
+    "SupabaseVoiceSessionRepository",
+    "SupabaseOutboundCallRepository",
 ] 

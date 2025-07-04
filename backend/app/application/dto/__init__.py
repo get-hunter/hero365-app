@@ -86,6 +86,34 @@ from .product_dto import (
     ProductListDTO,
     StockAdjustmentDTO,
 )
+from .voice_session_dto import (
+    VoiceSessionContextDTO,
+    VoiceSessionAnalyticsDTO,
+    CreateVoiceSessionDTO,
+    UpdateVoiceSessionDTO,
+    VoiceSessionResponseDTO,
+    VoiceSessionSummaryDTO,
+    VoiceSessionListDTO,
+    VoiceSessionSearchDTO,
+    MobileVoiceSessionDTO,
+    VoiceSessionStatisticsDTO,
+    VoiceToolExecutionDTO,
+)
+from .outbound_call_dto import (
+    OutboundCallRecipientDTO,
+    OutboundCallScriptDTO,
+    OutboundCallResultDTO,
+    CreateOutboundCallDTO,
+    UpdateOutboundCallDTO,
+    OutboundCallResponseDTO,
+    OutboundCallSummaryDTO,
+    OutboundCallListDTO,
+    OutboundCallSearchDTO,
+    CampaignSummaryDTO,
+    MobileOutboundCallDTO,
+    OutboundCallStatisticsDTO,
+    CallQueueStatusDTO,
+)
 
 __all__ = [
     # Activity DTOs
@@ -161,4 +189,30 @@ __all__ = [
     "ProductSearchCriteria",
     "ProductListDTO",
     "StockAdjustmentDTO",
+    # Voice Session DTOs
+    "VoiceSessionContextDTO",
+    "VoiceSessionAnalyticsDTO",
+    "CreateVoiceSessionDTO",
+    "UpdateVoiceSessionDTO",
+    "VoiceSessionResponseDTO",
+    "VoiceSessionSummaryDTO",
+    "VoiceSessionListDTO",
+    "VoiceSessionSearchDTO",
+    "MobileVoiceSessionDTO",
+    "VoiceSessionStatisticsDTO",
+    "VoiceToolExecutionDTO",
+    # Outbound Call DTOs
+    "OutboundCallRecipientDTO",
+    "OutboundCallScriptDTO",
+    "OutboundCallResultDTO",
+    "CreateOutboundCallDTO",
+    "UpdateOutboundCallDTO",
+    "OutboundCallResponseDTO",
+    "OutboundCallSummaryDTO",
+    "OutboundCallListDTO",
+    "OutboundCallSearchDTO",
+    "CampaignSummaryDTO",
+    "MobileOutboundCallDTO",
+    "OutboundCallStatisticsDTO",
+    "CallQueueStatusDTO",
 ] 

@@ -23,6 +23,10 @@ from .stock_movement_repository import StockMovementRepository
 from .supplier_repository import SupplierRepository
 from .purchase_order_repository import PurchaseOrderRepository
 
+# Voice agent repositories
+from .voice_session_repository import VoiceSessionRepository
+from .outbound_call_repository import OutboundCallRepository
+
 __all__ = [
     "ActivityRepository",
     "BaseRepository",
@@ -41,4 +45,8 @@ __all__ = [
     "StockMovementRepository",
     "SupplierRepository",
     "PurchaseOrderRepository",
+    
+    # Voice agent repositories
+    "VoiceSessionRepository",
+    "OutboundCallRepository",
 ] 

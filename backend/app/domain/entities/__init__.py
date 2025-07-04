@@ -30,6 +30,10 @@ from .stock_movement import StockMovement, StockMovementContext
 from .supplier import Supplier, SupplierContact, PaymentTerms, SupplierPerformance
 from .purchase_order import PurchaseOrder, PurchaseOrderLineItem
 
+# Voice agent entities
+from .voice_session import VoiceSession, VoiceSessionAnalytics, VoiceSessionContext
+from .outbound_call import OutboundCall, CallRecipient, CallScript, CallAnalytics
+
 __all__ = [
     # Core business entities
     "Business",
@@ -71,4 +75,13 @@ __all__ = [
     "SupplierPerformance",
     "PurchaseOrder",
     "PurchaseOrderLineItem",
+    
+    # Voice agent entities
+    "VoiceSession",
+    "VoiceSessionAnalytics",
+    "VoiceSessionContext",
+    "OutboundCall",
+    "CallRecipient",
+    "CallScript",
+    "CallAnalytics",
 ] 

@@ -1,40 +1,58 @@
 """
 Application Ports Package
 
-Port interfaces (adapters pattern) for external services and dependencies.
-These interfaces define contracts for external services without specifying implementation.
+This package contains the abstract interfaces (ports) that define the contracts
+for external services and infrastructure components.
 """
 
+from .auth_service import AuthServicePort, AuthUser, AuthToken, AuthResult, AuthProvider
 from .email_service import (
     EmailServicePort, EmailMessage, EmailResult, EmailTemplate, 
     EmailAttachment, EmailPriority
 )
-from .sms_service import (
-    SMSServicePort, SMSMessage, SMSResult, SMSPriority
+from .sms_service import SMSServicePort, SMSMessage, SMSResult
+from .external_services import (
+    WeatherServicePort, RouteOptimizationPort, TravelTimePort
 )
-from .auth_service import (
-    AuthServicePort, AuthUser, AuthToken, AuthResult, AuthProvider
+from .voice_agent_service import (
+    VoiceAgentServicePort, VoiceToolRegistry, VoiceCommandProcessor,
+    VoiceAgentTool, VoiceSessionConfig, OutboundCallConfig, 
+    VoiceAgentResult, LiveKitRoomConfig
 )
 
 __all__ = [
-    # Email service
+    # Auth Service
+    "AuthServicePort",
+    "AuthUser", 
+    "AuthToken",
+    "AuthResult",
+    "AuthProvider",
+    
+    # Email Service
     "EmailServicePort",
-    "EmailMessage", 
-    "EmailResult",
+    "EmailMessage",
+    "EmailResult", 
     "EmailTemplate",
     "EmailAttachment",
     "EmailPriority",
     
-    # SMS service
+    # SMS Service
     "SMSServicePort",
     "SMSMessage",
-    "SMSResult", 
-    "SMSPriority",
+    "SMSResult",
     
-    # Authentication service
-    "AuthServicePort",
-    "AuthUser",
-    "AuthToken",
-    "AuthResult",
-    "AuthProvider",
+    # External Services
+    "WeatherServicePort",
+    "RouteOptimizationPort", 
+    "TravelTimePort",
+    
+    # Voice Agent Service
+    "VoiceAgentServicePort",
+    "VoiceToolRegistry",
+    "VoiceCommandProcessor",
+    "VoiceAgentTool",
+    "VoiceSessionConfig",
+    "OutboundCallConfig",
+    "VoiceAgentResult",
+    "LiveKitRoomConfig",
 ] 

@@ -17,7 +17,8 @@ from fastapi import HTTPException, status
 from ..domain.enums import (
     ContactType, ContactStatus, ContactPriority, ContactSource,
     RelationshipStatus, LifecycleStage, JobType, JobStatus, JobPriority, JobSource,
-    ProjectType, ProjectStatus, ProjectPriority
+    ProjectType, ProjectStatus, ProjectPriority,
+    VoiceSessionStatus, AgentType, CallStatus, CallOutcome, CampaignStatus, CampaignType
 )
 
 logger = logging.getLogger(__name__)
@@ -257,6 +258,84 @@ class EnumConverter:
         except (ValueError, AttributeError):
             logger.warning(f"Invalid project_priority value: {value}, using default")
             return ProjectPriority.MEDIUM
+    
+    @staticmethod
+    def safe_voice_session_status(value: Any) -> VoiceSessionStatus:
+        """Safely convert to VoiceSessionStatus enum."""
+        if value is None:
+            return VoiceSessionStatus.INITIALIZING
+        if isinstance(value, VoiceSessionStatus):
+            return value
+        try:
+            return VoiceSessionStatus(str(value).lower())
+        except (ValueError, AttributeError):
+            logger.warning(f"Invalid voice_session_status value: {value}, using default")
+            return VoiceSessionStatus.INITIALIZING
+    
+    @staticmethod
+    def safe_agent_type(value: Any) -> AgentType:
+        """Safely convert to AgentType enum."""
+        if value is None:
+            return AgentType.PERSONAL_ASSISTANT
+        if isinstance(value, AgentType):
+            return value
+        try:
+            return AgentType(str(value).lower())
+        except (ValueError, AttributeError):
+            logger.warning(f"Invalid agent_type value: {value}, using default")
+            return AgentType.PERSONAL_ASSISTANT
+    
+    @staticmethod
+    def safe_call_status(value: Any) -> CallStatus:
+        """Safely convert to CallStatus enum."""
+        if value is None:
+            return CallStatus.PENDING
+        if isinstance(value, CallStatus):
+            return value
+        try:
+            return CallStatus(str(value).lower())
+        except (ValueError, AttributeError):
+            logger.warning(f"Invalid call_status value: {value}, using default")
+            return CallStatus.PENDING
+    
+    @staticmethod
+    def safe_call_outcome(value: Any) -> CallOutcome:
+        """Safely convert to CallOutcome enum."""
+        if value is None:
+            return CallOutcome.NO_ANSWER
+        if isinstance(value, CallOutcome):
+            return value
+        try:
+            return CallOutcome(str(value).lower())
+        except (ValueError, AttributeError):
+            logger.warning(f"Invalid call_outcome value: {value}, using default")
+            return CallOutcome.NO_ANSWER
+    
+    @staticmethod
+    def safe_campaign_status(value: Any) -> CampaignStatus:
+        """Safely convert to CampaignStatus enum."""
+        if value is None:
+            return CampaignStatus.DRAFT
+        if isinstance(value, CampaignStatus):
+            return value
+        try:
+            return CampaignStatus(str(value).lower())
+        except (ValueError, AttributeError):
+            logger.warning(f"Invalid campaign_status value: {value}, using default")
+            return CampaignStatus.DRAFT
+    
+    @staticmethod
+    def safe_campaign_type(value: Any) -> CampaignType:
+        """Safely convert to CampaignType enum."""
+        if value is None:
+            return CampaignType.LEAD_GENERATION
+        if isinstance(value, CampaignType):
+            return value
+        try:
+            return CampaignType(str(value).lower())
+        except (ValueError, AttributeError):
+            logger.warning(f"Invalid campaign_type value: {value}, using default")
+            return CampaignType.LEAD_GENERATION
 
 
 class SupabaseConverter:

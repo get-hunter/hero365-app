@@ -27,6 +27,7 @@ from ...domain.repositories.user_capabilities_repository import UserCapabilities
 from ...application.ports.auth_service import AuthServicePort
 from ...application.ports.email_service import EmailServicePort
 from ...application.ports.sms_service import SMSServicePort
+from ...application.ports.voice_agent_service import VoiceAgentServicePort
 
 # Infrastructure Implementations
 from ..database.repositories.supabase_business_repository import SupabaseBusinessRepository
@@ -42,6 +43,7 @@ from ..external_services.resend_email_adapter import ResendEmailAdapter
 from ..external_services.twilio_sms_adapter import TwilioSMSAdapter
 from ..external_services.google_maps_adapter import GoogleMapsAdapter
 from ..external_services.weather_service_adapter import WeatherServiceAdapter
+from ..external_services.livekit_voice_agent_adapter import LiveKitVoiceAgentAdapter
 from app.infrastructure.database.repositories import (
     SupabaseActivityRepository,
     SupabaseBusinessInvitationRepository,
@@ -58,6 +60,8 @@ from app.infrastructure.database.repositories import (
     SupabaseStockMovementRepository,
     SupabaseSupplierRepository,
     SupabasePurchaseOrderRepository,
+    SupabaseVoiceSessionRepository,
+    SupabaseOutboundCallRepository,
 )
 
 # Application Use Cases
@@ -146,6 +150,13 @@ from ...application.use_cases.product.manage_inventory_use_case import ManageInv
 from ...application.use_cases.product.inventory_reorder_management_use_case import InventoryReorderManagementUseCase
 from ...application.use_cases.product.process_purchase_order_use_case import ProcessPurchaseOrderUseCase
 
+# Voice Agent Use Cases
+from ...application.use_cases.voice_agent.start_voice_session_use_case import StartVoiceSessionUseCase
+from ...application.use_cases.voice_agent.end_voice_session_use_case import EndVoiceSessionUseCase
+from ...application.use_cases.voice_agent.schedule_outbound_call_use_case import ScheduleOutboundCallUseCase
+from ...application.use_cases.voice_agent.campaign_management_use_case import CampaignManagementUseCase
+from ...application.use_cases.voice_agent.voice_agent_helper_service import VoiceAgentHelperService
+
 # Repository interfaces
 from app.domain.repositories import (
     ActivityRepository,
@@ -162,6 +173,8 @@ from app.domain.repositories import (
     StockMovementRepository,
     SupplierRepository,
     PurchaseOrderRepository,
+    VoiceSessionRepository,
+    OutboundCallRepository,
 )
 
 class DependencyContainer:
@@ -208,6 +221,10 @@ class DependencyContainer:
         self._repositories['stock_movement_repository'] = SupabaseStockMovementRepository(supabase_client=supabase_client)
         self._repositories['supplier_repository'] = SupabaseSupplierRepository(supabase_client=supabase_client)
         self._repositories['purchase_order_repository'] = SupabasePurchaseOrderRepository(supabase_client=supabase_client)
+        
+        # Voice agent repositories
+        self._repositories['voice_session_repository'] = SupabaseVoiceSessionRepository(supabase_client=supabase_client)
+        self._repositories['outbound_call_repository'] = SupabaseOutboundCallRepository(supabase_client=supabase_client)
     
     def _setup_services(self):
         """Initialize external service adapters."""
@@ -248,6 +265,29 @@ class DependencyContainer:
         # Weather service (optional)
         self._services['weather_service'] = WeatherServiceAdapter(
             api_key=settings.WEATHER_API_KEY
+        )
+        
+        # Voice agent service (LiveKit integration) - Optional dependency
+        try:
+            self._services['voice_agent_service'] = LiveKitVoiceAgentAdapter(
+                livekit_url=settings.LIVEKIT_URL,
+                livekit_api_key=settings.LIVEKIT_API_KEY,
+                livekit_api_secret=settings.LIVEKIT_API_SECRET
+            )
+        except ImportError as e:
+            # LiveKit packages not installed - voice agent service will be unavailable
+            self._services['voice_agent_service'] = None
+            print(f"⚠️  Voice Agent Service unavailable: {str(e)}")
+            print("   Voice agent API routes will return 503 Service Unavailable")
+        
+        # Voice agent helper service
+        self._services['voice_agent_helper'] = VoiceAgentHelperService(
+            voice_session_repository=self.get_repository('voice_session_repository'),
+            outbound_call_repository=self.get_repository('outbound_call_repository'),
+            membership_repository=self.get_repository('business_membership_repository'),
+            job_repository=self.get_repository('job_repository'),
+            project_repository=self.get_repository('project_repository'),
+            contact_repository=self.get_repository('contact_repository')
         )
     
     def _setup_use_cases(self):
@@ -597,6 +637,33 @@ class DependencyContainer:
             purchase_order_repository=self.get_repository('purchase_order_repository'),
             product_repository=self.get_repository('product_repository'),
             supplier_repository=self.get_repository('supplier_repository')
+        )
+        
+        # Voice agent use cases
+        self._use_cases['start_voice_session'] = StartVoiceSessionUseCase(
+            voice_session_repository=self.get_repository('voice_session_repository'),
+            voice_agent_service=self.get_service('voice_agent_service'),
+            voice_agent_helper=self.get_service('voice_agent_helper')
+        )
+        
+        # ProcessVoiceCommandUseCase removed - using continuous conversation instead of discrete commands
+        
+        self._use_cases['end_voice_session'] = EndVoiceSessionUseCase(
+            voice_session_repository=self.get_repository('voice_session_repository'),
+            voice_agent_service=self.get_service('voice_agent_service'),
+            voice_agent_helper=self.get_service('voice_agent_helper')
+        )
+        
+        self._use_cases['schedule_outbound_call'] = ScheduleOutboundCallUseCase(
+            voice_agent_helper=self.get_service('voice_agent_helper'),
+            outbound_call_repository=self.get_repository('outbound_call_repository'),
+            contact_repository=self.get_repository('contact_repository')
+        )
+        
+        self._use_cases['campaign_management'] = CampaignManagementUseCase(
+            voice_agent_helper=self.get_service('voice_agent_helper'),
+            outbound_call_repository=self.get_repository('outbound_call_repository'),
+            contact_repository=self.get_repository('contact_repository')
         )
 
     def _get_supabase_client(self) -> Client:
@@ -950,6 +1017,37 @@ class DependencyContainer:
     def get_process_purchase_order_use_case(self) -> ProcessPurchaseOrderUseCase:
         """Get process purchase order use case."""
         return self.get_use_case('process_purchase_order')
+    
+    # Voice agent repositories and use cases
+    def get_voice_session_repository(self) -> VoiceSessionRepository:
+        """Get voice session repository."""
+        return self.get_repository('voice_session_repository')
+    
+    def get_outbound_call_repository(self) -> OutboundCallRepository:
+        """Get outbound call repository."""
+        return self.get_repository('outbound_call_repository')
+    
+    def get_voice_agent_service(self) -> Optional[VoiceAgentServicePort]:
+        """Get voice agent service (may be None if LiveKit packages not installed)."""
+        return self.get_service('voice_agent_service')
+    
+    def get_start_voice_session_use_case(self) -> StartVoiceSessionUseCase:
+        """Get start voice session use case."""
+        return self.get_use_case('start_voice_session')
+    
+    # get_process_voice_command_use_case removed - using continuous conversation instead
+    
+    def get_end_voice_session_use_case(self) -> EndVoiceSessionUseCase:
+        """Get end voice session use case."""
+        return self.get_use_case('end_voice_session')
+    
+    def get_schedule_outbound_call_use_case(self) -> ScheduleOutboundCallUseCase:
+        """Get schedule outbound call use case."""
+        return self.get_use_case('schedule_outbound_call')
+    
+    def get_campaign_management_use_case(self) -> CampaignManagementUseCase:
+        """Get campaign management use case."""
+        return self.get_use_case('campaign_management')
 
     def close(self):
         """Close all connections and cleanup resources."""
@@ -1333,3 +1431,42 @@ def get_inventory_reorder_management_use_case() -> InventoryReorderManagementUse
 def get_process_purchase_order_use_case() -> ProcessPurchaseOrderUseCase:
     """Get process purchase order use case from container."""
     return get_container().get_process_purchase_order_use_case()
+
+
+# Voice Agent Dependencies
+def get_voice_session_repository() -> VoiceSessionRepository:
+    """Get voice session repository dependency."""
+    return get_container().get_voice_session_repository()
+
+
+def get_outbound_call_repository() -> OutboundCallRepository:
+    """Get outbound call repository dependency."""
+    return get_container().get_outbound_call_repository()
+
+
+def get_voice_agent_service() -> Optional[VoiceAgentServicePort]:
+    """Get voice agent service dependency (may be None if LiveKit packages not installed)."""
+    return get_container().get_voice_agent_service()
+
+
+def get_start_voice_session_use_case() -> StartVoiceSessionUseCase:
+    """Get start voice session use case dependency."""
+    return get_container().get_start_voice_session_use_case()
+
+
+## get_process_voice_command_use_case removed - using continuous conversation instead
+
+
+def get_end_voice_session_use_case() -> EndVoiceSessionUseCase:
+    """Get end voice session use case dependency."""
+    return get_container().get_end_voice_session_use_case()
+
+
+def get_schedule_outbound_call_use_case() -> ScheduleOutboundCallUseCase:
+    """Get schedule outbound call use case dependency."""
+    return get_container().get_schedule_outbound_call_use_case()
+
+
+def get_campaign_management_use_case() -> CampaignManagementUseCase:
+    """Get campaign management use case dependency."""
+    return get_container().get_campaign_management_use_case()

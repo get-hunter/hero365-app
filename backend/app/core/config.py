@@ -103,6 +103,11 @@ class Settings(BaseSettings):
     DEFAULT_FROM_EMAIL: str | None = None
     DEFAULT_FROM_NAME: str | None = None
     
+    # LiveKit Voice Agent Configuration
+    LIVEKIT_URL: str | None = None
+    LIVEKIT_API_KEY: str | None = None
+    LIVEKIT_API_SECRET: str | None = None
+    
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SUPABASE_ANON_KEY(self) -> str:

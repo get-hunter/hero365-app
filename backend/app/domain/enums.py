@@ -814,4 +814,244 @@ class SupplierStatus(str, Enum):
             self.PENDING: "Pending",
             self.SUSPENDED: "Suspended"
         }
-        return display_map.get(self, self.value.title()) 
+        return display_map.get(self, self.value.title())
+
+
+# =============================================
+# VOICE AGENT ENUMS
+# =============================================
+
+class VoiceSessionStatus(str, Enum):
+    """Voice session status enumeration."""
+    INITIALIZING = "initializing"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    ENDED = "ended"
+    FAILED = "failed"
+    TIMEOUT = "timeout"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.INITIALIZING: "Initializing",
+            self.ACTIVE: "Active", 
+            self.PAUSED: "Paused",
+            self.ENDED: "Ended",
+            self.FAILED: "Failed",
+            self.TIMEOUT: "Timeout"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class AgentType(str, Enum):
+    """Voice agent type enumeration."""
+    PERSONAL_ASSISTANT = "personal_assistant"
+    OUTBOUND_CALLER = "outbound_caller"
+    EMERGENCY_RESPONSE = "emergency_response"
+    CUSTOMER_SERVICE = "customer_service"
+    SALES_AGENT = "sales_agent"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.PERSONAL_ASSISTANT: "Personal Assistant",
+            self.OUTBOUND_CALLER: "Outbound Caller",
+            self.EMERGENCY_RESPONSE: "Emergency Response",
+            self.CUSTOMER_SERVICE: "Customer Service",
+            self.SALES_AGENT: "Sales Agent"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class CallStatus(str, Enum):
+    """Outbound call status enumeration."""
+    PENDING = "pending"
+    SCHEDULED = "scheduled"
+    QUEUED = "queued"
+    DIALING = "dialing"
+    RINGING = "ringing"
+    CONNECTED = "connected"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    NO_ANSWER = "no_answer"
+    BUSY = "busy"
+    VOICEMAIL = "voicemail"
+    CANCELLED = "cancelled"
+    PAUSED = "paused"
+    TRANSFERRED = "transferred"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.PENDING: "Pending",
+            self.SCHEDULED: "Scheduled",
+            self.QUEUED: "Queued",
+            self.DIALING: "Dialing",
+            self.RINGING: "Ringing",
+            self.CONNECTED: "Connected",
+            self.IN_PROGRESS: "In Progress",
+            self.COMPLETED: "Completed",
+            self.FAILED: "Failed",
+            self.NO_ANSWER: "No Answer",
+            self.BUSY: "Busy",
+            self.VOICEMAIL: "Voicemail",
+            self.CANCELLED: "Cancelled",
+            self.PAUSED: "Paused",
+            self.TRANSFERRED: "Transferred"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class CallPurpose(str, Enum):
+    """Outbound call purpose enumeration."""
+    LEAD_GENERATION = "lead_generation"
+    LEAD_QUALIFICATION = "lead_qualification"
+    LEAD_NURTURING = "lead_nurturing"
+    APPOINTMENT_SCHEDULING = "appointment_scheduling"
+    APPOINTMENT_CONFIRMATION = "appointment_confirmation"
+    APPOINTMENT_REMINDER = "appointment_reminder"
+    SCHEDULE_CHANGE_NOTIFICATION = "schedule_change_notification"
+    ARRIVAL_NOTIFICATION = "arrival_notification"
+    MAINTENANCE_REMINDER = "maintenance_reminder"
+    SERVICE_FOLLOW_UP = "service_follow_up"
+    UPGRADE_OFFER = "upgrade_offer"
+    SEASONAL_CAMPAIGN = "seasonal_campaign"
+    PAYMENT_REMINDER = "payment_reminder"
+    INVOICE_FOLLOW_UP = "invoice_follow_up"
+    CUSTOMER_SATISFACTION_SURVEY = "customer_satisfaction_survey"
+    COMPLAINT_RESOLUTION = "complaint_resolution"
+    SUPPLIER_QUOTE_REQUEST = "supplier_quote_request"
+    SUPPLIER_ORDER_FOLLOW_UP = "supplier_order_follow_up"
+    SUPPLIER_NEGOTIATION = "supplier_negotiation"
+    REFERRAL_FOLLOW_UP = "referral_follow_up"
+    EMERGENCY_NOTIFICATION = "emergency_notification"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.LEAD_GENERATION: "Lead Generation",
+            self.LEAD_QUALIFICATION: "Lead Qualification",
+            self.LEAD_NURTURING: "Lead Nurturing",
+            self.APPOINTMENT_SCHEDULING: "Appointment Scheduling",
+            self.APPOINTMENT_CONFIRMATION: "Appointment Confirmation",
+            self.APPOINTMENT_REMINDER: "Appointment Reminder",
+            self.SCHEDULE_CHANGE_NOTIFICATION: "Schedule Change Notification",
+            self.ARRIVAL_NOTIFICATION: "Arrival Notification",
+            self.MAINTENANCE_REMINDER: "Maintenance Reminder",
+            self.SERVICE_FOLLOW_UP: "Service Follow-up",
+            self.UPGRADE_OFFER: "Upgrade Offer",
+            self.SEASONAL_CAMPAIGN: "Seasonal Campaign",
+            self.PAYMENT_REMINDER: "Payment Reminder",
+            self.INVOICE_FOLLOW_UP: "Invoice Follow-up",
+            self.CUSTOMER_SATISFACTION_SURVEY: "Customer Satisfaction Survey",
+            self.COMPLAINT_RESOLUTION: "Complaint Resolution",
+            self.SUPPLIER_QUOTE_REQUEST: "Supplier Quote Request",
+            self.SUPPLIER_ORDER_FOLLOW_UP: "Supplier Order Follow-up",
+            self.SUPPLIER_NEGOTIATION: "Supplier Negotiation",
+            self.REFERRAL_FOLLOW_UP: "Referral Follow-up",
+            self.EMERGENCY_NOTIFICATION: "Emergency Notification"
+        }
+        return display_map.get(self, self.value.title())
+
+
+
+
+
+class CallOutcome(str, Enum):
+    """Call outcome enumeration."""
+    SUCCESSFUL = "successful"
+    PARTIAL_SUCCESS = "partial_success"
+    NO_RESPONSE = "no_response"
+    REJECTED = "rejected"
+    RESCHEDULED = "rescheduled"
+    TRANSFERRED = "transferred"
+    VOICEMAIL_LEFT = "voicemail_left"
+    CALLBACK_REQUESTED = "callback_requested"
+    NOT_INTERESTED = "not_interested"
+    WRONG_NUMBER = "wrong_number"
+    DO_NOT_CALL = "do_not_call"
+    APPOINTMENT_SCHEDULED = "appointment_scheduled"
+    INTERESTED = "interested"
+    NO_ANSWER = "no_answer"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.SUCCESSFUL: "Successful",
+            self.PARTIAL_SUCCESS: "Partial Success",
+            self.NO_RESPONSE: "No Response",
+            self.REJECTED: "Rejected",
+            self.RESCHEDULED: "Rescheduled",
+            self.TRANSFERRED: "Transferred",
+            self.VOICEMAIL_LEFT: "Voicemail Left",
+            self.CALLBACK_REQUESTED: "Callback Requested",
+            self.NOT_INTERESTED: "Not Interested",
+            self.WRONG_NUMBER: "Wrong Number",
+            self.DO_NOT_CALL: "Do Not Call",
+            self.APPOINTMENT_SCHEDULED: "Appointment Scheduled",
+            self.INTERESTED: "Interested",
+            self.NO_ANSWER: "No Answer"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class CampaignType(str, Enum):
+    """Campaign type enumeration."""
+    LEAD_GENERATION = "lead_generation"
+    LEAD_NURTURING = "lead_nurturing"
+    APPOINTMENT_SCHEDULING = "appointment_scheduling"
+    FOLLOW_UP = "follow_up"
+    MAINTENANCE_REMINDER = "maintenance_reminder"
+    CUSTOMER_RETENTION = "customer_retention"
+    UPSELL = "upsell"
+    CROSS_SELL = "cross_sell"
+    WIN_BACK = "win_back"
+    SEASONAL = "seasonal"
+    EMERGENCY_OUTREACH = "emergency_outreach"
+    SURVEY = "survey"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.LEAD_GENERATION: "Lead Generation",
+            self.LEAD_NURTURING: "Lead Nurturing",
+            self.APPOINTMENT_SCHEDULING: "Appointment Scheduling",
+            self.FOLLOW_UP: "Follow Up",
+            self.MAINTENANCE_REMINDER: "Maintenance Reminder",
+            self.CUSTOMER_RETENTION: "Customer Retention",
+            self.UPSELL: "Upsell",
+            self.CROSS_SELL: "Cross Sell",
+            self.WIN_BACK: "Win Back",
+            self.SEASONAL: "Seasonal",
+            self.EMERGENCY_OUTREACH: "Emergency Outreach",
+            self.SURVEY: "Survey"
+        }
+        return display_map.get(self, self.value.title())
+
+
+class CampaignStatus(str, Enum):
+    """Campaign status enumeration."""
+    DRAFT = "draft"
+    SCHEDULED = "scheduled"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    ARCHIVED = "archived"
+    
+    def get_display(self) -> str:
+        """Get human-readable display name."""
+        display_map = {
+            self.DRAFT: "Draft",
+            self.SCHEDULED: "Scheduled",
+            self.ACTIVE: "Active",
+            self.PAUSED: "Paused",
+            self.COMPLETED: "Completed",
+            self.CANCELLED: "Cancelled",
+            self.ARCHIVED: "Archived"
+        }
+        return display_map.get(self, self.value.title())
+
+
+ 
