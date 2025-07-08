@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
 # Clean Architecture Implementation Plan
 
 ## Overview
@@ -688,326 +693,37 @@ Successfully updated dependency injection container with all inventory managemen
 **Completed:**
 Created comprehensive API documentation (docs/api/inventory-management-api.md) covering the complete inventory management system. The documentation includes detailed endpoint specifications for products, suppliers, purchase orders, and stock movements with comprehensive request/response schemas, authentication requirements, error handling, mobile app integration examples, business rules, workflow descriptions, and integration patterns with other systems. The documentation follows the established format and provides complete guidance for mobile app developers to consume the inventory management APIs.
 
-## Phase 11: Multi-Voice Agent System Implementation - **Planning**
+## Phase 12: Multi-Voice Agent System Implementation - **In Progress**
 
-### Overview
-Implement a comprehensive multi-voice agent system for Hero365 based on LiveKit agents framework. The system will serve two primary use cases:
+### Step 12.1: Foundation Setup - **Not Started**
+- [ ] Install LiveKit agents dependencies and configure project structure
+- [ ] Create voice agent base classes and infrastructure
+- [ ] Set up basic dependency injection integration for voice agents
+- [ ] Create shared voice agent tools using existing use cases
 
-1. **Internal Voice Assistant** - Enables users to interact with Hero365 during driving/working for managing jobs, projects, invoices, estimates, scheduling, etc.
-2. **External Customer Voice Agent** - Automated outbound/inbound calls for sales, customer support, job rescheduling, and client communication
+### Step 12.2: Personal Voice Agent for Mobile Users - **Not Started**
+- [ ] Implement PersonalVoiceAgent for driving/working scenarios
+- [ ] Create voice tools for jobs, projects, invoices, estimates, contacts
+- [ ] Implement mobile app integration API endpoints
+- [ ] Add context-aware conversation with business and user context
 
-Both systems will share common tools and infrastructure while maintaining separate contexts and permissions.
+### Step 12.3: Outbound Calling System - **Not Started**
+- [ ] Set up LiveKit SIP integration for outbound calling
+- [ ] Implement SalesAgent for lead follow-up and product/service selling
+- [ ] Implement SupportAgent for job rescheduling and customer service
+- [ ] Create outbound calling orchestration and management system
 
-### Architecture Overview
+### Step 12.4: Advanced Multi-Agent Features - **Not Started**
+- [ ] Implement agent handoff system between personal and outbound agents
+- [ ] Add conversation analytics and performance monitoring
+- [ ] Implement advanced AI features like sentiment analysis
+- [ ] Create comprehensive voice agent testing and evaluation framework
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                           LiveKit Voice Agent System                                  │
-├─────────────────────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────────┐    ┌─────────────────────────────────────────────┐   │
-│  │    Internal Voice Agent     │    │       External Voice Agent                 │   │
-│  │  (User → System Commands)   │    │    (System → Client Communication)         │   │
-│  │                            │    │                                           │   │
-│  │  • Job Management          │    │  • Sales Calls                           │   │
-│  │  • Project Updates         │    │  • Customer Support                      │   │
-│  │  • Invoice Creation        │    │  • Job Rescheduling                      │   │
-│  │  • Estimate Generation     │    │  • Service Reminders                     │   │
-│  │  • Scheduling Commands     │    │  • Payment Reminders                     │   │
-│  │  • Inventory Queries       │    │  • Lead Qualification                    │   │
-│  └─────────────────────────────┘    └─────────────────────────────────────────────┘   │
-│                    │                                    │                             │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │                        Shared Voice Agent Tools                                │   │
-│  │                                                                                 │   │
-│  │  • Business Context Management    • Contact Operations                         │   │
-│  │  • Job CRUD Operations           • Project Management                          │   │
-│  │  • Invoice & Estimate Tools      • Scheduling Operations                      │   │
-│  │  • Inventory Management          • Payment Processing                         │   │
-│  │  • Calendar Integration          • SMS/Email Notifications                    │   │
-│  │  • Natural Language Processing   • Authentication & Authorization             │   │
-│  └─────────────────────────────────────────────────────────────────────────────────┘   │
-│                                          │                                             │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │                        Hero365 Backend Integration                             │   │
-│  │                                                                                 │   │
-│  │  • Clean Architecture Use Cases   • Real-time Scheduling                      │   │
-│  │  • Multi-tenant Business Context  • External Services Integration             │   │
-│  │  • Authentication & Permissions   • Database Operations                       │   │
-│  │  • API Gateway Integration        • WebSocket Support                         │   │
-│  └─────────────────────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────────────────┘
-```
+### Step 12.5: Production Deployment - **Not Started**
+- [ ] Implement scalability features and load balancing for voice agents
+- [ ] Add security measures and compliance features for voice interactions
+- [ ] Set up automated deployment pipeline and monitoring systems
+- [ ] Create comprehensive API documentation for voice agent system
 
-### Technical Implementation Strategy
-
-#### Core Components
-1. **LiveKit Agent Framework** - Main voice processing engine
-2. **Voice Agent Service Layer** - Business logic and orchestration
-3. **Shared Tool Library** - Common operations for both agent types
-4. **Context Management** - Business-scoped operations and permissions
-5. **Integration Layer** - Connection to existing Hero365 backend
-6. **Real-time Communication** - WebSocket and streaming capabilities
-
-#### Development Phases
-
-### Step 11.1: Infrastructure Setup and Core Framework - **Planning**
-- [ ] Install and configure LiveKit server infrastructure
-- [ ] Set up LiveKit Python SDK and agents framework
-- [ ] Create voice agent configuration management
-- [ ] Implement WebSocket communication layer
-- [ ] Set up audio streaming and processing pipeline
-- [ ] Configure speech-to-text and text-to-speech services
-- [ ] Create development environment for voice agent testing
-
-**Goals:**
-- Functional LiveKit server running locally and in cloud
-- Basic voice agent framework with audio processing
-- WebSocket communication between agents and Hero365 backend
-- Development tools for voice agent testing and debugging
-
-### Step 11.2: Shared Voice Agent Tools Library - **Planning**
-- [ ] Create VoiceAgentTool base class and interface
-- [ ] Implement Business Context Tool (business switching, permissions)
-- [ ] Create Job Management Tools (CRUD operations via voice)
-- [ ] Implement Project Management Tools (status updates, assignments)
-- [ ] Create Invoice/Estimate Tools (generation, modification, sending)
-- [ ] Implement Contact Management Tools (search, update, interaction logging)
-- [ ] Create Scheduling Tools (appointment booking, rescheduling, availability)
-- [ ] Implement Inventory Tools (stock checks, reorder alerts, product info)
-- [ ] Create Calendar Integration Tools (availability, meeting scheduling)
-- [ ] Implement Authentication and Authorization Tools
-- [ ] Create SMS/Email Notification Tools
-- [ ] Implement Natural Language Processing Utilities
-
-**Goals:**
-- Comprehensive tool library that both agent types can use
-- Proper error handling and validation for voice-driven operations
-- Integration with existing Hero365 use cases and business logic
-- Voice-friendly responses with appropriate detail levels
-
-### Step 11.3: Internal Voice Agent Implementation - **Planning**
-- [ ] Create Internal Voice Agent class and configuration
-- [ ] Implement user authentication and business context management
-- [ ] Create voice command parsing and intent recognition
-- [ ] Implement job management voice commands
-  - "Create new job for John Smith at 123 Main St"
-  - "Update job status to completed for job #12345"
-  - "What jobs do I have scheduled today?"
-- [ ] Create project management voice commands
-  - "Create new project for kitchen renovation"
-  - "Update project budget to $5000"
-  - "What's the status of project #456?"
-- [ ] Implement invoice and estimate voice commands
-  - "Create invoice for completed job #789"
-  - "Generate estimate for bathroom remodel"
-  - "What invoices are overdue?"
-- [ ] Create scheduling voice commands
-  - "Schedule job for tomorrow at 2 PM"
-  - "What's my availability next week?"
-  - "Reschedule job #123 to Friday"
-- [ ] Implement inventory voice commands
-  - "Check stock for PVC pipe"
-  - "Add 50 units of copper fittings"
-  - "What products are low in stock?"
-- [ ] Create conversation flow and context management
-- [ ] Implement voice response generation with appropriate detail
-- [ ] Add safety measures and confirmation prompts
-
-**Goals:**
-- Fully functional internal voice agent for Hero365 users
-- Natural conversation flow for all major ERP operations
-- Hands-free operation suitable for driving/working scenarios
-- Proper business context and permission enforcement
-- Safety confirmations for critical operations
-
-### Step 11.4: External Voice Agent Implementation - **Planning**
-- [ ] Create External Voice Agent class and configuration
-- [ ] Implement outbound calling infrastructure
-- [ ] Create inbound call handling and routing
-- [ ] Implement sales conversation flows
-  - Lead qualification scripts
-  - Service upselling conversations
-  - Quote generation and delivery
-- [ ] Create customer support conversation flows
-  - Issue resolution scripts
-  - Service status inquiries
-  - Technical support guidance
-- [ ] Implement job rescheduling conversation flows
-  - Appointment availability checking
-  - Rescheduling confirmations
-  - Calendar integration
-- [ ] Create payment reminder conversation flows
-  - Invoice status discussions
-  - Payment collection scripts
-  - Payment plan negotiations
-- [ ] Implement service reminder conversation flows
-  - Maintenance reminders
-  - Seasonal service offers
-  - Renewal notifications
-- [ ] Create lead qualification and CRM integration
-- [ ] Implement conversation logging and analytics
-- [ ] Add compliance and recording features
-- [ ] Create escalation to human agents
-
-**Goals:**
-- Autonomous external voice agent for customer interactions
-- Professional sales and support conversation capabilities
-- Seamless integration with Hero365 CRM and scheduling
-- Compliance with telecommunication regulations
-- Analytics and reporting for call performance
-
-### Step 11.5: Multi-Agent Orchestration and Management - **Planning**
-- [ ] Create Voice Agent Manager service
-- [ ] Implement agent lifecycle management (start, stop, monitor)
-- [ ] Create agent routing and load balancing
-- [ ] Implement session management and state persistence
-- [ ] Create agent performance monitoring and analytics
-- [ ] Implement agent configuration management
-- [ ] Create agent deployment and scaling infrastructure
-- [ ] Implement agent health checking and recovery
-- [ ] Create agent logging and debugging tools
-- [ ] Implement agent security and access control
-- [ ] Create agent backup and failover mechanisms
-- [ ] Implement agent update and version management
-
-**Goals:**
-- Reliable multi-agent system with automatic scaling
-- Comprehensive monitoring and management capabilities
-- High availability and fault tolerance
-- Easy deployment and configuration management
-- Performance optimization and resource management
-
-### Step 11.6: Integration with Hero365 Backend - **Planning**
-- [ ] Create Voice Agent API Gateway
-- [ ] Implement authentication integration with Hero365 auth system
-- [ ] Create business context middleware for voice agents
-- [ ] Implement real-time synchronization with Hero365 database
-- [ ] Create voice agent audit logging
-- [ ] Implement permission validation for voice operations
-- [ ] Create voice agent analytics and reporting
-- [ ] Implement voice agent configuration API
-- [ ] Create voice agent status and health endpoints
-- [ ] Implement voice agent user management
-- [ ] Create voice agent session management API
-- [ ] Implement voice agent billing and usage tracking
-
-**Goals:**
-- Seamless integration between voice agents and Hero365 backend
-- Proper authentication and authorization for voice operations
-- Real-time data synchronization and consistency
-- Comprehensive audit trail and compliance features
-- Management APIs for voice agent administration
-
-### Step 11.7: Advanced Features and AI Enhancement - **Planning**
-- [ ] Implement advanced NLP with context awareness
-- [ ] Create voice agent learning and adaptation system
-- [ ] Implement sentiment analysis for customer interactions
-- [ ] Create voice agent personality and branding customization
-- [ ] Implement multi-language support
-- [ ] Create voice agent analytics and insights
-- [ ] Implement predictive suggestions and recommendations
-- [ ] Create voice agent training and knowledge base
-- [ ] Implement voice agent A/B testing framework
-- [ ] Create voice agent performance optimization
-- [ ] Implement advanced conversation flows and branching
-- [ ] Create voice agent integration with external AI services
-
-**Goals:**
-- Advanced AI capabilities for natural conversation
-- Continuous learning and improvement of voice agents
-- Customizable personality and branding for different businesses
-- Multi-language support for international markets
-- Analytics and insights for business optimization
-
-### Step 11.8: Testing, Security, and Compliance - **Planning**
-- [ ] Create comprehensive voice agent testing framework
-- [ ] Implement unit tests for all voice agent components
-- [ ] Create integration tests for voice agent workflows
-- [ ] Implement security testing and vulnerability assessment
-- [ ] Create compliance testing for telecommunication regulations
-- [ ] Implement performance testing and load testing
-- [ ] Create voice agent disaster recovery procedures
-- [ ] Implement security hardening and best practices
-- [ ] Create compliance documentation and audit trails
-- [ ] Implement voice agent monitoring and alerting
-- [ ] Create voice agent backup and recovery procedures
-- [ ] Implement voice agent incident response procedures
-
-**Goals:**
-- Comprehensive testing coverage for all voice agent functionality
-- Security hardening and compliance with regulations
-- Performance optimization and scalability testing
-- Disaster recovery and business continuity planning
-- Monitoring and alerting for production operations
-
-### Step 11.9: Deployment and Production Readiness - **Planning**
-- [ ] Create production deployment infrastructure
-- [ ] Implement voice agent containerization and orchestration
-- [ ] Create CI/CD pipeline for voice agent deployments
-- [ ] Implement production monitoring and logging
-- [ ] Create production configuration management
-- [ ] Implement production security and access controls
-- [ ] Create production backup and disaster recovery
-- [ ] Implement production performance optimization
-- [ ] Create production support and maintenance procedures
-- [ ] Implement production scaling and capacity planning
-- [ ] Create production documentation and runbooks
-- [ ] Implement production incident response procedures
-
-**Goals:**
-- Production-ready voice agent system with high availability
-- Automated deployment and configuration management
-- Comprehensive monitoring and alerting for production
-- Scalable infrastructure for growing user base
-- Professional support and maintenance procedures
-
-### Step 11.10: Documentation and Training - **Planning**
-- [ ] Create comprehensive voice agent documentation
-- [ ] Implement API documentation for voice agent services
-- [ ] Create user guides for internal voice agent
-- [ ] Create configuration guides for external voice agent
-- [ ] Implement developer documentation and examples
-- [ ] Create training materials for Hero365 users
-- [ ] Create troubleshooting guides and FAQs
-- [ ] Implement video tutorials and demonstrations
-- [ ] Create best practices and usage guidelines
-- [ ] Create voice agent architecture documentation
-- [ ] Implement change management and versioning documentation
-- [ ] Create compliance and security documentation
-
-**Goals:**
-- Comprehensive documentation for all voice agent functionality
-- Training materials for users and administrators
-- Developer resources for customization and extension
-- Compliance documentation for regulatory requirements
-- Professional documentation standards and maintenance
-
-### Expected Outcomes
-
-#### Business Value
-- **25-35% improvement in field worker productivity** through hands-free ERP operations
-- **40-50% reduction in customer service response time** through automated voice agents
-- **60-70% increase in lead conversion rates** through immediate response and qualification
-- **30-40% improvement in customer satisfaction** through 24/7 availability and instant support
-- **20-30% reduction in operational costs** through automation of routine tasks
-
-#### Technical Achievements
-- **Scalable multi-agent voice system** supporting thousands of concurrent sessions
-- **Natural language processing** capabilities for complex ERP operations
-- **Real-time integration** with Hero365 backend systems
-- **Professional voice agent** capabilities for customer interactions
-- **Comprehensive monitoring** and analytics for voice agent performance
-
-#### User Experience
-- **Hands-free ERP operations** for field workers and mobile users
-- **Natural conversation flows** for complex business operations
-- **Professional customer interactions** with automated voice agents
-- **Seamless integration** with existing Hero365 workflows
-- **Advanced AI capabilities** for intelligent assistance and automation
-
-This implementation will position Hero365 as a leader in AI-native ERP solutions with cutting-edge voice agent technology, providing significant competitive advantages and improved user experiences across all aspects of the business.
-
-- [x] Document real-time inventory updates and mobile synchronization
-
-**Completed:**
-Created comprehensive API documentation (docs/api/inventory-management-api.md) covering the complete inventory management system. The documentation includes detailed endpoint specifications for products, suppliers, purchase orders, and stock movements with comprehensive request/response schemas, authentication requirements, error handling, mobile app integration examples, business rules, workflow descriptions, and integration patterns with other systems. The documentation follows the established format and provides complete guidance for mobile app developers to consume the inventory management APIs.
+**Implementation Plan Created:**
+Created comprehensive Multi-Voice Agent System Implementation Plan (MULTI_VOICE_AGENT_IMPLEMENTATION_PLAN.md) following 10x engineering principles with incremental development approach. The plan includes detailed architecture for personal voice agents using LiveKit Agents framework and outbound calling agents using LiveKit SIP integration. Both systems leverage existing Hero365 clean architecture use cases for seamless integration with business operations.
