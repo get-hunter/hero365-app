@@ -1,0 +1,6 @@
+---
+alwaysApply: true
+---
+
+The environment files are in the root of the project on the folder /environments.
+We have two files: .env and production.env 
