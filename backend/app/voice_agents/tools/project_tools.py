@@ -138,7 +138,7 @@ async def create_project(
 
 
 @function_tool
-async def get_active_projects(limit: int = 10) -> Dict[str, Any]:
+async def get_active_projects(limit: int = 10) -> str:
     """
     Get active projects for the business.
     
@@ -146,7 +146,7 @@ async def get_active_projects(limit: int = 10) -> Dict[str, Any]:
         limit: Maximum number of projects to return (default: 10)
     
     Returns:
-        Dictionary with active projects list
+        String describing the active projects
     """
     try:
         container = DependencyContainer()
@@ -157,11 +157,7 @@ async def get_active_projects(limit: int = 10) -> Dict[str, Any]:
         user_id = context["user_id"]
         
         if not business_id or not user_id:
-            return {
-                "success": False,
-                "error": "Agent context not available",
-                "message": "Unable to retrieve projects. Please try again."
-            }
+            return "I'm sorry, I can't access your project information right now. Please try again."
         
         # Get active projects directly from repository
         projects = await project_repository.get_active_projects(
@@ -170,39 +166,40 @@ async def get_active_projects(limit: int = 10) -> Dict[str, Any]:
             limit=limit
         )
         
-        active_projects = []
+        if not projects:
+            return "You don't have any active projects at the moment. Would you like me to help you create a new project?"
+        
+        # Create a conversational response about the projects
+        project_summaries = []
         for project in projects:
-            active_projects.append({
-                "id": str(project.id),
-                "name": project.name,
-                "project_number": project.project_number,
-                "status": project.status.value if hasattr(project.status, 'value') else str(project.status),
-                "priority": project.priority.value if hasattr(project.priority, 'value') else str(project.priority),
-                "start_date": project.start_date.date() if project.start_date else None,
-                "estimated_budget": float(project.estimated_budget) if project.estimated_budget else None,
-                "progress_percentage": getattr(project, 'progress_percentage', 0)
-            })
+            status = project.status.value if hasattr(project.status, 'value') else str(project.status)
+            priority = project.priority.value if hasattr(project.priority, 'value') else str(project.priority)
+            
+            summary = f"{project.name} - {status} priority"
+            if project.start_date:
+                summary += f", started {project.start_date.strftime('%B %d')}"
+            if project.estimated_budget:
+                summary += f", budget ${project.estimated_budget:,.0f}"
+            
+            project_summaries.append(summary)
         
-        logger.info(f"Retrieved {len(active_projects)} active projects via voice agent")
+        logger.info(f"Retrieved {len(projects)} active projects via voice agent")
         
-        return {
-            "success": True,
-            "projects": active_projects,
-            "total_count": len(active_projects),
-            "message": f"Found {len(active_projects)} active projects"
-        }
+        # Format the response for voice output
+        if len(projects) == 1:
+            return f"You have 1 active project: {project_summaries[0]}"
+        elif len(projects) <= 3:
+            return f"You have {len(projects)} active projects: {', '.join(project_summaries[:-1])}, and {project_summaries[-1]}"
+        else:
+            return f"You have {len(projects)} active projects. Here are the first 3: {', '.join(project_summaries[:3])}. Would you like me to continue with the rest?"
         
     except Exception as e:
         logger.error(f"Error retrieving active projects via voice agent: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "Failed to retrieve active projects. Please try again."
-        }
+        return "I'm having trouble accessing your project information right now. Please try again in a moment."
 
 
 @function_tool
-async def get_projects_by_status(status: str, limit: int = 10) -> Dict[str, Any]:
+async def get_projects_by_status(status: str, limit: int = 10) -> str:
     """
     Get projects filtered by status.
     
@@ -211,7 +208,7 @@ async def get_projects_by_status(status: str, limit: int = 10) -> Dict[str, Any]
         limit: Maximum number of projects to return (default: 10)
     
     Returns:
-        Dictionary with filtered projects
+        String describing the projects with the specified status
     """
     try:
         container = DependencyContainer()
@@ -222,21 +219,13 @@ async def get_projects_by_status(status: str, limit: int = 10) -> Dict[str, Any]
         user_id = context["user_id"]
         
         if not business_id or not user_id:
-            return {
-                "success": False,
-                "error": "Agent context not available",
-                "message": "Unable to retrieve projects by status. Please try again."
-            }
+            return "I'm sorry, I can't access your project information right now. Please try again."
         
         # Convert status string to enum
         try:
             status_enum = ProjectStatus(status.upper())
         except ValueError:
-            return {
-                "success": False,
-                "error": f"Invalid status: {status}",
-                "message": "Valid statuses are: planning, active, on_hold, completed, cancelled"
-            }
+            return f"I don't recognize the status '{status}'. Valid statuses are: planning, active, on hold, completed, or cancelled."
         
         # Get projects by status directly from repository
         projects = await project_repository.get_by_status(
@@ -246,34 +235,33 @@ async def get_projects_by_status(status: str, limit: int = 10) -> Dict[str, Any]
             limit=limit
         )
         
-        project_list = []
+        if not projects:
+            return f"You don't have any projects with status '{status}' at the moment."
+        
+        # Create conversational summaries
+        project_summaries = []
         for project in projects:
-            project_list.append({
-                "id": str(project.id),
-                "name": project.name,
-                "project_number": project.project_number,
-                "priority": project.priority.value if hasattr(project.priority, 'value') else str(project.priority),
-                "start_date": project.start_date.date() if project.start_date else None,
-                "estimated_budget": float(project.estimated_budget) if project.estimated_budget else None
-            })
+            priority = project.priority.value if hasattr(project.priority, 'value') else str(project.priority)
+            summary = f"{project.name} - {priority} priority"
+            if project.start_date:
+                summary += f", started {project.start_date.strftime('%B %d')}"
+            if project.estimated_budget:
+                summary += f", budget ${project.estimated_budget:,.0f}"
+            project_summaries.append(summary)
         
-        logger.info(f"Retrieved {len(project_list)} projects with status {status} via voice agent")
+        logger.info(f"Retrieved {len(projects)} projects with status {status} via voice agent")
         
-        return {
-            "success": True,
-            "projects": project_list,
-            "status_filter": status,
-            "total_count": len(project_list),
-            "message": f"Found {len(project_list)} projects with status: {status}"
-        }
+        # Format the response for voice output
+        if len(projects) == 1:
+            return f"You have 1 project with status '{status}': {project_summaries[0]}"
+        elif len(projects) <= 3:
+            return f"You have {len(projects)} projects with status '{status}': {', '.join(project_summaries[:-1])}, and {project_summaries[-1]}"
+        else:
+            return f"You have {len(projects)} projects with status '{status}'. Here are the first 3: {', '.join(project_summaries[:3])}. Would you like me to continue with the rest?"
         
     except Exception as e:
         logger.error(f"Error retrieving projects by status via voice agent: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "Failed to retrieve projects by status. Please try again."
-        }
+        return "I'm having trouble accessing your project information right now. Please try again in a moment."
 
 
 @function_tool
