@@ -50,7 +50,7 @@ class Hero365Agent(Agent):
             tools=self.personal_agent.get_tools()
         )
         
-        logger.info("🤖 Hero365Agent created successfully")
+        logger.info("Hero365Agent initialized successfully")
 
 
 async def entrypoint(ctx: JobContext):
@@ -58,13 +58,11 @@ async def entrypoint(ctx: JobContext):
     Main entrypoint for the voice agent worker.
     This function is called when a job is assigned to this worker.
     """
-    logger.info("🚀 Starting voice agent entrypoint")
-    logger.info(f"🏠 Room name: {ctx.room.name}")
-    logger.info(f"📋 Job metadata: {ctx.job.metadata}")
+    logger.info(f"Voice agent starting for room: {ctx.room.name}")
     
     # Connect to the room
     await ctx.connect()
-    logger.info("✅ Connected to room")
+    logger.info("Connected to room successfully")
     
     # Extract agent context from room metadata
     business_context = None
@@ -75,7 +73,6 @@ async def entrypoint(ctx: JobContext):
         # The API stores agent context in room metadata
         import json
         room_metadata = json.loads(ctx.room.metadata) if ctx.room.metadata else {}
-        logger.info(f"🔍 Room metadata: {room_metadata}")
         
         # Extract agent context from metadata
         agent_context = room_metadata.get("agent_context", {})
@@ -83,15 +80,13 @@ async def entrypoint(ctx: JobContext):
             business_context = agent_context.get("business_context", {})
             user_context = agent_context.get("user_context", {})
             agent_config_data = agent_context.get("agent_config", {})
-            logger.info(f"✅ Extracted agent context from room metadata")
-            logger.info(f"🏢 Business: {business_context.get('name', 'Unknown')}")
-            logger.info(f"👤 User: {user_context.get('name', 'Unknown')}")
+            logger.info(f"Agent context loaded for user: {user_context.get('name', 'Unknown')}")
         else:
-            logger.warning("⚠️ No agent context found in room metadata, using defaults")
+            logger.warning("No agent context found in room metadata, using defaults")
             
     except Exception as e:
-        logger.error(f"❌ Failed to parse room metadata: {e}")
-        logger.info("🔄 Using default context")
+        logger.error(f"Failed to parse room metadata: {e}")
+        logger.info("Using default context")
     
     # Use extracted context or fall back to defaults
     if not business_context:
@@ -120,7 +115,6 @@ async def entrypoint(ctx: JobContext):
     )
     
     # Create the Hero365Agent (LiveKit Agent wrapper)
-    logger.info("🤖 Creating Hero365Agent with extracted context")
     agent = Hero365Agent(
         business_context=business_context,
         user_context=user_context,
@@ -128,7 +122,6 @@ async def entrypoint(ctx: JobContext):
     )
     
     # Create AgentSession with STT, LLM, TTS
-    logger.info("🎙️ Creating AgentSession")
     session = AgentSession(
         vad=silero.VAD.load(),
         stt=deepgram.STT(model="nova-2"),
@@ -137,44 +130,43 @@ async def entrypoint(ctx: JobContext):
     )
     
     # Start the session with the agent
-    logger.info("▶️ Starting AgentSession")
     await session.start(agent=agent, room=ctx.room)
     
     # Generate initial greeting
-    logger.info("💬 Generating initial greeting")
     await session.generate_reply(
         instructions="Greet the user politely and ask how you can help them today with their Hero365 business."
     )
     
-    logger.info("✅ Hero365Agent session started successfully")
+    logger.info("Hero365Agent session started successfully")
 
 
 def main():
     """Main function to run the worker"""
     
-    # Log environment variable status
-    logger.info("🔍 Checking environment variables...")
-    
+    # Verify required environment variables
     required_vars = [
         "LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET",
         "OPENAI_API_KEY", "DEEPGRAM_API_KEY", "CARTESIA_API_KEY"
     ]
     
+    missing_vars = []
     for var in required_vars:
-        value = os.getenv(var)
-        if value:
-            logger.info(f"✅ {var}: Available")
-        else:
-            logger.warning(f"❌ {var}: Not set")
+        if not os.getenv(var):
+            missing_vars.append(var)
+    
+    if missing_vars:
+        logger.error(f"Missing required environment variables: {', '.join(missing_vars)}")
+        sys.exit(1)
+    
+    logger.info("All required environment variables are set")
     
     # Create worker options for automatic dispatch
-    # Removing agent_name enables automatic dispatch - worker will join rooms automatically
     worker_options = WorkerOptions(
         entrypoint_fnc=entrypoint
     )
     
     # Run the worker
-    logger.info("🏃 Starting LiveKit worker with automatic dispatch...")
+    logger.info("Starting LiveKit worker with automatic dispatch...")
     cli.run_app(worker_options)
 
 

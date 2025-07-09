@@ -57,7 +57,6 @@ class LiveKitService:
             room = await self.livekit_api.room.create_room(request)
             
             logger.info(f"Created LiveKit room: {room_name}")
-            logger.info(f"Room info: name={room.name}, sid={room.sid}, num_participants={room.num_participants}")
             
             return {
                 "room_name": room.name,
@@ -122,8 +121,7 @@ class LiveKitService:
             
             jwt_token = token.to_jwt()
             
-            logger.info(f"Generated user token for room {room_name}")
-            logger.info(f"Token payload: {json.dumps(token.claims.__dict__, indent=2, default=str)}")
+            logger.info(f"Generated user token for room: {room_name}")
             
             return jwt_token
             
