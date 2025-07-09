@@ -90,9 +90,10 @@ async def start_voice_agent(
         
         # Debug logging
         logger = logging.getLogger(__name__)
-        logger.info(f"Starting voice agent for user {current_user['id']}")
-        logger.info(f"Business context: {business_data}")
-        logger.info(f"User context: {user_context}")
+        logger.info(f"🚀 Starting voice agent for user {current_user['id']}")
+        logger.info(f"🏢 Business context: {business_data}")
+        logger.info(f"👤 User context: {user_context}")
+        logger.debug(f"📋 Request parameters: is_driving={request.is_driving}, safety_mode={request.safety_mode}")
         
         # Always create a new session for each start request
         # This ensures proper session isolation and worker dispatch
@@ -105,15 +106,16 @@ async def start_voice_agent(
                 agents_to_remove.append(existing_agent_id)
         
         for agent_id_to_remove in agents_to_remove:
-            logger.info(f"Cleaning up old agent: {agent_id_to_remove}")
+            logger.info(f"🧹 Cleaning up old agent: {agent_id_to_remove}")
             del active_agents[agent_id_to_remove]
         
         import uuid
         agent_id = str(uuid.uuid4())
-        logger.info(f"Creating new agent with ID: {agent_id}")
+        logger.info(f"🆔 Creating new agent with ID: {agent_id}")
         
         # Create agent configuration
         try:
+            logger.debug("⚙️ Creating agent configuration...")
             agent_config = PersonalAgentConfig(
                 agent_type=AgentType.PERSONAL,
                 agent_name=f"{business_data['name']} Assistant",
@@ -121,9 +123,10 @@ async def start_voice_agent(
                 enable_noise_cancellation=request.enable_noise_cancellation,
                 temperature=0.7
             )
-            logger.info("Agent configuration created successfully")
+            logger.info("✅ Agent configuration created successfully")
+            logger.debug(f"⚙️ Config details: voice={agent_config.voice_profile.value}, model={agent_config.voice_model.value}")
         except Exception as e:
-            logger.error(f"Failed to create agent configuration: {e}")
+            logger.error(f"❌ Failed to create agent configuration: {e}")
             raise e
         
         # Setup LiveKit connection if configured
@@ -133,7 +136,7 @@ async def start_voice_agent(
             try:
                 # Create unique room name for this session
                 room_name = f"voice-session-{agent_id}"
-                logger.info(f"Creating LiveKit room: {room_name}")
+                logger.info(f"🏠 Creating LiveKit room: {room_name}")
                 
                 # Store agent context for the worker to use
                 # The worker's entrypoint function will extract this from job metadata
@@ -151,26 +154,34 @@ async def start_voice_agent(
                     "interactions": []
                 }
                 
+                logger.info("📋 Agent context prepared for worker")
+                logger.debug(f"🏢 Business context in metadata: {agent_context['business_context']}")
+                logger.debug(f"👤 User context in metadata: {agent_context['user_context']}")
+                logger.debug(f"⚙️ Agent config in metadata: {agent_context['agent_config']}")
+                
                 # Create LiveKit room with the agent context in metadata
+                logger.info("🏠 Calling LiveKit service to create room with metadata...")
                 room_info = await livekit_service.create_voice_session_room(
                     session_id=agent_id,
                     user_id=current_user["id"],
                     room_name=room_name,
                     agent_context=agent_context
                 )
-                logger.info(f"LiveKit room created: {room_info}")
+                logger.info(f"✅ LiveKit room created: {room_info}")
                 
                 # Generate user token for mobile app
+                logger.info("🎫 Generating user token for mobile app...")
                 user_token = livekit_service.generate_user_token(
                     room_name=room_name,
                     user_id=current_user["id"]
                 )
-                logger.info("User token generated")
+                logger.info("✅ User token generated")
                 
                 # With automatic dispatch, the worker will automatically handle jobs
                 # when rooms are created - no explicit dispatch needed
-                logger.info(f"Room ready for automatic agent dispatch: {room_name}")
-                logger.info("Worker should automatically join this room")
+                logger.info(f"🎯 Room ready for automatic agent dispatch: {room_name}")
+                logger.info("⏳ Worker should automatically join this room when user connects")
+                logger.info("📡 If worker doesn't join, check worker logs for entrypoint calls")
                 
                 livekit_connection = LiveKitConnectionSchema(
                     room_name=room_name,
@@ -179,52 +190,60 @@ async def start_voice_agent(
                     room_sid=room_info.get("room_sid", "") if room_info else ""
                 )
                 
+                logger.debug(f"🔗 LiveKit connection details: room={room_name}, url={livekit_service.get_connection_url()}")
+                
             except Exception as e:
                 # LiveKit setup failed, log error but continue without it
-                logger.error(f"Failed to setup LiveKit connection: {e}")
+                logger.error(f"❌ Failed to setup LiveKit connection: {e}")
                 import traceback
-                logger.error(f"LiveKit error traceback: {traceback.format_exc()}")
+                logger.error(f"🐛 LiveKit error traceback: {traceback.format_exc()}")
                 # Continue without LiveKit connection
+        else:
+            if not livekit_service:
+                logger.warning("⚠️ LiveKit service not available")
+            if not settings.voice_agents_enabled:
+                logger.warning("⚠️ Voice agents disabled in settings")
         
         # Create and store agent for API compatibility
         try:
-            logger.info("Creating PersonalVoiceAgent instance...")
+            logger.info("🤖 Creating PersonalVoiceAgent instance...")
             agent = PersonalVoiceAgent(
                 business_context=business_data,
                 user_context=user_context,
                 agent_config=agent_config
             )
             agent.agent_id = agent_id  # Set the same ID
-            logger.info("PersonalVoiceAgent created successfully")
+            logger.info("✅ PersonalVoiceAgent created successfully")
+            logger.debug(f"🛠️ Agent has {len(agent.get_tools())} tools available")
         except Exception as e:
-            logger.error(f"Failed to create PersonalVoiceAgent: {e}")
+            logger.error(f"❌ Failed to create PersonalVoiceAgent: {e}")
             import traceback
-            logger.error(f"Agent creation traceback: {traceback.format_exc()}")
+            logger.error(f"🐛 Agent creation traceback: {traceback.format_exc()}")
             raise e
         
         # Store the room name for reconnection purposes
         if livekit_connection:
             agent.livekit_room_name = livekit_connection.room_name
-            logger.info(f"Stored room name in agent: {livekit_connection.room_name}")
+            logger.info(f"🏠 Stored room name in agent: {livekit_connection.room_name}")
         
         # Store active agent for status/stop endpoints
         active_agents[agent_id] = agent
-        logger.info(f"Stored agent in active_agents: {agent_id}")
+        logger.info(f"💾 Stored agent in active_agents: {agent_id}")
         
         # Initialize agent
         try:
-            logger.info("Initializing agent...")
+            logger.info("🚀 Initializing agent...")
             await agent.on_agent_start()
-            logger.info("Agent initialized successfully")
+            logger.info("✅ Agent initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize agent: {e}")
+            logger.error(f"❌ Failed to initialize agent: {e}")
             import traceback
-            logger.error(f"Agent initialization traceback: {traceback.format_exc()}")
+            logger.error(f"🐛 Agent initialization traceback: {traceback.format_exc()}")
             raise e
         
         # Prepare response
         try:
-            logger.info("Preparing response...")
+            logger.info("📋 Preparing response...")
             response = VoiceAgentStartResponse(
                 success=True,
                 agent_id=agent_id,
@@ -239,12 +258,18 @@ async def start_voice_agent(
                 livekit_connection=livekit_connection,
                 message="Voice agent started successfully. Agent will automatically join when you connect to the room."
             )
-            logger.info("Response prepared successfully")
+            logger.info("✅ Response prepared successfully")
+            logger.info("🎯 Voice agent start process completed!")
+            
+            if livekit_connection:
+                logger.info("📱 Mobile app should now connect to the room")
+                logger.info("🔮 When mobile app connects, worker should automatically join room and call entrypoint")
+            
             return response
         except Exception as e:
-            logger.error(f"Failed to prepare response: {e}")
+            logger.error(f"❌ Failed to prepare response: {e}")
             import traceback
-            logger.error(f"Response preparation traceback: {traceback.format_exc()}")
+            logger.error(f"🐛 Response preparation traceback: {traceback.format_exc()}")
             raise e
         
     except Exception as e:

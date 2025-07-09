@@ -7,7 +7,7 @@ import uuid
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
-from contextvars import ContextVar
+
 
 from livekit.agents import function_tool
 
@@ -30,20 +30,21 @@ from app.domain.enums import ContactType, ContactStatus
 
 logger = logging.getLogger(__name__)
 
-# Context variable to store the current agent context
-_current_context: ContextVar[Dict[str, Any]] = ContextVar('current_context', default={})
+# Global context storage for the worker environment
+_current_context: Dict[str, Any] = {}
 
 def set_current_context(context: Dict[str, Any]) -> None:
     """Set the current agent context."""
-    _current_context.set(context)
+    global _current_context
+    _current_context = context
 
 def get_current_context() -> Dict[str, Any]:
     """Get the current agent context."""
-    context = _current_context.get()
-    if not context.get("business_id") or not context.get("user_id"):
+    global _current_context
+    if not _current_context.get("business_id") or not _current_context.get("user_id"):
         logger.warning("Agent context not available for contact tools")
         return {"business_id": None, "user_id": None}
-    return context
+    return _current_context
 
 
 @function_tool

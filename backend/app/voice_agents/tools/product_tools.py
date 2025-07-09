@@ -7,7 +7,7 @@ import uuid
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
-from contextvars import ContextVar
+
 from decimal import Decimal
 
 from livekit.agents import function_tool
@@ -25,27 +25,24 @@ from app.domain.enums import ProductType, ProductStatus, PricingModel, UnitOfMea
 
 logger = logging.getLogger(__name__)
 
-# Context variable to store the current agent context
-_current_context: ContextVar[Dict[str, Any]] = ContextVar('current_context', default={})
+# Global context storage for the worker environment
+_current_context: Dict[str, Any] = {}
 
 def set_current_context(context: Dict[str, Any]) -> None:
     """Set the current agent context."""
-    _current_context.set(context)
+    global _current_context
+    _current_context = context
 
 def get_current_context() -> Dict[str, str]:
     """Get current business and user context from agent."""
-    try:
-        context = _current_context.get()
-        return {
-            "business_id": context.get("business_id", ""),
-            "user_id": context.get("user_id", "")
-        }
-    except LookupError:
-        logger.error("Agent context not set! Tools cannot access business/user context.")
-        return {
-            "business_id": "",
-            "user_id": ""
-        }
+    global _current_context
+    if not _current_context.get("business_id") or not _current_context.get("user_id"):
+        logger.warning("Agent context not available for product tools")
+        return {"business_id": "", "user_id": ""}
+    return {
+        "business_id": _current_context.get("business_id", ""),
+        "user_id": _current_context.get("user_id", "")
+    }
 
 
 @function_tool

@@ -7,7 +7,6 @@ import uuid
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
-from contextvars import ContextVar
 from decimal import Decimal
 
 from livekit.agents import function_tool
@@ -29,20 +28,21 @@ from app.domain.enums import ProjectStatus, ProjectType, ProjectPriority
 
 logger = logging.getLogger(__name__)
 
-# Context variable to store the current agent context
-_current_context: ContextVar[Dict[str, Any]] = ContextVar('current_context', default={})
+# Global context storage for the worker environment
+_current_context: Dict[str, Any] = {}
 
 def set_current_context(context: Dict[str, Any]) -> None:
     """Set the current agent context."""
-    _current_context.set(context)
+    global _current_context
+    _current_context = context
 
 def get_current_context() -> Dict[str, Any]:
     """Get the current agent context."""
-    context = _current_context.get()
-    if not context.get("business_id") or not context.get("user_id"):
+    global _current_context
+    if not _current_context.get("business_id") or not _current_context.get("user_id"):
         logger.warning("Agent context not available for project tools")
         return {"business_id": None, "user_id": None}
-    return context
+    return _current_context
 
 
 @function_tool
@@ -54,7 +54,7 @@ async def create_project(
     priority: str = "medium",
     start_date: Optional[str] = None,
     estimated_budget: Optional[float] = None
-) -> Dict[str, Any]:
+) -> str:
     """
     Create a new project for the business.
     
@@ -68,7 +68,7 @@ async def create_project(
         estimated_budget: Estimated project budget
     
     Returns:
-        Dictionary with project creation result
+        String describing the project creation result
     """
     try:
         container = DependencyContainer()
@@ -79,11 +79,7 @@ async def create_project(
         user_id = context["user_id"]
         
         if not business_id or not user_id:
-            return {
-                "success": False,
-                "error": "Agent context not available",
-                "message": "Unable to create project. Please try again."
-            }
+            return "I'm sorry, I can't create a project right now. Please try again."
         
         # Convert string enums
         try:
@@ -119,22 +115,22 @@ async def create_project(
         
         logger.info(f"Created project via voice agent: {result.id}")
         
-        return {
-            "success": True,
-            "project_id": str(result.id),
-            "name": result.name,
-            "project_number": result.project_number,
-            "start_date": result.start_date.isoformat() if result.start_date else None,
-            "message": f"Project '{name}' created successfully with number {result.project_number}"
-        }
+        # Create a conversational response
+        response = f"I've successfully created the project '{name}' with project number {result.project_number}."
+        
+        if result.start_date:
+            response += f" The project is scheduled to start on {result.start_date.strftime('%B %d, %Y')}."
+            
+        if estimated_budget:
+            response += f" The estimated budget is ${estimated_budget:,.0f}."
+            
+        response += " Is there anything else you'd like me to help you with for this project?"
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error creating project via voice agent: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "Failed to create project. Please try again or contact support."
-        }
+        return "I'm sorry, I wasn't able to create the project. Please try again or let me know if you need help with the project details."
 
 
 @function_tool
@@ -265,7 +261,7 @@ async def get_projects_by_status(status: str, limit: int = 10) -> str:
 
 
 @function_tool
-async def update_project_status(project_id: str, new_status: str, notes: Optional[str] = None) -> Dict[str, Any]:
+async def update_project_status(project_id: str, new_status: str, notes: Optional[str] = None) -> str:
     """
     Update project status with optional notes.
     
@@ -275,7 +271,7 @@ async def update_project_status(project_id: str, new_status: str, notes: Optiona
         notes: Optional notes about the status change
     
     Returns:
-        Dictionary with update result
+        String confirming the status update
     """
     try:
         container = DependencyContainer()
@@ -286,21 +282,13 @@ async def update_project_status(project_id: str, new_status: str, notes: Optiona
         user_id = context["user_id"]
         
         if not business_id or not user_id:
-            return {
-                "success": False,
-                "error": "Agent context not available",
-                "message": "Unable to update project status. Please try again."
-            }
+            return "I'm sorry, I can't update the project status right now. Please try again."
         
         # Convert status string to enum
         try:
             status_enum = ProjectStatus(new_status.upper())
         except ValueError:
-            return {
-                "success": False,
-                "error": f"Invalid status: {new_status}",
-                "message": "Valid statuses are: planning, active, on_hold, completed, cancelled"
-            }
+            return f"I don't recognize the status '{new_status}'. Valid statuses are: planning, active, on hold, completed, or cancelled."
         
         # Create update DTO
         update_dto = ProjectUpdateDTO(
@@ -316,25 +304,19 @@ async def update_project_status(project_id: str, new_status: str, notes: Optiona
         
         logger.info(f"Updated project {project_id} status to {new_status} via voice agent")
         
-        return {
-            "success": True,
-            "project_id": project_id,
-            "new_status": new_status,
-            "notes": notes,
-            "message": f"Project status updated to {new_status}"
-        }
+        response = f"Project status has been updated to {new_status}."
+        if notes:
+            response += f" Notes added: {notes}"
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error updating project status via voice agent: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "Failed to update project status. Please try again."
-        }
+        return "I'm having trouble updating the project status. Please check the project ID and try again."
 
 
 @function_tool
-async def get_project_details(project_id: str) -> Dict[str, Any]:
+async def get_project_details(project_id: str) -> str:
     """
     Get detailed information about a specific project.
     
@@ -342,7 +324,7 @@ async def get_project_details(project_id: str) -> Dict[str, Any]:
         project_id: ID of the project to retrieve
     
     Returns:
-        Dictionary with project details
+        String describing the project details
     """
     try:
         container = DependencyContainer()
@@ -353,11 +335,7 @@ async def get_project_details(project_id: str) -> Dict[str, Any]:
         user_id = context["user_id"]
         
         if not business_id or not user_id:
-            return {
-                "success": False,
-                "error": "Agent context not available",
-                "message": "Unable to retrieve project details. Please try again."
-            }
+            return "I'm sorry, I can't access your project information right now. Please try again."
         
         result = await get_project_use_case.execute(
             project_id=uuid.UUID(project_id),
@@ -366,37 +344,42 @@ async def get_project_details(project_id: str) -> Dict[str, Any]:
         
         logger.info(f"Retrieved project details for {project_id} via voice agent")
         
-        return {
-            "success": True,
-            "project": {
-                "id": str(result.id),
-                "name": result.name,
-                "project_number": result.project_number,
-                "description": result.description,
-                "status": result.status.value if hasattr(result.status, 'value') else str(result.status),
-                "priority": result.priority.value if hasattr(result.priority, 'value') else str(result.priority),
-                "project_type": result.project_type.value if hasattr(result.project_type, 'value') else str(result.project_type),
-                "start_date": result.start_date.date() if result.start_date else None,
-                "end_date": result.end_date.date() if result.end_date else None,
-                "estimated_budget": float(result.estimated_budget) if result.estimated_budget else None,
-                "actual_cost": float(result.actual_cost) if result.actual_cost else None,
-                "progress_percentage": getattr(result, 'progress_percentage', 0),
-                "team_members": getattr(result, 'team_members', [])
-            },
-            "message": f"Retrieved details for project {result.name}"
-        }
+        # Build a conversational response
+        status = result.status.value if hasattr(result.status, 'value') else str(result.status)
+        priority = result.priority.value if hasattr(result.priority, 'value') else str(result.priority)
+        project_type = result.project_type.value if hasattr(result.project_type, 'value') else str(result.project_type)
+        
+        response = f"Here are the details for project {result.name}: "
+        response += f"It's a {project_type} project with {priority} priority and {status} status. "
+        
+        if result.description:
+            response += f"Description: {result.description}. "
+        
+        if result.start_date:
+            response += f"Started on {result.start_date.strftime('%B %d, %Y')}. "
+        
+        if result.end_date:
+            response += f"Expected completion date is {result.end_date.strftime('%B %d, %Y')}. "
+        
+        if result.estimated_budget:
+            response += f"Estimated budget is ${result.estimated_budget:,.0f}. "
+        
+        if result.actual_cost:
+            response += f"Actual cost so far is ${result.actual_cost:,.0f}. "
+        
+        progress = getattr(result, 'progress_percentage', 0)
+        if progress > 0:
+            response += f"Project is {progress}% complete. "
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error retrieving project details via voice agent: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "Failed to retrieve project details. Please try again."
-        }
+        return "I'm having trouble accessing the details for that project. Please check the project ID and try again."
 
 
 @function_tool
-async def search_projects(search_term: str, limit: int = 10) -> Dict[str, Any]:
+async def search_projects(search_term: str, limit: int = 10) -> str:
     """
     Search projects by name, description, or project number.
     
@@ -405,7 +388,7 @@ async def search_projects(search_term: str, limit: int = 10) -> Dict[str, Any]:
         limit: Maximum number of projects to return (default: 10)
     
     Returns:
-        Dictionary with search results
+        String describing the search results
     """
     try:
         container = DependencyContainer()
@@ -416,11 +399,7 @@ async def search_projects(search_term: str, limit: int = 10) -> Dict[str, Any]:
         user_id = context["user_id"]
         
         if not business_id or not user_id:
-            return {
-                "success": False,
-                "error": "Agent context not available",
-                "message": "Unable to search projects. Please try again."
-            }
+            return "I'm sorry, I can't search your projects right now. Please try again."
         
         search_dto = ProjectSearchDTO(
             search=search_term,
@@ -433,31 +412,31 @@ async def search_projects(search_term: str, limit: int = 10) -> Dict[str, Any]:
             user_id=user_id
         )
         
-        projects = []
+        if not results:
+            return f"I didn't find any projects matching '{search_term}'. Would you like to try a different search term?"
+        
+        # Create conversational summaries
+        project_summaries = []
         for project in results:
-            projects.append({
-                "id": str(project.id),
-                "name": project.name,
-                "project_number": project.project_number,
-                "status": project.status.value if hasattr(project.status, 'value') else str(project.status),
-                "priority": project.priority.value if hasattr(project.priority, 'value') else str(project.priority),
-                "start_date": project.start_date.date() if project.start_date else None
-            })
+            status = project.status.value if hasattr(project.status, 'value') else str(project.status)
+            priority = project.priority.value if hasattr(project.priority, 'value') else str(project.priority)
+            
+            summary = f"{project.name} - {status} status, {priority} priority"
+            if project.start_date:
+                summary += f", started {project.start_date.strftime('%B %d')}"
+            
+            project_summaries.append(summary)
         
-        logger.info(f"Found {len(projects)} projects matching '{search_term}' via voice agent")
+        logger.info(f"Found {len(results)} projects matching '{search_term}' via voice agent")
         
-        return {
-            "success": True,
-            "projects": projects,
-            "search_term": search_term,
-            "total_count": len(projects),
-            "message": f"Found {len(projects)} projects matching '{search_term}'"
-        }
+        # Format the response for voice output
+        if len(results) == 1:
+            return f"I found 1 project matching '{search_term}': {project_summaries[0]}"
+        elif len(results) <= 3:
+            return f"I found {len(results)} projects matching '{search_term}': {', '.join(project_summaries[:-1])}, and {project_summaries[-1]}"
+        else:
+            return f"I found {len(results)} projects matching '{search_term}'. Here are the first 3: {', '.join(project_summaries[:3])}. Would you like me to continue with the rest?"
         
     except Exception as e:
         logger.error(f"Error searching projects via voice agent: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "Failed to search projects. Please try again."
-        } 
+        return f"I'm having trouble searching for projects with '{search_term}'. Please try again in a moment." 

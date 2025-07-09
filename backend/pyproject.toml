@@ -29,6 +29,7 @@ dependencies = [
     "livekit-plugins-noise-cancellation~=0.2",
     "asyncio-mqtt>=0.16.2",
     "livekit-api>=1.0.3",
+    "python-dotenv>=1.0.1",
 ]
 
 [tool.uv]
