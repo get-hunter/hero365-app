@@ -5841,12 +5841,10 @@ export class UtilsService {
 export class VoiceAgentService {
   /**
    * Start Voice Agent
-   * Start a personal voice agent for the user.
+   * Start a new voice agent session.
    *
-   * This endpoint:
-   * 1. Creates a new personal voice agent instance
-   * 2. Configures it with business and user context
-   * 3. Returns agent ID and configuration for mobile app
+   * Creates a new voice agent instance configured for the user's business
+   * and returns connection details for the mobile app.
    * @param data The data for the request.
    * @param data.requestBody
    * @returns VoiceAgentStartResponse Successful Response

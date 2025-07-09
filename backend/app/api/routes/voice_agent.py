@@ -94,41 +94,20 @@ async def start_voice_agent(
         logger.info(f"🔍 Business context: {business_data}")
         logger.info(f"🔍 User context: {user_context}")
         
-        # Check for existing active agent for this user
-        existing_agent = None
-        for agent_id, agent in active_agents.items():
-            if (agent.user_context.get("id") == current_user["id"] and 
-                agent.business_context.get("id") == business_data["id"]):
-                existing_agent = agent
-                break
+        # Always create a new session for each start request
+        # This ensures proper session isolation and worker dispatch
         
-        if existing_agent and hasattr(existing_agent, 'livekit_room_name'):
-            logger.info(f"🔄 Found existing agent {existing_agent.agent_id}, reusing session")
-            # Reuse existing agent and room
-            return VoiceAgentStartResponse(
-                success=True,
-                agent_id=existing_agent.agent_id,
-                greeting=existing_agent.get_personalized_greeting(),
-                available_tools=len(existing_agent.get_tools()),
-                config={
-                    "voice_profile": existing_agent.agent_config_obj.voice_profile.value,
-                    "voice_model": existing_agent.agent_config_obj.voice_model.value,
-                    "safety_mode": request.safety_mode,
-                    "max_duration": existing_agent.agent_config_obj.max_conversation_duration
-                },
-                livekit_connection=LiveKitConnectionSchema(
-                    room_name=existing_agent.livekit_room_name,
-                    room_url=livekit_service.get_connection_url() if livekit_service else "",
-                    user_token=livekit_service.generate_user_token(
-                        room_name=existing_agent.livekit_room_name,
-                        user_id=current_user["id"]
-                    ) if livekit_service else "",
-                    room_sid=""
-                ) if livekit_service else None,
-                message="Reconnecting to existing voice agent session"
-            )
+        # Clean up any old agents for this user to prevent memory leaks
+        agents_to_remove = []
+        for existing_agent_id, existing_agent in active_agents.items():
+            if (existing_agent.user_context.get("id") == current_user["id"] and 
+                existing_agent.business_context.get("id") == business_data["id"]):
+                agents_to_remove.append(existing_agent_id)
         
-        # No existing session found, create new one
+        for agent_id_to_remove in agents_to_remove:
+            logger.info(f"🧹 Cleaning up old agent: {agent_id_to_remove}")
+            del active_agents[agent_id_to_remove]
+        
         import uuid
         agent_id = str(uuid.uuid4())
         logger.info(f"🆕 Creating new agent with ID: {agent_id}")
@@ -162,22 +141,7 @@ async def start_voice_agent(
                 room_name = f"voice-session-{agent_id}"
                 logger.info(f"🏠 Creating LiveKit room: {room_name}")
                 
-                # Create LiveKit room
-                room_info = await livekit_service.create_voice_session_room(
-                    session_id=agent_id,
-                    user_id=current_user["id"],
-                    room_name=room_name
-                )
-                logger.info(f"✅ LiveKit room created: {room_info}")
-                
-                # Generate user token for mobile app
-                user_token = livekit_service.generate_user_token(
-                    room_name=room_name,
-                    user_id=current_user["id"]
-                )
-                logger.info(f"✅ User token generated")
-                
-                # Store agent context in room metadata for the worker to use
+                # Store agent context for the worker to use
                 # The worker's entrypoint function will extract this from job metadata
                 agent_context = {
                     "business_context": business_data,
@@ -193,16 +157,36 @@ async def start_voice_agent(
                     "interactions": []
                 }
                 
+                # Create LiveKit room with the agent context in metadata
+                room_info = await livekit_service.create_voice_session_room(
+                    session_id=agent_id,
+                    user_id=current_user["id"],
+                    room_name=room_name,
+                    agent_context=agent_context
+                )
+                logger.info(f"✅ LiveKit room created: {room_info}")
+                
+                # Generate user token for mobile app
+                user_token = livekit_service.generate_user_token(
+                    room_name=room_name,
+                    user_id=current_user["id"]
+                )
+                logger.info(f"✅ User token generated")
+                
                 # Debug logging
                 logger.info(f"🔍 Prepared agent context for {agent_id}")
                 logger.info(f"🔍 Agent context: {agent_context}")
+                
+                # With automatic dispatch, the worker will automatically handle jobs
+                # when users connect to the room - no explicit dispatch needed
+                logger.info(f"🚀 Room ready for automatic agent dispatch: {room_name}")
+                logger.info(f"🔄 Worker will automatically join when user connects")
                 
                 # Log important information for debugging
                 logger.info(f"✅ LiveKit room created: {room_name}")
                 logger.info(f"✅ User token generated for user: {current_user['id']}")
                 logger.info(f"✅ Agent context prepared for agent: {agent_id}")
                 logger.info(f"🔗 LiveKit connection URL: {livekit_service.get_connection_url()}")
-                logger.info(f"🤖 Agent will auto-dispatch when user joins room: {room_name}")
                 
                 livekit_connection = LiveKitConnectionSchema(
                     room_name=room_name,
@@ -389,9 +373,8 @@ async def stop_voice_agent(
         # Don't clean up agent context from worker - keep it for reconnection
         # The agent context will be reused when the user reconnects
         
-        # Mark agent as stopped but keep it in active_agents for reconnection
-        agent.status = 'stopped'
-        agent.stopped_at = datetime.now()
+        # Remove agent from active_agents since we're creating fresh sessions
+        del active_agents[request.agent_id]
         
         import logging
         logger = logging.getLogger(__name__)

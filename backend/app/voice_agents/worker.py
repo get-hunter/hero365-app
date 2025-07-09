@@ -1,171 +1,182 @@
-"""
-LiveKit Agent Worker for Hero365
-
-This module implements the LiveKit Agents framework worker that handles
-voice agent sessions for Hero365 personal and outbound agents.
-
-Usage:
-    python -m app.voice_agents.worker dev    # Development mode
-    python -m app.voice_agents.worker start  # Production mode
-"""
+#!/usr/bin/env python3
 
 import asyncio
 import logging
 import os
-from typing import Dict, Any, Optional
-from datetime import datetime
+import sys
+from pathlib import Path
+
+# Add the parent directory to the path so we can import from app
+sys.path.append(str(Path(__file__).parent.parent))
 
 # Load environment variables from .env file
 from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(__file__), '../../..', 'environments', 'production.env'))
+load_dotenv(Path(__file__).parent.parent.parent.parent / "environments" / ".env")
 
-from livekit import agents
-from livekit.agents import (
-    Agent,
-    AgentSession,
-    JobContext,
-    WorkerOptions,
-    cli,
-)
-from livekit.plugins import (
-    openai,
-    cartesia,
-    deepgram,
-    noise_cancellation,
-    silero,
-)
-from livekit.plugins.turn_detector.multilingual import MultilingualModel
+# Load environment variables from the configuration
+from app.core.config import settings
 
+import livekit.agents as agents
+from livekit.agents import JobContext, WorkerOptions, cli, Agent, AgentSession
+from livekit.plugins import silero, openai, deepgram, cartesia
+
+# Import our PersonalVoiceAgent for getting tools and prompts
+from app.voice_agents.personal.personal_agent import PersonalVoiceAgent
+from app.voice_agents.core.voice_config import PersonalAgentConfig
+from app.voice_agents.core.voice_config import AgentType, VoiceProfile, VoiceModel
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 
-class Hero365VoiceAgent(Agent):
-    """Hero365 Voice Agent for personal assistance and business automation"""
+class Hero365Agent(Agent):
+    """LiveKit Agent wrapper for Hero365 PersonalVoiceAgent"""
     
-    def __init__(self, agent_config: Dict[str, Any]) -> None:
-        # Extract configuration
-        instructions = agent_config.get("instructions", "You are Hero365, an AI assistant for home services contractors.")
+    def __init__(self, business_context: dict, user_context: dict, agent_config: PersonalAgentConfig):
+        # Create our custom agent to get tools and prompts
+        self.personal_agent = PersonalVoiceAgent(
+            business_context=business_context,
+            user_context=user_context,
+            agent_config=agent_config
+        )
         
-        super().__init__(instructions=instructions)
+        # Initialize LiveKit Agent with tools and instructions
+        super().__init__(
+            instructions=self.personal_agent.get_system_prompt(),
+            tools=self.personal_agent.get_tools()
+        )
         
-        self.agent_config = agent_config
-        self.business_context = agent_config.get("business_context", {})
-        self.user_context = agent_config.get("user_context", {})
-        
-        logger.info(f"🤖 Hero365 agent initialized for user: {self.user_context.get('name', 'Unknown')}")
-    
-    async def on_enter(self) -> None:
-        """Called when the agent enters the session"""
-        logger.info(f"🚀 Hero365 agent entering session")
-        
-        # Generate initial greeting
-        user_name = self.user_context.get("name", "")
-        is_driving = self.user_context.get("is_driving", False)
-        
-        if is_driving:
-            greeting = f"Hi {user_name}! I'm Hero365, your AI assistant. I see you're driving, so I'll keep things hands-free. How can I help you today?"
-        else:
-            greeting = f"Hello {user_name}! I'm Hero365, your AI assistant for managing your home services business. What can I help you with today?"
-        
-        # Generate the initial greeting
-        await self.session.generate_reply(instructions=f"Say this greeting: '{greeting}'")
-    
-    async def on_exit(self) -> None:
-        """Called when the agent exits the session"""
-        logger.info(f"👋 Hero365 agent exiting session")
+        logger.info("🤖 Hero365Agent created successfully")
 
 
 async def entrypoint(ctx: JobContext):
     """
-    Main entrypoint for Hero365 voice agents
-    
-    This function is called when a user joins a LiveKit room and needs
-    to be connected to a Hero365 voice agent.
+    Main entrypoint for the voice agent worker.
+    This function is called when a job is assigned to this worker.
     """
-    logger.info(f"🚀 ENTRYPOINT CALLED! Hero365 agent connecting to room: {ctx.room.name}")
-    logger.info(f"🔍 Job context: {ctx.job}")
-    logger.info(f"🔍 Room info: {ctx.room}")
+    logger.info("🚀 Starting voice agent entrypoint")
+    logger.info(f"🏠 Room name: {ctx.room.name}")
+    logger.info(f"📋 Job metadata: {ctx.job.metadata}")
+    
+    # Connect to the room
+    await ctx.connect()
+    logger.info("✅ Connected to room")
+    
+    # Extract agent context from room metadata
+    business_context = None
+    user_context = None
+    agent_config_data = None
     
     try:
-        # Connect to the room first
-        logger.info(f"🔗 Connecting to room...")
-        await ctx.connect()
-        logger.info(f"✅ Connected to room {ctx.room.name}")
+        # The API stores agent context in room metadata
+        import json
+        room_metadata = json.loads(ctx.room.metadata) if ctx.room.metadata else {}
+        logger.info(f"🔍 Room metadata: {room_metadata}")
         
-        # Check room participants after connecting
-        logger.info(f"🔍 Room participants after connect: {len(ctx.room.remote_participants)}")
-        
-        # Extract agent configuration from room name or metadata
-        agent_config = {
-            "instructions": "You are Hero365, an AI assistant for home services contractors. You help manage jobs, schedules, estimates, invoices, and customer communications.",
-            "business_context": {
-                "name": "Your Business",
-                "type": "Home Services",
-                "services": []
-            },
-            "user_context": {
-                "name": "User",
-                "is_driving": False,
-                "safety_mode": False
-            }
-        }
-        
-        # Try to extract configuration from job metadata if available
-        if hasattr(ctx.job, 'metadata') and ctx.job.metadata:
-            try:
-                import json
-                metadata = json.loads(ctx.job.metadata) if isinstance(ctx.job.metadata, str) else ctx.job.metadata
-                if isinstance(metadata, dict):
-                    agent_config.update(metadata)
-                    logger.info(f"🔍 Updated agent config from metadata: {metadata}")
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to parse job metadata: {e}")
-        
-        logger.info(f"🔍 Final agent config: {agent_config}")
-        
-        # Create the AgentSession with all necessary components
-        session = AgentSession(
-            stt=deepgram.STT(model="nova-3", language="multi"),
-            llm=openai.LLM(model="gpt-4o-mini"),
-            tts=cartesia.TTS(model="sonic-2", voice="f786b574-daa5-4673-aa0c-cbe3e8534c02"),
-            vad=silero.VAD.load(),
-            turn_detection=MultilingualModel(),
-        )
-        
-        # Create the Hero365 agent
-        agent = Hero365VoiceAgent(agent_config)
-        
-        # Start the session
-        logger.info(f"🎙️ Starting Hero365 agent session...")
-        await session.start(
-            agent=agent,
-            room=ctx.room,
-        )
-        
-        logger.info(f"✅ Hero365 agent session started successfully!")
-        
+        # Extract agent context from metadata
+        agent_context = room_metadata.get("agent_context", {})
+        if agent_context:
+            business_context = agent_context.get("business_context", {})
+            user_context = agent_context.get("user_context", {})
+            agent_config_data = agent_context.get("agent_config", {})
+            logger.info(f"✅ Extracted agent context from room metadata")
+            logger.info(f"🏢 Business: {business_context.get('name', 'Unknown')}")
+            logger.info(f"👤 User: {user_context.get('name', 'Unknown')}")
+        else:
+            logger.warning("⚠️ No agent context found in room metadata, using defaults")
+            
     except Exception as e:
-        logger.error(f"❌ Error in Hero365 agent entrypoint: {e}", exc_info=True)
-        raise
+        logger.error(f"❌ Failed to parse room metadata: {e}")
+        logger.info("🔄 Using default context")
+    
+    # Use extracted context or fall back to defaults
+    if not business_context:
+        business_context = {
+            "id": "default_business",
+            "name": "Hero365",
+            "type": "Home services AI-native ERP",
+            "capabilities": ["contract management", "invoicing", "job scheduling", "payment processing"]
+        }
+    
+    if not user_context:
+        user_context = {
+            "id": "default_user",
+            "name": "User",
+            "preferences": {}
+        }
+    
+    # Create agent configuration
+    agent_config = PersonalAgentConfig(
+        agent_type=AgentType.PERSONAL,
+        agent_name="Hero365 Assistant",
+        voice_profile=VoiceProfile.PROFESSIONAL,
+        voice_model=VoiceModel.SONIC_2,
+        temperature=agent_config_data.get("temperature", 0.7) if agent_config_data else 0.7,
+        max_conversation_duration=agent_config_data.get("max_duration", 3600) if agent_config_data else 3600
+    )
+    
+    # Create the Hero365Agent (LiveKit Agent wrapper)
+    logger.info("🤖 Creating Hero365Agent with extracted context")
+    agent = Hero365Agent(
+        business_context=business_context,
+        user_context=user_context,
+        agent_config=agent_config
+    )
+    
+    # Create AgentSession with STT, LLM, TTS
+    logger.info("🎙️ Creating AgentSession")
+    session = AgentSession(
+        vad=silero.VAD.load(),
+        stt=deepgram.STT(model="nova-2"),
+        llm=openai.LLM(model="gpt-4o-mini"),
+        tts=cartesia.TTS(voice="79a125e8-cd45-4c13-8a67-188112f4dd22")  # Professional male voice
+    )
+    
+    # Start the session with the agent
+    logger.info("▶️ Starting AgentSession")
+    await session.start(agent=agent, room=ctx.room)
+    
+    # Generate initial greeting
+    logger.info("💬 Generating initial greeting")
+    await session.generate_reply(
+        instructions="Greet the user politely and ask how you can help them today with their Hero365 business."
+    )
+    
+    logger.info("✅ Hero365Agent session started successfully")
+
+
+def main():
+    """Main function to run the worker"""
+    
+    # Log environment variable status
+    logger.info("🔍 Checking environment variables...")
+    
+    required_vars = [
+        "LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET",
+        "OPENAI_API_KEY", "DEEPGRAM_API_KEY", "CARTESIA_API_KEY"
+    ]
+    
+    for var in required_vars:
+        value = os.getenv(var)
+        if value:
+            logger.info(f"✅ {var}: Available")
+        else:
+            logger.warning(f"❌ {var}: Not set")
+    
+    # Create worker options for automatic dispatch
+    # Removing agent_name enables automatic dispatch - worker will join rooms automatically
+    worker_options = WorkerOptions(
+        entrypoint_fnc=entrypoint
+    )
+    
+    # Run the worker
+    logger.info("🏃 Starting LiveKit worker with automatic dispatch...")
+    cli.run_app(worker_options)
 
 
 if __name__ == "__main__":
-    logger.info("🎙️ Starting Hero365 LiveKit Agent Worker...")
-    
-    # Verify environment variables
-    required_vars = ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'OPENAI_API_KEY', 'DEEPGRAM_API_KEY', 'CARTESIA_API_KEY']
-    for var in required_vars:
-        if not os.getenv(var):
-            logger.error(f"❌ Missing required environment variable: {var}")
-            exit(1)
-    
-    logger.info("✅ All required environment variables are set")
-    logger.info(f"🔗 Connecting to LiveKit server: {os.getenv('LIVEKIT_URL')}")
-    
-    # Run the worker using CLI
-    cli.run_app(
-        WorkerOptions(
-            entrypoint_fnc=entrypoint,
-            # No agent_name = automatic dispatch for web/mobile clients
-        )
-    ) 
+    main() 

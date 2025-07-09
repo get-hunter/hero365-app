@@ -20,4 +20,3 @@ environments/local.env
 secrets/
 *.key
 *.pem
-EOF
