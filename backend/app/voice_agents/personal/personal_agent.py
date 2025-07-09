@@ -13,7 +13,7 @@ from livekit.agents import function_tool
 
 from app.voice_agents.core.base_agent import BaseVoiceAgent
 from app.voice_agents.core.voice_config import PersonalAgentConfig, DEFAULT_PERSONAL_CONFIG
-from app.voice_agents.tools import job_tools
+from app.voice_agents.tools import job_tools, project_tools, invoice_tools, estimate_tools, contact_tools
 
 logger = logging.getLogger(__name__)
 
@@ -22,102 +22,170 @@ class PersonalVoiceAgent(BaseVoiceAgent):
     """Personal voice agent for mobile users during driving/working"""
     
     def __init__(self, 
-                 business_context: Dict[str, Any], 
+                 business_context: Dict[str, Any],
                  user_context: Dict[str, Any],
-                 agent_config: Optional[PersonalAgentConfig] = None):
+                 config: Optional[PersonalAgentConfig] = None):
+        """
+        Initialize the personal voice agent.
         
-        # Use default config if none provided
-        if agent_config is None:
-            agent_config = DEFAULT_PERSONAL_CONFIG
+        Args:
+            business_context: Business-specific context and configuration
+            user_context: User-specific context and preferences
+            config: Agent configuration (optional)
+        """
+        super().__init__(business_context, user_context, config or DEFAULT_PERSONAL_CONFIG)
         
-        super().__init__(
-            business_context=business_context,
-            user_context=user_context,
-            agent_config=agent_config.to_dict()
-        )
+        # Inject context into all tool modules
+        self._inject_context_into_tools()
         
-        # Store agent configuration
-        self.agent_config_obj = agent_config
+        logger.info(f"PersonalVoiceAgent initialized for business {self.get_current_business_id()}")
+    
+    def _inject_context_into_tools(self) -> None:
+        """Inject business and user context into all voice tools"""
+        context = {
+            "business_id": self.get_current_business_id(),
+            "user_id": self.get_current_user_id(),
+            "business_context": self.business_context,
+            "user_context": self.user_context
+        }
         
-        logger.info(f"Initialized PersonalVoiceAgent for user {self.get_current_user_id()}")
+        # Inject context into all tool modules
+        job_tools.set_current_context(context)
+        project_tools.set_current_context(context)
+        invoice_tools.set_current_context(context)
+        estimate_tools.set_current_context(context)
+        contact_tools.set_current_context(context)
+        
+        logger.debug(f"Context injected into all tools for business {self.get_current_business_id()}")
     
     def get_tools(self) -> List[Callable]:
-        """Return list of tools available to personal agent"""
+        """Get all available voice tools for this agent"""
         
-        return [
-            # Job management tools
+        # Ensure context is fresh
+        self._inject_context_into_tools()
+        
+        tools = [
+            # Job Management Tools
             job_tools.create_job,
             job_tools.get_upcoming_jobs,
-            job_tools.update_job_status,
-            job_tools.reschedule_job,
-            job_tools.get_job_details,
             job_tools.get_jobs_by_status,
+            job_tools.update_job_status,
+            job_tools.get_job_details,
+            job_tools.schedule_job,
+            job_tools.search_jobs,
             
-            # Personal assistant tools
-            self.get_driving_directions,
-            self.set_reminder,
-            self.get_current_time,
-            self.get_business_summary,
-            self.toggle_safety_mode
+            # Project Management Tools
+            project_tools.create_project,
+            project_tools.get_active_projects,
+            project_tools.get_projects_by_status,
+            project_tools.update_project_status,
+            project_tools.get_project_details,
+            project_tools.search_projects,
+            
+            # Invoice Management Tools
+            invoice_tools.create_invoice,
+            invoice_tools.get_unpaid_invoices,
+            invoice_tools.get_overdue_invoices,
+            invoice_tools.get_invoices_by_status,
+            invoice_tools.process_payment,
+            invoice_tools.get_invoice_details,
+            invoice_tools.search_invoices,
+            
+            # Estimate Management Tools
+            estimate_tools.create_estimate,
+            estimate_tools.get_pending_estimates,
+            estimate_tools.get_expired_estimates,
+            estimate_tools.get_estimates_by_status,
+            estimate_tools.convert_estimate_to_invoice,
+            estimate_tools.get_estimate_details,
+            estimate_tools.update_estimate_status,
+            estimate_tools.search_estimates,
+            
+            # Contact Management Tools
+            contact_tools.create_contact,
+            contact_tools.search_contacts,
+            contact_tools.get_recent_contacts,
+            contact_tools.get_contacts_by_type,
+            contact_tools.get_contact_details,
+            contact_tools.update_contact,
+            contact_tools.add_contact_interaction,
+            contact_tools.get_contact_interactions,
         ]
+        
+        return tools
     
     def get_system_prompt(self) -> str:
-        """Generate system prompt based on context"""
+        """Get the system prompt for this agent"""
+        business_name = self.business_context.get("name", "your business")
+        user_name = self.user_context.get("name", "there")
         
-        business_name = self.get_business_name()
-        user_name = self.get_user_name()
-        
-        # Check if user is driving for safety-focused prompts
-        is_driving = self.user_context.get("is_driving", False)
-        safety_mode = self.user_context.get("safety_mode", True)
-        
-        base_prompt = f"""You are Hero365's personal AI assistant for {business_name}.
+        return f"""You are Hero365 AI, a personal voice assistant for {business_name}. You're helping {user_name} manage their business operations through voice commands.
 
-USER CONTEXT:
-- Name: {user_name}
+## Your Role & Capabilities
+
+You are a comprehensive business management assistant that can help with:
+
+### 📋 Job Management
+- Create, schedule, and track jobs
+- Update job status and add notes
+- Search jobs by various criteria
+- Get upcoming jobs and deadlines
+
+### 📊 Project Management  
+- Create and manage projects
+- Track project progress and status
+- Associate jobs with projects
+- Monitor project budgets and timelines
+
+### 💰 Invoice Management
+- Create and send invoices
+- Track unpaid and overdue invoices
+- Process payments and update status
+- Convert estimates to invoices
+
+### 📝 Estimate Management
+- Create detailed estimates for clients
+- Track estimate status and expiration
+- Convert accepted estimates to invoices
+- Follow up on pending estimates
+
+### 👥 Contact Management
+- Add and update client contacts
+- Search contacts by various criteria
+- Track contact interactions and history
+- Manage leads and customer relationships
+
+## Voice-First Approach
+
+Since you're helping someone who may be driving or working:
+
+1. **Be Concise**: Provide clear, actionable information without overwhelming details
+2. **Prioritize Safety**: If user mentions driving, keep responses brief and essential
+3. **Confirm Actions**: Always confirm before creating, updating, or deleting anything
+4. **Use Natural Language**: Speak conversationally, not like a technical interface
+5. **Proactive Suggestions**: Offer helpful next steps and reminders
+
+## Response Format
+
+- **For Lists**: Summarize key items (e.g., "You have 3 jobs today: plumbing at Smith's at 9am, electrical at Jones's at 2pm, and inspection at Brown's at 4pm")
+- **For Updates**: Confirm what was changed (e.g., "Job #1234 status updated to 'completed'")
+- **For Searches**: Provide most relevant results first
+- **For Errors**: Explain what went wrong and suggest alternatives
+
+## Business Context
+
 - Business: {business_name}
-- Current Status: {"Driving (Safety Mode)" if is_driving and safety_mode else "Available"}
+- User: {user_name}
+- Services: {', '.join(self.business_context.get('services', []))}
+- Safety Mode: {'Enabled' if self.user_context.get('safety_mode', True) else 'Disabled'}
 
-CAPABILITIES:
-You can help with:
-- Job management (create, update, reschedule, check status)
-- Upcoming job schedules and details
-- Quick business information
-- Time and reminder services
-- Navigation assistance
-
-COMMUNICATION STYLE:
-- Be concise and professional
-- Use hands-free friendly responses
-- Provide clear confirmations for actions
-- Ask clarifying questions when needed"""
-
-        if is_driving and safety_mode:
-            base_prompt += """
-
-SAFETY PROTOCOLS (USER IS DRIVING):
-- Keep ALL responses under 20 words when possible
-- Prioritize voice-only interactions
-- Suggest pulling over for complex tasks
-- Use simple yes/no confirmations
-- Avoid detailed information unless essential
-- Focus on immediate, actionable items"""
-        
-        base_prompt += """
-
-RESPONSE FORMAT:
-- Speak naturally as if talking to a colleague
-- Use "I can help you with..." for capabilities
-- Confirm actions before executing
-- Provide brief status updates after actions
-- Ask "Is there anything else?" to continue helping
-
-Remember: You represent {business_name} professionally while being helpful and efficient."""
-        
-        return base_prompt
+Remember: You're here to make business management easier and more efficient through natural voice interaction. Always prioritize user safety and provide clear, actionable responses."""
     
     async def on_agent_start(self) -> None:
         """Called when agent starts"""
+        
+        # Ensure context is injected when agent starts
+        self._inject_context_into_tools()
         
         # Record agent start
         await self.record_interaction("agent_start", {
@@ -130,81 +198,31 @@ Remember: You represent {business_name} professionally while being helpful and e
         
         logger.info(f"Personal agent {self.agent_id} started")
     
-    async def on_agent_stop(self) -> None:
-        """Called when agent stops"""
+    async def on_agent_end(self) -> None:
+        """Called when agent ends"""
         
-        # Record agent stop
-        await self.record_interaction("agent_stop", {
+        # Record agent end
+        await self.record_interaction("agent_end", {
             "agent_type": "personal",
-            "session_duration": (datetime.now() - self.created_at).total_seconds()
+            "business_id": self.get_current_business_id(),
+            "user_id": self.get_current_user_id(),
+            "session_duration": (datetime.now() - self.created_at).total_seconds() if self.created_at else 0
         })
         
-        logger.info(f"Personal agent {self.agent_id} stopped")
+        logger.info(f"Personal agent {self.agent_id} ended")
     
-    # Personal Assistant Function Tools
+    async def on_user_speech_start(self) -> None:
+        """Called when user starts speaking"""
+        logger.debug(f"User started speaking to agent {self.agent_id}")
     
-    @function_tool
-    async def get_driving_directions(self, destination: str) -> str:
-        """Get driving directions to a destination"""
-        
-        # TODO: Integrate with Google Maps API or similar
-        return f"Getting directions to {destination}. For safety, I recommend using your phone's navigation app while driving."
+    async def on_user_speech_end(self) -> None:
+        """Called when user stops speaking"""
+        logger.debug(f"User stopped speaking to agent {self.agent_id}")
     
-    @function_tool
-    async def set_reminder(self, message: str, time: str) -> str:
-        """Set a voice reminder"""
-        
-        # TODO: Integrate with business reminder system
-        return f"Reminder set: '{message}' for {time}. I'll notify you when the time comes."
+    async def on_agent_speech_start(self) -> None:
+        """Called when agent starts speaking"""
+        logger.debug(f"Agent {self.agent_id} started speaking")
     
-    @function_tool
-    async def get_current_time(self) -> str:
-        """Get current time"""
-        
-        current_time = datetime.now().strftime("%I:%M %p")
-        current_date = datetime.now().strftime("%A, %B %d")
-        
-        return f"It's currently {current_time} on {current_date}."
-    
-    @function_tool
-    async def get_business_summary(self) -> str:
-        """Get quick business summary"""
-        
-        business_name = self.get_business_name()
-        business_type = self.business_context.get("type", "Home Services")
-        
-        return f"{business_name} is a {business_type} business. You can ask me about jobs, scheduling, or other business operations."
-    
-    @function_tool
-    async def toggle_safety_mode(self, enabled: bool) -> str:
-        """Toggle safety mode for driving"""
-        
-        # Update user context
-        self.user_context["safety_mode"] = enabled
-        self.user_context["is_driving"] = enabled
-        
-        status = "enabled" if enabled else "disabled"
-        return f"Safety mode {status}. {'Responses will be brief and hands-free friendly.' if enabled else 'Normal conversation mode restored.'}"
-    
-    def get_personalized_greeting(self) -> str:
-        """Generate personalized greeting based on context"""
-        
-        user_name = self.get_user_name()
-        business_name = self.get_business_name()
-        
-        # Check time of day for appropriate greeting
-        hour = datetime.now().hour
-        if hour < 12:
-            time_greeting = "Good morning"
-        elif hour < 17:
-            time_greeting = "Good afternoon"
-        else:
-            time_greeting = "Good evening"
-        
-        # Check if user is driving
-        is_driving = self.user_context.get("is_driving", False)
-        
-        if is_driving:
-            return f"{time_greeting}, {user_name}! I'm your {business_name} assistant. Drive safely - I'll keep responses brief."
-        else:
-            return f"{time_greeting}, {user_name}! I'm your {business_name} assistant. How can I help you today?" 
+    async def on_agent_speech_end(self) -> None:
+        """Called when agent stops speaking"""
+        logger.debug(f"Agent {self.agent_id} stopped speaking") 

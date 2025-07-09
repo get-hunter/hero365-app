@@ -9,10 +9,11 @@ import uuid
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
+from contextvars import ContextVar
 
 from livekit.agents import function_tool
 
-from app.infrastructure.config.dependency_injection import get_container
+from app.infrastructure.config.dependency_injection import DependencyContainer
 from app.application.use_cases.job import (
     CreateJobUseCase, GetJobUseCase, UpdateJobUseCase, DeleteJobUseCase,
     JobSearchUseCase, JobSchedulingUseCase, JobStatusManagementUseCase
@@ -22,15 +23,33 @@ from app.domain.enums import JobStatus, JobPriority, JobType, JobSource
 
 logger = logging.getLogger(__name__)
 
+# Context variables for agent context injection
+_business_context: ContextVar[Dict[str, Any]] = ContextVar('business_context')
+_user_context: ContextVar[Dict[str, Any]] = ContextVar('user_context')
 
-def get_current_context():
+
+def set_agent_context(business_context: Dict[str, Any], user_context: Dict[str, Any]) -> None:
+    """Set the current agent context for tools to use"""
+    _business_context.set(business_context)
+    _user_context.set(user_context)
+
+
+def get_current_context() -> Dict[str, str]:
     """Get current business and user context from agent"""
-    # This will be injected by the agent when tools are called
-    # For now, return dummy context - will be properly implemented with agent context
-    return {
-        "business_id": "default_business",
-        "user_id": "default_user"
-    }
+    try:
+        business_context = _business_context.get()
+        user_context = _user_context.get()
+        
+        return {
+            "business_id": business_context.get("id", ""),
+            "user_id": user_context.get("id", "")
+        }
+    except LookupError:
+        logger.error("Agent context not set! Tools cannot access business/user context.")
+        return {
+            "business_id": "",
+            "user_id": ""
+        }
 
 
 @function_tool
@@ -57,12 +76,19 @@ async def create_job(
         Dictionary with job creation result
     """
     try:
-        container = get_container()
-        create_job_use_case = container.get(CreateJobUseCase)
+        container = DependencyContainer()
+        create_job_use_case = container.get_create_job_use_case()
         
         context = get_current_context()
         business_id = context["business_id"]
         user_id = context["user_id"]
+        
+        if not business_id or not user_id:
+            return {
+                "success": False,
+                "error": "Agent context not available",
+                "message": "Unable to create job. Please try again."
+            }
         
         # Convert priority string to enum
         try:
@@ -115,37 +141,50 @@ async def get_upcoming_jobs(days_ahead: int = 7, limit: int = 10) -> Dict[str, A
         Dictionary with upcoming jobs list
     """
     try:
-        container = get_container()
-        job_search_use_case = container.get(JobSearchUseCase)
+        container = DependencyContainer()
+        job_repository = container.get_job_repository()
         
         context = get_current_context()
         business_id = context["business_id"]
         user_id = context["user_id"]
         
+        if not business_id or not user_id:
+            return {
+                "success": False,
+                "error": "Agent context not available",
+                "message": "Unable to retrieve jobs. Please try again."
+            }
+        
         # Calculate date range
-        start_date = datetime.now().date()
+        start_date = datetime.now()
         end_date = start_date + timedelta(days=days_ahead)
         
-        search_dto = JobSearchDTO(
+        # Get jobs scheduled in the date range with specific statuses
+        jobs = await job_repository.get_scheduled_jobs(
+            business_id=uuid.UUID(business_id),
             start_date=start_date,
             end_date=end_date,
-            status=[JobStatus.SCHEDULED, JobStatus.IN_PROGRESS],
+            skip=0,
             limit=limit
         )
         
-        jobs = await job_search_use_case.search_jobs(search_dto, business_id, user_id)
+        # Filter jobs to only include scheduled and in_progress statuses
+        filtered_jobs = [
+            job for job in jobs 
+            if job.status in [JobStatus.SCHEDULED, JobStatus.IN_PROGRESS]
+        ]
         
         upcoming_jobs = []
-        for job in jobs:
+        for job in filtered_jobs:
             upcoming_jobs.append({
                 "id": str(job.id),
                 "title": job.title,
                 "client": job.client_name if hasattr(job, 'client_name') else 'Unknown',
-                "scheduled_date": job.scheduled_date,
-                "scheduled_time": job.scheduled_time if hasattr(job, 'scheduled_time') else None,
+                "scheduled_date": job.scheduled_start.date() if job.scheduled_start else None,
+                "scheduled_time": job.scheduled_start.time() if job.scheduled_start else None,
                 "status": job.status.value,
-                "priority": job.priority.value if hasattr(job, 'priority') else 'medium',
-                "estimated_duration": job.estimated_duration
+                "priority": job.priority.value,
+                "estimated_duration": job.time_tracking.estimated_hours if job.time_tracking else None
             })
         
         logger.info(f"Retrieved {len(upcoming_jobs)} upcoming jobs via voice agent")
@@ -154,7 +193,7 @@ async def get_upcoming_jobs(days_ahead: int = 7, limit: int = 10) -> Dict[str, A
             "success": True,
             "jobs": upcoming_jobs,
             "total_count": len(upcoming_jobs),
-            "date_range": f"{start_date} to {end_date}",
+            "date_range": f"{start_date.date()} to {end_date.date()}",
             "message": f"Found {len(upcoming_jobs)} upcoming jobs in the next {days_ahead} days"
         }
         
@@ -181,12 +220,19 @@ async def update_job_status(job_id: str, new_status: str, notes: Optional[str] =
         Dictionary with update result
     """
     try:
-        container = get_container()
-        job_status_use_case = container.get(JobStatusManagementUseCase)
+        container = DependencyContainer()
+        job_status_use_case = container.get_job_status_management_use_case()
         
         context = get_current_context()
         business_id = context["business_id"]
         user_id = context["user_id"]
+        
+        if not business_id or not user_id:
+            return {
+                "success": False,
+                "error": "Agent context not available",
+                "message": "Unable to update job status. Please try again."
+            }
         
         # Convert status string to enum
         try:
@@ -246,12 +292,19 @@ async def reschedule_job(
         Dictionary with reschedule result
     """
     try:
-        container = get_container()
-        job_scheduling_use_case = container.get(JobSchedulingUseCase)
+        container = DependencyContainer()
+        job_scheduling_use_case = container.get_job_scheduling_use_case()
         
         context = get_current_context()
         business_id = context["business_id"]
         user_id = context["user_id"]
+        
+        if not business_id or not user_id:
+            return {
+                "success": False,
+                "error": "Agent context not available",
+                "message": "Unable to reschedule job. Please try again."
+            }
         
         result = await job_scheduling_use_case.reschedule_job(
             job_id=job_id,
@@ -294,12 +347,19 @@ async def get_job_details(job_id: str) -> Dict[str, Any]:
         Dictionary with job details
     """
     try:
-        container = get_container()
-        get_job_use_case = container.get(GetJobUseCase)
+        container = DependencyContainer()
+        get_job_use_case = container.get_get_job_use_case()
         
         context = get_current_context()
         business_id = context["business_id"]
         user_id = context["user_id"]
+        
+        if not business_id or not user_id:
+            return {
+                "success": False,
+                "error": "Agent context not available",
+                "message": "Unable to retrieve job details. Please try again."
+            }
         
         job = await get_job_use_case.execute(job_id, business_id, user_id)
         
@@ -344,12 +404,19 @@ async def get_jobs_by_status(status: str, limit: int = 10) -> Dict[str, Any]:
         Dictionary with filtered jobs
     """
     try:
-        container = get_container()
-        job_search_use_case = container.get(JobSearchUseCase)
+        container = DependencyContainer()
+        job_repository = container.get_job_repository()
         
         context = get_current_context()
         business_id = context["business_id"]
         user_id = context["user_id"]
+        
+        if not business_id or not user_id:
+            return {
+                "success": False,
+                "error": "Agent context not available",
+                "message": "Unable to retrieve jobs by status. Please try again."
+            }
         
         # Convert status string to enum
         try:
@@ -361,21 +428,22 @@ async def get_jobs_by_status(status: str, limit: int = 10) -> Dict[str, Any]:
                 "message": "Valid statuses are: scheduled, in_progress, completed, cancelled"
             }
         
-        search_dto = JobSearchDTO(
-            status=[status_enum],
+        # Get jobs by status directly from repository
+        jobs = await job_repository.get_by_status(
+            business_id=uuid.UUID(business_id),
+            status=status_enum,
+            skip=0,
             limit=limit
         )
-        
-        jobs = await job_search_use_case.search_jobs(search_dto, business_id, user_id)
         
         job_list = []
         for job in jobs:
             job_list.append({
                 "id": str(job.id),
                 "title": job.title,
-                "scheduled_date": job.scheduled_date,
+                "scheduled_date": job.scheduled_start.date() if job.scheduled_start else None,
                 "client": job.client_name if hasattr(job, 'client_name') else 'Unknown',
-                "priority": job.priority.value if hasattr(job, 'priority') else 'medium'
+                "priority": job.priority.value
             })
         
         logger.info(f"Retrieved {len(job_list)} jobs with status {status} via voice agent")
