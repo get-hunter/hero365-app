@@ -129,6 +129,7 @@ class PersonalAgentConfig(VoiceAgentConfig):
             "invoice_handling",
             "estimate_creation",
             "contact_management",
+            "inventory_management",
             "navigation_assistance",
             "reminder_system"
         ]

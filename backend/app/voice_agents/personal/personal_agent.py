@@ -13,7 +13,7 @@ from livekit.agents import function_tool
 
 from app.voice_agents.core.base_agent import BaseVoiceAgent
 from app.voice_agents.core.voice_config import PersonalAgentConfig, DEFAULT_PERSONAL_CONFIG
-from app.voice_agents.tools import job_tools, project_tools, invoice_tools, estimate_tools, contact_tools
+from app.voice_agents.tools import job_tools, project_tools, invoice_tools, estimate_tools, contact_tools, product_tools
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +55,7 @@ class PersonalVoiceAgent(BaseVoiceAgent):
         invoice_tools.set_current_context(context)
         estimate_tools.set_current_context(context)
         contact_tools.set_current_context(context)
+        product_tools.set_current_context(context)
         
         logger.debug(f"Context injected into all tools for business {self.get_current_business_id()}")
     
@@ -110,6 +111,14 @@ class PersonalVoiceAgent(BaseVoiceAgent):
             contact_tools.update_contact,
             contact_tools.add_contact_interaction,
             contact_tools.get_contact_interactions,
+            
+            # Product & Inventory Management Tools
+            product_tools.create_product,
+            product_tools.check_stock_levels,
+            product_tools.adjust_stock,
+            product_tools.get_reorder_suggestions,
+            product_tools.search_products,
+            product_tools.get_product_details,
         ]
         
         return tools
@@ -154,6 +163,14 @@ You are a comprehensive business management assistant that can help with:
 - Search contacts by various criteria
 - Track contact interactions and history
 - Manage leads and customer relationships
+
+### 📦 Inventory Management
+- Create and manage products/services
+- Check stock levels and availability
+- Adjust inventory quantities
+- Get reorder suggestions for low stock
+- Search products by name or SKU
+- Track product details and pricing
 
 ## Voice-First Approach
 
