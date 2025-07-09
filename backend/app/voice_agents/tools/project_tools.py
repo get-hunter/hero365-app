@@ -176,11 +176,11 @@ async def get_active_projects(limit: int = 10) -> Dict[str, Any]:
                 "id": str(project.id),
                 "name": project.name,
                 "project_number": project.project_number,
-                "status": project.status.value,
-                "priority": project.priority.value,
+                "status": project.status.value if hasattr(project.status, 'value') else str(project.status),
+                "priority": project.priority.value if hasattr(project.priority, 'value') else str(project.priority),
                 "start_date": project.start_date.date() if project.start_date else None,
                 "estimated_budget": float(project.estimated_budget) if project.estimated_budget else None,
-                "progress_percentage": project.progress_percentage
+                "progress_percentage": getattr(project, 'progress_percentage', 0)
             })
         
         logger.info(f"Retrieved {len(active_projects)} active projects via voice agent")
@@ -252,7 +252,7 @@ async def get_projects_by_status(status: str, limit: int = 10) -> Dict[str, Any]
                 "id": str(project.id),
                 "name": project.name,
                 "project_number": project.project_number,
-                "priority": project.priority.value,
+                "priority": project.priority.value if hasattr(project.priority, 'value') else str(project.priority),
                 "start_date": project.start_date.date() if project.start_date else None,
                 "estimated_budget": float(project.estimated_budget) if project.estimated_budget else None
             })
@@ -385,15 +385,15 @@ async def get_project_details(project_id: str) -> Dict[str, Any]:
                 "name": result.name,
                 "project_number": result.project_number,
                 "description": result.description,
-                "status": result.status.value,
-                "priority": result.priority.value,
-                "project_type": result.project_type.value,
+                "status": result.status.value if hasattr(result.status, 'value') else str(result.status),
+                "priority": result.priority.value if hasattr(result.priority, 'value') else str(result.priority),
+                "project_type": result.project_type.value if hasattr(result.project_type, 'value') else str(result.project_type),
                 "start_date": result.start_date.date() if result.start_date else None,
                 "end_date": result.end_date.date() if result.end_date else None,
                 "estimated_budget": float(result.estimated_budget) if result.estimated_budget else None,
                 "actual_cost": float(result.actual_cost) if result.actual_cost else None,
-                "progress_percentage": result.progress_percentage,
-                "team_members": result.team_members
+                "progress_percentage": getattr(result, 'progress_percentage', 0),
+                "team_members": getattr(result, 'team_members', [])
             },
             "message": f"Retrieved details for project {result.name}"
         }
@@ -451,8 +451,8 @@ async def search_projects(search_term: str, limit: int = 10) -> Dict[str, Any]:
                 "id": str(project.id),
                 "name": project.name,
                 "project_number": project.project_number,
-                "status": project.status.value,
-                "priority": project.priority.value,
+                "status": project.status.value if hasattr(project.status, 'value') else str(project.status),
+                "priority": project.priority.value if hasattr(project.priority, 'value') else str(project.priority),
                 "start_date": project.start_date.date() if project.start_date else None
             })
         

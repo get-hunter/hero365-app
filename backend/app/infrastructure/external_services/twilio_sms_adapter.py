@@ -5,7 +5,7 @@ Implementation of SMSServicePort interface using Twilio API.
 """
 
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 try:
     from twilio.rest import Client
     from twilio.base.exceptions import TwilioException
@@ -47,9 +47,9 @@ class TwilioSMSAdapter(SMSServicePort):
         """Send a single SMS message."""
         try:
             response = self.client.messages.create(
-                body=message.body,
+                body=message.message,
                 from_=message.from_number or self.phone_number,
-                to=message.to_number
+                to=message.to
             )
             
             return SMSResult(
@@ -71,11 +71,12 @@ class TwilioSMSAdapter(SMSServicePort):
                 error_message=str(e)
             )
     
-    async def send_verification_code(self, phone_number: str, code: str) -> SMSResult:
+    async def send_verification_code(self, phone_number: str, code: str, app_name: Optional[str] = None) -> SMSResult:
         """Send a verification code via SMS."""
+        app_name = app_name or "Hero365"
         message = SMSMessage(
-            to_number=phone_number,
-            body=f"Your verification code is: {code}. This code will expire in 10 minutes."
+            to=phone_number,
+            message=f"Your verification code is: {code}. This code will expire in 10 minutes."
         )
         
         return await self.send_sms(message)
@@ -83,26 +84,55 @@ class TwilioSMSAdapter(SMSServicePort):
     async def send_two_factor_code(self, phone_number: str, code: str) -> SMSResult:
         """Send a two-factor authentication code via SMS."""
         message = SMSMessage(
-            to_number=phone_number,
-            body=f"Your 2FA code is: {code}. Do not share this code with anyone."
+            to=phone_number,
+            message=f"Your 2FA code is: {code}. Do not share this code with anyone."
         )
         
         return await self.send_sms(message)
     
-    async def send_password_reset_code(self, phone_number: str, code: str) -> SMSResult:
+    async def send_password_reset_code(self, phone_number: str, code: str, app_name: Optional[str] = None) -> SMSResult:
         """Send a password reset code via SMS."""
+        app_name = app_name or "Hero365"
         message = SMSMessage(
-            to_number=phone_number,
-            body=f"Your password reset code is: {code}. This code will expire in 15 minutes."
+            to=phone_number,
+            message=f"Your password reset code is: {code}. This code will expire in 15 minutes."
         )
         
         return await self.send_sms(message)
     
+    async def send_bulk_sms(self, messages: List[SMSMessage]) -> List[SMSResult]:
+        """Send multiple SMS messages."""
+        results = []
+        for message in messages:
+            result = await self.send_sms(message)
+            results.append(result)
+        return results
+
+    async def send_welcome_sms(self, phone_number: str, user_name: str,
+                              app_name: Optional[str] = None) -> SMSResult:
+        """Send a welcome SMS to a new user."""
+        app_name = app_name or "Hero365"
+        message = SMSMessage(
+            to=phone_number,
+            message=f"Welcome to {app_name}, {user_name}! Your account has been created successfully."
+        )
+        
+        return await self.send_sms(message)
+
+    async def send_notification_sms(self, phone_number: str, message: str) -> SMSResult:
+        """Send a general notification SMS."""
+        sms_message = SMSMessage(
+            to=phone_number,
+            message=message
+        )
+        
+        return await self.send_sms(sms_message)
+
     async def send_notification(self, phone_number: str, message: str) -> SMSResult:
         """Send a general notification via SMS."""
         sms_message = SMSMessage(
-            to_number=phone_number,
-            body=message
+            to=phone_number,
+            message=message
         )
         
         return await self.send_sms(sms_message)
