@@ -160,13 +160,13 @@ def main():
     
     logger.info("All required environment variables are set")
     
-    # Create worker options for automatic dispatch
+    # Create worker options with automatic dispatch
     worker_options = WorkerOptions(
         entrypoint_fnc=entrypoint
     )
     
     # Run the worker
-    logger.info("Starting LiveKit worker with automatic dispatch...")
+    logger.info("Starting LiveKit worker with automatic room joining...")
     cli.run_app(worker_options)
 
 

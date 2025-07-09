@@ -168,9 +168,9 @@ async def start_voice_agent(
                 logger.info("User token generated")
                 
                 # With automatic dispatch, the worker will automatically handle jobs
-                # when users connect to the room - no explicit dispatch needed
+                # when rooms are created - no explicit dispatch needed
                 logger.info(f"Room ready for automatic agent dispatch: {room_name}")
-                logger.info("Worker will automatically join when user connects")
+                logger.info("Worker should automatically join this room")
                 
                 livekit_connection = LiveKitConnectionSchema(
                     room_name=room_name,

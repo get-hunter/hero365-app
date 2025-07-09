@@ -23,33 +23,22 @@ from app.domain.enums import JobStatus, JobPriority, JobType, JobSource
 
 logger = logging.getLogger(__name__)
 
-# Context variables for agent context injection
-_business_context: ContextVar[Dict[str, Any]] = ContextVar('business_context')
-_user_context: ContextVar[Dict[str, Any]] = ContextVar('user_context')
+# Context variable to store the current agent context
+_current_context: ContextVar[Dict[str, Any]] = ContextVar('current_context', default={})
 
 
-def set_agent_context(business_context: Dict[str, Any], user_context: Dict[str, Any]) -> None:
-    """Set the current agent context for tools to use"""
-    _business_context.set(business_context)
-    _user_context.set(user_context)
+def set_current_context(context: Dict[str, Any]) -> None:
+    """Set the current agent context."""
+    _current_context.set(context)
 
 
-def get_current_context() -> Dict[str, str]:
-    """Get current business and user context from agent"""
-    try:
-        business_context = _business_context.get()
-        user_context = _user_context.get()
-        
-        return {
-            "business_id": business_context.get("id", ""),
-            "user_id": user_context.get("id", "")
-        }
-    except LookupError:
-        logger.error("Agent context not set! Tools cannot access business/user context.")
-        return {
-            "business_id": "",
-            "user_id": ""
-        }
+def get_current_context() -> Dict[str, Any]:
+    """Get the current agent context."""
+    context = _current_context.get()
+    if not context.get("business_id") or not context.get("user_id"):
+        logger.warning("Agent context not available for job tools")
+        return {"business_id": None, "user_id": None}
+    return context
 
 
 @function_tool
@@ -80,8 +69,8 @@ async def create_job(
         create_job_use_case = container.get_create_job_use_case()
         
         context = get_current_context()
-        business_id = context["business_id"]
-        user_id = context["user_id"]
+        business_id = context.get("business_id")
+        user_id = context.get("user_id")
         
         if not business_id or not user_id:
             return {
@@ -145,8 +134,8 @@ async def get_upcoming_jobs(days_ahead: int = 7, limit: int = 10) -> Dict[str, A
         job_repository = container.get_job_repository()
         
         context = get_current_context()
-        business_id = context["business_id"]
-        user_id = context["user_id"]
+        business_id = context.get("business_id")
+        user_id = context.get("user_id")
         
         if not business_id or not user_id:
             return {
@@ -224,8 +213,8 @@ async def update_job_status(job_id: str, new_status: str, notes: Optional[str] =
         job_status_use_case = container.get_job_status_management_use_case()
         
         context = get_current_context()
-        business_id = context["business_id"]
-        user_id = context["user_id"]
+        business_id = context.get("business_id")
+        user_id = context.get("user_id")
         
         if not business_id or not user_id:
             return {
@@ -296,8 +285,8 @@ async def reschedule_job(
         job_scheduling_use_case = container.get_job_scheduling_use_case()
         
         context = get_current_context()
-        business_id = context["business_id"]
-        user_id = context["user_id"]
+        business_id = context.get("business_id")
+        user_id = context.get("user_id")
         
         if not business_id or not user_id:
             return {
@@ -351,8 +340,8 @@ async def get_job_details(job_id: str) -> Dict[str, Any]:
         get_job_use_case = container.get_get_job_use_case()
         
         context = get_current_context()
-        business_id = context["business_id"]
-        user_id = context["user_id"]
+        business_id = context.get("business_id")
+        user_id = context.get("user_id")
         
         if not business_id or not user_id:
             return {
@@ -408,8 +397,8 @@ async def get_jobs_by_status(status: str, limit: int = 10) -> Dict[str, Any]:
         job_repository = container.get_job_repository()
         
         context = get_current_context()
-        business_id = context["business_id"]
-        user_id = context["user_id"]
+        business_id = context.get("business_id")
+        user_id = context.get("user_id")
         
         if not business_id or not user_id:
             return {

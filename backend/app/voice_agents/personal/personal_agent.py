@@ -24,16 +24,16 @@ class PersonalVoiceAgent(BaseVoiceAgent):
     def __init__(self, 
                  business_context: Dict[str, Any],
                  user_context: Dict[str, Any],
-                 config: Optional[PersonalAgentConfig] = None):
+                 agent_config: Optional[PersonalAgentConfig] = None):
         """
         Initialize the personal voice agent.
         
         Args:
             business_context: Business-specific context and configuration
             user_context: User-specific context and preferences
-            config: Agent configuration (optional)
+            agent_config: Agent configuration (optional)
         """
-        super().__init__(business_context, user_context, config or DEFAULT_PERSONAL_CONFIG)
+        super().__init__(business_context, user_context, agent_config or DEFAULT_PERSONAL_CONFIG)
         
         # Inject context into all tool modules
         self._inject_context_into_tools()
@@ -72,8 +72,7 @@ class PersonalVoiceAgent(BaseVoiceAgent):
             job_tools.get_jobs_by_status,
             job_tools.update_job_status,
             job_tools.get_job_details,
-            job_tools.schedule_job,
-            job_tools.search_jobs,
+            job_tools.reschedule_job,
             
             # Project Management Tools
             project_tools.create_project,
@@ -122,6 +121,13 @@ class PersonalVoiceAgent(BaseVoiceAgent):
         ]
         
         return tools
+    
+    def get_personalized_greeting(self) -> str:
+        """Get a personalized greeting for the user"""
+        business_name = self.business_context.get("name", "your business")
+        user_name = self.user_context.get("name", "there")
+        
+        return f"Hello {user_name}! I'm Hero365 AI, your personal business assistant for {business_name}. I can help you manage jobs, projects, invoices, estimates, contacts, and inventory. How can I assist you today?"
     
     def get_system_prompt(self) -> str:
         """Get the system prompt for this agent"""
@@ -227,6 +233,19 @@ Remember: You're here to make business management easier and more efficient thro
         })
         
         logger.info(f"Personal agent {self.agent_id} ended")
+    
+    async def on_agent_stop(self) -> None:
+        """Called when agent stops"""
+        
+        # Record agent stop
+        await self.record_interaction("agent_stop", {
+            "agent_type": "personal",
+            "business_id": self.get_current_business_id(),
+            "user_id": self.get_current_user_id(),
+            "session_duration": (datetime.now() - self.created_at).total_seconds() if self.created_at else 0
+        })
+        
+        logger.info(f"Personal agent {self.agent_id} stopped")
     
     async def on_user_speech_start(self) -> None:
         """Called when user starts speaking"""
