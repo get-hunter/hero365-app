@@ -63,11 +63,16 @@ async def entrypoint(ctx: JobContext):
         ctx: JobContext containing room, job info, and connection details
     """
     logger.info(f"🚀 Voice agent job started for room: {ctx.room.name}")
+    logger.info(f"📋 Job info: {ctx.job}")
     
-    # Step 1: Connect to the room first
-    # This is the standard pattern from the latest SDK examples
-    await ctx.connect()
+    # Step 1: Connect to the room first - This is the CRITICAL pattern from the latest SDK
+    # Reference: https://docs.livekit.io/agents/quickstarts/voice-agent/
+    await ctx.connect(auto_subscribe=agents.AutoSubscribe.AUDIO_ONLY)
     logger.info("✅ Connected to LiveKit room successfully")
+    
+    # Log initial room state
+    logger.info(f"🏠 Room: {ctx.room.name} (sid: {ctx.room.sid})")
+    logger.info(f"👥 Participants: {len(ctx.room.remote_participants)}")
     
     # Step 2: Extract agent context from room metadata
     # Our custom pattern for passing business/user context through room metadata
@@ -156,7 +161,7 @@ async def entrypoint(ctx: JobContext):
     await session.start(agent=agent, room=ctx.room)
     logger.info("🎙️ Agent session started successfully")
     
-    # Step 9: Generate initial greeting
+    # Step 9: Generate initial greeting when user joins
     # Generate a personalized greeting based on the business and user context
     business_name = business_context.get("name", "Hero365")
     user_name = user_context.get("name", "there")
@@ -166,6 +171,9 @@ async def entrypoint(ctx: JobContext):
     )
     
     logger.info("💬 Initial greeting generated")
+    
+    # The session will continue running until the connection is closed
+    # or the user leaves the room
 
 
 def main():
@@ -198,7 +206,17 @@ def main():
     # This is the standard CLI pattern from the latest SDK version 1.1.5
     # Reference: https://github.com/livekit/agents/blob/main/examples/voice_agents/basic_agent.py
     logger.info("🚀 Starting LiveKit worker with automatic room joining...")
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+    
+    # Create worker options for automatic room assignment
+    # Pattern from: https://github.com/livekit/agents/blob/main/examples/voice_agents/basic_agent.py
+    worker_options = WorkerOptions(
+        entrypoint_fnc=entrypoint,
+        # The worker will automatically be assigned to rooms when they are created
+        # No need to specify specific rooms - it will handle all rooms by default
+    )
+    
+    # Run the worker - this will start the agent and wait for room assignments
+    cli.run_app(worker_options)
 
 
 if __name__ == "__main__":
