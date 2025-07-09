@@ -72,7 +72,7 @@ async def create_project(
     """
     try:
         container = DependencyContainer()
-        create_project_use_case = CreateProjectUseCase(container)
+        create_project_use_case = container.get_create_project_use_case()
         
         context = get_current_context()
         business_id = context["business_id"]
@@ -275,7 +275,7 @@ async def update_project_status(project_id: str, new_status: str, notes: Optiona
     """
     try:
         container = DependencyContainer()
-        update_project_use_case = UpdateProjectUseCase(container)
+        update_project_use_case = container.get_update_project_use_case()
         
         context = get_current_context()
         business_id = context["business_id"]
@@ -298,6 +298,7 @@ async def update_project_status(project_id: str, new_status: str, notes: Optiona
         
         result = await update_project_use_case.execute(
             project_id=uuid.UUID(project_id),
+            business_id=uuid.UUID(business_id),
             project_data=update_dto,
             user_id=user_id
         )
@@ -321,14 +322,14 @@ async def get_project_details(project_id: str) -> str:
     Get detailed information about a specific project.
     
     Args:
-        project_id: ID of the project to retrieve
+        project_id: ID or name of the project to retrieve
     
     Returns:
         String describing the project details
     """
     try:
         container = DependencyContainer()
-        get_project_use_case = GetProjectUseCase(container)
+        get_project_use_case = container.get_project_search_use_case()
         
         context = get_current_context()
         business_id = context["business_id"]
@@ -337,8 +338,36 @@ async def get_project_details(project_id: str) -> str:
         if not business_id or not user_id:
             return "I'm sorry, I can't access your project information right now. Please try again."
         
-        result = await get_project_use_case.execute(
-            project_id=uuid.UUID(project_id),
+        # Check if project_id is a valid UUID
+        project_uuid = None
+        try:
+            project_uuid = uuid.UUID(project_id)
+        except ValueError:
+            # If not a valid UUID, search for project by name
+            logger.info(f"Searching for project by name: {project_id}")
+            search_dto = ProjectSearchDTO(
+                search=project_id,
+                limit=1
+            )
+            
+            search_results = await get_project_use_case.search_projects(
+                business_id=uuid.UUID(business_id),
+                search_criteria=search_dto,
+                user_id=user_id
+            )
+            
+            if not search_results:
+                return f"I couldn't find a project with the name '{project_id}'. Please check the project name and try again."
+            
+            # Use the first search result
+            project = search_results[0]
+            project_uuid = project.id
+        
+        # Now get the project details using the correct use case
+        project_detail_use_case = container.get_get_project_use_case()
+        result = await project_detail_use_case.execute(
+            project_id=project_uuid,
+            business_id=uuid.UUID(business_id),
             user_id=user_id
         )
         
@@ -375,7 +404,7 @@ async def get_project_details(project_id: str) -> str:
         
     except Exception as e:
         logger.error(f"Error retrieving project details via voice agent: {str(e)}")
-        return "I'm having trouble accessing the details for that project. Please check the project ID and try again."
+        return "I'm having trouble accessing the details for that project. Please check the project name or ID and try again."
 
 
 @function_tool
@@ -392,7 +421,7 @@ async def search_projects(search_term: str, limit: int = 10) -> str:
     """
     try:
         container = DependencyContainer()
-        project_search_use_case = ProjectSearchUseCase(container)
+        project_search_use_case = container.get_project_search_use_case()
         
         context = get_current_context()
         business_id = context["business_id"]
@@ -407,8 +436,8 @@ async def search_projects(search_term: str, limit: int = 10) -> str:
         )
         
         results = await project_search_use_case.search_projects(
-            business_id=business_id,
-            search_params=search_dto,
+            business_id=uuid.UUID(business_id),
+            search_criteria=search_dto,
             user_id=user_id
         )
         

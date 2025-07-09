@@ -49,9 +49,9 @@ class ProjectSearchUseCase:
         await self.project_helper_service.check_permission(business_id, user_id, "view_projects")
         
         # Start with all projects if no specific criteria
-        if search_criteria.search_term:
+        if search_criteria.search:
             projects = await self.project_repository.search_projects(
-                business_id, search_criteria.search_term, skip, limit
+                business_id, search_criteria.search, skip, limit
             )
         else:
             projects = await self.project_repository.get_by_business_id(business_id, skip, limit)
@@ -145,11 +145,18 @@ class ProjectSearchUseCase:
         if criteria.priority and project.priority != criteria.priority:
             return False
         
-        # Filter by date range
-        if criteria.start_date and project.start_date and project.start_date < criteria.start_date:
+        # Filter by start date range
+        if criteria.start_date_from and project.start_date and project.start_date < criteria.start_date_from:
             return False
         
-        if criteria.end_date and project.end_date and project.end_date > criteria.end_date:
+        if criteria.start_date_to and project.start_date and project.start_date > criteria.start_date_to:
+            return False
+        
+        # Filter by end date range
+        if criteria.end_date_from and project.end_date and project.end_date < criteria.end_date_from:
+            return False
+        
+        if criteria.end_date_to and project.end_date and project.end_date > criteria.end_date_to:
             return False
         
         # Filter by tags

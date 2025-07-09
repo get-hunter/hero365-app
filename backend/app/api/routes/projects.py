@@ -471,12 +471,14 @@ async def search_projects(
         
         # Convert request to DTO
         search_dto = ProjectSearchDTO(
-            search_term=search_request.search_term,
+            search=search_request.search,
             status=search_request.status,
             project_type=search_request.project_type,
             priority=search_request.priority,
-            start_date=search_request.start_date,
-            end_date=search_request.end_date,
+            start_date_from=search_request.start_date_from,
+            start_date_to=search_request.start_date_to,
+            end_date_from=search_request.end_date_from,
+            end_date_to=search_request.end_date_to,
             tags=search_request.tags
         )
         
