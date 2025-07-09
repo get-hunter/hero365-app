@@ -103,6 +103,16 @@ class Settings(BaseSettings):
     DEFAULT_FROM_EMAIL: str | None = None
     DEFAULT_FROM_NAME: str | None = None
     
+    # LiveKit Configuration
+    LIVEKIT_URL: str | None = None
+    LIVEKIT_API_KEY: str | None = None
+    LIVEKIT_API_SECRET: str | None = None
+    
+    # AI Provider API Keys for Voice Agents
+    OPENAI_API_KEY: str | None = None
+    DEEPGRAM_API_KEY: str | None = None
+    CARTESIA_API_KEY: str | None = None
+    
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SUPABASE_ANON_KEY(self) -> str:
@@ -122,6 +132,23 @@ class Settings(BaseSettings):
     def emails_enabled(self) -> bool:
         # Check if Resend is configured
         return bool(self.RESEND_API_KEY and self.DEFAULT_FROM_EMAIL)
+    
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def livekit_enabled(self) -> bool:
+        # Check if LiveKit is configured
+        return bool(self.LIVEKIT_URL and self.LIVEKIT_API_KEY and self.LIVEKIT_API_SECRET)
+    
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def voice_agents_enabled(self) -> bool:
+        # Check if voice agents are fully configured
+        return bool(
+            self.livekit_enabled and 
+            self.OPENAI_API_KEY and 
+            self.DEEPGRAM_API_KEY and 
+            self.CARTESIA_API_KEY
+        )
 
     EMAIL_TEST_USER: EmailStr = "test@example.com"
     FIRST_SUPERUSER: EmailStr

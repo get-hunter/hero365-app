@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import auth, businesses, users, utils, business_context, middleware_health, contacts, jobs, projects, activities, scheduling, estimates, invoices, templates, products, suppliers, purchase_orders
+from app.api.routes import auth, businesses, users, utils, business_context, middleware_health, contacts, jobs, projects, activities, scheduling, estimates, invoices, templates, products, suppliers, purchase_orders, voice_agent
 from app.core.config import settings
 
 api_router = APIRouter()
@@ -19,5 +19,6 @@ api_router.include_router(templates.router, tags=["templates"], include_in_schem
 api_router.include_router(products.router, tags=["products"], include_in_schema=True)
 api_router.include_router(suppliers.router, prefix="/suppliers", tags=["suppliers"], include_in_schema=True)
 api_router.include_router(purchase_orders.router, prefix="/purchase-orders", tags=["purchase-orders"], include_in_schema=True)
+api_router.include_router(voice_agent.router, prefix="/voice-agent", tags=["voice-agent"], include_in_schema=True)
 api_router.include_router(business_context.router, tags=["Business Context"], include_in_schema=True)
 api_router.include_router(middleware_health.router, tags=["Middleware Health"], include_in_schema=True)

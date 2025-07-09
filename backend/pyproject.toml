@@ -25,6 +25,10 @@ dependencies = [
     "gotrue<3.0.0,>=2.8.1",
     # Email service
     "resend>=0.8.0,<1.0.0",
+    "livekit-agents[cartesia,deepgram,openai,silero,turn-detector]~=1.0",
+    "livekit-plugins-noise-cancellation~=0.2",
+    "asyncio-mqtt>=0.16.2",
+    "livekit-api>=1.0.3",
 ]
 
 [tool.uv]

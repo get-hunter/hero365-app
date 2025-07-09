@@ -4057,6 +4057,28 @@ export type LifecycleStage =
   | "advocacy"
 
 /**
+ * LiveKit connection information schema
+ */
+export type LiveKitConnectionSchema = {
+  /**
+   * LiveKit room name
+   */
+  room_name: string
+  /**
+   * LiveKit server URL
+   */
+  room_url: string
+  /**
+   * User access token for room
+   */
+  user_token: string
+  /**
+   * Room session identifier
+   */
+  room_sid: string
+}
+
+/**
  * Location data for tracking.
  */
 export type LocationData = {
@@ -4076,6 +4098,20 @@ export type LocationData = {
    * Location timestamp
    */
   timestamp: string
+}
+
+/**
+ * Location information schema
+ */
+export type LocationSchema = {
+  /**
+   * Latitude coordinate
+   */
+  latitude: number
+  /**
+   * Longitude coordinate
+   */
+  longitude: number
 }
 
 /**
@@ -6461,6 +6497,214 @@ export type ValidationError = {
 }
 
 /**
+ * Request schema for updating agent configuration
+ */
+export type VoiceAgentConfigRequest = {
+  /**
+   * Agent identifier
+   */
+  agent_id: string
+  /**
+   * Voice profile ID
+   */
+  voice_profile?: string | null
+  /**
+   * Voice model
+   */
+  voice_model?: string | null
+  /**
+   * Safety mode setting
+   */
+  safety_mode?: boolean | null
+  /**
+   * Voice speed setting
+   */
+  voice_speed?: string | null
+  /**
+   * Updated location
+   */
+  location?: LocationSchema | null
+}
+
+/**
+ * Response schema for updating agent configuration
+ */
+export type VoiceAgentConfigResponse = {
+  /**
+   * Whether configuration updated successfully
+   */
+  success: boolean
+  /**
+   * Agent identifier
+   */
+  agent_id: string
+  /**
+   * Updated configuration settings
+   */
+  updated_config: {
+    [key: string]: unknown
+  }
+  /**
+   * Status message
+   */
+  message: string
+}
+
+/**
+ * Request schema for starting a voice agent
+ */
+export type VoiceAgentStartRequest = {
+  /**
+   * Whether user is currently driving
+   */
+  is_driving?: boolean
+  /**
+   * Enable safety mode for driving
+   */
+  safety_mode?: boolean
+  /**
+   * Voice speed: slow, normal, fast
+   */
+  voice_speed?: string | null
+  /**
+   * Maximum conversation duration in seconds
+   */
+  max_duration?: number | null
+  /**
+   * Enable noise cancellation
+   */
+  enable_noise_cancellation?: boolean
+  /**
+   * User's current location
+   */
+  location?: LocationSchema | null
+}
+
+/**
+ * Response schema for starting a voice agent
+ */
+export type VoiceAgentStartResponse = {
+  /**
+   * Whether agent started successfully
+   */
+  success: boolean
+  /**
+   * Unique agent identifier
+   */
+  agent_id: string
+  /**
+   * Personalized greeting message
+   */
+  greeting: string
+  /**
+   * Number of available tools
+   */
+  available_tools: number
+  /**
+   * Agent configuration settings
+   */
+  config: {
+    [key: string]: unknown
+  }
+  /**
+   * LiveKit room connection details
+   */
+  livekit_connection?: LiveKitConnectionSchema | null
+  /**
+   * Status message
+   */
+  message: string
+}
+
+/**
+ * Request schema for getting agent status
+ */
+export type VoiceAgentStatusRequest = {
+  /**
+   * Agent identifier
+   */
+  agent_id: string
+}
+
+/**
+ * Response schema for agent status
+ */
+export type VoiceAgentStatusResponse = {
+  /**
+   * Whether status retrieved successfully
+   */
+  success: boolean
+  /**
+   * Agent identifier
+   */
+  agent_id: string
+  /**
+   * Whether agent is currently active
+   */
+  is_active: boolean
+  /**
+   * Current conversation stage
+   */
+  conversation_stage: string
+  /**
+   * Conversation duration in seconds
+   */
+  duration: number
+  /**
+   * Number of interactions
+   */
+  interactions_count: number
+  /**
+   * Current detected intent
+   */
+  current_intent?: string | null
+  /**
+   * Current user context
+   */
+  user_context: {
+    [key: string]: unknown
+  }
+  /**
+   * Status message
+   */
+  message: string
+}
+
+/**
+ * Request schema for stopping a voice agent
+ */
+export type VoiceAgentStopRequest = {
+  /**
+   * Agent identifier
+   */
+  agent_id: string
+}
+
+/**
+ * Response schema for stopping a voice agent
+ */
+export type VoiceAgentStopResponse = {
+  /**
+   * Whether agent stopped successfully
+   */
+  success: boolean
+  /**
+   * Agent identifier
+   */
+  agent_id: string
+  /**
+   * Session summary statistics
+   */
+  session_summary: {
+    [key: string]: unknown
+  }
+  /**
+   * Status message
+   */
+  message: string
+}
+
+/**
  * Working hours response.
  */
 export type WorkingHoursResponse = {
@@ -8564,3 +8808,33 @@ export type UtilsTestEmailData = {
 }
 
 export type UtilsTestEmailResponse = Message
+
+export type VoiceAgentStartVoiceAgentData = {
+  requestBody: VoiceAgentStartRequest
+}
+
+export type VoiceAgentStartVoiceAgentResponse = VoiceAgentStartResponse
+
+export type VoiceAgentGetVoiceAgentStatusData = {
+  requestBody: VoiceAgentStatusRequest
+}
+
+export type VoiceAgentGetVoiceAgentStatusResponse = VoiceAgentStatusResponse
+
+export type VoiceAgentStopVoiceAgentData = {
+  requestBody: VoiceAgentStopRequest
+}
+
+export type VoiceAgentStopVoiceAgentResponse = VoiceAgentStopResponse
+
+export type VoiceAgentUpdateVoiceAgentConfigData = {
+  requestBody: VoiceAgentConfigRequest
+}
+
+export type VoiceAgentUpdateVoiceAgentConfigResponse = VoiceAgentConfigResponse
+
+export type VoiceAgentGetAvailableToolsResponse = unknown
+
+export type VoiceAgentGetVoiceAgentAvailabilityResponse = unknown
+
+export type VoiceAgentVoiceAgentHealthResponse = unknown
