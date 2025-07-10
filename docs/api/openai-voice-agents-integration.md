@@ -224,7 +224,7 @@ const websocket = new WebSocket("wss://api.hero365.com/ws/voice-agent/session_ab
 
 The WebSocket supports the following message types:
 
-#### 1. Audio Data
+#### 1. Audio Data (Streaming Chunks)
 ```json
 {
   "type": "audio_data",
@@ -236,7 +236,34 @@ The WebSocket supports the following message types:
 }
 ```
 
-#### 2. Greeting Audio
+**Note**: Individual audio chunks are buffered by the backend. Processing occurs after 1.5 seconds of silence.
+
+#### 2. Complete Audio (Mobile VAD - Recommended)
+```json
+{
+  "type": "complete_audio", 
+  "data": {
+    "audio": "base64_encoded_complete_audio_data",
+    "duration": 3.2
+  },
+  "session_id": "session_abc123def456",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Recommended**: Use mobile-side Voice Activity Detection to send complete utterances for better transcription accuracy.
+
+#### 3. Audio Buffered (Backend Response)
+```json
+{
+  "type": "audio_buffered",
+  "buffer_size": 48000,
+  "duration": 3.0,
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 4. Greeting Audio
 ```json
 {
   "type": "greeting_audio",
@@ -251,7 +278,7 @@ The WebSocket supports the following message types:
 }
 ```
 
-#### 3. Transcription
+#### 5. Transcription
 ```json
 {
   "type": "transcription",
@@ -264,7 +291,7 @@ The WebSocket supports the following message types:
 }
 ```
 
-#### 4. Agent Response
+#### 6. Agent Response
 ```json
 {
   "type": "agent_response",
@@ -278,7 +305,7 @@ The WebSocket supports the following message types:
 }
 ```
 
-#### 5. Session Status
+#### 7. Session Status
 ```json
 {
   "type": "session_status",
@@ -292,7 +319,7 @@ The WebSocket supports the following message types:
 }
 ```
 
-#### 6. Error Message
+#### 8. Error Message
 ```json
 {
   "type": "error",
@@ -395,6 +422,96 @@ let audioFormat = AVAudioFormat(
     channels: 1,
     interleaved: false
 )
+```
+
+### 1a. Voice Activity Detection (Recommended)
+
+Implement Voice Activity Detection for better user experience and transcription accuracy:
+
+```swift
+class VoiceActivityDetector {
+    private let silenceThreshold: Float = -40.0  // dB
+    private let silenceDuration: TimeInterval = 1.5  // seconds
+    private var audioBuffer: [Float] = []
+    private var silenceTimer: Timer?
+    private var isRecording = false
+    
+    func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
+        let audioLevel = calculateAudioLevel(buffer)
+        
+        if audioLevel > silenceThreshold {
+            // User is speaking
+            if !isRecording {
+                print("🎤 Voice detected - starting recording")
+                isRecording = true
+                audioBuffer.removeAll()
+            }
+            
+            // Reset silence timer
+            silenceTimer?.invalidate()
+            silenceTimer = nil
+            
+            // Add audio to buffer
+            if let channelData = buffer.floatChannelData?[0] {
+                let frames = Int(buffer.frameLength)
+                audioBuffer.append(contentsOf: Array(UnsafeBufferPointer(start: channelData, count: frames)))
+            }
+            
+        } else if isRecording {
+            // Silence detected while recording
+            if silenceTimer == nil {
+                silenceTimer = Timer.scheduledTimer(withTimeInterval: silenceDuration, repeats: false) { _ in
+                    self.sendCompleteAudio()
+                }
+            }
+        }
+    }
+    
+    private func sendCompleteAudio() {
+        guard !audioBuffer.isEmpty else { return }
+        
+        print("🔇 Silence detected - sending complete audio (\(audioBuffer.count) samples)")
+        
+        // Convert Float32 to PCM16
+        let pcm16Data = audioBuffer.map { Int16($0 * 32767.0) }
+        let audioData = Data(bytes: pcm16Data, count: pcm16Data.count * 2)
+        
+        // Send complete audio to backend
+        let base64Audio = audioData.base64EncodedString()
+        let message = [
+            "type": "complete_audio",
+            "data": [
+                "audio": base64Audio,
+                "duration": Double(audioBuffer.count) / 16000.0
+            ],
+            "session_id": sessionId,
+            "timestamp": ISO8601DateFormatter().string(from: Date())
+        ]
+        
+        websocket.send(message: message)
+        
+        // Reset state
+        audioBuffer.removeAll()
+        isRecording = false
+        silenceTimer = nil
+    }
+    
+    private func calculateAudioLevel(_ buffer: AVAudioPCMBuffer) -> Float {
+        guard let channelData = buffer.floatChannelData?[0] else { return -160.0 }
+        
+        let frames = Int(buffer.frameLength)
+        var sum: Float = 0.0
+        
+        for i in 0..<frames {
+            sum += channelData[i] * channelData[i]
+        }
+        
+        let rms = sqrt(sum / Float(frames))
+        let db = 20.0 * log10(rms)
+        
+        return db
+    }
+}
 ```
 
 ### 2. WebSocket Connection
