@@ -984,6 +984,7 @@ def reset_container():
     _container = None
 
 
+# Global convenience functions
 def get_auth_service() -> AuthServicePort:
     """Get auth service from container."""
     return get_container().get_auth_service()
@@ -997,6 +998,12 @@ def get_email_service() -> EmailServicePort:
 def get_sms_service() -> Optional[SMSServicePort]:
     """Get SMS service from container."""
     return get_container().get_sms_service()
+
+
+# Business dependencies
+def get_business_repository() -> BusinessRepository:
+    """Get business repository from container."""
+    return get_container().get_business_repository()
 
 
 # Contact dependencies

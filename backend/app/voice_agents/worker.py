@@ -2,266 +2,295 @@
 
 """
 Hero365 Voice Agent Worker
+Starting from simple worker base and adding business features incrementally.
 
-IMPORTANT: Always check the latest LiveKit agents SDK documentation and examples
-before making changes to this file:
-- GitHub Repository: https://github.com/livekit/agents
-- Documentation: https://docs.livekit.io/agents/
-- Latest Examples: https://github.com/livekit/agents/tree/main/examples
+Following LiveKit Agents framework patterns:
+- GitHub: https://github.com/livekit/agents
+- Docs: https://docs.livekit.io/agents/
 
-The LiveKit agents SDK is rapidly evolving. Always reference the latest patterns
-in the repository to ensure compatibility and avoid breaking changes.
-
-Current SDK Version: 1.1.5
-Last Updated: 2025-01-09
+SDK Version: 1.1.5
 """
 
-import asyncio
 import logging
 import os
 import sys
 from pathlib import Path
 
-# Add the parent directory to the path so we can import from app
+# Add parent directory for app imports
 sys.path.append(str(Path(__file__).parent.parent))
 
-# Load environment variables from .env file
+# Load environment configuration
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent.parent.parent / "environments" / ".env")
 
-# Load environment variables from the configuration
-from app.core.config import settings
-
-# Import LiveKit agents SDK components
-# Pattern reference: https://github.com/livekit/agents/blob/main/examples/voice_agents/basic_agent.py
+# LiveKit Agents SDK imports
 import livekit.agents as agents
 from livekit.agents import JobContext, WorkerOptions, cli
 from livekit.agents import Agent, AgentSession
 from livekit.plugins import silero, openai, deepgram, cartesia
 
-# Import our PersonalVoiceAgent for getting tools and prompts
+# Business imports - core application features
 from app.voice_agents.personal.personal_agent import PersonalVoiceAgent
-from app.voice_agents.core.voice_config import PersonalAgentConfig
-from app.voice_agents.core.voice_config import AgentType, VoiceProfile, VoiceModel
+from app.voice_agents.core.voice_config import PersonalAgentConfig, AgentType, VoiceProfile, VoiceModel
+from app.infrastructure.config.dependency_injection import get_business_repository
+from app.core.auth_facade import auth_facade
 
-# Configure logging with more detailed debug info
-logging.basicConfig(
-    level=logging.DEBUG,  # Changed to DEBUG level
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-# Add detailed startup logging
-logger.info("🔧 Worker module loaded, setting up entrypoint...")
 
 
 async def entrypoint(ctx: JobContext):
     """
-    Main entrypoint for the voice agent worker.
-    
-    This function is called when a job is assigned to this worker.
-    Pattern based on: https://github.com/livekit/agents/blob/main/examples/voice_agents/basic_agent.py
-    
-    Args:
-        ctx: JobContext containing room, job info, and connection details
+    Agent entrypoint - called when user joins a room.
+    Starts simple and adds business features when available.
     """
-    logger.info("🚀🚀🚀 ENTRYPOINT CALLED - Voice agent job started!")
-    logger.info(f"📋 Job info: {ctx.job}")
-    logger.info(f"🏠 Room info: name={ctx.room.name}, sid={ctx.room.sid}")
-    logger.info(f"👤 Room participants: {len(ctx.room.remote_participants)}")
-    logger.info(f"📊 Room metadata: {ctx.room.metadata}")
+    logger.info("🎯 HERO365 AGENT ENTRYPOINT CALLED!")
+    logger.info(f"🚀 Agent starting for room: {ctx.room.name}")
+    logger.info(f"🔍 Room participants: {len(ctx.room.remote_participants)}")
     
-    # Step 1: Connect to the room first - This is the CRITICAL pattern from the latest SDK
-    # Reference: https://docs.livekit.io/agents/quickstarts/voice-agent/
-    logger.info("🔌 Attempting to connect to LiveKit room...")
+    # Connect to room with audio subscription
+    logger.info("🔌 Connecting to LiveKit room...")
     await ctx.connect(auto_subscribe=agents.AutoSubscribe.AUDIO_ONLY)
-    logger.info("✅ Connected to LiveKit room successfully")
+    logger.info("✅ Connected to LiveKit room")
     
-    # Log initial room state with more detail
-    logger.info(f"🏠 Connected to room: {ctx.room.name} (sid: {ctx.room.sid})")
-    logger.info(f"👥 Current participants: {len(ctx.room.remote_participants)}")
-    logger.info(f"📱 Local participant: {ctx.room.local_participant}")
+    # Wait for participant to join (critical for working!)
+    participant = await ctx.wait_for_participant()
+    logger.info(f"👤 Participant joined: {participant.identity}")
     
-    # Step 2: Extract agent context from room metadata
-    # Our custom pattern for passing business/user context through room metadata
-    business_context = None
-    user_context = None
-    agent_config_data = None
+    # Try to get business context if available
+    agent_context = None
+    use_business_features = False
     
-    logger.info("🔍 Parsing room metadata for agent context...")
-    try:
-        # The API stores agent context in room metadata
-        if ctx.room.metadata:
-            import json
-            logger.debug(f"📋 Raw room metadata: {ctx.room.metadata}")
-            room_metadata = json.loads(ctx.room.metadata)
-            logger.info(f"📋 Parsed room metadata: {room_metadata}")
+    if ctx.room.name.startswith("voice-session-"):
+        # Parse room name: voice-session-{user_id}-{business_id}
+        room_suffix = ctx.room.name.replace("voice-session-", "")
+        
+        # Split by dashes and try to identify the business_id (last UUID)
+        # Format: voice-session-{user_id}-{business_id}
+        # Both are UUIDs with format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        parts = room_suffix.split("-")
+        
+        if len(parts) >= 10:  # At least 2 UUIDs (5 parts each)
+            # Take the last 5 parts as business_id, everything else as user_id
+            business_id_parts = parts[-5:]
+            user_id_parts = parts[:-5]
             
-            # Extract agent context from metadata
-            agent_context = room_metadata.get("agent_context", {})
-            if agent_context:
-                business_context = agent_context.get("business_context", {})
-                user_context = agent_context.get("user_context", {})
-                agent_config_data = agent_context.get("agent_config", {})
-                logger.info(f"👤 Agent context loaded for user: {user_context.get('name', 'Unknown')}")
-                logger.debug(f"🏢 Business context: {business_context}")
-                logger.debug(f"👤 User context: {user_context}")
-                logger.debug(f"⚙️ Agent config: {agent_config_data}")
-            else:
-                logger.warning("⚠️ No agent context found in room metadata")
+            business_id = "-".join(business_id_parts)
+            user_id = "-".join(user_id_parts)
+            
+            logger.info(f"🆔 Parsed room name: user_id={user_id}, business_id={business_id}")
+            
+            try:
+                # Fetch business data from database
+                business_repository = get_business_repository()
+                business_entity = await business_repository.get_by_id(business_id)
+                
+                if business_entity:
+                    business_context = {
+                        "id": str(business_entity.id),
+                        "name": business_entity.name,
+                        "type": business_entity.industry or "Home Services",
+                        "industry": business_entity.industry or "home_services",
+                        "company_size": business_entity.company_size.value if business_entity.company_size else "small",
+                        "description": business_entity.description,
+                        "phone": business_entity.phone_number,
+                        "email": business_entity.business_email,
+                        "website": business_entity.website
+                    }
+                    
+                    # Fetch user data from auth system
+                    user_data = await auth_facade.get_user_by_id(user_id)
+                    
+                    if user_data:
+                        user_context = {
+                            "id": user_id,
+                            "name": user_data.get("name") or user_data.get("email", "User"),
+                            "email": user_data.get("email", ""),
+                            "preferred_language": "en",
+                            "timezone": "UTC"
+                        }
+                        
+                        # Create agent context
+                        agent_context = {
+                            "business_context": business_context,
+                            "user_context": user_context,
+                            "agent_config": {
+                                "temperature": 0.7,
+                                "max_duration": 3600
+                            }
+                        }
+                        
+                        logger.info(f"📋 Business context loaded from database!")
+                        logger.info(f"🏢 Business: {business_context['name']}")
+                        logger.info(f"👤 User: {user_context['name']} ({user_context['email']})")
+                        use_business_features = True
+                        
+                    else:
+                        logger.warning(f"⚠️ User not found in auth system: {user_id}")
+                        
+                else:
+                    logger.warning(f"⚠️ Business not found in database: {business_id}")
+                    
+            except Exception as e:
+                logger.error(f"❌ Error fetching business/user data: {e}")
+                import traceback
+                logger.error(f"Full traceback: {traceback.format_exc()}")
         else:
-            logger.warning("⚠️ No room metadata found")
-            
-    except Exception as e:
-        logger.error(f"❌ Failed to parse room metadata: {e}")
-        import traceback
-        logger.debug(f"🐛 Metadata parsing traceback: {traceback.format_exc()}")
-        logger.info("📝 Using default context")
+            logger.warning(f"⚠️ Invalid room name format: {ctx.room.name}")
+            logger.warning("Expected format: voice-session-{user_id}-{business_id}")
+            logger.warning(f"Got {len(parts)} parts, expected at least 10")
+    else:
+        logger.info(f"🔍 Room name '{ctx.room.name}' doesn't match expected format 'voice-session-*'")
+        logger.info("🔄 Using simple mode for this room")
     
-    # Step 3: Use extracted context or fall back to defaults
-    if not business_context:
-        logger.info("🏢 Using default business context")
-        business_context = {
-            "id": "default_business",
-            "name": "Hero365",
-            "type": "Home services AI-native ERP",
-            "capabilities": ["contract management", "invoicing", "job scheduling", "payment processing"]
-        }
+    # Create agent based on available features
+    if use_business_features and agent_context:
+        agent = await create_business_agent(agent_context)
+        greeting_msg = create_business_greeting(agent_context)
+    else:
+        agent = create_simple_agent()
+        greeting_msg = "Greet the user warmly and introduce yourself as Hero365 AI assistant. Ask how you can help them today."
     
-    if not user_context:
-        logger.info("👤 Using default user context")
-        user_context = {
-            "id": "default_user",
-            "name": "User",
-            "preferences": {}
-        }
-    
-    # Step 4: Create agent configuration
-    logger.info("⚙️ Creating agent configuration...")
-    agent_config = PersonalAgentConfig(
-        agent_type=AgentType.PERSONAL,
-        agent_name="Hero365 Assistant",
-        voice_profile=VoiceProfile.PROFESSIONAL,
-        voice_model=VoiceModel.SONIC_2,
-        temperature=agent_config_data.get("temperature", 0.7) if agent_config_data else 0.7,
-        max_conversation_duration=agent_config_data.get("max_duration", 3600) if agent_config_data else 3600
-    )
-    logger.info("✅ Agent configuration created")
-    
-    # Step 5: Create the PersonalVoiceAgent to get tools and prompts
-    # This is our custom agent that provides business-specific tools
-    logger.info("🤖 Creating PersonalVoiceAgent...")
-    personal_agent = PersonalVoiceAgent(
-        business_context=business_context,
-        user_context=user_context,
-        agent_config=agent_config
-    )
-    logger.info("✅ PersonalVoiceAgent created successfully")
-    
-    # Step 6: Create the LiveKit Agent with tools and instructions
-    # Pattern from: https://github.com/livekit/agents/blob/main/examples/voice_agents/basic_agent.py
-    logger.info("🧠 Creating LiveKit Agent with tools and instructions...")
-    agent = Agent(
-        instructions=personal_agent.get_system_prompt(),
-        tools=personal_agent.get_tools()
-    )
-    logger.info(f"🛠️ LiveKit Agent created with {len(personal_agent.get_tools())} tools")
-    
-    # Step 7: Create AgentSession with STT, LLM, TTS pipeline
-    # STT-LLM-TTS pipeline pattern from the latest SDK examples
-    # Reference: https://docs.livekit.io/agents/quickstarts/voice-agent/
-    logger.info("🎙️ Setting up STT, LLM, TTS pipeline...")
+    # Create AgentSession (same as simple worker)
     session = AgentSession(
         vad=silero.VAD.load(),
         stt=deepgram.STT(model="nova-2"),
         llm=openai.LLM(model="gpt-4o-mini"),
-        tts=cartesia.TTS(voice="79a125e8-cd45-4c13-8a67-188112f4dd22")  # Professional male voice
+        tts=cartesia.TTS(
+            model="sonic-2",
+            voice="79a125e8-cd45-4c13-8a67-188112f4dd22"
+        )
     )
-    logger.info("✅ Pipeline created successfully")
     
-    # Step 8: Start the session with the agent
-    # This is the standard pattern from the latest SDK
-    logger.info("🚀 Starting agent session...")
+    # Start the session
+    logger.info("🎙️ Starting agent session...")
     await session.start(agent=agent, room=ctx.room)
-    logger.info("🎙️ Agent session started successfully")
+    logger.info("✅ Agent session started successfully")
     
-    # Step 9: Generate initial greeting when user joins
-    # Generate a personalized greeting based on the business and user context
+    # Generate greeting
+    await session.generate_reply(instructions=greeting_msg)
+    
+    if use_business_features:
+        logger.info("💬 Business agent ready with tools")
+    else:
+        logger.info("💬 Simple agent ready")
+
+
+def create_simple_agent() -> Agent:
+    """Create a simple agent without business features."""
+    logger.info("🔄 Creating simple Hero365 agent")
+    
+    return Agent(
+        instructions=(
+            "You are Hero365 AI, a helpful assistant for home services businesses. "
+            "You can help with general questions, business planning, and provide guidance. "
+            "Be friendly, professional, and concise in your responses."
+        )
+    )
+
+
+async def create_business_agent(agent_context: dict) -> Agent:
+    """Create a business agent with full context and tools."""
+    logger.info("🏢 Creating business agent with context")
+    
+    try:
+        # Extract context components
+        business_context = agent_context.get("business_context", {})
+        user_context = agent_context.get("user_context", {})
+        agent_config_data = agent_context.get("agent_config", {})
+        
+        # Log context details
+        business_name = business_context.get("name", "Hero365")
+        user_name = user_context.get("name", "Unknown")
+        business_type = business_context.get("type", "Home Services")
+        
+        logger.info(f"📋 Business context loaded:")
+        logger.info(f"   🏢 Business: {business_name} ({business_type})")
+        logger.info(f"   👤 User: {user_name}")
+        logger.info(f"   📧 Email: {user_context.get('email', 'N/A')}")
+        
+        # Create agent configuration
+        agent_config = PersonalAgentConfig(
+            agent_type=AgentType.PERSONAL,
+            agent_name=f"{business_name} AI Assistant",
+            voice_profile=VoiceProfile.PROFESSIONAL,
+            voice_model=VoiceModel.SONIC_2,
+            temperature=agent_config_data.get("temperature", 0.7),
+            max_conversation_duration=agent_config_data.get("max_duration", 3600)
+        )
+        
+        # Create PersonalVoiceAgent
+        personal_agent = PersonalVoiceAgent(
+            business_context=business_context,
+            user_context=user_context,
+            agent_config=agent_config
+        )
+        
+        # Create LiveKit Agent with business capabilities
+        agent = Agent(
+            instructions=personal_agent.get_system_prompt(),
+            tools=personal_agent.get_tools()
+        )
+        
+        logger.info(f"🏢 Business agent created with {len(personal_agent.get_tools())} tools")
+        return agent
+        
+    except Exception as e:
+        logger.error(f"❌ Error creating business agent: {e}")
+        logger.info("🔄 Falling back to simple agent")
+        return create_simple_agent()
+
+
+def create_business_greeting(agent_context: dict) -> str:
+    """Create a personalized greeting for business agent."""
+    business_context = agent_context.get("business_context", {})
+    user_context = agent_context.get("user_context", {})
+    
     business_name = business_context.get("name", "Hero365")
     user_name = user_context.get("name", "there")
+    business_type = business_context.get("type", "Home Services")
     
-    logger.info(f"💬 Generating greeting for {user_name} from {business_name}...")
-    await session.generate_reply(
-        instructions=f"Greet {user_name} politely and introduce yourself as the {business_name} AI assistant. Ask how you can help them today with their business operations."
-    )
+    greeting = f"Greet {user_name} warmly and introduce yourself as the AI assistant for {business_name}"
     
-    logger.info("💬 Initial greeting generated successfully")
-    logger.info("🎯 Worker entrypoint completed successfully - agent is now active!")
+    if business_type and business_type != "Home Services":
+        greeting += f", a {business_type} business"
     
-    # The session will continue running until the connection is closed
-    # or the user leaves the room
+    greeting += ". Mention that you can help with scheduling, estimates, invoices, project management, and general business inquiries. Ask how you can assist them today."
+    
+    return greeting
 
 
 def main():
-    """
-    Main function to run the worker.
+    """Main worker entry point."""
+    logger.info("🚀 Starting Hero365 Voice Agent Worker")
     
-    Pattern reference: https://github.com/livekit/agents/blob/main/examples/voice_agents/basic_agent.py
-    CLI usage: https://docs.livekit.io/agents/overview/
-    """
-    
-    logger.info("🚀 Starting main() function...")
-    
-    # Step 1: Verify required environment variables
-    # These are the standard environment variables for LiveKit agents
+    # Verify required environment variables
     required_vars = [
         "LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET",
         "OPENAI_API_KEY", "DEEPGRAM_API_KEY", "CARTESIA_API_KEY"
     ]
     
-    logger.info("🔐 Checking environment variables...")
-    missing_vars = []
-    for var in required_vars:
-        value = os.getenv(var)
-        if not value:
-            missing_vars.append(var)
-        else:
-            logger.debug(f"✅ {var}: {'*' * min(len(value), 10)}...")
-    
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
     if missing_vars:
-        logger.error(f"❌ Missing required environment variables: {', '.join(missing_vars)}")
+        logger.error(f"❌ Missing environment variables: {', '.join(missing_vars)}")
         sys.exit(1)
     
-    logger.info("✅ All required environment variables are set")
+    logger.info("✅ Environment variables validated")
     
-    # Log LiveKit connection details
-    logger.info(f"🌐 LiveKit URL: {os.getenv('LIVEKIT_URL')}")
-    logger.info(f"🔑 LiveKit API Key: {os.getenv('LIVEKIT_API_KEY')[:10]}...")
+    # Debug connection info
+    logger.info(f"🔍 LIVEKIT_URL: {os.getenv('LIVEKIT_URL')}")
+    logger.info(f"🔍 LIVEKIT_API_KEY: {os.getenv('LIVEKIT_API_KEY', 'NOT_SET')[:10]}...")
     
-    # Step 2: Run the worker with the entrypoint function
-    # This is the standard CLI pattern from the latest SDK version 1.1.5
-    # Reference: https://github.com/livekit/agents/blob/main/examples/voice_agents/basic_agent.py
-    logger.info("🚀 Starting LiveKit worker with automatic room joining...")
+    # Configure worker with automatic dispatch
+    worker_options = WorkerOptions(entrypoint_fnc=entrypoint)
     
-    # Create worker options for automatic room assignment
-    # Pattern from: https://github.com/livekit/agents/blob/main/examples/voice_agents/basic_agent.py
-    worker_options = WorkerOptions(
-        entrypoint_fnc=entrypoint,
-        # The worker will automatically be assigned to rooms when they are created
-        # No need to specify specific rooms - it will handle all rooms by default
-    )
+    logger.info("🎯 Worker configured for automatic room dispatch")
+    logger.info("⏳ Waiting for room assignments...")
     
-    logger.info(f"🔧 Worker options created: {worker_options}")
-    logger.info("⏳ Starting CLI app - this will register the worker and wait for jobs...")
-    
-    # Run the worker - this will start the agent and wait for room assignments
+    # Start the worker
     cli.run_app(worker_options)
 
 
 if __name__ == "__main__":
-    # Entry point for the worker
-    # Run with: python worker.py start
-    # CLI modes: console, dev, start
-    # Reference: https://docs.livekit.io/agents/overview/
-    logger.info("🎬 Worker script starting...")
     main() 

@@ -198,9 +198,18 @@ Since you're helping someone who may be driving or working:
 ## Business Context
 
 - Business: {business_name}
+- Industry: {self.business_context.get('type', 'Home Services')}
 - User: {user_name}
-- Services: {', '.join(self.business_context.get('services', []))}
+- Email: {self.user_context.get('email', 'N/A')}
 - Safety Mode: {'Enabled' if self.user_context.get('safety_mode', True) else 'Disabled'}
+- Driving Mode: {'Active' if self.user_context.get('is_driving', False) else 'Inactive'}
+
+## Company Information
+
+- Business Phone: {self.business_context.get('phone', 'Not provided')}
+- Business Email: {self.business_context.get('email', 'Not provided')}
+- Website: {self.business_context.get('website', 'Not provided')}
+- Description: {self.business_context.get('description', 'Full-service business management')}
 
 Remember: You're here to make business management easier and more efficient through natural voice interaction. Always prioritize user safety and provide clear, actionable responses."""
     

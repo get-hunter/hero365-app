@@ -6,51 +6,65 @@ with the Hero365 voice agent system.
 """
 
 import logging
-from datetime import datetime
-from typing import Dict, Any, Optional
+from datetime import datetime, timedelta
+from typing import Dict, List
+from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer
+from livekit.api import AccessToken, VideoGrants
 
 from app.api.deps import CurrentUser, BusinessContext
 from app.api.schemas.voice_agent_schemas import (
     VoiceAgentStartRequest,
     VoiceAgentStartResponse,
-    VoiceAgentStopRequest,
-    VoiceAgentStopResponse,
     VoiceAgentStatusRequest,
     VoiceAgentStatusResponse,
+    VoiceAgentStopRequest,
+    VoiceAgentStopResponse,
     VoiceAgentConfigRequest,
     VoiceAgentConfigResponse,
     LiveKitConnectionSchema
 )
 from app.core.config import settings
 from app.voice_agents.core.voice_config import AgentType, PersonalAgentConfig, VoiceProfile, VoiceModel
-from app.infrastructure.external_services.livekit_service import LiveKitService
 from app.voice_agents.personal.personal_agent import PersonalVoiceAgent
+from app.infrastructure.config.dependency_injection import get_business_repository
 
+# Router setup
 router = APIRouter()
+
+# Security setup
 security = HTTPBearer()
 
-# Global storage for active agents (for API compatibility)
-active_agents: Dict[str, PersonalVoiceAgent] = {}
+# Global variables for tracking worker availability
+last_worker_check = None
+worker_available = False
 
-# Initialize LiveKit service
-livekit_service = None
-livekit_api_available = False
 
-try:
-    if settings.LIVEKIT_URL and settings.LIVEKIT_API_KEY and settings.LIVEKIT_API_SECRET:
-        livekit_service = LiveKitService()
-        livekit_api_available = True
-        logger = logging.getLogger(__name__)
-        logger.info("✅ LiveKit service initialized successfully")
-    else:
-        logger = logging.getLogger(__name__)
-        logger.warning("⚠️ LiveKit credentials not configured, voice agents will be disabled")
-except Exception as e:
-    logger = logging.getLogger(__name__)
-    logger.error(f"❌ Failed to initialize LiveKit service: {e}")
+def generate_livekit_token(room_name: str, user_id: str) -> str:
+    """Generate a LiveKit access token for the user to join the room"""
+    if not all([settings.LIVEKIT_API_KEY, settings.LIVEKIT_API_SECRET]):
+        raise ValueError("Missing LiveKit configuration")
+    
+    token = AccessToken(settings.LIVEKIT_API_KEY, settings.LIVEKIT_API_SECRET)
+    token.with_identity(user_id)
+    token.with_grants(VideoGrants(
+        room_join=True,
+        room=room_name,
+        can_publish=True,
+        can_subscribe=True,
+        can_publish_data=True
+    ))
+    token.with_ttl(timedelta(hours=1))
+    
+    return token.to_jwt()
+
+
+def get_livekit_url() -> str:
+    """Get the LiveKit WebSocket URL"""
+    return settings.LIVEKIT_URL
+
 
 @router.post("/start", response_model=VoiceAgentStartResponse)
 async def start_voice_agent(
@@ -61,219 +75,127 @@ async def start_voice_agent(
     """
     Start a new voice agent session.
     
-    Creates a new voice agent instance configured for the user's business
-    and returns connection details for the mobile app.
+    Backend generates unique room name and JWT token.
+    Mobile app connects to LiveKit, which automatically creates the room.
+    Agent worker detects room creation and auto-dispatches agent.
     """
     try:
+        # Initialize logger
+        logger = logging.getLogger(__name__)
+        
         # Get business data from context
         business_id = business_context["business_id"]
-        business_data = {
-            "id": business_id,
-            "name": "Your Business",  # TODO: Get actual business name from repository
-            "type": "Home Services",
-            "services": [],
-            "company_size": "small"
-        }
         
-        # Build user context
+        # Fetch actual business data from repository
+        business_repository = get_business_repository()
+        business_entity = await business_repository.get_by_id(business_id)
+        
+        if not business_entity:
+            logger.warning(f"⚠️ Business not found for ID: {business_id}, using default data")
+            business_data = {
+                "id": business_id,
+                "name": "Hero365",
+                "type": "Home Services",
+                "industry": "home_services",
+                "company_size": "small"
+            }
+        else:
+            # Use actual business data
+            business_data = {
+                "id": str(business_entity.id),
+                "name": business_entity.name,
+                "type": business_entity.industry or "Home Services",
+                "industry": business_entity.industry or "home_services", 
+                "company_size": business_entity.company_size.value if business_entity.company_size else "small",
+                "description": business_entity.description,
+                "phone": business_entity.phone_number,
+                "email": business_entity.business_email,
+                "website": business_entity.website
+            }
+            logger.info(f"🏢 Loaded business data: {business_data['name']}")
+        
+        # Build user context with actual user data
         user_context = {
             "id": current_user["id"],
-            "name": current_user.get("name", "User"),
+            "name": current_user.get("name") or current_user.get("email", "User"),
             "email": current_user.get("email", ""),
             "is_driving": request.is_driving,
             "safety_mode": request.safety_mode,
-            "preferred_language": "en",  # Default language
-            "timezone": "UTC",  # Default timezone
+            "preferred_language": "en",
+            "timezone": "UTC",
             "voice_speed": request.voice_speed or "normal",
             "location": request.location.dict() if request.location else None
         }
         
-        # Debug logging
-        logger = logging.getLogger(__name__)
         logger.info(f"🚀 Starting voice agent for user {current_user['id']}")
-        logger.info(f"🏢 Business context: {business_data}")
-        logger.info(f"👤 User context: {user_context}")
-        logger.debug(f"📋 Request parameters: is_driving={request.is_driving}, safety_mode={request.safety_mode}")
-        
-        # Always create a new session for each start request
-        # This ensures proper session isolation and worker dispatch
-        
-        # Clean up any old agents for this user to prevent memory leaks
-        agents_to_remove = []
-        for existing_agent_id, existing_agent in active_agents.items():
-            if (existing_agent.user_context.get("id") == current_user["id"] and 
-                existing_agent.business_context.get("id") == business_data["id"]):
-                agents_to_remove.append(existing_agent_id)
-        
-        for agent_id_to_remove in agents_to_remove:
-            logger.info(f"🧹 Cleaning up old agent: {agent_id_to_remove}")
-            del active_agents[agent_id_to_remove]
-        
-        import uuid
-        agent_id = str(uuid.uuid4())
-        logger.info(f"🆔 Creating new agent with ID: {agent_id}")
         
         # Create agent configuration
-        try:
-            logger.debug("⚙️ Creating agent configuration...")
-            agent_config = PersonalAgentConfig(
-                agent_type=AgentType.PERSONAL,
-                agent_name=f"{business_data['name']} Assistant",
-                max_conversation_duration=request.max_duration or 3600,
-                enable_noise_cancellation=request.enable_noise_cancellation,
-                temperature=0.7
-            )
-            logger.info("✅ Agent configuration created successfully")
-            logger.debug(f"⚙️ Config details: voice={agent_config.voice_profile.value}, model={agent_config.voice_model.value}")
-        except Exception as e:
-            logger.error(f"❌ Failed to create agent configuration: {e}")
-            raise e
+        agent_config = PersonalAgentConfig(
+            agent_type=AgentType.PERSONAL,
+            agent_name=f"{business_data['name']} Assistant",
+            max_conversation_duration=request.max_duration or 3600,
+            enable_noise_cancellation=request.enable_noise_cancellation,
+            temperature=0.7
+        )
         
-        # Setup LiveKit connection if configured
+        # Setup LiveKit connection
         livekit_connection = None
         
-        if livekit_service and settings.voice_agents_enabled:
-            try:
-                # Create unique room name for this session
-                room_name = f"voice-session-{agent_id}"
-                logger.info(f"🏠 Creating LiveKit room: {room_name}")
-                
-                # Store agent context for the worker to use
-                # The worker's entrypoint function will extract this from job metadata
-                agent_context = {
-                    "business_context": business_data,
-                    "user_context": user_context,
-                    "agent_config": {
-                        "agent_id": agent_id,
-                        "voice_profile": agent_config.voice_profile.value,
-                        "voice_model": agent_config.voice_model.value,
-                        "temperature": 0.7,
-                        "max_duration": agent_config.max_conversation_duration
-                    },
-                    "created_at": datetime.now().isoformat(),
-                    "interactions": []
-                }
-                
-                logger.info("📋 Agent context prepared for worker")
-                logger.debug(f"🏢 Business context in metadata: {agent_context['business_context']}")
-                logger.debug(f"👤 User context in metadata: {agent_context['user_context']}")
-                logger.debug(f"⚙️ Agent config in metadata: {agent_context['agent_config']}")
-                
-                # Create LiveKit room with the agent context in metadata
-                logger.info("🏠 Calling LiveKit service to create room with metadata...")
-                room_info = await livekit_service.create_voice_session_room(
-                    session_id=agent_id,
-                    user_id=current_user["id"],
-                    room_name=room_name,
-                    agent_context=agent_context
-                )
-                logger.info(f"✅ LiveKit room created: {room_info}")
-                
-                # Generate user token for mobile app
-                logger.info("🎫 Generating user token for mobile app...")
-                user_token = livekit_service.generate_user_token(
-                    room_name=room_name,
-                    user_id=current_user["id"]
-                )
-                logger.info("✅ User token generated")
-                
-                # With automatic dispatch, the worker will automatically handle jobs
-                # when rooms are created - no explicit dispatch needed
-                logger.info(f"🎯 Room ready for automatic agent dispatch: {room_name}")
-                logger.info("⏳ Worker should automatically join this room when user connects")
-                logger.info("📡 If worker doesn't join, check worker logs for entrypoint calls")
-                
-                livekit_connection = LiveKitConnectionSchema(
-                    room_name=room_name,
-                    room_url=livekit_service.get_connection_url(),
-                    user_token=user_token,
-                    room_sid=room_info.get("room_sid", "") if room_info else ""
-                )
-                
-                logger.debug(f"🔗 LiveKit connection details: room={room_name}, url={livekit_service.get_connection_url()}")
-                
-            except Exception as e:
-                # LiveKit setup failed, log error but continue without it
-                logger.error(f"❌ Failed to setup LiveKit connection: {e}")
-                import traceback
-                logger.error(f"🐛 LiveKit error traceback: {traceback.format_exc()}")
-                # Continue without LiveKit connection
-        else:
-            if not livekit_service:
-                logger.warning("⚠️ LiveKit service not available")
-            if not settings.voice_agents_enabled:
-                logger.warning("⚠️ Voice agents disabled in settings")
-        
-        # Create and store agent for API compatibility
-        try:
-            logger.info("🤖 Creating PersonalVoiceAgent instance...")
-            agent = PersonalVoiceAgent(
-                business_context=business_data,
-                user_context=user_context,
-                agent_config=agent_config
+        if settings.voice_agents_enabled:
+            # Generate room name with user_id and business_id for worker to use
+            room_name = f"voice-session-{current_user['id']}-{business_id}"
+            logger.info(f"🏠 Generated room name: {room_name}")
+            
+            # Generate JWT token for mobile app
+            user_token = generate_livekit_token(room_name, current_user["id"])
+            logger.info("🎫 Generated JWT token for mobile app")
+            
+            # No need to store context - worker will fetch data directly from database
+            logger.info("⏳ Room will be created automatically when mobile app connects")
+            logger.info("🤖 Agent worker will fetch business and user data directly from database")
+            
+            livekit_connection = LiveKitConnectionSchema(
+                room_name=room_name,
+                room_url=get_livekit_url(),
+                user_token=user_token,
+                room_sid=""  # Room will be created when mobile app connects
             )
-            agent.agent_id = agent_id  # Set the same ID
-            logger.info("✅ PersonalVoiceAgent created successfully")
-            logger.debug(f"🛠️ Agent has {len(agent.get_tools())} tools available")
-        except Exception as e:
-            logger.error(f"❌ Failed to create PersonalVoiceAgent: {e}")
-            import traceback
-            logger.error(f"🐛 Agent creation traceback: {traceback.format_exc()}")
-            raise e
+            
+            logger.info(f"🔗 LiveKit connection ready: {room_name}")
+        else:
+            logger.warning("⚠️ Voice agents disabled in settings")
         
-        # Store the room name for reconnection purposes
-        if livekit_connection:
-            agent.livekit_room_name = livekit_connection.room_name
-            logger.info(f"🏠 Stored room name in agent: {livekit_connection.room_name}")
-        
-        # Store active agent for status/stop endpoints
-        active_agents[agent_id] = agent
-        logger.info(f"💾 Stored agent in active_agents: {agent_id}")
-        
-        # Initialize agent
-        try:
-            logger.info("🚀 Initializing agent...")
-            await agent.on_agent_start()
-            logger.info("✅ Agent initialized successfully")
-        except Exception as e:
-            logger.error(f"❌ Failed to initialize agent: {e}")
-            import traceback
-            logger.error(f"🐛 Agent initialization traceback: {traceback.format_exc()}")
-            raise e
+        # Create temporary agent instance just to get tools count and greeting
+        # The actual agent will be created by the worker
+        temp_agent = PersonalVoiceAgent(
+            business_context=business_data,
+            user_context=user_context,
+            agent_config=agent_config
+        )
         
         # Prepare response
-        try:
-            logger.info("📋 Preparing response...")
-            response = VoiceAgentStartResponse(
-                success=True,
-                agent_id=agent_id,
-                greeting=agent.get_personalized_greeting(),
-                available_tools=len(agent.get_tools()),
-                config={
-                    "voice_profile": agent_config.voice_profile.value,
-                    "voice_model": agent_config.voice_model.value,
-                    "safety_mode": request.safety_mode,
-                    "max_duration": agent_config.max_conversation_duration
-                },
-                livekit_connection=livekit_connection,
-                message="Voice agent started successfully. Agent will automatically join when you connect to the room."
-            )
-            logger.info("✅ Response prepared successfully")
-            logger.info("🎯 Voice agent start process completed!")
-            
-            if livekit_connection:
-                logger.info("📱 Mobile app should now connect to the room")
-                logger.info("🔮 When mobile app connects, worker should automatically join room and call entrypoint")
-            
-            return response
-        except Exception as e:
-            logger.error(f"❌ Failed to prepare response: {e}")
-            import traceback
-            logger.error(f"🐛 Response preparation traceback: {traceback.format_exc()}")
-            raise e
+        response = VoiceAgentStartResponse(
+            success=True,
+            agent_id=f"{current_user['id']}-{business_id}",  # Use user_id-business_id as agent_id
+            greeting=temp_agent.get_personalized_greeting(),
+            available_tools=len(temp_agent.get_tools()),
+            config={
+                "voice_profile": agent_config.voice_profile.value,
+                "voice_model": agent_config.voice_model.value,
+                "safety_mode": request.safety_mode,
+                "max_duration": agent_config.max_conversation_duration
+            },
+            livekit_connection=livekit_connection,
+            message="Voice agent started successfully. Agent will automatically join when you connect to the room."
+        )
+        
+        logger.info("✅ Voice agent session prepared successfully")
+        logger.info("📱 Mobile app should now connect to LiveKit room")
+        logger.info("🤖 Worker will auto-join and handle the conversation")
+        
+        return response
         
     except Exception as e:
-        logger = logging.getLogger(__name__)
         logger.error(f"Voice agent start failed with error: {e}")
         import traceback
         logger.error(f"Full traceback: {traceback.format_exc()}")
@@ -291,38 +213,34 @@ async def get_voice_agent_status(
     """
     Get status of an active voice agent.
     
-    Returns current agent status, conversation metrics,
-    and any pending actions.
+    With the new worker approach, agent status is managed by the LiveKit worker.
+    This endpoint provides basic status information.
     """
     try:
-        agent = active_agents.get(request.agent_id)
+        # In the new approach, we don't store agents on the backend
+        # The worker handles all agent lifecycle management
+        # This endpoint provides basic status based on the agent_id
         
-        if not agent:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Voice agent not found or has been stopped"
-            )
+        logger = logging.getLogger(__name__)
+        logger.info(f"Status request for agent: {request.agent_id}")
         
-        # Calculate session duration
-        session_duration = (datetime.now() - agent.created_at).total_seconds()
-        
+        # For now, return basic status - in the future this could query LiveKit
+        # or a shared state store to get real agent status
         return VoiceAgentStatusResponse(
             success=True,
-            agent_id=agent.agent_id,
-            is_active=True,  # Agent is active if found in active_agents
+            agent_id=request.agent_id,
+            is_active=True,  # Assume active if requested
             conversation_stage="active",
-            duration=session_duration,
-            interactions_count=0,  # Could be tracked by worker in future
+            duration=0,  # Could be calculated from agent creation time
+            interactions_count=0,  # Could be tracked by worker
             current_intent=None,
             user_context={
-                "is_driving": agent.user_context.get("is_driving", False),
-                "safety_mode": agent.user_context.get("safety_mode", True)
+                "is_driving": False,
+                "safety_mode": True
             },
             message="Agent status retrieved successfully"
         )
         
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -338,74 +256,32 @@ async def stop_voice_agent(
     """
     Stop an active voice agent.
     
-    Gracefully shuts down the agent and returns
-    session summary.
+    With the new worker approach, agents are managed by the LiveKit worker.
+    This endpoint provides a way to signal that the session should end.
     """
     try:
-        agent = active_agents.get(request.agent_id)
-        
-        if not agent:
-            # Agent might have already been cleaned up by LiveKit session end
-            # This is normal behavior, so return success
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"Agent {request.agent_id} not found in active_agents - likely already stopped")
-            
-            # Agent context is now handled by LiveKit room metadata
-            # No need to clean up agent_contexts as it doesn't exist in the new worker pattern
-            logger.info(f"Agent context cleanup not needed for {request.agent_id} - handled by LiveKit")
-            
-            return VoiceAgentStopResponse(
-                success=True,
-                agent_id=request.agent_id,
-                session_summary={
-                    "duration": 0,
-                    "interactions": 0,
-                    "completed_tasks": 0
-                },
-                message="Voice agent was already stopped"
-            )
-        
-        # Calculate session duration
-        session_duration = (datetime.now() - agent.created_at).total_seconds()
-        
-        # Stop agent
-        await agent.on_agent_stop()
-        
-        # Don't close the LiveKit room on explicit stop - the user might want to reconnect
-        # The room will be cleaned up by LiveKit's automatic timeout mechanisms
-        if livekit_service and hasattr(agent, 'livekit_room_name') and agent.livekit_room_name:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"Keeping room {agent.livekit_room_name} alive for potential reconnection")
-        
-        # Don't clean up agent context from worker - keep it for reconnection
-        # The agent context will be reused when the user reconnects
-        
-        # Remove agent from active_agents since we're creating fresh sessions
-        del active_agents[request.agent_id]
-        
-        import logging
         logger = logging.getLogger(__name__)
-        logger.info(f"Agent {request.agent_id} stopped and cleaned up successfully")
+        logger.info(f"Stop request for agent: {request.agent_id}")
+        
+        # In the new approach, the mobile app handles disconnection
+        # The worker will automatically clean up when the room is empty
+        # This endpoint confirms the stop request
         
         return VoiceAgentStopResponse(
             success=True,
             agent_id=request.agent_id,
             session_summary={
-                "duration": session_duration,
-                "interactions": 0,  # Could be tracked by worker in future
-                "completed_tasks": 0  # Could be tracked by worker in future
+                "duration": 0,
+                "interactions": 0,
+                "completed_tasks": 0
             },
-            message="Voice agent stopped successfully"
+            message="Voice agent stop confirmed. Disconnect from LiveKit room to end session."
         )
         
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to stop voice agent: {str(e)}"
+            detail=f"Failed to stop agent: {str(e)}"
         )
 
 
@@ -421,25 +297,10 @@ async def update_voice_agent_config(
     voice speed, etc. during an active session.
     """
     try:
-        agent = active_agents.get(request.agent_id)
-        
-        if not agent:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Voice agent not found"
-            )
-        
-        # Update user context directly
-        if request.safety_mode is not None:
-            agent.user_context["safety_mode"] = request.safety_mode
-            agent.user_context["is_driving"] = request.safety_mode
-        
-        if request.voice_speed:
-            agent.user_context["voice_speed"] = request.voice_speed
-        
-        # Update location if provided
-        if request.location:
-            agent.user_context["current_location"] = request.location.dict()
+        # In the new approach, we don't store agents on the backend
+        # This endpoint is no longer relevant for configuration updates
+        # as the worker manages the agent's state.
+        # For now, we'll return a placeholder response.
         
         return VoiceAgentConfigResponse(
             success=True,
@@ -447,10 +308,10 @@ async def update_voice_agent_config(
             updated_config={
                 "voice_profile": "professional",  # Default profile
                 "voice_model": "sonic-2",  # Default model
-                "safety_mode": agent.user_context.get("safety_mode", True),
-                "voice_speed": agent.user_context.get("voice_speed", "normal")
+                "safety_mode": True, # Default safety mode
+                "voice_speed": "normal" # Default voice speed
             },
-            message="Voice agent configuration updated successfully"
+            message="Voice agent configuration updated successfully (placeholder)"
         )
         
     except HTTPException:
@@ -541,7 +402,7 @@ async def voice_agent_health():
     return {
         "success": True,
         "status": "healthy",
-        "active_agents": len(active_agents),
+        "active_agents": 0, # No active agents stored on backend
         "voice_agents_enabled": settings.voice_agents_enabled,
         "system_info": {
             "livekit_agents_available": True,
