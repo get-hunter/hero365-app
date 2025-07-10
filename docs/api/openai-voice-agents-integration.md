@@ -236,7 +236,22 @@ The WebSocket supports the following message types:
 }
 ```
 
-#### 2. Transcription
+#### 2. Greeting Audio
+```json
+{
+  "type": "greeting_audio",
+  "data": {
+    "audio": "base64_encoded_audio_data",
+    "text": "Good evening! I'm your Elite Plumbing Services assistant. How can I help you today?",
+    "format": "wav",
+    "voice": "alloy"
+  },
+  "session_id": "session_abc123def456",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 3. Transcription
 ```json
 {
   "type": "transcription",
@@ -249,7 +264,7 @@ The WebSocket supports the following message types:
 }
 ```
 
-#### 3. Agent Response
+#### 4. Agent Response
 ```json
 {
   "type": "agent_response",
@@ -263,7 +278,7 @@ The WebSocket supports the following message types:
 }
 ```
 
-#### 4. Session Status
+#### 5. Session Status
 ```json
 {
   "type": "session_status",
@@ -277,7 +292,7 @@ The WebSocket supports the following message types:
 }
 ```
 
-#### 5. Error Message
+#### 6. Error Message
 ```json
 {
   "type": "error",
