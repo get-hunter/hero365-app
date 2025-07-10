@@ -173,10 +173,5 @@ Remember: You're an AI assistant focused on helping {user_name} efficiently mana
             instructions=self.get_instructions(),
             tools=self.get_tools(),
             handoffs=self.get_handoffs(),
-            # Voice-specific optimizations
-            model_config={
-                "temperature": 0.7,
-                "max_tokens": 150,  # Keep responses concise for voice
-                "top_p": 0.9
-            }
+            model="gpt-4o-mini"  # Use specific model for voice optimization
         ) 
