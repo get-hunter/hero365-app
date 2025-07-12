@@ -1,7 +1,7 @@
 """
 Voice Agent API Schemas
 
-This module provides Pydantic schemas for voice agent API endpoints.
+This module provides Pydantic schemas for OpenAI voice agent API endpoints.
 """
 
 from pydantic import BaseModel, Field
@@ -15,7 +15,7 @@ class LocationSchema(BaseModel):
     longitude: float = Field(..., description="Longitude coordinate")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "latitude": 40.7128,
                 "longitude": -74.0060
@@ -24,183 +24,212 @@ class LocationSchema(BaseModel):
 
 
 class VoiceAgentStartRequest(BaseModel):
-    """Request schema for starting a voice agent"""
+    """Request schema for starting an OpenAI voice agent"""
     
-    is_driving: bool = Field(default=False, description="Whether user is currently driving")
-    safety_mode: bool = Field(default=True, description="Enable safety mode for driving")
-    voice_speed: Optional[str] = Field(default="normal", description="Voice speed: slow, normal, fast")
-    max_duration: Optional[int] = Field(default=3600, description="Maximum conversation duration in seconds")
-    enable_noise_cancellation: bool = Field(default=True, description="Enable noise cancellation")
+    agent_type: Optional[str] = Field(default="personal", description="Agent type: personal or orchestrated")
+    voice_model: Optional[str] = Field(default="gpt-4o-realtime-preview", description="OpenAI voice model to use")
+    voice_settings: Optional[Dict[str, Any]] = Field(default=None, description="Voice configuration settings")
+    instructions: Optional[str] = Field(default=None, description="Custom instructions for the agent")
+    temperature: Optional[float] = Field(default=0.7, description="Response creativity (0.0-1.0)")
+    max_tokens: Optional[int] = Field(default=1000, description="Maximum tokens per response")
     location: Optional[LocationSchema] = Field(default=None, description="User's current location")
+    context: Optional[Dict[str, Any]] = Field(default=None, description="Additional context for the session")
+    is_driving: Optional[bool] = Field(default=False, description="Whether the user is currently driving (enables safety mode)")
+    safety_mode: Optional[bool] = Field(default=False, description="Enable safety mode for hands-free operation")
+    voice_speed: Optional[str] = Field(default="normal", description="Voice speed: slow, normal, fast")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
-                "is_driving": True,
-                "safety_mode": True,
-                "voice_speed": "normal",
-                "max_duration": 3600,
-                "enable_noise_cancellation": True,
+                "agent_type": "personal",
+                "voice_model": "gpt-4o-realtime-preview",
+                "voice_settings": {
+                    "voice": "alloy",
+                    "speed": 1.0,
+                    "format": "pcm16"
+                },
+                "temperature": 0.7,
+                "max_tokens": 1000,
                 "location": {
                     "latitude": 40.7128,
                     "longitude": -74.0060
-                }
+                },
+                "context": {
+                    "user_preferences": {"preferred_communication_style": "professional"}
+                },
+                "is_driving": False,
+                "safety_mode": False,
+                "voice_speed": "normal"
             }
         }
 
 
-class LiveKitConnectionSchema(BaseModel):
-    """LiveKit connection information schema"""
-    room_name: str = Field(..., description="LiveKit room name")
-    room_url: str = Field(..., description="LiveKit server URL")
-    user_token: str = Field(..., description="User access token for room")
-    room_sid: str = Field(..., description="Room session identifier")
+class WebSocketConnectionSchema(BaseModel):
+    """WebSocket connection information schema for OpenAI voice agents"""
+    websocket_url: str = Field(..., description="WebSocket URL for voice communication")
+    session_id: str = Field(..., description="Unique session identifier")
+    audio_format: str = Field(default="pcm16", description="Audio format specification")
+    sample_rate: int = Field(default=16000, description="Audio sample rate in Hz")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
-                "room_name": "voice-session-user123-a1b2c3d4",
-                "room_url": "wss://hero365.livekit.cloud",
-                "user_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                "room_sid": "RM_abc123def456"
+                "websocket_url": "wss://api.hero365.com/ws/voice-agent/session_abc123",
+                "session_id": "session_abc123def456",
+                "audio_format": "pcm16",
+                "sample_rate": 16000
             }
         }
 
 
 class VoiceAgentStartResponse(BaseModel):
-    """Response schema for starting a voice agent"""
+    """Response schema for starting an OpenAI voice agent"""
     
     success: bool = Field(..., description="Whether agent started successfully")
-    agent_id: str = Field(..., description="Unique agent identifier")
+    session_id: str = Field(..., description="Unique session identifier")
+    agent_type: str = Field(..., description="Type of agent started")
     greeting: str = Field(..., description="Personalized greeting message")
     available_tools: int = Field(..., description="Number of available tools")
-    config: Dict[str, Any] = Field(..., description="Agent configuration settings")
-    livekit_connection: Optional[LiveKitConnectionSchema] = Field(default=None, description="LiveKit room connection details")
+    websocket_connection: WebSocketConnectionSchema = Field(..., description="WebSocket connection details")
+    agent_config: Dict[str, Any] = Field(..., description="Agent configuration settings")
     message: str = Field(..., description="Status message")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "success": True,
-                "agent_id": "agent_123456",
-                "greeting": "Hello John! I'm your ABC Home Services voice assistant. How can I help you today?",
-                "available_tools": 11,
-                "config": {
-                    "voice_profile": "a0e99841-438c-4a64-b679-ae501e7d6091",
-                    "voice_model": "sonic-2",
-                    "safety_mode": True,
-                    "max_duration": 3600
+                "session_id": "session_abc123def456",
+                "agent_type": "personal",
+                "greeting": "Hello John! I'm your Hero365 voice assistant. How can I help you today?",
+                "available_tools": 26,
+                "websocket_connection": {
+                    "websocket_url": "wss://api.hero365.com/ws/voice-agent/session_abc123",
+                    "session_id": "session_abc123def456",
+                    "audio_format": "pcm16",
+                    "sample_rate": 16000
                 },
-                "livekit_connection": {
-                    "room_name": "voice-session-user123-a1b2c3d4",
-                    "room_url": "wss://hero365.livekit.cloud",
-                    "user_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                    "room_sid": "RM_abc123def456"
+                "agent_config": {
+                    "voice_model": "gpt-4o-realtime-preview",
+                    "voice_settings": {
+                        "voice": "alloy",
+                        "speed": 1.0,
+                        "format": "pcm16"
+                    },
+                    "temperature": 0.7,
+                    "max_tokens": 1000
                 },
-                "message": "Voice agent started successfully"
+                "message": "OpenAI voice agent started successfully"
             }
         }
 
 
 class VoiceAgentStatusRequest(BaseModel):
-    """Request schema for getting agent status"""
+    """Request schema for getting OpenAI voice agent status"""
     
-    agent_id: str = Field(..., description="Agent identifier")
+    session_id: str = Field(..., description="Session identifier")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
-                "agent_id": "agent_123456"
+                "session_id": "session_abc123def456"
             }
         }
 
 
 class VoiceAgentStatusResponse(BaseModel):
-    """Response schema for agent status"""
+    """Response schema for OpenAI voice agent status"""
     
     success: bool = Field(..., description="Whether status retrieved successfully")
-    agent_id: str = Field(..., description="Agent identifier")
+    session_id: str = Field(..., description="Session identifier")
+    agent_type: str = Field(..., description="Type of agent")
     is_active: bool = Field(..., description="Whether agent is currently active")
-    conversation_stage: str = Field(..., description="Current conversation stage")
-    duration: int = Field(..., description="Conversation duration in seconds")
-    interactions_count: int = Field(..., description="Number of interactions")
-    current_intent: Optional[str] = Field(default=None, description="Current detected intent")
-    user_context: Dict[str, Any] = Field(..., description="Current user context")
+    connection_status: str = Field(..., description="WebSocket connection status")
+    duration: int = Field(..., description="Session duration in seconds")
+    message_count: int = Field(..., description="Number of messages exchanged")
+    tools_used: List[str] = Field(..., description="List of tools used in session")
+    current_context: Dict[str, Any] = Field(..., description="Current session context")
     message: str = Field(..., description="Status message")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "success": True,
-                "agent_id": "agent_123456",
+                "session_id": "session_abc123def456",
+                "agent_type": "personal",
                 "is_active": True,
-                "conversation_stage": "information_gathering",
+                "connection_status": "connected",
                 "duration": 120,
-                "interactions_count": 5,
-                "current_intent": "job_management",
-                "user_context": {
-                    "is_driving": True,
-                    "safety_mode": True
+                "message_count": 8,
+                "tools_used": ["get_upcoming_jobs", "create_job", "get_current_time"],
+                "current_context": {
+                    "last_tool_used": "get_upcoming_jobs",
+                    "user_location": {"latitude": 40.7128, "longitude": -74.0060}
                 },
-                "message": "Agent status retrieved successfully"
+                "message": "OpenAI voice agent status retrieved successfully"
             }
         }
 
 
 class VoiceAgentStopRequest(BaseModel):
-    """Request schema for stopping a voice agent"""
+    """Request schema for stopping an OpenAI voice agent"""
     
-    agent_id: str = Field(..., description="Agent identifier")
+    session_id: str = Field(..., description="Session identifier")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
-                "agent_id": "agent_123456"
+                "session_id": "session_abc123def456"
             }
         }
 
 
 class VoiceAgentStopResponse(BaseModel):
-    """Response schema for stopping a voice agent"""
+    """Response schema for stopping an OpenAI voice agent"""
     
     success: bool = Field(..., description="Whether agent stopped successfully")
-    agent_id: str = Field(..., description="Agent identifier")
+    session_id: str = Field(..., description="Session identifier")
     session_summary: Dict[str, Any] = Field(..., description="Session summary statistics")
     message: str = Field(..., description="Status message")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "success": True,
-                "agent_id": "agent_123456",
+                "session_id": "session_abc123def456",
                 "session_summary": {
                     "duration": 300,
-                    "interactions": 8,
-                    "completed_tasks": 2
+                    "total_messages": 12,
+                    "tools_used": ["get_upcoming_jobs", "create_job", "get_current_time"],
+                    "completed_tasks": 2,
+                    "audio_duration": 285
                 },
-                "message": "Voice agent stopped successfully"
+                "message": "OpenAI voice agent stopped successfully"
             }
         }
 
 
 class VoiceAgentConfigRequest(BaseModel):
-    """Request schema for updating agent configuration"""
+    """Request schema for updating OpenAI voice agent configuration"""
     
-    agent_id: str = Field(..., description="Agent identifier")
-    voice_profile: Optional[str] = Field(default=None, description="Voice profile ID")
-    voice_model: Optional[str] = Field(default=None, description="Voice model")
-    safety_mode: Optional[bool] = Field(default=None, description="Safety mode setting")
-    voice_speed: Optional[str] = Field(default=None, description="Voice speed setting")
+    session_id: str = Field(..., description="Session identifier")
+    voice_settings: Optional[Dict[str, Any]] = Field(default=None, description="Voice settings to update")
+    temperature: Optional[float] = Field(default=None, description="Response creativity (0.0-1.0)")
+    max_tokens: Optional[int] = Field(default=None, description="Maximum tokens per response")
+    instructions: Optional[str] = Field(default=None, description="Updated instructions")
     location: Optional[LocationSchema] = Field(default=None, description="Updated location")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
-                "agent_id": "agent_123456",
-                "voice_profile": "b7d50908-b17c-442d-ad8d-810c63997ed9",
-                "voice_model": "sonic-2",
-                "safety_mode": False,
-                "voice_speed": "fast",
+                "session_id": "session_abc123def456",
+                "voice_settings": {
+                    "voice": "nova",
+                    "speed": 1.2,
+                    "format": "pcm16"
+                },
+                "temperature": 0.8,
+                "max_tokens": 1500,
+                "instructions": "Be more concise in your responses",
                 "location": {
                     "latitude": 40.7589,
                     "longitude": -73.9851
@@ -210,25 +239,29 @@ class VoiceAgentConfigRequest(BaseModel):
 
 
 class VoiceAgentConfigResponse(BaseModel):
-    """Response schema for updating agent configuration"""
+    """Response schema for updating OpenAI voice agent configuration"""
     
     success: bool = Field(..., description="Whether configuration updated successfully")
-    agent_id: str = Field(..., description="Agent identifier")
+    session_id: str = Field(..., description="Session identifier")
     updated_config: Dict[str, Any] = Field(..., description="Updated configuration settings")
     message: str = Field(..., description="Status message")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "success": True,
-                "agent_id": "agent_123456",
+                "session_id": "session_abc123def456",
                 "updated_config": {
-                    "voice_profile": "b7d50908-b17c-442d-ad8d-810c63997ed9",
-                    "voice_model": "sonic-2",
-                    "safety_mode": False,
-                    "voice_speed": "fast"
+                    "voice_settings": {
+                        "voice": "nova",
+                        "speed": 1.2,
+                        "format": "pcm16"
+                    },
+                    "temperature": 0.8,
+                    "max_tokens": 1500,
+                    "instructions": "Be more concise in your responses"
                 },
-                "message": "Voice agent configuration updated successfully"
+                "message": "OpenAI voice agent configuration updated successfully"
             }
         }
 
@@ -240,7 +273,7 @@ class VoiceToolSchema(BaseModel):
     description: str = Field(..., description="Tool description")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "create_job",
                 "description": "Create new jobs"
@@ -249,19 +282,40 @@ class VoiceToolSchema(BaseModel):
 
 
 class VoiceToolCategorySchema(BaseModel):
-    """Schema for voice agent tool categories"""
+    """Schema for OpenAI voice agent tool categories"""
     
     job_management: List[VoiceToolSchema] = Field(..., description="Job management tools")
-    personal_assistant: List[VoiceToolSchema] = Field(..., description="Personal assistant tools")
+    project_management: List[VoiceToolSchema] = Field(..., description="Project management tools")
+    invoice_management: List[VoiceToolSchema] = Field(..., description="Invoice management tools")
+    estimate_management: List[VoiceToolSchema] = Field(..., description="Estimate management tools")
+    contact_management: List[VoiceToolSchema] = Field(..., description="Contact management tools")
+    general_tools: List[VoiceToolSchema] = Field(..., description="General utility tools")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "job_management": [
                     {"name": "create_job", "description": "Create new jobs"},
-                    {"name": "get_upcoming_jobs", "description": "View upcoming jobs"}
+                    {"name": "get_upcoming_jobs", "description": "View upcoming jobs"},
+                    {"name": "update_job_status", "description": "Update job status"}
                 ],
-                "personal_assistant": [
+                "project_management": [
+                    {"name": "get_project_status", "description": "Get project status"},
+                    {"name": "update_project_progress", "description": "Update project progress"}
+                ],
+                "invoice_management": [
+                    {"name": "create_invoice", "description": "Create new invoices"},
+                    {"name": "get_pending_invoices", "description": "View pending invoices"}
+                ],
+                "estimate_management": [
+                    {"name": "create_estimate", "description": "Create new estimates"},
+                    {"name": "convert_estimate_to_invoice", "description": "Convert estimate to invoice"}
+                ],
+                "contact_management": [
+                    {"name": "get_contact_info", "description": "Get contact information"},
+                    {"name": "search_contacts", "description": "Search contacts"}
+                ],
+                "general_tools": [
                     {"name": "get_current_time", "description": "Get current time"},
                     {"name": "set_reminder", "description": "Set voice reminders"}
                 ]
@@ -270,32 +324,33 @@ class VoiceToolCategorySchema(BaseModel):
 
 
 class VoiceAgentHealthResponse(BaseModel):
-    """Response schema for voice agent health check"""
+    """Response schema for OpenAI voice agent health check"""
     
     success: bool = Field(..., description="Whether system is healthy")
     status: str = Field(..., description="System status")
-    active_agents: int = Field(..., description="Number of active agents")
+    active_sessions: int = Field(..., description="Number of active sessions")
     system_info: Dict[str, bool] = Field(..., description="System component status")
     message: str = Field(..., description="Health status message")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "success": True,
                 "status": "healthy",
-                "active_agents": 3,
+                "active_sessions": 3,
                 "system_info": {
-                    "livekit_agents_available": True,
-                    "job_tools_available": True,
-                    "personal_agent_available": True
+                    "openai_agents_available": True,
+                    "websocket_transport_available": True,
+                    "business_tools_available": True,
+                    "orchestration_available": True
                 },
-                "message": "Voice agent system is operational"
+                "message": "OpenAI voice agent system is operational"
             }
         }
 
 
 class VoiceAgentAvailableToolsResponse(BaseModel):
-    """Response schema for available tools endpoint"""
+    """Response schema for available OpenAI voice agent tools endpoint"""
     
     success: bool = Field(..., description="Whether tools retrieved successfully")
     total_tools: int = Field(..., description="Total number of available tools")
@@ -303,20 +358,109 @@ class VoiceAgentAvailableToolsResponse(BaseModel):
     message: str = Field(..., description="Status message")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "success": True,
-                "total_tools": 11,
+                "total_tools": 26,
                 "categories": {
                     "job_management": [
                         {"name": "create_job", "description": "Create new jobs"},
-                        {"name": "get_upcoming_jobs", "description": "View upcoming jobs"}
+                        {"name": "get_upcoming_jobs", "description": "View upcoming jobs"},
+                        {"name": "update_job_status", "description": "Update job status"}
                     ],
-                    "personal_assistant": [
+                    "project_management": [
+                        {"name": "get_project_status", "description": "Get project status"},
+                        {"name": "update_project_progress", "description": "Update project progress"}
+                    ],
+                    "invoice_management": [
+                        {"name": "create_invoice", "description": "Create new invoices"},
+                        {"name": "get_pending_invoices", "description": "View pending invoices"}
+                    ],
+                    "estimate_management": [
+                        {"name": "create_estimate", "description": "Create new estimates"},
+                        {"name": "convert_estimate_to_invoice", "description": "Convert estimate to invoice"}
+                    ],
+                    "contact_management": [
+                        {"name": "get_contact_info", "description": "Get contact information"},
+                        {"name": "search_contacts", "description": "Search contacts"}
+                    ],
+                    "general_tools": [
                         {"name": "get_current_time", "description": "Get current time"},
                         {"name": "set_reminder", "description": "Set voice reminders"}
                     ]
                 },
-                "message": "Found 11 available tools"
+                "message": "Found 26 available tools across 6 categories"
+            }
+        }
+
+
+# WebSocket-specific schemas for OpenAI voice agents
+class WebSocketMessageSchema(BaseModel):
+    """Schema for WebSocket messages in OpenAI voice agent communication"""
+    
+    type: str = Field(..., description="Message type")
+    data: Dict[str, Any] = Field(..., description="Message data")
+    session_id: str = Field(..., description="Session identifier")
+    timestamp: datetime = Field(..., description="Message timestamp")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "type": "audio_chunk",
+                "data": {
+                    "audio": "base64_encoded_audio_data",
+                    "format": "pcm16",
+                    "sample_rate": 16000
+                },
+                "session_id": "session_abc123def456",
+                "timestamp": "2024-01-15T10:30:00Z"
+            }
+        }
+
+
+class VoiceAgentSessionListResponse(BaseModel):
+    """Response schema for listing active voice agent sessions"""
+    
+    success: bool = Field(..., description="Whether sessions retrieved successfully")
+    active_sessions: List[Dict[str, Any]] = Field(..., description="List of active sessions")
+    total_sessions: int = Field(..., description="Total number of active sessions")
+    message: str = Field(..., description="Status message")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "active_sessions": [
+                    {
+                        "session_id": "session_abc123def456",
+                        "agent_type": "personal",
+                        "user_id": "user_123",
+                        "business_id": "business_456",
+                        "started_at": "2024-01-15T10:30:00Z",
+                        "duration": 120,
+                        "status": "active"
+                    }
+                ],
+                "total_sessions": 1,
+                "message": "Found 1 active session"
+            }
+        }
+
+
+class AudioConfigSchema(BaseModel):
+    """Schema for audio configuration in OpenAI voice agents"""
+    
+    format: str = Field(default="pcm16", description="Audio format")
+    sample_rate: int = Field(default=16000, description="Sample rate in Hz")
+    channels: int = Field(default=1, description="Number of audio channels")
+    chunk_size: int = Field(default=1024, description="Audio chunk size in bytes")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "format": "pcm16",
+                "sample_rate": 16000,
+                "channels": 1,
+                "chunk_size": 1024
             }
         } 

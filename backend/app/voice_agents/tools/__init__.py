@@ -1,21 +1,21 @@
 """
-Voice Agent Tools Package
+Voice Agent Tools
 
-Exports all voice agent tools for use in voice agents.
+Tools that integrate Hero365 business logic with voice agents.
 """
 
-from . import job_tools
-from . import project_tools
-from . import invoice_tools
-from . import estimate_tools
-from . import contact_tools
-from . import product_tools
+from .hero365_tools import Hero365Tools
+from .job_tools import JobTools
+from .project_tools import ProjectTools
+from .invoice_tools import InvoiceTools
+from .estimate_tools import EstimateTools
+from .contact_tools import ContactTools
 
 __all__ = [
-    "job_tools",
-    "project_tools", 
-    "invoice_tools",
-    "estimate_tools",
-    "contact_tools",
-    "product_tools"
-]
+    "Hero365Tools",
+    "JobTools",
+    "ProjectTools", 
+    "InvoiceTools",
+    "EstimateTools",
+    "ContactTools"
+] 
