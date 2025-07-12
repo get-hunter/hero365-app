@@ -23,8 +23,7 @@ from app.api.schemas.voice_agent_schemas import (
     VoiceAgentStopResponse,
     WebSocketConnectionSchema
 )
-from app.voice_agents.personal.openai_personal_agent import OpenAIPersonalAgent
-from app.voice_agents.orchestration.agent_orchestrator import AgentOrchestrator
+
 from app.infrastructure.config.dependency_injection import get_business_repository
 
 # Router setup
@@ -431,17 +430,22 @@ async def start_openai_voice_agent(
         # Generate session ID
         session_id = f"openai_voice_{current_user['id']}_{business_id}_{uuid4().hex[:8]}"
         
-        # Create agent based on request type
-        if request.agent_type == "orchestrated":
-            # Use orchestrated workflow with specialized agents
-            agent = AgentOrchestrator(business_data, user_context)
-            greeting = f"Hi! I'm your {business_data['name']} assistant. I can help you with jobs, projects, invoices, estimates, and contacts. I'll route you to the right specialist for your needs. What would you like to do?"
-            available_tools = 25  # Approximate total across all specialized agents
-        else:
-            # Use personal agent (default)
-            agent = OpenAIPersonalAgent(business_data, user_context)
-            greeting = agent.get_personalized_greeting()
-            available_tools = len(agent.get_tools())
+        # Create triage agent with intelligent routing
+        from app.voice_agents.triage import TriageAgent, ContextManager
+        
+        # Create context manager for enhanced context handling
+        context_manager = ContextManager(business_data, user_context)
+        
+        # Create triage agent with intelligent routing capabilities
+        agent = TriageAgent(
+            business_context=business_data,
+            user_context=user_context,
+            context_manager=context_manager
+        )
+        
+        greeting = agent.get_personalized_greeting()
+        available_capabilities = agent.get_available_capabilities()
+        available_tools = sum(len(caps) for caps in available_capabilities.values())
         
         # Note: VoicePipeline is designed for the new OpenAI Agents SDK format
         # Since we have custom agent classes, we'll use manual STT → LLM → TTS flow
@@ -452,10 +456,11 @@ async def start_openai_voice_agent(
         active_sessions[session_id] = {
             "user_id": current_user["id"],
             "business_id": business_id,
-            "agent_type": request.agent_type or "personal",
+            "agent_name": agent.get_agent_name(),
             "business_context": business_data,
             "user_context": user_context,
-            "agent": agent,  # Store the agent instance
+            "context_manager": context_manager,
+            "agent": agent,  # Store the triage agent instance
             "greeting": greeting,  # Store the greeting text
             "voice_pipeline": voice_pipeline,  # Store the voice pipeline
             "created_at": datetime.now(),
@@ -483,24 +488,31 @@ async def start_openai_voice_agent(
             sample_rate=16000
         )
         
+        # Backend-controlled voice model selection
+        voice_model = "gpt-4o-mini"  # Backend-controlled model choice
+        
         response = VoiceAgentStartResponse(
             success=True,
             session_id=session_id,
-            agent_type=request.agent_type or "personal",
+            agent_name=agent.get_agent_name(),
             greeting=greeting,
+            available_capabilities=available_capabilities,
             available_tools=available_tools,
             websocket_connection=websocket_connection,
             agent_config={
-                "voice_model": request.voice_model or "gpt-4o-realtime-preview",
+                "voice_model": voice_model,
                 "voice_settings": request.voice_settings or {
                     "voice": "alloy",
                     "speed": 1.0,
                     "format": "pcm16"
                 },
                 "temperature": request.temperature or 0.7,
-                "max_tokens": request.max_tokens or 1000
+                "max_tokens": request.max_tokens or 1000,
+                "device_type": request.device_type,
+                "time_zone": request.time_zone
             },
-            message="OpenAI voice agent started successfully"
+            context_summary=agent.get_context_summary(),
+            message="Triage-based voice agent started successfully"
         )
         
         logger.info(f"✅ OpenAI voice agent session created: {session_id}")
@@ -543,17 +555,24 @@ async def get_openai_voice_agent_status(
         # Calculate session duration
         duration = int((datetime.now() - session["created_at"]).total_seconds())
         
+        # Get specialist status from the triage agent
+        agent = session.get("agent")
+        specialist_status = {}
+        if agent and hasattr(agent, 'get_specialist_status'):
+            specialist_status = agent.get_specialist_status()
+        
         return VoiceAgentStatusResponse(
             success=True,
             session_id=session_id,
-            agent_type=session["agent_type"],
+            agent_name=session.get("agent_name", "Hero365 AI Assistant"),
             is_active=session["status"] == "active",
             connection_status="connected" if session["status"] == "active" else "disconnected",
             duration=duration,
             message_count=0,  # Would be tracked by the WebSocket transport
             tools_used=[],  # Would be tracked by the agent
             current_context=session["user_context"],
-            message="OpenAI voice agent status retrieved successfully"
+            specialist_status=specialist_status,
+            message="Triage-based voice agent status retrieved successfully"
         )
         
     except HTTPException:
@@ -856,7 +875,7 @@ async def get_active_sessions(current_user: CurrentUser):
                 duration = int((datetime.now() - session["created_at"]).total_seconds())
                 user_sessions.append({
                     "session_id": session_id,
-                    "agent_type": session["agent_type"],
+                    "agent_name": session.get("agent_name", "Hero365 AI Assistant"),
                     "business_name": session["business_context"]["name"],
                     "status": session["status"],
                     "duration": duration,
@@ -892,10 +911,11 @@ async def openai_voice_agent_health():
             "openai_agents_available": True,
             "websocket_transport_available": True,
             "system_info": {
-                "agent_types": ["personal", "orchestrated"],
-                "specialized_agents": ["job", "project", "invoice", "estimate", "contact"],
+                "agent_architecture": "triage-based",
+                "specialized_agents": ["scheduling", "job_management", "invoice_management", "estimate_management", "contact_management", "project_management"],
                 "voice_models": ["gpt-4o-mini-tts"],
-                "transport": "websocket"
+                "transport": "websocket",
+                "routing_features": ["context_aware", "parallel_execution", "safety_protocols"]
             },
             "message": "OpenAI voice agent system is operational"
         }

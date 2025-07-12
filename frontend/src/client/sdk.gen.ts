@@ -290,6 +290,14 @@ import type {
   MiddlewareHealthGetMiddlewareConfigResponse,
   MiddlewareHealthTestAuthenticationRequiredResponse,
   MiddlewareHealthTestBusinessContextRequiredResponse,
+  OpenaiVoiceAgentStartOpenaiVoiceAgentData,
+  OpenaiVoiceAgentStartOpenaiVoiceAgentResponse,
+  OpenaiVoiceAgentGetOpenaiVoiceAgentStatusData,
+  OpenaiVoiceAgentGetOpenaiVoiceAgentStatusResponse,
+  OpenaiVoiceAgentStopOpenaiVoiceAgentData,
+  OpenaiVoiceAgentStopOpenaiVoiceAgentResponse,
+  OpenaiVoiceAgentGetActiveSessionsResponse,
+  OpenaiVoiceAgentOpenaiVoiceAgentHealthResponse,
   CreateProductNoSlashData,
   CreateProductNoSlashResponse,
   ListProductsNoSlashData,
@@ -413,17 +421,6 @@ import type {
   UsersUpdateUserBusinessContextResponse,
   UtilsTestEmailData,
   UtilsTestEmailResponse,
-  VoiceAgentStartVoiceAgentData,
-  VoiceAgentStartVoiceAgentResponse,
-  VoiceAgentGetVoiceAgentStatusData,
-  VoiceAgentGetVoiceAgentStatusResponse,
-  VoiceAgentStopVoiceAgentData,
-  VoiceAgentStopVoiceAgentResponse,
-  VoiceAgentUpdateVoiceAgentConfigData,
-  VoiceAgentUpdateVoiceAgentConfigResponse,
-  VoiceAgentGetAvailableToolsResponse,
-  VoiceAgentGetVoiceAgentAvailabilityResponse,
-  VoiceAgentVoiceAgentHealthResponse,
 } from "./types.gen"
 
 export class ActivitiesService {
@@ -4201,6 +4198,103 @@ export class MiddlewareHealthService {
   }
 }
 
+export class OpenaiVoiceAgentService {
+  /**
+   * Start Openai Voice Agent
+   * Start a new OpenAI voice agent session.
+   *
+   * Creates a WebSocket endpoint for real-time voice communication
+   * using OpenAI's voice agents SDK.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns VoiceAgentStartResponse Successful Response
+   * @throws ApiError
+   */
+  public static startOpenaiVoiceAgent(
+    data: OpenaiVoiceAgentStartOpenaiVoiceAgentData,
+  ): CancelablePromise<OpenaiVoiceAgentStartOpenaiVoiceAgentResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/voice-agent/openai/start",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Openai Voice Agent Status
+   * Get status of an active OpenAI voice agent session.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns VoiceAgentStatusResponse Successful Response
+   * @throws ApiError
+   */
+  public static getOpenaiVoiceAgentStatus(
+    data: OpenaiVoiceAgentGetOpenaiVoiceAgentStatusData,
+  ): CancelablePromise<OpenaiVoiceAgentGetOpenaiVoiceAgentStatusResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/voice-agent/openai/status",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Stop Openai Voice Agent
+   * Stop an active OpenAI voice agent session.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns VoiceAgentStopResponse Successful Response
+   * @throws ApiError
+   */
+  public static stopOpenaiVoiceAgent(
+    data: OpenaiVoiceAgentStopOpenaiVoiceAgentData,
+  ): CancelablePromise<OpenaiVoiceAgentStopOpenaiVoiceAgentResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/voice-agent/openai/stop",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Active Sessions
+   * Get active OpenAI voice agent sessions for the current user.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getActiveSessions(): CancelablePromise<OpenaiVoiceAgentGetActiveSessionsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice-agent/openai/sessions",
+    })
+  }
+
+  /**
+   * Openai Voice Agent Health
+   * Health check endpoint for OpenAI voice agent system.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static openaiVoiceAgentHealth(): CancelablePromise<OpenaiVoiceAgentOpenaiVoiceAgentHealthResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice-agent/openai/health",
+    })
+  }
+}
+
 export class ProductsService {
   /**
    * Create Product
@@ -5834,151 +5928,6 @@ export class UtilsService {
       errors: {
         422: "Validation Error",
       },
-    })
-  }
-}
-
-export class VoiceAgentService {
-  /**
-   * Start Voice Agent
-   * Start a new voice agent session.
-   *
-   * Creates a new voice agent instance configured for the user's business
-   * and returns connection details for the mobile app.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns VoiceAgentStartResponse Successful Response
-   * @throws ApiError
-   */
-  public static startVoiceAgent(
-    data: VoiceAgentStartVoiceAgentData,
-  ): CancelablePromise<VoiceAgentStartVoiceAgentResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice-agent/start",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Voice Agent Status
-   * Get status of an active voice agent.
-   *
-   * Returns current agent status, conversation metrics,
-   * and any pending actions.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns VoiceAgentStatusResponse Successful Response
-   * @throws ApiError
-   */
-  public static getVoiceAgentStatus(
-    data: VoiceAgentGetVoiceAgentStatusData,
-  ): CancelablePromise<VoiceAgentGetVoiceAgentStatusResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice-agent/status",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Stop Voice Agent
-   * Stop an active voice agent.
-   *
-   * Gracefully shuts down the agent and returns
-   * session summary.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns VoiceAgentStopResponse Successful Response
-   * @throws ApiError
-   */
-  public static stopVoiceAgent(
-    data: VoiceAgentStopVoiceAgentData,
-  ): CancelablePromise<VoiceAgentStopVoiceAgentResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice-agent/stop",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Update Voice Agent Config
-   * Update voice agent configuration during conversation.
-   *
-   * Allows mobile app to adjust settings like safety mode,
-   * voice speed, etc. during an active session.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns VoiceAgentConfigResponse Successful Response
-   * @throws ApiError
-   */
-  public static updateVoiceAgentConfig(
-    data: VoiceAgentUpdateVoiceAgentConfigData,
-  ): CancelablePromise<VoiceAgentUpdateVoiceAgentConfigResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice-agent/config",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Available Tools
-   * Get list of available voice agent tools for the current business.
-   *
-   * Returns tool categories and descriptions for mobile app UI.
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getAvailableTools(): CancelablePromise<VoiceAgentGetAvailableToolsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice-agent/available-tools",
-    })
-  }
-
-  /**
-   * Get Voice Agent Availability
-   * Check if voice agents are available and properly configured
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getVoiceAgentAvailability(): CancelablePromise<VoiceAgentGetVoiceAgentAvailabilityResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice-agent/availability",
-    })
-  }
-
-  /**
-   * Voice Agent Health
-   * Health check endpoint for voice agent system.
-   *
-   * Returns system status and active agent count.
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static voiceAgentHealth(): CancelablePromise<VoiceAgentVoiceAgentHealthResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice-agent/health",
     })
   }
 }

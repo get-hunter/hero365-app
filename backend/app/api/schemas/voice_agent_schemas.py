@@ -24,10 +24,8 @@ class LocationSchema(BaseModel):
 
 
 class VoiceAgentStartRequest(BaseModel):
-    """Request schema for starting an OpenAI voice agent"""
+    """Request schema for starting an OpenAI voice agent with triage-based routing"""
     
-    agent_type: Optional[str] = Field(default="personal", description="Agent type: personal or orchestrated")
-    voice_model: Optional[str] = Field(default="gpt-4o-realtime-preview", description="OpenAI voice model to use")
     voice_settings: Optional[Dict[str, Any]] = Field(default=None, description="Voice configuration settings")
     instructions: Optional[str] = Field(default=None, description="Custom instructions for the agent")
     temperature: Optional[float] = Field(default=0.7, description="Response creativity (0.0-1.0)")
@@ -37,12 +35,12 @@ class VoiceAgentStartRequest(BaseModel):
     is_driving: Optional[bool] = Field(default=False, description="Whether the user is currently driving (enables safety mode)")
     safety_mode: Optional[bool] = Field(default=False, description="Enable safety mode for hands-free operation")
     voice_speed: Optional[str] = Field(default="normal", description="Voice speed: slow, normal, fast")
+    device_type: Optional[str] = Field(default=None, description="Type of device being used (mobile, desktop, headset)")
+    time_zone: Optional[str] = Field(default=None, description="User's time zone")
     
     class Config:
         json_schema_extra = {
             "example": {
-                "agent_type": "personal",
-                "voice_model": "gpt-4o-realtime-preview",
                 "voice_settings": {
                     "voice": "alloy",
                     "speed": 1.0,
@@ -59,7 +57,9 @@ class VoiceAgentStartRequest(BaseModel):
                 },
                 "is_driving": False,
                 "safety_mode": False,
-                "voice_speed": "normal"
+                "voice_speed": "normal",
+                "device_type": "mobile",
+                "time_zone": "America/New_York"
             }
         }
 
@@ -83,15 +83,17 @@ class WebSocketConnectionSchema(BaseModel):
 
 
 class VoiceAgentStartResponse(BaseModel):
-    """Response schema for starting an OpenAI voice agent"""
+    """Response schema for starting an OpenAI voice agent with triage-based routing"""
     
     success: bool = Field(..., description="Whether agent started successfully")
     session_id: str = Field(..., description="Unique session identifier")
-    agent_type: str = Field(..., description="Type of agent started")
+    agent_name: str = Field(..., description="Name of the triage agent")
     greeting: str = Field(..., description="Personalized greeting message")
-    available_tools: int = Field(..., description="Number of available tools")
+    available_capabilities: Dict[str, List[str]] = Field(..., description="Available capabilities organized by specialist")
+    available_tools: int = Field(..., description="Total number of available tools across all specialists")
     websocket_connection: WebSocketConnectionSchema = Field(..., description="WebSocket connection details")
     agent_config: Dict[str, Any] = Field(..., description="Agent configuration settings")
+    context_summary: str = Field(..., description="Summary of current context")
     message: str = Field(..., description="Status message")
     
     class Config:
@@ -99,8 +101,16 @@ class VoiceAgentStartResponse(BaseModel):
             "example": {
                 "success": True,
                 "session_id": "session_abc123def456",
-                "agent_type": "personal",
-                "greeting": "Hello John! I'm your Hero365 voice assistant. How can I help you today?",
+                "agent_name": "Hero365 AI Assistant",
+                "greeting": "Good morning John! I'm your Hero365 assistant. I can help you with scheduling, jobs, invoicing, contacts, and more. What would you like to do?",
+                "available_capabilities": {
+                    "scheduling": ["Schedule appointments", "Check availability", "Reschedule meetings"],
+                    "job_management": ["Create new jobs", "Update job status", "Track job progress"],
+                    "invoice_management": ["Create invoices", "Track payments", "Send payment reminders"],
+                    "estimate_management": ["Create estimates", "Convert estimates to invoices", "Track estimate status"],
+                    "contact_management": ["Manage client information", "Record interactions", "Schedule follow-ups"],
+                    "project_management": ["Track project progress", "Manage milestones", "Update project status"]
+                },
                 "available_tools": 26,
                 "websocket_connection": {
                     "websocket_url": "wss://api.hero365.com/ws/voice-agent/session_abc123",
@@ -118,7 +128,8 @@ class VoiceAgentStartResponse(BaseModel):
                     "temperature": 0.7,
                     "max_tokens": 1000
                 },
-                "message": "OpenAI voice agent started successfully"
+                "context_summary": "Business: Hero365 (home_services), User: John Doe (admin), Time: 2024-01-15T10:30:00 (Monday), Location: New York, Driving: No, Business Hours: Yes",
+                "message": "Triage-based voice agent started successfully"
             }
         }
 
@@ -141,13 +152,14 @@ class VoiceAgentStatusResponse(BaseModel):
     
     success: bool = Field(..., description="Whether status retrieved successfully")
     session_id: str = Field(..., description="Session identifier")
-    agent_type: str = Field(..., description="Type of agent")
+    agent_name: str = Field(..., description="Name of the triage agent")
     is_active: bool = Field(..., description="Whether agent is currently active")
     connection_status: str = Field(..., description="WebSocket connection status")
     duration: int = Field(..., description="Session duration in seconds")
     message_count: int = Field(..., description="Number of messages exchanged")
     tools_used: List[str] = Field(..., description="List of tools used in session")
     current_context: Dict[str, Any] = Field(..., description="Current session context")
+    specialist_status: Dict[str, Any] = Field(..., description="Status of specialist agents")
     message: str = Field(..., description="Status message")
     
     class Config:
@@ -155,17 +167,22 @@ class VoiceAgentStatusResponse(BaseModel):
             "example": {
                 "success": True,
                 "session_id": "session_abc123def456",
-                "agent_type": "personal",
+                "agent_name": "Hero365 AI Assistant",
                 "is_active": True,
                 "connection_status": "connected",
                 "duration": 120,
                 "message_count": 8,
-                "tools_used": ["get_upcoming_jobs", "create_job", "get_current_time"],
+                "tools_used": ["route_to_scheduling", "route_to_job_management", "get_current_time"],
                 "current_context": {
-                    "last_tool_used": "get_upcoming_jobs",
+                    "last_specialist_used": "scheduling",
                     "user_location": {"latitude": 40.7128, "longitude": -74.0060}
                 },
-                "message": "OpenAI voice agent status retrieved successfully"
+                "specialist_status": {
+                    "available_specialists": 6,
+                    "cached_agents": ["scheduling", "job_management"],
+                    "routing_accuracy": "95%"
+                },
+                "message": "Triage-based voice agent status retrieved successfully"
             }
         }
 
@@ -433,7 +450,7 @@ class VoiceAgentSessionListResponse(BaseModel):
                 "active_sessions": [
                     {
                         "session_id": "session_abc123def456",
-                        "agent_type": "personal",
+                        "agent_name": "Hero365 AI Assistant",
                         "user_id": "user_123",
                         "business_id": "business_456",
                         "started_at": "2024-01-15T10:30:00Z",

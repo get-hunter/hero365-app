@@ -10,6 +10,7 @@ from .project_tools import ProjectTools
 from .invoice_tools import InvoiceTools
 from .estimate_tools import EstimateTools
 from .contact_tools import ContactTools
+from .scheduling_tools import SchedulingTools
 
 __all__ = [
     "Hero365Tools",
@@ -17,5 +18,6 @@ __all__ = [
     "ProjectTools", 
     "InvoiceTools",
     "EstimateTools",
-    "ContactTools"
+    "ContactTools",
+    "SchedulingTools"
 ] 

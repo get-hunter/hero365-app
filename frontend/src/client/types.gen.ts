@@ -4057,28 +4057,6 @@ export type LifecycleStage =
   | "advocacy"
 
 /**
- * LiveKit connection information schema
- */
-export type LiveKitConnectionSchema = {
-  /**
-   * LiveKit room name
-   */
-  room_name: string
-  /**
-   * LiveKit server URL
-   */
-  room_url: string
-  /**
-   * User access token for room
-   */
-  user_token: string
-  /**
-   * Room session identifier
-   */
-  room_sid: string
-}
-
-/**
  * Location data for tracking.
  */
 export type LocationData = {
@@ -6497,91 +6475,61 @@ export type ValidationError = {
 }
 
 /**
- * Request schema for updating agent configuration
- */
-export type VoiceAgentConfigRequest = {
-  /**
-   * Agent identifier
-   */
-  agent_id: string
-  /**
-   * Voice profile ID
-   */
-  voice_profile?: string | null
-  /**
-   * Voice model
-   */
-  voice_model?: string | null
-  /**
-   * Safety mode setting
-   */
-  safety_mode?: boolean | null
-  /**
-   * Voice speed setting
-   */
-  voice_speed?: string | null
-  /**
-   * Updated location
-   */
-  location?: LocationSchema | null
-}
-
-/**
- * Response schema for updating agent configuration
- */
-export type VoiceAgentConfigResponse = {
-  /**
-   * Whether configuration updated successfully
-   */
-  success: boolean
-  /**
-   * Agent identifier
-   */
-  agent_id: string
-  /**
-   * Updated configuration settings
-   */
-  updated_config: {
-    [key: string]: unknown
-  }
-  /**
-   * Status message
-   */
-  message: string
-}
-
-/**
- * Request schema for starting a voice agent
+ * Request schema for starting an OpenAI voice agent with triage-based routing
  */
 export type VoiceAgentStartRequest = {
   /**
-   * Whether user is currently driving
+   * Voice configuration settings
    */
-  is_driving?: boolean
+  voice_settings?: {
+    [key: string]: unknown
+  } | null
   /**
-   * Enable safety mode for driving
+   * Custom instructions for the agent
    */
-  safety_mode?: boolean
+  instructions?: string | null
+  /**
+   * Response creativity (0.0-1.0)
+   */
+  temperature?: number | null
+  /**
+   * Maximum tokens per response
+   */
+  max_tokens?: number | null
+  /**
+   * User's current location
+   */
+  location?: LocationSchema | null
+  /**
+   * Additional context for the session
+   */
+  context?: {
+    [key: string]: unknown
+  } | null
+  /**
+   * Whether the user is currently driving (enables safety mode)
+   */
+  is_driving?: boolean | null
+  /**
+   * Enable safety mode for hands-free operation
+   */
+  safety_mode?: boolean | null
   /**
    * Voice speed: slow, normal, fast
    */
   voice_speed?: string | null
   /**
-   * Maximum conversation duration in seconds
+   * Type of device being used (mobile, desktop, headset)
    */
-  max_duration?: number | null
+  device_type?: string | null
   /**
-   * Enable noise cancellation
+   * User's time zone
    */
-  enable_noise_cancellation?: boolean
-  /**
-   * User's current location
-   */
-  location?: LocationSchema | null
+  time_zone?: string | null
 }
 
 /**
- * Response schema for starting a voice agent
+ * Response schema for starting an OpenAI voice agent with triage-based routing
  */
 export type VoiceAgentStartResponse = {
   /**
@@ -6589,27 +6537,41 @@ export type VoiceAgentStartResponse = {
    */
   success: boolean
   /**
-   * Unique agent identifier
+   * Unique session identifier
    */
-  agent_id: string
+  session_id: string
+  /**
+   * Name of the triage agent
+   */
+  agent_name: string
   /**
    * Personalized greeting message
    */
   greeting: string
   /**
-   * Number of available tools
+   * Available capabilities organized by specialist
+   */
+  available_capabilities: {
+    [key: string]: Array<string>
+  }
+  /**
+   * Total number of available tools across all specialists
    */
   available_tools: number
   /**
+   * WebSocket connection details
+   */
+  websocket_connection: WebSocketConnectionSchema
+  /**
    * Agent configuration settings
    */
-  config: {
+  agent_config: {
     [key: string]: unknown
   }
   /**
-   * LiveKit room connection details
+   * Summary of current context
    */
-  livekit_connection?: LiveKitConnectionSchema | null
+  context_summary: string
   /**
    * Status message
    */
@@ -6617,17 +6579,17 @@ export type VoiceAgentStartResponse = {
 }
 
 /**
- * Request schema for getting agent status
+ * Request schema for getting OpenAI voice agent status
  */
 export type VoiceAgentStatusRequest = {
   /**
-   * Agent identifier
+   * Session identifier
    */
-  agent_id: string
+  session_id: string
 }
 
 /**
- * Response schema for agent status
+ * Response schema for OpenAI voice agent status
  */
 export type VoiceAgentStatusResponse = {
   /**
@@ -6635,33 +6597,43 @@ export type VoiceAgentStatusResponse = {
    */
   success: boolean
   /**
-   * Agent identifier
+   * Session identifier
    */
-  agent_id: string
+  session_id: string
+  /**
+   * Name of the triage agent
+   */
+  agent_name: string
   /**
    * Whether agent is currently active
    */
   is_active: boolean
   /**
-   * Current conversation stage
+   * WebSocket connection status
    */
-  conversation_stage: string
+  connection_status: string
   /**
-   * Conversation duration in seconds
+   * Session duration in seconds
    */
   duration: number
   /**
-   * Number of interactions
+   * Number of messages exchanged
    */
-  interactions_count: number
+  message_count: number
   /**
-   * Current detected intent
+   * List of tools used in session
    */
-  current_intent?: string | null
+  tools_used: Array<string>
   /**
-   * Current user context
+   * Current session context
    */
-  user_context: {
+  current_context: {
+    [key: string]: unknown
+  }
+  /**
+   * Status of specialist agents
+   */
+  specialist_status: {
     [key: string]: unknown
   }
   /**
@@ -6671,17 +6643,17 @@ export type VoiceAgentStatusResponse = {
 }
 
 /**
- * Request schema for stopping a voice agent
+ * Request schema for stopping an OpenAI voice agent
  */
 export type VoiceAgentStopRequest = {
   /**
-   * Agent identifier
+   * Session identifier
    */
-  agent_id: string
+  session_id: string
 }
 
 /**
- * Response schema for stopping a voice agent
+ * Response schema for stopping an OpenAI voice agent
  */
 export type VoiceAgentStopResponse = {
   /**
@@ -6689,9 +6661,9 @@ export type VoiceAgentStopResponse = {
    */
   success: boolean
   /**
-   * Agent identifier
+   * Session identifier
    */
-  agent_id: string
+  session_id: string
   /**
    * Session summary statistics
    */
@@ -6702,6 +6674,28 @@ export type VoiceAgentStopResponse = {
    * Status message
    */
   message: string
+}
+
+/**
+ * WebSocket connection information schema for OpenAI voice agents
+ */
+export type WebSocketConnectionSchema = {
+  /**
+   * WebSocket URL for voice communication
+   */
+  websocket_url: string
+  /**
+   * Unique session identifier
+   */
+  session_id: string
+  /**
+   * Audio format specification
+   */
+  audio_format?: string
+  /**
+   * Audio sample rate in Hz
+   */
+  sample_rate?: number
 }
 
 /**
@@ -8157,6 +8151,31 @@ export type MiddlewareHealthTestBusinessContextRequiredResponse = {
   [key: string]: unknown
 }
 
+export type OpenaiVoiceAgentStartOpenaiVoiceAgentData = {
+  requestBody: VoiceAgentStartRequest
+}
+
+export type OpenaiVoiceAgentStartOpenaiVoiceAgentResponse =
+  VoiceAgentStartResponse
+
+export type OpenaiVoiceAgentGetOpenaiVoiceAgentStatusData = {
+  requestBody: VoiceAgentStatusRequest
+}
+
+export type OpenaiVoiceAgentGetOpenaiVoiceAgentStatusResponse =
+  VoiceAgentStatusResponse
+
+export type OpenaiVoiceAgentStopOpenaiVoiceAgentData = {
+  requestBody: VoiceAgentStopRequest
+}
+
+export type OpenaiVoiceAgentStopOpenaiVoiceAgentResponse =
+  VoiceAgentStopResponse
+
+export type OpenaiVoiceAgentGetActiveSessionsResponse = unknown
+
+export type OpenaiVoiceAgentOpenaiVoiceAgentHealthResponse = unknown
+
 export type CreateProductNoSlashData = {
   requestBody: CreateProductSchema
 }
@@ -8808,33 +8827,3 @@ export type UtilsTestEmailData = {
 }
 
 export type UtilsTestEmailResponse = Message
-
-export type VoiceAgentStartVoiceAgentData = {
-  requestBody: VoiceAgentStartRequest
-}
-
-export type VoiceAgentStartVoiceAgentResponse = VoiceAgentStartResponse
-
-export type VoiceAgentGetVoiceAgentStatusData = {
-  requestBody: VoiceAgentStatusRequest
-}
-
-export type VoiceAgentGetVoiceAgentStatusResponse = VoiceAgentStatusResponse
-
-export type VoiceAgentStopVoiceAgentData = {
-  requestBody: VoiceAgentStopRequest
-}
-
-export type VoiceAgentStopVoiceAgentResponse = VoiceAgentStopResponse
-
-export type VoiceAgentUpdateVoiceAgentConfigData = {
-  requestBody: VoiceAgentConfigRequest
-}
-
-export type VoiceAgentUpdateVoiceAgentConfigResponse = VoiceAgentConfigResponse
-
-export type VoiceAgentGetAvailableToolsResponse = unknown
-
-export type VoiceAgentGetVoiceAgentAvailabilityResponse = unknown
-
-export type VoiceAgentVoiceAgentHealthResponse = unknown
