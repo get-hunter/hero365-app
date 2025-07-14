@@ -113,6 +113,14 @@ class Settings(BaseSettings):
     DEEPGRAM_API_KEY: str | None = None
     CARTESIA_API_KEY: str | None = None
     
+    # Voice Agent Context & Memory Configuration
+    REDIS_URL: str = "redis://localhost:6379"
+    MEM0_API_KEY: str | None = None
+    OPENAI_VOICE_MODEL: str = "gpt-4o-realtime-preview"
+    OPENAI_SPEECH_MODEL: str = "whisper-1"
+    OPENAI_TTS_MODEL: str = "tts-1-hd"
+    OPENAI_TTS_VOICE: str = "alloy"
+    
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SUPABASE_ANON_KEY(self) -> str:
@@ -144,10 +152,8 @@ class Settings(BaseSettings):
     def voice_agents_enabled(self) -> bool:
         # Check if voice agents are fully configured
         return bool(
-            self.livekit_enabled and 
             self.OPENAI_API_KEY and 
-            self.DEEPGRAM_API_KEY and 
-            self.CARTESIA_API_KEY
+            self.REDIS_URL
         )
 
     EMAIL_TEST_USER: EmailStr = "test@example.com"

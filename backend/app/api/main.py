@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes import auth, businesses, users, utils, business_context, middleware_health, contacts, jobs, projects, activities, scheduling, estimates, invoices, templates, products, suppliers, purchase_orders
+from app.voice_agents.api import voice_endpoints
 from app.core.config import settings
 
 api_router = APIRouter()
@@ -21,3 +22,4 @@ api_router.include_router(suppliers.router, prefix="/suppliers", tags=["supplier
 api_router.include_router(purchase_orders.router, prefix="/purchase-orders", tags=["purchase-orders"], include_in_schema=True)
 api_router.include_router(business_context.router, tags=["Business Context"], include_in_schema=True)
 api_router.include_router(middleware_health.router, tags=["Middleware Health"], include_in_schema=True)
+api_router.include_router(voice_endpoints.router, tags=["Voice Agents"], include_in_schema=True)

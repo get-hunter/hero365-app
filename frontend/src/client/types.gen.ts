@@ -1007,6 +1007,10 @@ export type Body_products_reserve_stock = {
   notes?: string | null
 }
 
+export type Body_Voice_Agents_upload_audio = {
+  audio_file: Blob | File
+}
+
 /**
  * Schema for bulk operation responses.
  */
@@ -4079,20 +4083,6 @@ export type LocationData = {
 }
 
 /**
- * Location information schema
- */
-export type LocationSchema = {
-  /**
-   * Latitude coordinate
-   */
-  latitude: number
-  /**
-   * Longitude coordinate
-   */
-  longitude: number
-}
-
-/**
  * Request to update user location.
  */
 export type LocationUpdateRequest = {
@@ -5826,6 +5816,17 @@ export type TeamAvailabilitySummary = {
   }>
 }
 
+export type TextInputRequest = {
+  message: string
+  session_id: string
+}
+
+export type TextInputResponse = {
+  response: string
+  session_id: string
+  current_agent?: string | null
+}
+
 /**
  * Schema for timeline entry response.
  */
@@ -6474,228 +6475,33 @@ export type ValidationError = {
   type: string
 }
 
-/**
- * Request schema for starting an OpenAI voice agent with triage-based routing
- */
-export type VoiceAgentStartRequest = {
-  /**
-   * Voice configuration settings
-   */
-  voice_settings?: {
-    [key: string]: unknown
-  } | null
-  /**
-   * Custom instructions for the agent
-   */
-  instructions?: string | null
-  /**
-   * Response creativity (0.0-1.0)
-   */
-  temperature?: number | null
-  /**
-   * Maximum tokens per response
-   */
-  max_tokens?: number | null
-  /**
-   * User's current location
-   */
-  location?: LocationSchema | null
-  /**
-   * Additional context for the session
-   */
+export type VoiceCommandRequest = {
+  command: string
+  session_id: string
   context?: {
     [key: string]: unknown
   } | null
-  /**
-   * Whether the user is currently driving (enables safety mode)
-   */
-  is_driving?: boolean | null
-  /**
-   * Enable safety mode for hands-free operation
-   */
-  safety_mode?: boolean | null
-  /**
-   * Voice speed: slow, normal, fast
-   */
-  voice_speed?: string | null
-  /**
-   * Type of device being used (mobile, desktop, headset)
-   */
-  device_type?: string | null
-  /**
-   * User's time zone
-   */
-  time_zone?: string | null
 }
 
-/**
- * Response schema for starting an OpenAI voice agent with triage-based routing
- */
-export type VoiceAgentStartResponse = {
-  /**
-   * Whether agent started successfully
-   */
-  success: boolean
-  /**
-   * Unique session identifier
-   */
-  session_id: string
-  /**
-   * Name of the triage agent
-   */
-  agent_name: string
-  /**
-   * Personalized greeting message
-   */
-  greeting: string
-  /**
-   * Available capabilities organized by specialist
-   */
-  available_capabilities: {
-    [key: string]: Array<string>
-  }
-  /**
-   * Total number of available tools across all specialists
-   */
-  available_tools: number
-  /**
-   * WebSocket connection details
-   */
-  websocket_connection: WebSocketConnectionSchema
-  /**
-   * Agent configuration settings
-   */
-  agent_config: {
+export type VoiceSessionRequest = {
+  session_metadata?: {
     [key: string]: unknown
-  }
-  /**
-   * Summary of current context
-   */
-  context_summary: string
-  /**
-   * Status message
-   */
+  } | null
+  location?: {
+    [key: string]: unknown
+  } | null
+  device_info?: {
+    [key: string]: unknown
+  } | null
+}
+
+export type VoiceSessionResponse = {
+  session_id: string
+  status: string
   message: string
-}
-
-/**
- * Request schema for getting OpenAI voice agent status
- */
-export type VoiceAgentStatusRequest = {
-  /**
-   * Session identifier
-   */
-  session_id: string
-}
-
-/**
- * Response schema for OpenAI voice agent status
- */
-export type VoiceAgentStatusResponse = {
-  /**
-   * Whether status retrieved successfully
-   */
-  success: boolean
-  /**
-   * Session identifier
-   */
-  session_id: string
-  /**
-   * Name of the triage agent
-   */
-  agent_name: string
-  /**
-   * Whether agent is currently active
-   */
-  is_active: boolean
-  /**
-   * WebSocket connection status
-   */
-  connection_status: string
-  /**
-   * Session duration in seconds
-   */
-  duration: number
-  /**
-   * Number of messages exchanged
-   */
-  message_count: number
-  /**
-   * List of tools used in session
-   */
-  tools_used: Array<string>
-  /**
-   * Current session context
-   */
-  current_context: {
+  user_context: {
     [key: string]: unknown
   }
-  /**
-   * Status of specialist agents
-   */
-  specialist_status: {
-    [key: string]: unknown
-  }
-  /**
-   * Status message
-   */
-  message: string
-}
-
-/**
- * Request schema for stopping an OpenAI voice agent
- */
-export type VoiceAgentStopRequest = {
-  /**
-   * Session identifier
-   */
-  session_id: string
-}
-
-/**
- * Response schema for stopping an OpenAI voice agent
- */
-export type VoiceAgentStopResponse = {
-  /**
-   * Whether agent stopped successfully
-   */
-  success: boolean
-  /**
-   * Session identifier
-   */
-  session_id: string
-  /**
-   * Session summary statistics
-   */
-  session_summary: {
-    [key: string]: unknown
-  }
-  /**
-   * Status message
-   */
-  message: string
-}
-
-/**
- * WebSocket connection information schema for OpenAI voice agents
- */
-export type WebSocketConnectionSchema = {
-  /**
-   * WebSocket URL for voice communication
-   */
-  websocket_url: string
-  /**
-   * Unique session identifier
-   */
-  session_id: string
-  /**
-   * Audio format specification
-   */
-  audio_format?: string
-  /**
-   * Audio sample rate in Hz
-   */
-  sample_rate?: number
 }
 
 /**
@@ -8151,31 +7957,6 @@ export type MiddlewareHealthTestBusinessContextRequiredResponse = {
   [key: string]: unknown
 }
 
-export type OpenaiVoiceAgentStartOpenaiVoiceAgentData = {
-  requestBody: VoiceAgentStartRequest
-}
-
-export type OpenaiVoiceAgentStartOpenaiVoiceAgentResponse =
-  VoiceAgentStartResponse
-
-export type OpenaiVoiceAgentGetOpenaiVoiceAgentStatusData = {
-  requestBody: VoiceAgentStatusRequest
-}
-
-export type OpenaiVoiceAgentGetOpenaiVoiceAgentStatusResponse =
-  VoiceAgentStatusResponse
-
-export type OpenaiVoiceAgentStopOpenaiVoiceAgentData = {
-  requestBody: VoiceAgentStopRequest
-}
-
-export type OpenaiVoiceAgentStopOpenaiVoiceAgentResponse =
-  VoiceAgentStopResponse
-
-export type OpenaiVoiceAgentGetActiveSessionsResponse = unknown
-
-export type OpenaiVoiceAgentOpenaiVoiceAgentHealthResponse = unknown
-
 export type CreateProductNoSlashData = {
   requestBody: CreateProductSchema
 }
@@ -8827,3 +8608,46 @@ export type UtilsTestEmailData = {
 }
 
 export type UtilsTestEmailResponse = Message
+
+export type VoiceAgentsStartVoiceSessionData = {
+  requestBody: VoiceSessionRequest
+}
+
+export type VoiceAgentsStartVoiceSessionResponse = VoiceSessionResponse
+
+export type VoiceAgentsProcessTextInputData = {
+  requestBody: TextInputRequest
+}
+
+export type VoiceAgentsProcessTextInputResponse = TextInputResponse
+
+export type VoiceAgentsProcessVoiceCommandData = {
+  requestBody: VoiceCommandRequest
+}
+
+export type VoiceAgentsProcessVoiceCommandResponse = unknown
+
+export type VoiceAgentsGetSessionStatusData = {
+  sessionId: string
+}
+
+export type VoiceAgentsGetSessionStatusResponse = unknown
+
+export type VoiceAgentsEndVoiceSessionData = {
+  sessionId: string
+}
+
+export type VoiceAgentsEndVoiceSessionResponse = unknown
+
+export type VoiceAgentsGetActiveSessionsResponse = unknown
+
+export type VoiceAgentsGetVoiceSystemStatusResponse = unknown
+
+export type VoiceAgentsUploadAudioData = {
+  formData: Body_Voice_Agents_upload_audio
+  sessionId: string
+}
+
+export type VoiceAgentsUploadAudioResponse = unknown
+
+export type VoiceAgentsHealthCheckResponse = unknown

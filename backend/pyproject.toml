@@ -28,6 +28,10 @@ dependencies = [
     "openai>=1.0.0",
     "openai-agents[voice]>=0.1.0",
     "aiohttp>=3.12.14",
+    "redis>=5.0.0",
+    "mem0ai>=0.1.0",
+    "sounddevice>=0.4.6",
+    "numpy>=1.24.0",
 ]
 
 [tool.uv]
