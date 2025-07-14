@@ -2,20 +2,21 @@
 Triage Agent for Voice Agent System
 
 Central triage agent that analyzes user context and routes requests to appropriate specialists.
+Optimized for OpenAI Realtime API with speech-to-speech capabilities.
 """
 
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from agents import Agent
+from agents import Agent, function_tool
 from ..core.base_agent import BaseVoiceAgent
 from .context_manager import ContextManager
-from .specialist_tools import SpecialistAgentTools
 from .agent_registry import AgentRegistry, default_registry
 
 
 class TriageAgent(BaseVoiceAgent):
     """
     Central triage agent that analyzes user context and routes to appropriate specialists.
+    Optimized for OpenAI Realtime API with natural voice interactions.
     
     Context-aware routing based on:
     - User intent analysis
@@ -23,6 +24,7 @@ class TriageAgent(BaseVoiceAgent):
     - User role and permissions
     - Location and time context
     - Conversation history
+    - Voice interaction patterns
     """
     
     def __init__(self, 
@@ -43,10 +45,32 @@ class TriageAgent(BaseVoiceAgent):
         
         self.context_manager = context_manager or ContextManager(business_context, user_context)
         self.registry = registry or default_registry
-        self.specialist_tools = SpecialistAgentTools(self.context_manager, self.registry)
+        
+        # Create specialist agents for handoffs
+        self._create_specialist_agents()
+        
+    def _create_specialist_agents(self):
+        """Create specialist agent instances for handoffs"""
+        self.contact_agent = self.registry.create_agent(
+            "contact_management",
+            self.business_context,
+            self.user_context
+        )
+        
+        self.scheduling_agent = self.registry.create_agent(
+            "scheduling",
+            self.business_context,
+            self.user_context
+        )
+        
+        # Add other specialist agents as they're implemented
+        # self.job_agent = self.registry.create_agent("job_management", ...)
+        # self.invoice_agent = self.registry.create_agent("invoice_management", ...)
+        # self.estimate_agent = self.registry.create_agent("estimate_management", ...)
+        # self.project_agent = self.registry.create_agent("project_management", ...)
         
     def get_instructions(self) -> str:
-        """Get system instructions for the triage agent"""
+        """Get system instructions for the triage agent optimized for voice"""
         
         # Get current context
         ctx = self.context_manager.get_routing_context()
@@ -56,7 +80,14 @@ class TriageAgent(BaseVoiceAgent):
         instructions = f"""You are the Hero365 AI Assistant Triage Agent for {ctx['business']['name']}.
 
 CORE MISSION:
-Analyze user requests and intelligently route them to the most appropriate specialist agents based on intent, context, and business needs. You are the central intelligence that ensures users get connected to the right expert for their specific needs.
+You are the intelligent front-door to Hero365's business management system. Handle simple requests directly and route complex requests to specialist agents only when needed.
+
+VOICE INTERACTION EXCELLENCE:
+- Speak naturally and conversationally as if talking to a colleague
+- Keep responses concise and engaging for voice interaction
+- Use verbal cues like "Let me help you with that" or "I'll look that up for you"
+- Avoid lengthy explanations - focus on actions and results
+- Acknowledge user requests verbally before taking action
 
 CONTEXT AWARENESS:
 - Business: {ctx['business']['name']} ({ctx['business']['type']})
@@ -66,201 +97,360 @@ CONTEXT AWARENESS:
 - Business Hours: {'Yes' if ctx['temporal']['is_business_hours'] else 'No'}
 - Driving Mode: {'ON' if ctx['session']['is_driving'] else 'OFF'}
 
-AVAILABLE SPECIALISTS:
-{self._get_specialist_descriptions()}
+DECISION MAKING:
+1. **Simple Queries** - Handle directly with your tools:
+   - "What are my recent contacts?" → Use get_recent_contacts
+   - "What can you help me with?" → Use get_system_status
+   - Basic information requests
 
-ROUTING INTELLIGENCE:
-1. **Intent Analysis**: Carefully analyze what the user wants to accomplish
-2. **Context Consideration**: Factor in business type, user role, time, location
-3. **Permission Checking**: Ensure user has access to requested functions
-4. **Complexity Assessment**: Determine if single or multiple specialists needed
-5. **Safety Evaluation**: Consider driving mode and safety constraints
+2. **Complex Operations** - Transfer to specialists:
+   - "Create a new contact for John Smith with email..." → transfer_to_contact_management
+   - "Schedule a meeting with my client tomorrow..." → transfer_to_scheduling
+   - Multiple steps or detailed operations
 
-ROUTING PATTERNS:
-- **Simple Requests**: Route to single most appropriate specialist
-- **Complex Requests**: Use parallel execution for multi-domain tasks
-- **Ambiguous Requests**: Ask clarifying questions before routing
-- **Unauthorized Requests**: Politely explain permission requirements
-- **Emergency Requests**: Escalate to human support when appropriate
+3. **System Issues** - Escalate:
+   - "This isn't working" → escalate_to_human
+   - Error conditions or user frustration
 
-RESPONSE PATTERN:
-1. **Acknowledge**: Briefly acknowledge the user's request
-2. **Analyze**: Understand the intent and context
-3. **Route**: Connect to appropriate specialist(s)
-4. **Synthesize**: Provide coherent response from specialist results
-5. **Follow-up**: Offer related assistance or next steps
+VOICE RESPONSE PATTERN:
+- Start with verbal acknowledgment: "Sure, let me check that for you"
+- Provide information conversationally: "I found your recent contacts. Here they are..."
+- When transferring: "I'll connect you with our contact specialist" (not "I'm transferring you")
+- End with helpful offer: "Anything else I can help you with?"
 
 SAFETY PROTOCOLS:
 {"- CRITICAL: Keep all responses brief and hands-free friendly" if ctx['session']['is_driving'] else ""}
 {"- Avoid complex multi-step processes while driving" if ctx['session']['is_driving'] else ""}
-{"- Limit financial transactions and confirmations while driving" if ctx['session']['is_driving'] else ""}
 {"- Maximum response length: " + str(safety_constraints['max_response_length']) + " characters" if safety_constraints['max_response_length'] < 500 else ""}
 
-COMMUNICATION STYLE:
-- Be professional, friendly, and efficient
-- Use natural conversational language
-- Provide clear routing explanations when helpful
-- Acknowledge when you're connecting to specialists
-- Synthesize specialist responses into coherent answers
-- Ask clarifying questions when intent is unclear
-
-ESCALATION TRIGGERS:
-- Legal or compliance issues
-- Major system failures or errors
-- High-value client concerns requiring human judgment
-- Requests outside all specialist capabilities
-- User explicitly requests human support
-
-BUSINESS CONTEXT OPTIMIZATION:
-- Home Services: Focus on job scheduling, customer management
-- Contracting: Emphasize project management, estimates, invoicing
-- Field Service: Prioritize scheduling, job tracking, inventory
-- General: Provide balanced access to all specialists
-
-Remember: Your goal is to be an intelligent router that ensures {ctx['user']['name']} gets connected to the right specialist for their specific business needs. You are the front door to Hero365's comprehensive business management capabilities."""
-
+Remember: You are the efficient gateway to Hero365's capabilities. Handle simple requests yourself, route complex ones to specialists, and always provide value through natural voice interaction."""
+        
         return instructions
     
+    def get_tools(self) -> List[Any]:
+        """Return list of triage tools (handoff functions)"""
+        return [
+            self._get_recent_contacts_simple(),
+            self._transfer_to_contact_management(),
+            self._transfer_to_scheduling(),
+            self._escalate_to_human(),
+            self._get_system_status()
+        ]
+    
+    def _get_recent_contacts_simple(self):
+        """Simple tool to get recent contacts without handoff"""
+        @function_tool
+        async def get_recent_contacts(limit: int = 10) -> str:
+            """Get the most recently created or updated contacts directly.
+            
+            Use this for simple contact queries like "what are my last contacts" or "show my recent contacts".
+            
+            Args:
+                limit: Maximum number of contacts to return (default 10)
+            
+            Returns:
+                List of recent contacts
+            """
+            try:
+                # Use the contact agent's tools directly
+                result = await self.contact_agent.contact_tools.get_recent_contacts(limit=limit)
+                
+                if result["success"]:
+                    contacts = result["contacts"]
+                    if not contacts:
+                        return "You don't have any recent contacts yet. Would you like me to help you add some?"
+                    
+                    # Format for voice response
+                    contact_list = []
+                    for contact in contacts[:limit]:
+                        name = contact.get('name', 'Unknown')
+                        company = contact.get('company', '')
+                        contact_info = f"{name}"
+                        if company:
+                            contact_info += f" from {company}"
+                        contact_list.append(contact_info)
+                    
+                    count_text = f"your {len(contact_list)} most recent contacts" if len(contact_list) > 1 else "your most recent contact"
+                    return f"Here are {count_text}: {', '.join(contact_list)}. Would you like more details about any of them?"
+                else:
+                    return f"I had trouble retrieving your contacts. {result['message']}"
+            except Exception as e:
+                return f"I encountered an error getting your contacts. Let me connect you with our contact specialist who can help."
+        
+        return get_recent_contacts
+    
+    def get_handoffs(self) -> List[Agent]:
+        """Return list of agents this agent can hand off to"""
+        handoffs = []
+        
+        # Add contact agent if available
+        if hasattr(self, 'contact_agent') and self.contact_agent:
+            handoffs.append(self.contact_agent.create_agent())
+        
+        # Add scheduling agent if available
+        if hasattr(self, 'scheduling_agent') and self.scheduling_agent:
+            handoffs.append(self.scheduling_agent.create_agent())
+        
+        return handoffs
+    
+    def _transfer_to_contact_management(self):
+        """Transfer to contact management specialist"""
+        @function_tool
+        def transfer_to_contact_management(reason: str = None) -> Agent:
+            """Transfer the user to the contact management specialist.
+            
+            Use this when the user needs to:
+            - Create, update, or delete contacts
+            - Search for specific contacts
+            - Manage contact details and information
+            - Handle complex contact operations
+            
+            Args:
+                reason: Optional reason for the transfer
+            
+            Returns:
+                Contact management agent instance
+            """
+            if self.contact_agent:
+                return self.contact_agent.create_agent()
+            else:
+                return "I'm sorry, the contact management specialist is not available right now. Please try again later."
+        
+        return transfer_to_contact_management
+    
+    def _transfer_to_scheduling(self):
+        """Transfer to scheduling specialist"""
+        @function_tool
+        def transfer_to_scheduling(reason: str = None) -> Agent:
+            """Transfer the user to the scheduling specialist.
+            
+            Use this when the user needs to:
+            - Schedule appointments or meetings
+            - Check availability and calendar
+            - Manage time slots and bookings
+            - Handle complex scheduling operations
+            
+            Args:
+                reason: Optional reason for the transfer
+            
+            Returns:
+                Scheduling agent instance
+            """
+            if self.scheduling_agent:
+                return self.scheduling_agent.create_agent()
+            else:
+                return "I'm sorry, the scheduling specialist is not available right now. Please try again later."
+        
+        return transfer_to_scheduling
+    
+    def _escalate_to_human(self):
+        """Escalate to human support"""
+        @function_tool
+        def escalate_to_human(reason: str, urgency: str = "medium") -> str:
+            """Escalate the conversation to a human support agent.
+            
+            Use this when:
+            - The user explicitly requests human help
+            - Technical issues cannot be resolved
+            - The user expresses frustration
+            - Complex problems outside agent capabilities
+            
+            Args:
+                reason: Reason for escalation
+                urgency: Urgency level (low, medium, high)
+            
+            Returns:
+                Escalation confirmation message
+            """
+            escalation_id = f"ESC_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            return f"I understand you need human assistance. I've created escalation ticket {escalation_id} for you. " \
+                   f"A human support agent will be with you shortly to help with: {reason}. " \
+                   f"Is there anything else I can help you with while you wait?"
+        
+        return escalate_to_human
+    
+    def _get_system_status(self):
+        """Get system status and capabilities"""
+        @function_tool
+        def get_system_status() -> str:
+            """Get current system status and available capabilities.
+            
+            Use this when the user asks:
+            - "What can you help me with?"
+            - "What are your capabilities?"
+            - "What can you do?"
+            
+            Returns:
+                System status and capabilities summary
+            """
+            business_name = self.business_context.get('name', 'Hero365')
+            capabilities = self.get_available_capabilities()
+            
+            status_msg = f"I'm your {business_name} assistant and I'm ready to help you with:\n\n"
+            
+            for category, actions in capabilities.items():
+                category_name = category.replace('_', ' ').title()
+                status_msg += f"• {category_name}: {', '.join(actions[:3])}"
+                if len(actions) > 3:
+                    status_msg += f" and {len(actions) - 3} more"
+                status_msg += "\n"
+            
+            status_msg += "\nJust tell me what you need help with and I'll get it done for you!"
+            
+            return status_msg
+        
+        return get_system_status
+    
     def _get_specialist_descriptions(self) -> str:
-        """Get formatted descriptions of available specialists"""
+        """Get descriptions of available specialists"""
         descriptions = []
         
-        # Get compatible agents for current context
-        compatible_agents = self.registry.get_compatible_agents(
-            self.context_manager.business_context,
-            self.context_manager.user_context
-        )
+        if hasattr(self, 'contact_agent') and self.contact_agent:
+            descriptions.append("- Contact Management: Handle customer contacts and relationships")
         
-        # Format descriptions for compatible agents
-        for agent_name in compatible_agents:
-            config = self.registry.get_agent_by_name(agent_name)
-            if config:
-                key_capabilities = ", ".join(config.capabilities[:3])
-                descriptions.append(f"**{config.name.title()}**: {config.description} ({key_capabilities})")
+        if hasattr(self, 'scheduling_agent') and self.scheduling_agent:
+            descriptions.append("- Scheduling: Manage appointments and calendar events")
         
         return "\n".join(descriptions)
     
-    def get_tools(self) -> List[Any]:
-        """Get all available tools for the triage agent"""
-        return self.specialist_tools.get_all_tools()
-    
-    def get_handoffs(self) -> List[Agent]:
-        """Get agents this agent can hand off to (none for triage pattern)"""
-        return []
-    
-    def get_agent_name(self) -> str:
-        """Get agent name for identification"""
-        business_name = self.business_context.get('name', 'Hero365')
-        return f"{business_name} AI Assistant"
-    
-    def get_personalized_greeting(self) -> str:
-        """Generate personalized greeting based on context"""
-        ctx = self.context_manager.get_routing_context()
-        
-        user_name = ctx['user']['name'] or 'there'
-        business_name = ctx['business']['name'] or 'Hero365'
-        
-        # Time-based greeting
-        current_hour = ctx['temporal']['current_hour']
-        if current_hour < 12:
-            time_greeting = "Good morning"
-        elif current_hour < 17:
-            time_greeting = "Good afternoon"
-        else:
-            time_greeting = "Good evening"
-        
-        # Context-aware greeting
-        if ctx['session']['is_driving']:
-            return f"{time_greeting} {user_name}! I'm your {business_name} assistant. I'll keep this brief since you're driving. What can I help you with?"
-        elif not ctx['temporal']['is_business_hours']:
-            return f"{time_greeting} {user_name}! I'm your {business_name} assistant. I'm here to help even outside business hours. What do you need assistance with?"
-        else:
-            return f"{time_greeting} {user_name}! I'm your {business_name} assistant. I can help you with scheduling, jobs, invoicing, contacts, and more. What would you like to do?"
-    
     def get_available_capabilities(self) -> Dict[str, List[str]]:
-        """Get summary of available capabilities through specialists"""
-        capabilities = {}
-        
-        # Get compatible agents
-        compatible_agents = self.registry.get_compatible_agents(
-            self.context_manager.business_context,
-            self.context_manager.user_context
-        )
-        
-        # Get capabilities for each compatible agent
-        for agent_name in compatible_agents:
-            config = self.registry.get_agent_by_name(agent_name)
-            if config:
-                capabilities[agent_name] = config.capabilities
+        """Get available capabilities for system status"""
+        capabilities = {
+            "contact_management": [
+                "View recent contacts",
+                "Find specific contacts",
+                "Add new contacts",
+                "Update contact information"
+            ],
+            "scheduling": [
+                "Check availability",
+                "Schedule appointments",
+                "View calendar",
+                "Reschedule meetings"
+            ],
+            "system_help": [
+                "Get system status",
+                "Explain capabilities",
+                "Connect with specialists",
+                "Escalate to human support"
+            ]
+        }
         
         return capabilities
     
     def create_agent(self) -> Agent:
-        """Create OpenAI agent instance with triage capabilities"""
+        """Create OpenAI agent instance with enhanced voice capabilities"""
         return Agent(
             name=self.get_agent_name(),
             instructions=self.get_instructions(),
             tools=self.get_tools(),
             handoffs=self.get_handoffs(),
-            model="gpt-4o-mini"  # Use efficient model for triage
+            model="gpt-4o-mini"  # Use efficient model by default
         )
     
     def create_voice_optimized_agent(self) -> Agent:
-        """Create agent specifically optimized for voice interactions"""
+        """Create voice-optimized agent with enhanced TTS instructions"""
+        voice_instructions = self._get_voice_optimized_instructions()
+        
         return Agent(
             name=self.get_agent_name(),
-            instructions=self.get_instructions(),
+            instructions=voice_instructions,
             tools=self.get_tools(),
             handoffs=self.get_handoffs(),
-            model="gpt-4o-mini"
+            model="gpt-4o-mini-tts"  # Use TTS-optimized model
         )
     
     def get_routing_suggestions(self, user_request: str) -> List[Dict[str, Any]]:
-        """Get routing suggestions for a user request"""
-        return self.specialist_tools.get_routing_suggestions(user_request)
+        """Get routing suggestions based on user request"""
+        suggestions = []
+        
+        request_lower = user_request.lower()
+        
+        # Contact-related requests
+        if any(word in request_lower for word in ['contact', 'customer', 'client', 'phone', 'email']):
+            suggestions.append({
+                "agent": "contact_management",
+                "confidence": 0.8,
+                "reason": "Request contains contact-related keywords"
+            })
+        
+        # Scheduling-related requests
+        if any(word in request_lower for word in ['schedule', 'appointment', 'meeting', 'calendar', 'book']):
+            suggestions.append({
+                "agent": "scheduling",
+                "confidence": 0.8,
+                "reason": "Request contains scheduling-related keywords"
+            })
+        
+        return suggestions
     
     def get_context_summary(self) -> str:
-        """Get formatted summary of current context"""
+        """Get context summary for debugging"""
         return self.context_manager.get_context_summary()
     
     def can_handle_request(self, request: str) -> bool:
-        """Check if the triage agent can handle a request"""
-        # Triage agent can handle any request by routing to specialists
-        return True
+        """Check if triage agent can handle request directly"""
+        simple_requests = [
+            "what can you help with", "what are your capabilities", "system status",
+            "recent contacts", "help", "what can you do"
+        ]
+        
+        request_lower = request.lower()
+        return any(phrase in request_lower for phrase in simple_requests)
     
     def get_safety_constraints(self) -> Dict[str, Any]:
-        """Get current safety constraints"""
+        """Get safety constraints based on user context"""
         return self.context_manager.get_safety_constraints()
     
     def update_context(self, updates: Dict[str, Any]):
-        """Update user or business context"""
-        if "user" in updates:
-            self.context_manager.user_context.update(updates["user"])
-        if "business" in updates:
-            self.context_manager.business_context.update(updates["business"])
+        """Update context manager with new information"""
+        if self.context_manager:
+            # Update user context
+            if 'user_context' in updates:
+                self.user_context.update(updates['user_context'])
+            
+            # Update business context
+            if 'business_context' in updates:
+                self.business_context.update(updates['business_context'])
+            
+            # Refresh context manager
+            self.context_manager.refresh_context()
     
     def get_specialist_status(self) -> Dict[str, Any]:
         """Get status of specialist agents"""
-        return {
-            "available_specialists": len(self.registry.get_all_agents()),
-            "compatible_specialists": len(self.registry.get_compatible_agents(
-                self.context_manager.business_context,
-                self.context_manager.user_context
-            )),
-            "cached_agents": self.specialist_tools.get_cached_agents(),
-            "registry_health": "healthy"
-        }
+        status = {}
+        
+        if hasattr(self, 'contact_agent') and self.contact_agent:
+            status['contact_management'] = {
+                'available': True,
+                'name': self.contact_agent.get_agent_name(),
+                'capabilities': ['contacts', 'customers', 'leads']
+            }
+        
+        if hasattr(self, 'scheduling_agent') and self.scheduling_agent:
+            status['scheduling'] = {
+                'available': True,
+                'name': self.scheduling_agent.get_agent_name(),
+                'capabilities': ['appointments', 'calendar', 'meetings']
+            }
+        
+        return status
     
     def clear_specialist_cache(self):
-        """Clear cached specialist agents"""
-        self.specialist_tools.clear_agent_cache()
+        """Clear specialist agent cache"""
+        if hasattr(self, 'contact_agent'):
+            self.contact_agent = None
+        if hasattr(self, 'scheduling_agent'):
+            self.scheduling_agent = None
+        
+        # Recreate specialist agents
+        self._create_specialist_agents()
     
     def get_business_hours_status(self) -> Dict[str, Any]:
         """Get business hours status"""
-        ctx = self.context_manager.get_routing_context()
-        return {
-            "is_business_hours": ctx['temporal']['is_business_hours'],
-            "current_time": ctx['temporal']['current_time'],
-            "day_of_week": ctx['temporal']['day_of_week'],
-            "business_hours": ctx['business']['business_hours']
-        } 
+        return self.context_manager.get_business_hours_status()
+    
+    def get_voice_pipeline(self):
+        """Get voice pipeline for realtime audio processing"""
+        return self.create_voice_pipeline() 

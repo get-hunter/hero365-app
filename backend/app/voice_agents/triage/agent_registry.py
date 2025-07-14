@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Type, Optional
 from dataclasses import dataclass
 from ..core.base_agent import BaseVoiceAgent
 from .scheduling_agent import SchedulingAgent
+from .contact_agent import ContactAgent
 
 
 @dataclass
@@ -59,7 +60,30 @@ class AgentRegistry:
             priority=2
         ))
         
-        # Note: Other specialized agents (Job, Invoice, Estimate, Contact, Project) 
+        self.register_agent(AgentConfig(
+            name="contact_management",
+            agent_class=ContactAgent,
+            description="Customer relationship management and contact operations",
+            capabilities=[
+                "Manage customer contacts",
+                "Track relationship status",
+                "Log customer interactions",
+                "Schedule follow-ups",
+                "Search and filter contacts",
+                "Qualify leads",
+                "Monitor customer lifecycle",
+                "Record communication history"
+            ],
+            keywords=[
+                "contact", "customer", "client", "lead", "prospect", "call", "email",
+                "phone", "address", "follow", "interaction", "relationship", "CRM",
+                "customer management", "client management", "contact management",
+                "add contact", "find contact", "search contact", "update contact"
+            ],
+            priority=2
+        ))
+        
+        # Note: Other specialized agents (Job, Invoice, Estimate, Project) 
         # will be registered separately when their implementations are created
         # in the triage/specialists/ directory
     

@@ -2,14 +2,18 @@
 OpenAI Voice Agent API Routes
 
 API endpoints for OpenAI voice agent integration with Hero365.
+Uses the OpenAI Agents SDK VoicePipeline for proper STT -> LLM -> TTS processing.
 """
 
 import logging
+import os
+import asyncio
+import base64
 from datetime import datetime
 from typing import Dict, Any, Optional
 from uuid import uuid4
-import numpy as np
 
+import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer
 
@@ -23,17 +27,17 @@ from app.api.schemas.voice_agent_schemas import (
     VoiceAgentStopResponse,
     WebSocketConnectionSchema
 )
-
 from app.infrastructure.config.dependency_injection import get_business_repository
+from app.core.config import settings
+
+# OpenAI Agents SDK imports
+from agents.voice import VoicePipeline, AudioInput, VoicePipelineConfig, TTSModelSettings
+from openai import AsyncOpenAI
 
 # Router setup
 router = APIRouter()
 security = HTTPBearer()
 logger = logging.getLogger(__name__)
-
-# Set up OpenAI API key for the OpenAI Agents library
-import os
-from app.core.config import settings
 
 # Set OpenAI API key as environment variable for OpenAI Agents library
 if settings.OPENAI_API_KEY:
@@ -42,85 +46,83 @@ if settings.OPENAI_API_KEY:
 else:
     logger.warning("⚠️ OpenAI API key not found in settings")
 
-# Note: We use manual STT → LLM → TTS flow instead of OpenAI Agents VoicePipeline
-# This gives us more control and compatibility with our existing agent architecture
-logger.info("✅ Using manual voice flow - no OpenAI Agents SDK dependency required")
-
 # Active sessions tracking
 active_sessions: Dict[str, Dict[str, Any]] = {}
 
+logger.info("🎯 Using OpenAI Agents SDK VoicePipeline for proper STT -> LLM -> TTS processing")
+
 
 async def _send_greeting_audio(websocket: WebSocket, session_id: str, session: Dict[str, Any]):
-    """
-    Send greeting audio to the user after WebSocket connection is established.
-    
-    Args:
-        websocket: WebSocket connection
-        session_id: Session identifier
-        session: Session data dictionary
-    """
+    """Send greeting audio to the user using the VoicePipeline."""
     try:
-        logger.info(f"🎤 Generating greeting audio for session {session_id}")
+        logger.info(f"🎤 Sending greeting audio for session {session_id}")
         
-        # Get the agent and generate personalized greeting
-        agent = session.get("agent")
-        if not agent:
-            logger.error(f"❌ No agent found in session {session_id}")
+        # Get the voice workflow from session
+        voice_workflow = session.get("voice_workflow")
+        if not voice_workflow:
+            logger.warning(f"⚠️ No voice workflow available for session {session_id}")
             return
         
-        # Get personalized greeting text
-        greeting_text = agent.get_personalized_greeting()
+        # Get personalized greeting
+        greeting_text = voice_workflow.get_personalized_greeting()
         logger.info(f"📝 Greeting text: {greeting_text}")
         
-        # Convert text to speech using OpenAI TTS
-        from openai import OpenAI
-        from app.core.config import settings
+        # Get the voice pipeline from session
+        voice_pipeline = session.get("voice_pipeline")
+        if not voice_pipeline:
+            logger.warning(f"⚠️ No voice pipeline available for session {session_id}")
+            return
         
-        if not settings.OPENAI_API_KEY:
-            logger.error("❌ OpenAI API key not configured")
-            raise ValueError("OpenAI API key not configured")
+        # Create a simple audio input with silence to trigger greeting
+        # This is a workaround since we want to generate TTS without STT
+        silence_array = np.zeros(1024, dtype=np.int16)  # 1024 samples of silence
+        audio_input = AudioInput(buffer=silence_array)
         
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        # Manually generate TTS using the pipeline's TTS settings
+        openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         
-        # Generate speech
-        response = client.audio.speech.create(
+        # Use the pipeline's TTS settings
+        tts_settings = voice_pipeline.config.tts_settings if voice_pipeline.config else None
+        voice = getattr(tts_settings, 'voice', 'alloy') if tts_settings else 'alloy'
+        
+        # Generate greeting audio
+        speech_response = await openai_client.audio.speech.create(
             model="tts-1",
-            voice="alloy",  # Using alloy voice as specified in the config
+            voice=voice,
             input=greeting_text,
-            response_format="wav"
+            response_format="mp3",
+            speed=1.0
         )
         
-        # Convert audio to base64 for transmission
-        import base64
-        audio_base64 = base64.b64encode(response.content).decode('utf-8')
+        # Convert to base64 for transmission
+        audio_data = speech_response.content
+        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
         # Send greeting audio to client
         await websocket.send_json({
-            "type": "greeting_audio",
+            "type": "audio_response",
             "data": {
                 "audio": audio_base64,
-                "text": greeting_text,
-                "format": "wav",
-                "voice": "alloy"
+                "format": "mp3",
+                "text": greeting_text
             },
             "session_id": session_id,
             "timestamp": datetime.now().isoformat()
         })
         
-        logger.info(f"✅ Greeting audio sent for session {session_id}")
+        logger.info(f"✅ Greeting audio sent successfully for session {session_id}")
         
     except Exception as e:
-        logger.error(f"❌ Error generating greeting audio: {e}")
-        import traceback
-        logger.error(f"Full traceback: {traceback.format_exc()}")
+        logger.error(f"❌ Error sending greeting audio: {str(e)}")
         
-        # Send text fallback if audio generation fails
+        # Fallback to text-only greeting
         try:
+            fallback_greeting = voice_workflow.get_personalized_greeting() if voice_workflow else "Hello! How can I help you today?"
             await websocket.send_json({
-                "type": "greeting_text",
+                "type": "message",
                 "data": {
-                    "text": session["greeting"],
-                    "message": "Audio greeting failed, sending text fallback"
+                    "text": fallback_greeting,
+                    "is_greeting": True
                 },
                 "session_id": session_id,
                 "timestamp": datetime.now().isoformat()
@@ -129,9 +131,12 @@ async def _send_greeting_audio(websocket: WebSocket, session_id: str, session: D
             logger.error(f"❌ Fallback greeting also failed: {fallback_error}")
 
 
-async def _process_with_manual_voice_flow(websocket: WebSocket, session_id: str, audio_array, session: Dict[str, Any]):
+async def _process_with_voice_pipeline(websocket: WebSocket, session_id: str, audio_array: np.ndarray, session: Dict[str, Any]):
     """
-    Process audio using manual STT → LLM → TTS flow
+    Process audio using the OpenAI Agents SDK VoicePipeline.
+    
+    This replaces the manual STT -> LLM -> TTS chain with the proper
+    OpenAI Agents SDK VoicePipeline implementation.
     
     Args:
         websocket: WebSocket connection
@@ -140,233 +145,130 @@ async def _process_with_manual_voice_flow(websocket: WebSocket, session_id: str,
         session: Session data dictionary
     """
     try:
-        logger.info(f"🎤 Processing audio with manual STT → LLM → TTS flow for session {session_id}")
+        logger.info(f"🎯 Processing audio with OpenAI Agents SDK VoicePipeline for session {session_id}")
         
-        # Get the agent from session
-        agent = session.get("agent")
-        if not agent:
-            logger.warning(f"⚠️ No agent available for session {session_id}")
+        # Get the voice pipeline from session
+        voice_pipeline = session.get("voice_pipeline")
+        if not voice_pipeline:
+            logger.error(f"❌ No voice pipeline available for session {session_id}")
             await websocket.send_json({
                 "type": "error",
-                "message": "Agent not available",
+                "message": "Voice pipeline not available",
                 "timestamp": datetime.now().isoformat()
             })
             return
         
-        # Step 1: Speech-to-Text
-        logger.info(f"🎤 Step 1: Converting audio to text...")
+        # Create AudioInput from the audio array
+        audio_input = AudioInput(buffer=audio_array)
         
-        # Create a temporary WAV file for OpenAI Whisper
-        import tempfile
-        import wave
-        import asyncio
-        import base64
+        # Process the audio through the VoicePipeline
+        logger.info("🎤 Running VoicePipeline...")
+        result = await voice_pipeline.run(audio_input)
         
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-            # Write audio as WAV (using 24kHz as that's what we resampled to)
-            with wave.open(temp_file.name, 'wb') as wav_file:
-                wav_file.setnchannels(1)  # Mono
-                wav_file.setsampwidth(2)  # 16-bit
-                wav_file.setframerate(24000)  # 24kHz
-                wav_file.writeframes(audio_array.tobytes())
-            
-            # Transcribe with OpenAI Whisper
-            with open(temp_file.name, 'rb') as audio_file:
-                from app.core.config import settings
-                from openai import AsyncOpenAI
-                openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        # Handle the streaming result
+        logger.info("📡 Streaming voice pipeline results...")
+        
+        response_text = ""
+        audio_chunks = []
+        
+        async for event in result.stream():
+            if event.type == "voice_stream_event_audio":
+                # Collect audio chunks
+                audio_chunks.append(event.data)
                 
-                transcription = await openai_client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=audio_file,
-                    response_format="text"
-                )
-        
-        # Clean up temp file
-        import os
-        os.unlink(temp_file.name)
-        
-        transcript_text = transcription.strip() if isinstance(transcription, str) else transcription.text.strip()
-        logger.info(f"📝 Transcription: {transcript_text}")
-        
-        # Send transcript to client
-        await websocket.send_json({
-            "type": "transcript",
-            "data": {
-                "text": transcript_text,
-                "is_final": True
-            },
-            "session_id": session_id,
-            "timestamp": datetime.now().isoformat()
-        })
-        
-        # Step 2: Process with LLM Agent
-        logger.info(f"🤖 Step 2: Processing with agent...")
-        
-        # Get business and user context for the agent
-        business_context = session.get("business_context", {})
-        user_context = session.get("user_context", {})
-        
-        # Process message with agent - create OpenAI Agent and use its run method
-        try:
-            # Create OpenAI Agent instance from our custom agent
-            openai_agent = agent.create_voice_optimized_agent()
-            
-            # Use the OpenAI Agent's run method to process the message
-            # The OpenAI Agent uses the tools and instructions we configured
-            # Note: openai_client is already configured above with API key
-            
-            # Use chat completion with the agent's instructions
-            # Note: Tool calling will be implemented in a future update
-            messages = [
-                {"role": "system", "content": agent.get_instructions()},
-                {"role": "user", "content": transcript_text}
-            ]
-            
-            # Make the API call without tools for now
-            response = await openai_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,
-                temperature=0.7,
-                max_tokens=1000
-            )
-            
-            response_text = response.choices[0].message.content
-            
-            # Log successful processing
-            logger.info(f"🤖 Agent processed message successfully: {len(response_text)} chars")
+            elif event.type == "voice_stream_event_content":
+                # Collect text content
+                response_text += event.data
                 
-        except Exception as agent_error:
-            logger.error(f"❌ Agent processing error: {agent_error}")
-            response_text = "I'm sorry, there was an issue processing your request. Please try again."
+            elif event.type == "voice_stream_event_transcript":
+                # Send transcript to client
+                await websocket.send_json({
+                    "type": "transcript",
+                    "data": {
+                        "text": event.data,
+                        "is_final": True
+                    },
+                    "session_id": session_id,
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+            elif event.type == "voice_stream_event_error":
+                logger.error(f"❌ Voice pipeline error: {event.data}")
+                await websocket.send_json({
+                    "type": "error",
+                    "message": f"Voice processing error: {event.data}",
+                    "timestamp": datetime.now().isoformat()
+                })
+                return
         
-        logger.info(f"🤖 Agent response: {response_text}")
-        
-        # Step 3: Text-to-Speech
-        logger.info(f"🗣️ Step 3: Converting text to speech...")
-        
-        # Use OpenAI TTS
-        speech_response = await openai_client.audio.speech.create(
-            model="tts-1",
-            voice="alloy",
-            input=response_text,
-            response_format="mp3",
-            speed=1.0
-        )
-        
-        # Convert response to base64
-        audio_data = speech_response.content
-        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
-        
-        logger.info(f"🎵 Generated audio response ({len(audio_data)} bytes)")
-        
-        # Send audio response to client (check connection state)
-        try:
+        # Combine all audio chunks and send response
+        if audio_chunks:
+            # Combine audio chunks into a single response
+            combined_audio = np.concatenate(audio_chunks)
+            audio_base64 = base64.b64encode(combined_audio.tobytes()).decode('utf-8')
+            
+            # Send the complete audio response
             await websocket.send_json({
                 "type": "audio_response",
                 "data": {
                     "audio": audio_base64,
-                    "format": "mp3",
+                    "format": "wav",  # VoicePipeline typically returns wav
                     "text": response_text
                 },
                 "session_id": session_id,
                 "timestamp": datetime.now().isoformat()
             })
             
-            # Send completion message
+            logger.info(f"✅ Successfully processed audio via VoicePipeline, response: {len(response_text)} chars, audio: {len(combined_audio)} samples")
+        else:
+            # No audio returned, send text response
             await websocket.send_json({
-                "type": "processing_complete",
-                "message": "Voice processing completed",
-                "transcript": transcript_text,
-                "response": response_text,
+                "type": "text_response",
+                "data": {
+                    "text": response_text or "I processed your request successfully."
+                },
                 "session_id": session_id,
                 "timestamp": datetime.now().isoformat()
             })
-        except Exception as ws_error:
-            logger.warning(f"⚠️ WebSocket send failed (connection may be closed): {ws_error}")
-            return  # Exit gracefully if connection is closed
-        
-        logger.info(f"✅ Manual voice flow completed for session {session_id}")
         
     except Exception as e:
-        logger.error(f"❌ Manual voice flow error: {e}")
+        logger.error(f"❌ Error processing audio with VoicePipeline: {str(e)}")
         import traceback
         logger.error(f"Full traceback: {traceback.format_exc()}")
         
-        try:
-            await websocket.send_json({
-                "type": "error",
-                "message": f"Voice processing failed: {str(e)}",
-                "timestamp": datetime.now().isoformat()
-            })
-        except Exception as ws_error:
-            logger.warning(f"⚠️ Could not send error message, WebSocket may be closed: {ws_error}")
+        # Send error response
+        await websocket.send_json({
+            "type": "error",
+            "message": "Failed to process audio. Please try again.",
+            "timestamp": datetime.now().isoformat()
+        })
 
 
 async def _process_audio_after_silence(websocket: WebSocket, session_id: str, session: Dict[str, Any]):
-    """
-    Process buffered audio after detecting silence (timeout-based VAD)
-    """
-    import asyncio
-    
+    """Process accumulated audio after silence detection."""
     try:
-        # Wait for silence timeout (1.5 seconds)
-        await asyncio.sleep(1.5)
+        audio_buffer = session.get("audio_buffer", [])
+        if not audio_buffer:
+            logger.warning(f"⚠️ No audio buffer to process for session {session_id}")
+            return
         
-        # Check if we have audio in the buffer
-        if "audio_buffer" in session and session["audio_buffer"]:
-            logger.info(f"🔇 Silence detected, processing buffered audio ({len(session['audio_buffer'])} samples, {len(session['audio_buffer'])/16000:.2f}s)")
-            
-            # Convert buffer to numpy array
-            audio_array_16k = np.array(session["audio_buffer"], dtype=np.int16)
-            
-            # Check for duplicate audio (compare with recently processed complete_audio)
-            if "last_processed_audio_hash" in session and "last_processed_time" in session:
-                # Create hash of buffered audio for comparison
-                import base64
-                import hashlib
-                audio_bytes = audio_array_16k.tobytes()
-                buffered_audio_b64 = base64.b64encode(audio_bytes).decode()
-                buffered_hash = hashlib.md5(buffered_audio_b64.encode()).hexdigest()
-                
-                # Check if this matches recently processed audio (within last 10 seconds)
-                time_diff = (datetime.now() - session["last_processed_time"]).total_seconds()
-                if time_diff < 10 and buffered_hash == session["last_processed_audio_hash"]:
-                    logger.info(f"🚫 Skipping duplicate audio processing (hash: {buffered_hash[:8]}..., {time_diff:.1f}s ago)")
-                    # Clear buffer and timer
-                    session["audio_buffer"] = []
-                    session["silence_timer"] = None
-                    return
-            
-            # Clear buffer and timer
-            session["audio_buffer"] = []
-            session["silence_timer"] = None
-            
-            # Resample buffered audio from 16kHz to 24kHz
-            from scipy import signal
-            audio_float = audio_array_16k.astype(np.float32) / 32768.0
-            
-            # Resample from 16kHz to 24kHz
-            original_sample_rate = 16000
-            target_sample_rate = 24000
-            
-            num_samples_24k = int(len(audio_float) * target_sample_rate / original_sample_rate)
-            audio_resampled = signal.resample(audio_float, num_samples_24k)
-            
-            # Convert back to int16 for processing
-            audio_int16_24k = (audio_resampled * 32767).astype(np.int16)
-            
-            logger.info(f"🎤 Resampled buffered audio: {len(audio_int16_24k)} samples at 24kHz")
-            
-            # Process the complete audio
-            await _process_with_manual_voice_flow(websocket, session_id, audio_int16_24k, session)
-            
-        else:
-            # No audio to process
-            session["silence_timer"] = None
-            
+        # Combine audio chunks
+        combined_audio = np.concatenate(audio_buffer)
+        logger.info(f"🎤 Processing {len(combined_audio)} audio samples after silence detection")
+        
+        # Process with VoicePipeline
+        await _process_with_voice_pipeline(websocket, session_id, combined_audio, session)
+        
+        # Clear the audio buffer
+        session["audio_buffer"] = []
+        
     except Exception as e:
-        logger.error(f"❌ Error processing audio after silence: {e}")
+        logger.error(f"❌ Error processing audio after silence: {str(e)}")
+        
+        # Clear the audio buffer even on error
+        session["audio_buffer"] = []
+        
+        # Reset silence timer
         session["silence_timer"] = None
 
 
@@ -431,44 +333,79 @@ async def start_openai_voice_agent(
         session_id = f"openai_voice_{current_user['id']}_{business_id}_{uuid4().hex[:8]}"
         
         # Create triage agent with intelligent routing
-        from app.voice_agents.triage import TriageAgent, ContextManager
+        from app.voice_agents.triage import TriageAgent, ContextManager, Hero365VoiceWorkflow
         
         # Create context manager for enhanced context handling
         context_manager = ContextManager(business_data, user_context)
         
         # Create triage agent with intelligent routing capabilities
-        agent = TriageAgent(
+        triage_agent = TriageAgent(
             business_context=business_data,
             user_context=user_context,
             context_manager=context_manager
         )
         
-        greeting = agent.get_personalized_greeting()
-        available_capabilities = agent.get_available_capabilities()
+        # Create the voice workflow for the OpenAI Agents SDK
+        voice_workflow = Hero365VoiceWorkflow(
+            business_context=business_data,
+            user_context=user_context,
+            context_manager=context_manager
+        )
+        
+        greeting = voice_workflow.get_personalized_greeting()
+        available_capabilities = voice_workflow.get_available_capabilities()
         available_tools = sum(len(caps) for caps in available_capabilities.values())
         
-        # Note: VoicePipeline is designed for the new OpenAI Agents SDK format
-        # Since we have custom agent classes, we'll use manual STT → LLM → TTS flow
-        voice_pipeline = None
-        logger.info(f"✅ Using manual STT → LLM → TTS flow for session {session_id}")
+        # Configure TTS settings based on user preferences
+        tts_voice = "alloy"  # Default voice
+        tts_speed = 1.0
+        
+        if request.voice_speed:
+            speed_mapping = {
+                "slow": 0.8,
+                "normal": 1.0,
+                "fast": 1.2
+            }
+            tts_speed = speed_mapping.get(request.voice_speed, 1.0)
+        
+        # Configure TTS settings for driving mode
+        if user_context.get("is_driving"):
+            tts_speed = 0.9  # Slightly slower for driving safety
+        
+        # Create VoicePipeline with the Hero365VoiceWorkflow
+        voice_pipeline = VoicePipeline(
+            workflow=voice_workflow,
+            config=VoicePipelineConfig(
+                tts_settings=TTSModelSettings(
+                    voice=tts_voice,
+                    speed=tts_speed,
+                    format="mp3"
+                )
+            )
+        )
+        logger.info(f"✅ Using OpenAI Agents SDK VoicePipeline with Hero365VoiceWorkflow for session {session_id}")
         
         # Store session information
         active_sessions[session_id] = {
             "user_id": current_user["id"],
             "business_id": business_id,
-            "agent_name": agent.get_agent_name(),
+            "agent_name": voice_workflow.get_current_agent_name(),
             "business_context": business_data,
             "user_context": user_context,
             "context_manager": context_manager,
-            "agent": agent,  # Store the triage agent instance
+            "triage_agent": triage_agent,  # Store the triage agent instance
+            "voice_workflow": voice_workflow,  # Store the voice workflow
             "greeting": greeting,  # Store the greeting text
             "voice_pipeline": voice_pipeline,  # Store the voice pipeline
             "created_at": datetime.now(),
-            "status": "active"
+            "status": "active",
+            "audio_buffer": [],
+            "silence_timer": None,
+            "total_tools": available_tools,
+            "available_capabilities": available_capabilities
         }
         
         # Prepare WebSocket connection details
-        from app.core.config import settings
         
         # Generate WebSocket URL based on environment
         if settings.ENVIRONMENT == "local":
@@ -494,7 +431,7 @@ async def start_openai_voice_agent(
         response = VoiceAgentStartResponse(
             success=True,
             session_id=session_id,
-            agent_name=agent.get_agent_name(),
+            agent_name=voice_workflow.get_current_agent_name(),
             greeting=greeting,
             available_capabilities=available_capabilities,
             available_tools=available_tools,
@@ -511,7 +448,7 @@ async def start_openai_voice_agent(
                 "device_type": request.device_type,
                 "time_zone": request.time_zone
             },
-            context_summary=agent.get_context_summary(),
+            context_summary=voice_workflow.get_context_summary(),
             message="Triage-based voice agent started successfully"
         )
         
@@ -556,10 +493,10 @@ async def get_openai_voice_agent_status(
         duration = int((datetime.now() - session["created_at"]).total_seconds())
         
         # Get specialist status from the triage agent
-        agent = session.get("agent")
+        triage_agent = session.get("triage_agent")
         specialist_status = {}
-        if agent and hasattr(agent, 'get_specialist_status'):
-            specialist_status = agent.get_specialist_status()
+        if triage_agent and hasattr(triage_agent, 'get_specialist_status'):
+            specialist_status = triage_agent.get_specialist_status()
         
         return VoiceAgentStatusResponse(
             success=True,
@@ -701,9 +638,6 @@ async def websocket_voice_agent(websocket: WebSocket, session_id: str):
                                 session["last_audio_time"] = datetime.now()
                             
                             # Decode and add to buffer
-                            import base64
-                            import hashlib
-                            import numpy as np
                             audio_bytes = base64.b64decode(audio_data)
                             audio_array = np.frombuffer(audio_bytes, dtype=np.int16)
                             
@@ -781,10 +715,6 @@ async def websocket_voice_agent(websocket: WebSocket, session_id: str):
                             logger.info(f"🔒 Storing audio hash to prevent duplicates: {audio_hash[:8]}...")
                             
                             # Decode base64 audio data
-                            import base64
-                            import numpy as np
-                            from scipy import signal
-                            
                             audio_bytes = base64.b64decode(audio_data)
                             logger.info(f"🎤 Decoded complete audio: {len(audio_bytes)} bytes")
                             
@@ -792,24 +722,8 @@ async def websocket_voice_agent(websocket: WebSocket, session_id: str):
                             audio_array_16k = np.frombuffer(audio_bytes, dtype=np.int16)
                             logger.info(f"🎤 Complete audio: {len(audio_array_16k)} samples ({len(audio_array_16k)/16000:.2f}s)")
                             
-                            # Convert to float32 for resampling
-                            audio_float = audio_array_16k.astype(np.float32) / 32768.0
-                            
-                            # Resample from 16kHz to 24kHz (OpenAI Agents requirement)
-                            original_sample_rate = 16000
-                            target_sample_rate = 24000
-                            
-                            # Resample using scipy
-                            num_samples_24k = int(len(audio_float) * target_sample_rate / original_sample_rate)
-                            audio_resampled = signal.resample(audio_float, num_samples_24k)
-                            
-                            # Convert back to int16 for OpenAI Agents
-                            audio_int16_24k = (audio_resampled * 32767).astype(np.int16)
-                            
-                            logger.info(f"🎤 Resampled complete audio: {len(audio_int16_24k)} samples at 24kHz")
-                            
-                            # Process with manual STT → LLM → TTS flow
-                            await _process_with_manual_voice_flow(websocket, session_id, audio_int16_24k, session)
+                            # Process with VoicePipeline
+                            await _process_with_voice_pipeline(websocket, session_id, audio_array_16k, session)
                             
                         except Exception as e:
                             logger.error(f"❌ Error processing complete audio: {e}")
