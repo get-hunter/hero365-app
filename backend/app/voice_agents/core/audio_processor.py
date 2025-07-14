@@ -74,6 +74,22 @@ class AudioProcessor:
         # For now, return the default language from settings
         return settings.OPENAI_DEFAULT_LANGUAGE
     
+    def _is_wav_format(self, audio_data: bytes) -> bool:
+        """Check if audio data is already in WAV format by examining headers"""
+        try:
+            # WAV files start with "RIFF" and have "WAVE" at offset 8
+            if len(audio_data) < 12:
+                return False
+            
+            # Check for RIFF header
+            riff_header = audio_data[:4]
+            wave_header = audio_data[8:12]
+            
+            return riff_header == b'RIFF' and wave_header == b'WAVE'
+            
+        except Exception:
+            return False
+    
     def _convert_pcm_to_wav(self, pcm_data: bytes, sample_rate: int = 16000, channels: int = 1) -> bytes:
         """Convert PCM audio data to WAV format with optimized parameters"""
         try:
@@ -102,7 +118,7 @@ class AudioProcessor:
         """Simple in-memory cache for common responses"""
         return None  # Placeholder - implement with Redis for production
     
-    async def process_audio_to_text(self, audio_data: bytes, format: str = "wav", language: str = None) -> str:
+    async def process_audio_to_text(self, audio_data: bytes, format: str = "wav", language: str = None, cancellation_token: Optional[asyncio.Event] = None) -> str:
         """
         Convert audio data to text using OpenAI Whisper with optimizations.
         
@@ -110,9 +126,13 @@ class AudioProcessor:
             audio_data: Raw audio bytes
             format: Audio format (wav, mp3, m4a, etc.)
             language: Language code for transcription (e.g., 'en', 'es', 'fr'). If None, uses default.
+            cancellation_token: Event to signal cancellation of processing
             
         Returns:
             Transcribed text
+            
+        Raises:
+            asyncio.CancelledError: If operation was cancelled
         """
         if not self.client:
             logger.error("❌ OpenAI client not configured")
@@ -121,8 +141,12 @@ class AudioProcessor:
         try:
             logger.info(f"🎤 Processing {len(audio_data)} bytes of {format} audio with Whisper")
             
+            # Auto-detect WAV format to avoid unnecessary conversions
+            if self._is_wav_format(audio_data):
+                logger.info("✅ Audio is already in WAV format, skipping conversion")
+                format = "wav"
             # Handle PCM format conversion
-            if format.lower() in ['pcm', 'pcm16', 'raw']:
+            elif format.lower() in ['pcm', 'pcm16', 'raw']:
                 logger.info("🔄 Converting PCM audio to WAV format for OpenAI Whisper")
                 audio_data = self._convert_pcm_to_wav(audio_data)
                 format = "wav"
@@ -131,18 +155,52 @@ class AudioProcessor:
             audio_file = io.BytesIO(audio_data)
             audio_file.name = f"audio.{format.lower()}"
             
+            # Check for cancellation before starting
+            if cancellation_token and cancellation_token.is_set():
+                logger.info("🚫 Audio processing cancelled before starting")
+                raise asyncio.CancelledError("Audio processing was cancelled")
+            
             # Call OpenAI Whisper API with optimized client
             start_time = asyncio.get_event_loop().time()
             
             # Use provided language or default from settings
             transcription_language = language or settings.OPENAI_DEFAULT_LANGUAGE
             
-            transcript = await self.client.audio.transcriptions.create(
-                model=settings.OPENAI_SPEECH_MODEL,
-                file=audio_file,
-                response_format="text",
-                language=transcription_language
+            # Create cancellable task for API call
+            transcription_task = asyncio.create_task(
+                self.client.audio.transcriptions.create(
+                    model=settings.OPENAI_SPEECH_MODEL,
+                    file=audio_file,
+                    response_format="text",
+                    language=transcription_language
+                )
             )
+            
+            # Wait for either completion or cancellation
+            if cancellation_token:
+                cancellation_task = asyncio.create_task(cancellation_token.wait())
+                
+                done, pending = await asyncio.wait(
+                    [transcription_task, cancellation_task],
+                    return_when=asyncio.FIRST_COMPLETED
+                )
+                
+                # Cancel pending tasks
+                for task in pending:
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
+                
+                # Check what completed first
+                if cancellation_task in done:
+                    logger.info("🚫 Audio processing cancelled during API call")
+                    raise asyncio.CancelledError("Audio processing was cancelled")
+                
+                transcript = transcription_task.result()
+            else:
+                transcript = await transcription_task
             
             processing_time = asyncio.get_event_loop().time() - start_time
             logger.info(f"⚡ Whisper processing completed in {processing_time:.2f}s")
@@ -165,7 +223,7 @@ class AudioProcessor:
             logger.error(f"❌ Error processing audio with Whisper: {e}")
             return f"I'm sorry, I had trouble understanding that audio. Error: {str(e)}"
     
-    async def process_base64_audio(self, base64_audio: str, format: str = "wav", language: str = None) -> str:
+    async def process_base64_audio(self, base64_audio: str, format: str = "wav", language: str = None, cancellation_token: Optional[asyncio.Event] = None) -> str:
         """
         Process base64 encoded audio data with optimizations.
         
@@ -173,6 +231,7 @@ class AudioProcessor:
             base64_audio: Base64 encoded audio data
             format: Audio format
             language: Language code for transcription (e.g., 'en', 'es', 'fr'). If None, uses default.
+            cancellation_token: Event to signal cancellation of processing
             
         Returns:
             Transcribed text
@@ -180,7 +239,7 @@ class AudioProcessor:
         try:
             # Decode base64 audio
             audio_data = base64.b64decode(base64_audio)
-            return await self.process_audio_to_text(audio_data, format, language)
+            return await self.process_audio_to_text(audio_data, format, language, cancellation_token)
             
         except Exception as e:
             logger.error(f"❌ Error decoding base64 audio: {e}")

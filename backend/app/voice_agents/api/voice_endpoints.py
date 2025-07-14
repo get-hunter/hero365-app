@@ -18,6 +18,7 @@ from ..core.voice_pipeline import Hero365VoicePipeline
 from ..core.context_manager import ContextManager
 from ..core.audio_processor import audio_processor
 from ..core.cache_manager import cache_manager
+from ..core.audio_buffer_manager import audio_buffer_manager
 from ..triage.triage_agent import TriageAgent
 from ..specialists.contact_agent import ContactAgent
 from ..specialists.job_agent import JobAgent
@@ -128,6 +129,15 @@ class VoiceWebSocketManager:
         
         logger.info(f"📝 Session metadata initialized for {session_id}")
         
+        # Register processing callback with audio buffer manager
+        from ..core.audio_buffer_manager import audio_buffer_manager
+        audio_buffer_manager.register_processing_callback(
+            session_id, 
+            lambda: self._process_buffered_audio(session_id)
+        )
+        
+        logger.info(f"✅ Processing callback registered for session {session_id}")
+        
         # Send initial connection confirmation
         try:
             await websocket.send_json({
@@ -172,6 +182,12 @@ class VoiceWebSocketManager:
         if session_id in self.processed_audio_cache:
             del self.processed_audio_cache[session_id]
             logger.info(f"🗑️ Audio cache cleaned up for session {session_id}")
+        
+        # Unregister processing callback
+        audio_buffer_manager.unregister_processing_callback(session_id)
+        
+        # Clean up audio buffer manager state
+        audio_buffer_manager.cleanup_session(session_id)
         
         # End voice session
         if voice_pipeline:
@@ -255,6 +271,192 @@ class VoiceWebSocketManager:
             logger.warning(f"⚠️ Attempted to send message to non-existent session {session_id}")
             logger.info(f"📊 Active sessions: {list(self.active_connections.keys())}")
     
+    async def _process_buffered_audio(self, session_id: str):
+        """Process buffered audio with cancellation support"""
+        try:
+            # Create cancellation token
+            cancellation_token = asyncio.Event()
+            
+            # Get combined audio from buffer
+            combined_audio, audio_format = audio_buffer_manager.get_combined_audio(session_id)
+            
+            if not combined_audio:
+                logger.warning(f"⚠️ No audio data to process for session {session_id}")
+                return
+            
+            # Create processing task
+            processing_task = asyncio.create_task(
+                self._process_audio_with_cancellation(
+                    session_id, combined_audio, audio_format, cancellation_token
+                )
+            )
+            
+            # Mark processing as started
+            audio_buffer_manager.mark_processing_started(session_id, processing_task, cancellation_token)
+            
+            # Send processing notification
+            await self.send_message(session_id, {
+                "type": "audio_processing",
+                "session_id": session_id,
+                "status": "processing",
+                "audio_size": len(combined_audio),
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            # Wait for processing to complete
+            await processing_task
+            
+        except asyncio.CancelledError:
+            logger.info(f"🚫 Audio processing cancelled for session {session_id}")
+            audio_buffer_manager.mark_processing_completed(session_id, success=False)
+            
+            # Send cancellation notification
+            await self.send_message(session_id, {
+                "type": "audio_processing",
+                "session_id": session_id,
+                "status": "cancelled",
+                "timestamp": datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"❌ Error in buffered audio processing for session {session_id}: {e}")
+            audio_buffer_manager.mark_processing_completed(session_id, success=False)
+            
+            # Send error notification
+            await self.send_message(session_id, {
+                "type": "audio_processing",
+                "session_id": session_id,
+                "status": "error",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            })
+    
+    async def _process_audio_with_cancellation(self, session_id: str, audio_data: bytes, 
+                                             audio_format: str, cancellation_token: asyncio.Event):
+        """Process audio data with cancellation support"""
+        try:
+            logger.info(f"🎤 Converting audio to text using OpenAI Whisper")
+            
+            # Generate audio hash for caching
+            import hashlib
+            audio_hash = hashlib.sha256(audio_data).hexdigest()[:16]
+            
+            # Check cache for transcription first
+            cached_transcription = await cache_manager.get_cached_transcription(audio_hash)
+            
+            if cached_transcription:
+                logger.info(f"⚡ Using cached transcription: '{cached_transcription[:50]}...'")
+                transcribed_text = cached_transcription
+            else:
+                # Process audio with cancellation support
+                transcribed_text = await audio_processor.process_audio_to_text(
+                    audio_data, 
+                    audio_format,
+                    cancellation_token=cancellation_token
+                )
+                
+                # Cache the transcription
+                await cache_manager.cache_transcription(audio_hash, transcribed_text)
+            
+            # Check for cancellation before proceeding
+            if cancellation_token.is_set():
+                raise asyncio.CancelledError("Processing cancelled after transcription")
+            
+            logger.info(f"📝 Whisper transcription: '{transcribed_text[:100]}{'...' if len(transcribed_text) > 100 else ''}'")
+            
+            # Check cache for common queries
+            cached_response = await cache_manager.get_cached_common_query(transcribed_text)
+            
+            if cached_response:
+                logger.info(f"⚡ Using cached common query response")
+                response = cached_response
+            else:
+                # Check for cancellation before agent processing
+                if cancellation_token.is_set():
+                    raise asyncio.CancelledError("Processing cancelled before agent processing")
+                
+                # Process transcribed text through triage agent
+                response = await voice_pipeline.process_text_input(session_id, transcribed_text)
+                
+                # Cache response if it's a common query (non-user-specific)
+                if any(word in transcribed_text.lower() for word in ["hello", "help", "what", "today", "time", "date"]):
+                    await cache_manager.cache_common_query(transcribed_text, response)
+            
+            # Check for cancellation before TTS
+            if cancellation_token.is_set():
+                raise asyncio.CancelledError("Processing cancelled before TTS")
+            
+            logger.info(f"✅ Audio processing completed: {response[:50]}...")
+            
+            # Convert response text to speech with caching
+            try:
+                logger.info(f"🔊 Converting response to speech using OpenAI TTS")
+                
+                # Check cache for TTS response
+                cached_tts = await cache_manager.get_cached_tts_response(response, settings.OPENAI_TTS_VOICE)
+                
+                if cached_tts:
+                    logger.info(f"⚡ Using cached TTS response")
+                    response_audio_base64 = base64.b64encode(cached_tts).decode('utf-8')
+                else:
+                    response_audio_base64 = await audio_processor.convert_text_to_base64_audio(response)
+                    
+                    # Cache the TTS response
+                    audio_bytes = base64.b64decode(response_audio_base64)
+                    await cache_manager.cache_tts_response(response, settings.OPENAI_TTS_VOICE, audio_bytes)
+                
+                # Final cancellation check before sending response
+                if cancellation_token.is_set():
+                    raise asyncio.CancelledError("Processing cancelled before sending response")
+                
+                # Send audio response
+                await self.send_message(session_id, {
+                    "type": "agent_response",
+                    "session_id": session_id,
+                    "response": response,
+                    "audio_response": response_audio_base64,
+                    "audio_format": "mp3",
+                    "audio_processed": True,
+                    "transcribed_text": transcribed_text,
+                    "input_audio_format": audio_format,
+                    "original_size": len(audio_data),
+                    "processing_method": "buffered_pause_detection",
+                    "tts_voice": settings.OPENAI_TTS_VOICE,
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+                # Mark processing as completed successfully
+                audio_buffer_manager.mark_processing_completed(session_id, success=True)
+                
+            except Exception as tts_error:
+                if cancellation_token.is_set():
+                    raise asyncio.CancelledError("Processing cancelled during TTS error handling")
+                
+                logger.error(f"❌ TTS conversion error: {tts_error}")
+                # Fallback to text-only response
+                await self.send_message(session_id, {
+                    "type": "agent_response",
+                    "session_id": session_id,
+                    "response": response,
+                    "audio_processed": True,
+                    "transcribed_text": transcribed_text,
+                    "audio_format": audio_format,
+                    "original_size": len(audio_data),
+                    "processing_method": "buffered_pause_detection",
+                    "tts_error": str(tts_error),
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+                # Mark processing as completed with partial success
+                audio_buffer_manager.mark_processing_completed(session_id, success=True)
+                
+        except asyncio.CancelledError:
+            logger.info(f"🚫 Audio processing with cancellation cancelled for session {session_id}")
+            raise
+        except Exception as e:
+            logger.error(f"❌ Error in audio processing with cancellation for session {session_id}: {e}")
+            raise
+    
     async def handle_voice_message(self, session_id: str, message: Dict[str, Any]):
         """Handle incoming voice messages"""
         try:
@@ -334,7 +536,8 @@ class VoiceWebSocketManager:
             elif message_type == "audio_data":
                 audio_data = message.get("audio")
                 audio_size = message.get("size", len(audio_data) if audio_data else 0)
-                logger.info(f"🎤 Processing audio data: {audio_size} bytes")
+                audio_format = message.get("format", "wav").lower()
+                logger.info(f"🎤 Received audio data: {audio_size} bytes ({audio_format})")
                 
                 # Check for duplicate audio
                 if self._is_duplicate_audio(session_id, audio_data):
@@ -347,128 +550,29 @@ class VoiceWebSocketManager:
                     })
                     return
                 
-                # Send processing acknowledgment
+                # Convert audio data to bytes if needed
+                if isinstance(audio_data, str):
+                    audio_bytes = base64.b64decode(audio_data)
+                else:
+                    audio_bytes = audio_data
+                
+                # Add audio to buffer
+                audio_buffer_manager.add_audio_chunk(session_id, audio_bytes, audio_format)
+                
+                # Check if we should cancel previous processing due to new audio
+                if audio_buffer_manager.should_extend_processing(session_id):
+                    logger.info(f"🔄 Cancelling previous processing due to new audio for session {session_id}")
+                    await audio_buffer_manager.cancel_previous_processing(session_id)
+                
+                # Just buffering audio, send acknowledgment
+                # Processing will be triggered automatically by the pause detection callback
                 await self.send_message(session_id, {
-                    "type": "audio_processing",
+                    "type": "audio_buffering",
                     "session_id": session_id,
-                    "status": "processing",
+                    "status": "buffered",
+                    "buffer_size": len(audio_bytes),
                     "timestamp": datetime.now().isoformat()
                 })
-                
-                # Process audio through voice pipeline with optimizations
-                try:
-                    logger.info(f"🎤 Converting audio to text using OpenAI Whisper")
-                    
-                    # Determine audio format
-                    audio_format = message.get("format", "wav").lower()
-                    
-                    # Generate audio hash for caching
-                    import hashlib
-                    if isinstance(audio_data, str):
-                        audio_hash = hashlib.sha256(audio_data.encode()).hexdigest()[:16]
-                    else:
-                        audio_hash = hashlib.sha256(audio_data).hexdigest()[:16]
-                    
-                    # Check cache for transcription first
-                    cached_transcription = await cache_manager.get_cached_transcription(audio_hash)
-                    
-                    if cached_transcription:
-                        logger.info(f"⚡ Using cached transcription: '{cached_transcription[:50]}...'")
-                        transcribed_text = cached_transcription
-                    else:
-                        # Process audio based on how it was sent
-                        if isinstance(audio_data, str):
-                            # Base64 encoded audio
-                            transcribed_text = await audio_processor.process_base64_audio(
-                                audio_data, 
-                                audio_format
-                            )
-                        else:
-                            # Raw binary audio
-                            transcribed_text = await audio_processor.process_audio_to_text(
-                                audio_data, 
-                                audio_format
-                            )
-                        
-                        # Cache the transcription
-                        await cache_manager.cache_transcription(audio_hash, transcribed_text)
-                    
-                    logger.info(f"📝 Whisper transcription: '{transcribed_text[:100]}{'...' if len(transcribed_text) > 100 else ''}'")
-                    
-                    # Check cache for common queries
-                    cached_response = await cache_manager.get_cached_common_query(transcribed_text)
-                    
-                    if cached_response:
-                        logger.info(f"⚡ Using cached common query response")
-                        response = cached_response
-                    else:
-                        # Process transcribed text through triage agent
-                        response = await voice_pipeline.process_text_input(session_id, transcribed_text)
-                        
-                        # Cache response if it's a common query (non-user-specific)
-                        if any(word in transcribed_text.lower() for word in ["hello", "help", "what", "today", "time", "date"]):
-                            await cache_manager.cache_common_query(transcribed_text, response)
-                    
-                    logger.info(f"✅ Audio processing completed: {response[:50]}...")
-                    
-                    # Convert response text to speech with caching
-                    try:
-                        logger.info(f"🔊 Converting response to speech using OpenAI TTS")
-                        
-                        # Check cache for TTS response
-                        cached_tts = await cache_manager.get_cached_tts_response(response, settings.OPENAI_TTS_VOICE)
-                        
-                        if cached_tts:
-                            logger.info(f"⚡ Using cached TTS response")
-                            response_audio_base64 = base64.b64encode(cached_tts).decode('utf-8')
-                        else:
-                            response_audio_base64 = await audio_processor.convert_text_to_base64_audio(response)
-                            
-                            # Cache the TTS response
-                            audio_bytes = base64.b64decode(response_audio_base64)
-                            await cache_manager.cache_tts_response(response, settings.OPENAI_TTS_VOICE, audio_bytes)
-                        
-                        # Send audio response
-                        await self.send_message(session_id, {
-                            "type": "agent_response",
-                            "session_id": session_id,
-                            "response": response,  # Include text for debugging/logging
-                            "audio_response": response_audio_base64,  # TTS audio as base64
-                            "audio_format": "mp3",  # TTS output format
-                            "audio_processed": True,
-                            "transcribed_text": transcribed_text,
-                            "input_audio_format": audio_format,
-                            "original_size": audio_size,
-                            "processing_method": "whisper_stt_openai_tts",
-                            "tts_voice": settings.OPENAI_TTS_VOICE,
-                            "timestamp": datetime.now().isoformat()
-                        })
-                        
-                    except Exception as tts_error:
-                        logger.error(f"❌ TTS conversion error: {tts_error}")
-                        # Fallback to text-only response
-                        await self.send_message(session_id, {
-                            "type": "agent_response",
-                            "session_id": session_id,
-                            "response": response,
-                            "audio_processed": True,
-                            "transcribed_text": transcribed_text,
-                            "audio_format": audio_format,
-                            "original_size": audio_size,
-                            "processing_method": "whisper_stt",
-                            "tts_error": str(tts_error),
-                            "timestamp": datetime.now().isoformat()
-                        })
-                    
-                except Exception as audio_error:
-                    logger.error(f"❌ Audio processing error: {audio_error}")
-                    await self.send_message(session_id, {
-                        "type": "audio_processing",
-                        "session_id": session_id,
-                        "status": "error",
-                        "error": str(audio_error),
-                        "timestamp": datetime.now().isoformat()
-                    })
             
             elif message_type == "context_update":
                 logger.info(f"🔄 Updating context: {message.get('data', {})}")
@@ -639,6 +743,9 @@ async def get_performance_stats(
         # Get cache statistics
         cache_stats = await cache_manager.get_cache_stats()
         
+        # Get audio buffer manager statistics
+        buffer_stats = audio_buffer_manager.get_all_sessions_stats()
+        
         # Get audio processor health
         audio_stats = {
             "openai_configured": bool(audio_processor.client),
@@ -649,7 +756,9 @@ async def get_performance_stats(
                 "Response caching",
                 "Parallel processing",
                 "Fast TTS model for short texts",
-                "Audio transcription caching"
+                "Audio transcription caching",
+                "Pause detection processing",
+                "Audio buffering and cancellation"
             ]
         }
         
@@ -661,13 +770,17 @@ async def get_performance_stats(
             "performance_stats": {
                 "cache_stats": cache_stats,
                 "audio_processor": audio_stats,
+                "audio_buffer_manager": buffer_stats,
                 "active_sessions": active_sessions,
                 "system_optimizations": {
                     "connection_pooling": True,
                     "response_caching": True,
                     "parallel_audio_processing": True,
                     "fast_tts_for_short_texts": True,
-                    "transcription_caching": True
+                    "transcription_caching": True,
+                    "pause_detection": True,
+                    "buffered_processing": True,
+                    "cancellation_support": True
                 }
             }
         }

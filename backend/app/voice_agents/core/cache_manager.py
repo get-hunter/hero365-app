@@ -174,7 +174,7 @@ class VoiceAgentCacheManager:
     async def get_cached_transcription(self, audio_hash: str) -> Optional[str]:
         """Get cached transcription"""
         cached_data = await self.get_cached_response("transcription", audio_hash)
-        return cached_data["transcription"] if cached_data else None
+        return cached_data["data"]["transcription"] if cached_data else None
     
     async def cache_tts_response(self, text: str, voice: str, audio_data: bytes) -> bool:
         """Cache TTS response"""
@@ -192,7 +192,7 @@ class VoiceAgentCacheManager:
         cache_key = f"{text}:{voice}"
         cached_data = await self.get_cached_response("tts_response", cache_key)
         if cached_data:
-            return bytes.fromhex(cached_data["audio_data"])
+            return bytes.fromhex(cached_data["data"]["audio_data"])
         return None
     
     async def cache_agent_response(self, query: str, response: str, user_id: str) -> bool:
@@ -207,7 +207,7 @@ class VoiceAgentCacheManager:
     async def get_cached_agent_response(self, query: str, user_id: str) -> Optional[str]:
         """Get cached agent response"""
         cached_data = await self.get_cached_response("agent_response", query, user_id)
-        return cached_data["response"] if cached_data else None
+        return cached_data["data"]["response"] if cached_data else None
     
     async def cache_common_query(self, query: str, response: str) -> bool:
         """Cache response for common queries that don't require user context"""
@@ -220,7 +220,7 @@ class VoiceAgentCacheManager:
     async def get_cached_common_query(self, query: str) -> Optional[str]:
         """Get cached common query response"""
         cached_data = await self.get_cached_response("common_queries", query)
-        return cached_data["response"] if cached_data else None
+        return cached_data["data"]["response"] if cached_data else None
     
     async def invalidate_user_cache(self, user_id: str) -> bool:
         """Invalidate all cached responses for a specific user"""

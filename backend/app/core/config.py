@@ -124,6 +124,12 @@ class Settings(BaseSettings):
     OPENAI_TTS_VOICE: str = "alloy"
     OPENAI_DEFAULT_LANGUAGE: str = "en"  # Default language for Whisper transcription
     
+    # Voice Agent Optimization Settings
+    VOICE_PAUSE_THRESHOLD_MS: int = 800  # Milliseconds of silence to trigger processing
+    VOICE_MAX_EXTENSION_MS: int = 5000   # Max milliseconds to wait for utterance extension
+    VOICE_MIN_AUDIO_LENGTH_MS: int = 200 # Minimum audio length to process
+    VOICE_ENABLE_PAUSE_PROCESSING: bool = True  # Enable send-on-pause optimization
+    
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SUPABASE_ANON_KEY(self) -> str:
