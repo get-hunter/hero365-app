@@ -122,6 +122,7 @@ class Settings(BaseSettings):
     OPENAI_SPEECH_MODEL: str = "whisper-1"
     OPENAI_TTS_MODEL: str = "tts-1-hd"
     OPENAI_TTS_VOICE: str = "alloy"
+    OPENAI_DEFAULT_LANGUAGE: str = "en"  # Default language for Whisper transcription
     
     @computed_field  # type: ignore[prop-decorator]
     @property

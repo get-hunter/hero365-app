@@ -4,6 +4,7 @@ Contact management specialist agent for Hero365 voice system.
 
 from typing import Optional, List
 import uuid
+from datetime import datetime
 from agents import Agent, function_tool
 from ..core.base_agent import BaseVoiceAgent
 from ..core.context_manager import ContextManager
@@ -29,9 +30,14 @@ class ContactAgent(BaseVoiceAgent):
             tools=[]
         )
         
-        instructions = """
+        current_date = datetime.now().strftime("%B %d, %Y")
+        current_time = datetime.now().strftime("%I:%M %p")
+        
+        instructions = f"""
         You are the contact management specialist for Hero365. You help users manage their 
         contacts efficiently and professionally with intelligent assistance.
+        
+        CURRENT DATE AND TIME: Today is {current_date} at {current_time}
         
         CRITICAL: ALWAYS CALL create_contact FUNCTION TO ACTUALLY CREATE CONTACTS!
         

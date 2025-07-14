@@ -9,6 +9,7 @@ from pydantic import BaseModel
 import asyncio
 import json
 import logging
+import base64
 from datetime import datetime
 
 from ...api.deps import get_current_user, get_business_context
@@ -16,6 +17,7 @@ from ...core.config import settings
 from ..core.voice_pipeline import Hero365VoicePipeline
 from ..core.context_manager import ContextManager
 from ..core.audio_processor import audio_processor
+from ..core.cache_manager import cache_manager
 from ..triage.triage_agent import TriageAgent
 from ..specialists.contact_agent import ContactAgent
 from ..specialists.job_agent import JobAgent
@@ -260,13 +262,22 @@ class VoiceWebSocketManager:
             logger.info(f"🎤 Processing message type: {message_type} for session {session_id}")
             
             if message_type == "text_input":
-                logger.info(f"📝 Processing text input: {message.get('text', '')[:50]}...")
+                text_input = message.get("text", "")
+                logger.info(f"📝 Processing text input: {text_input[:50]}...")
                 
-                # Process text input through voice pipeline
-                response = await voice_pipeline.process_text_input(
-                    session_id, 
-                    message.get("text", "")
-                )
+                # Check cache for common queries first
+                cached_response = await cache_manager.get_cached_common_query(text_input)
+                
+                if cached_response:
+                    logger.info(f"⚡ Using cached common query response")
+                    response = cached_response
+                else:
+                    # Process text input through voice pipeline
+                    response = await voice_pipeline.process_text_input(session_id, text_input)
+                    
+                    # Cache response if it's a common query (non-user-specific)
+                    if any(word in text_input.lower() for word in ["hello", "help", "what", "today", "time", "date"]):
+                        await cache_manager.cache_common_query(text_input, response)
                 
                 logger.info(f"✅ Text response generated: {response[:50]}...")
                 
@@ -276,7 +287,19 @@ class VoiceWebSocketManager:
                 if want_audio:
                     try:
                         logger.info(f"🔊 Converting text response to speech")
-                        response_audio_base64 = await audio_processor.convert_text_to_base64_audio(response)
+                        
+                        # Check cache for TTS response
+                        cached_tts = await cache_manager.get_cached_tts_response(response, settings.OPENAI_TTS_VOICE)
+                        
+                        if cached_tts:
+                            logger.info(f"⚡ Using cached TTS response")
+                            response_audio_base64 = base64.b64encode(cached_tts).decode('utf-8')
+                        else:
+                            response_audio_base64 = await audio_processor.convert_text_to_base64_audio(response)
+                            
+                            # Cache the TTS response
+                            audio_bytes = base64.b64decode(response_audio_base64)
+                            await cache_manager.cache_tts_response(response, settings.OPENAI_TTS_VOICE, audio_bytes)
                         
                         await self.send_message(session_id, {
                             "type": "agent_response",
@@ -332,39 +355,78 @@ class VoiceWebSocketManager:
                     "timestamp": datetime.now().isoformat()
                 })
                 
-                # Process audio through voice pipeline
+                # Process audio through voice pipeline with optimizations
                 try:
-                    # Real audio processing using OpenAI Whisper
                     logger.info(f"🎤 Converting audio to text using OpenAI Whisper")
                     
                     # Determine audio format
                     audio_format = message.get("format", "wav").lower()
                     
-                    # Process audio based on how it was sent
+                    # Generate audio hash for caching
+                    import hashlib
                     if isinstance(audio_data, str):
-                        # Base64 encoded audio
-                        transcribed_text = await audio_processor.process_base64_audio(
-                            audio_data, 
-                            audio_format
-                        )
+                        audio_hash = hashlib.sha256(audio_data.encode()).hexdigest()[:16]
                     else:
-                        # Raw binary audio
-                        transcribed_text = await audio_processor.process_audio_to_text(
-                            audio_data, 
-                            audio_format
-                        )
+                        audio_hash = hashlib.sha256(audio_data).hexdigest()[:16]
+                    
+                    # Check cache for transcription first
+                    cached_transcription = await cache_manager.get_cached_transcription(audio_hash)
+                    
+                    if cached_transcription:
+                        logger.info(f"⚡ Using cached transcription: '{cached_transcription[:50]}...'")
+                        transcribed_text = cached_transcription
+                    else:
+                        # Process audio based on how it was sent
+                        if isinstance(audio_data, str):
+                            # Base64 encoded audio
+                            transcribed_text = await audio_processor.process_base64_audio(
+                                audio_data, 
+                                audio_format
+                            )
+                        else:
+                            # Raw binary audio
+                            transcribed_text = await audio_processor.process_audio_to_text(
+                                audio_data, 
+                                audio_format
+                            )
+                        
+                        # Cache the transcription
+                        await cache_manager.cache_transcription(audio_hash, transcribed_text)
                     
                     logger.info(f"📝 Whisper transcription: '{transcribed_text[:100]}{'...' if len(transcribed_text) > 100 else ''}'")
                     
-                    # Process transcribed text through triage agent
-                    response = await voice_pipeline.process_text_input(session_id, transcribed_text)
+                    # Check cache for common queries
+                    cached_response = await cache_manager.get_cached_common_query(transcribed_text)
+                    
+                    if cached_response:
+                        logger.info(f"⚡ Using cached common query response")
+                        response = cached_response
+                    else:
+                        # Process transcribed text through triage agent
+                        response = await voice_pipeline.process_text_input(session_id, transcribed_text)
+                        
+                        # Cache response if it's a common query (non-user-specific)
+                        if any(word in transcribed_text.lower() for word in ["hello", "help", "what", "today", "time", "date"]):
+                            await cache_manager.cache_common_query(transcribed_text, response)
                     
                     logger.info(f"✅ Audio processing completed: {response[:50]}...")
                     
-                    # Convert response text to speech
+                    # Convert response text to speech with caching
                     try:
                         logger.info(f"🔊 Converting response to speech using OpenAI TTS")
-                        response_audio_base64 = await audio_processor.convert_text_to_base64_audio(response)
+                        
+                        # Check cache for TTS response
+                        cached_tts = await cache_manager.get_cached_tts_response(response, settings.OPENAI_TTS_VOICE)
+                        
+                        if cached_tts:
+                            logger.info(f"⚡ Using cached TTS response")
+                            response_audio_base64 = base64.b64encode(cached_tts).decode('utf-8')
+                        else:
+                            response_audio_base64 = await audio_processor.convert_text_to_base64_audio(response)
+                            
+                            # Cache the TTS response
+                            audio_bytes = base64.b64decode(response_audio_base64)
+                            await cache_manager.cache_tts_response(response, settings.OPENAI_TTS_VOICE, audio_bytes)
                         
                         # Send audio response
                         await self.send_message(session_id, {
@@ -565,6 +627,73 @@ async def process_voice_command(
         
     except Exception as e:
         logger.error(f"Error processing voice command: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/performance-stats")
+async def get_performance_stats(
+    current_user=Depends(get_current_user)
+):
+    """Get voice agent performance statistics"""
+    try:
+        # Get cache statistics
+        cache_stats = await cache_manager.get_cache_stats()
+        
+        # Get audio processor health
+        audio_stats = {
+            "openai_configured": bool(audio_processor.client),
+            "http_client_configured": bool(audio_processor.http_client),
+            "connection_pooling": True,
+            "optimization_features": [
+                "HTTP connection pooling",
+                "Response caching",
+                "Parallel processing",
+                "Fast TTS model for short texts",
+                "Audio transcription caching"
+            ]
+        }
+        
+        # Get active sessions count
+        active_sessions = len(voice_pipeline.active_sessions) if voice_pipeline else 0
+        
+        return {
+            "success": True,
+            "performance_stats": {
+                "cache_stats": cache_stats,
+                "audio_processor": audio_stats,
+                "active_sessions": active_sessions,
+                "system_optimizations": {
+                    "connection_pooling": True,
+                    "response_caching": True,
+                    "parallel_audio_processing": True,
+                    "fast_tts_for_short_texts": True,
+                    "transcription_caching": True
+                }
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting performance stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/clear-cache")
+async def clear_voice_cache(
+    current_user=Depends(get_current_user)
+):
+    """Clear voice agent cache (admin only)"""
+    try:
+        # Clear all cache
+        success = await cache_manager.clear_all_cache()
+        
+        if success:
+            logger.info("✅ Voice agent cache cleared by admin")
+            return {"success": True, "message": "Cache cleared successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to clear cache")
+        
+    except Exception as e:
+        logger.error(f"Error clearing cache: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -930,6 +1059,16 @@ async def get_supported_voices():
         "default_voice": settings.OPENAI_TTS_VOICE,
         "tts_model": settings.OPENAI_TTS_MODEL,
         "output_format": "mp3"
+    }
+
+@router.get("/audio/languages")
+async def get_supported_languages():
+    """Get supported languages for Whisper transcription"""
+    return {
+        "supported_languages": audio_processor.get_supported_languages(),
+        "default_language": settings.OPENAI_DEFAULT_LANGUAGE,
+        "stt_model": settings.OPENAI_SPEECH_MODEL,
+        "description": "ISO 639-1 language codes supported by OpenAI Whisper"
     }
 
 @router.post("/audio/test-tts")

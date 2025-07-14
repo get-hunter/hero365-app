@@ -3,6 +3,7 @@ Triage agent that routes user requests to appropriate specialist agents using Op
 """
 
 from typing import Dict, Any, Optional, List
+from datetime import datetime
 from agents import Agent, Runner, function_tool
 from ..core.base_agent import BaseVoiceAgent
 from ..core.context_manager import ContextManager
@@ -16,34 +17,42 @@ logger = logging.getLogger(__name__)
 class TriageAgent(BaseVoiceAgent):
     """Main triage agent that intelligently routes to specialist agents using OpenAI Agents SDK"""
     
-    # Consolidated instructions for the triage agent
-    TRIAGE_INSTRUCTIONS = """
-    You are the Hero365 triage agent. You help users with their business needs by using 
-    specialized tools to handle different types of business operations.
-    
-    You have access to specialized tools for:
-    - Contact management: Creating, updating, searching contacts
-    - Job management: Creating, tracking, updating jobs
-    - Estimate management: Creating, managing estimates and quotes
-    - Scheduling: Booking appointments, checking availability
-    - General business questions and support
-    
-    When a user asks for help, analyze their request and use the appropriate tool to handle it.
-    The tools will automatically handle conversation flow and parameter collection.
-    
-    INSTRUCTIONS:
-    - Listen to what the user wants to accomplish
-    - Use the most appropriate tool for their request:
-      * contact_management for contact-related tasks
-      * job_management for job-related tasks
-      * estimate_management for estimate/quote-related tasks
-      * scheduling_management for appointment/calendar-related tasks
-    - If the request is general or you're not sure, provide general help first
-    - Be friendly, helpful, and professional in all interactions
-    - Let the specialist tools handle the detailed interactions
-    
-    All specialist tools are now fully functional and ready to help users.
-    """
+    @staticmethod
+    def _get_triage_instructions() -> str:
+        """Get instructions with current date and time"""
+        current_date = datetime.now().strftime("%B %d, %Y")
+        current_time = datetime.now().strftime("%I:%M %p")
+        
+        return f"""
+        You are the Hero365 triage agent. You help users with their business needs by using 
+        specialized tools to handle different types of business operations.
+        
+        CURRENT DATE AND TIME: Today is {current_date} at {current_time}
+        
+        You have access to specialized tools for:
+        - Contact management: Creating, updating, searching contacts
+        - Job management: Creating, tracking, updating jobs
+        - Estimate management: Creating, managing estimates and quotes
+        - Scheduling: Booking appointments, checking availability
+        - General business questions and support
+        
+        When a user asks for help, analyze their request and use the appropriate tool to handle it.
+        The tools will automatically handle conversation flow and parameter collection.
+        
+        INSTRUCTIONS:
+        - Listen to what the user wants to accomplish
+        - Use the most appropriate tool for their request:
+          * contact_management for contact-related tasks
+          * job_management for job-related tasks
+          * estimate_management for estimate/quote-related tasks
+          * scheduling_management for appointment/calendar-related tasks
+        - If the request is general or you're not sure, provide general help first
+        - Be friendly, helpful, and professional in all interactions
+        - Let the specialist tools handle the detailed interactions
+        - When users ask about the current date or time, use the information provided above
+        
+        All specialist tools are now fully functional and ready to help users.
+        """
     
     def __init__(self, context_manager: ContextManager, specialist_agents: Dict[str, Any]):
         """
@@ -55,7 +64,7 @@ class TriageAgent(BaseVoiceAgent):
         """
         super().__init__(
             name="Triage Agent",
-            instructions=self.TRIAGE_INSTRUCTIONS,
+            instructions=self._get_triage_instructions(),
             context_manager=context_manager,
             tools=[]
         )
@@ -122,7 +131,7 @@ class TriageAgent(BaseVoiceAgent):
             # Create the main triage agent with specialist agent tools
             triage_agent = Agent(
                 name="Hero365 Triage Agent",
-                instructions=self.TRIAGE_INSTRUCTIONS,
+                instructions=self._get_triage_instructions(),
                 tools=tools
             )
             
