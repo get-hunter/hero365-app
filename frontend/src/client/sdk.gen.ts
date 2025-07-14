@@ -427,6 +427,14 @@ import type {
   VoiceAgentsGetVoiceSystemStatusResponse,
   VoiceAgentsUploadAudioData,
   VoiceAgentsUploadAudioResponse,
+  VoiceAgentsGetVoiceMetricsResponse,
+  VoiceAgentsGetSessionMetricsData,
+  VoiceAgentsGetSessionMetricsResponse,
+  VoiceAgentsGetComprehensiveHealthResponse,
+  VoiceAgentsGetComponentHealthData,
+  VoiceAgentsGetComponentHealthResponse,
+  VoiceAgentsGetRecentErrorsData,
+  VoiceAgentsGetRecentErrorsResponse,
   VoiceAgentsHealthCheckResponse,
 } from "./types.gen"
 
@@ -6008,6 +6016,101 @@ export class VoiceService {
   }
 
   /**
+   * Get Voice Metrics
+   * Get voice agent system metrics
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static agentsGetVoiceMetrics(): CancelablePromise<VoiceAgentsGetVoiceMetricsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/metrics",
+    })
+  }
+
+  /**
+   * Get Session Metrics
+   * Get metrics for a specific session
+   * @param data The data for the request.
+   * @param data.sessionId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static agentsGetSessionMetrics(
+    data: VoiceAgentsGetSessionMetricsData,
+  ): CancelablePromise<VoiceAgentsGetSessionMetricsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/metrics/session/{session_id}",
+      path: {
+        session_id: data.sessionId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Comprehensive Health
+   * Get comprehensive health status of all voice agent components
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static agentsGetComprehensiveHealth(): CancelablePromise<VoiceAgentsGetComprehensiveHealthResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/monitoring/health",
+    })
+  }
+
+  /**
+   * Get Component Health
+   * Get health status of a specific component
+   * @param data The data for the request.
+   * @param data.component
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static agentsGetComponentHealth(
+    data: VoiceAgentsGetComponentHealthData,
+  ): CancelablePromise<VoiceAgentsGetComponentHealthResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/monitoring/health/{component}",
+      path: {
+        component: data.component,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Recent Errors
+   * Get recent errors from the voice system
+   * @param data The data for the request.
+   * @param data.limit
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static agentsGetRecentErrors(
+    data: VoiceAgentsGetRecentErrorsData = {},
+  ): CancelablePromise<VoiceAgentsGetRecentErrorsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/monitoring/errors",
+      query: {
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Health Check
    * Health check endpoint
    * @returns unknown Successful Response
@@ -6180,6 +6283,101 @@ export class VoiceAgentsService {
       },
       formData: data.formData,
       mediaType: "multipart/form-data",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Voice Metrics
+   * Get voice agent system metrics
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getVoiceMetrics(): CancelablePromise<VoiceAgentsGetVoiceMetricsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/metrics",
+    })
+  }
+
+  /**
+   * Get Session Metrics
+   * Get metrics for a specific session
+   * @param data The data for the request.
+   * @param data.sessionId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getSessionMetrics(
+    data: VoiceAgentsGetSessionMetricsData,
+  ): CancelablePromise<VoiceAgentsGetSessionMetricsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/metrics/session/{session_id}",
+      path: {
+        session_id: data.sessionId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Comprehensive Health
+   * Get comprehensive health status of all voice agent components
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getComprehensiveHealth(): CancelablePromise<VoiceAgentsGetComprehensiveHealthResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/monitoring/health",
+    })
+  }
+
+  /**
+   * Get Component Health
+   * Get health status of a specific component
+   * @param data The data for the request.
+   * @param data.component
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getComponentHealth(
+    data: VoiceAgentsGetComponentHealthData,
+  ): CancelablePromise<VoiceAgentsGetComponentHealthResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/monitoring/health/{component}",
+      path: {
+        component: data.component,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Recent Errors
+   * Get recent errors from the voice system
+   * @param data The data for the request.
+   * @param data.limit
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getRecentErrors(
+    data: VoiceAgentsGetRecentErrorsData = {},
+  ): CancelablePromise<VoiceAgentsGetRecentErrorsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/monitoring/errors",
+      query: {
+        limit: data.limit,
+      },
       errors: {
         422: "Validation Error",
       },

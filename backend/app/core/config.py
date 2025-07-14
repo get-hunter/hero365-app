@@ -94,7 +94,9 @@ class Settings(BaseSettings):
     
     # External Services for Real-time Optimization
     GOOGLE_MAPS_API_KEY: str | None = None
-    WEATHER_API_KEY: str | None = None  # OpenWeatherMap API key
+    OPENWEATHER_API_KEY: str | None = None  # OpenWeatherMap API key
+    SERPAPI_KEY: str | None = None  # SerpAPI for web search
+    WEATHER_API_KEY: str | None = None  # Legacy weather API key (deprecated)
     TWILIO_ACCOUNT_SID: str | None = None
     TWILIO_AUTH_TOKEN: str | None = None
     

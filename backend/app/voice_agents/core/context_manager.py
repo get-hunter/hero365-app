@@ -27,6 +27,12 @@ class AgentContext:
     current_location: Optional[Dict[str, Any]] = None
     active_tasks: List[Dict[str, Any]] = field(default_factory=list)
     current_agent: Optional[str] = None
+    # Add conversation state tracking
+    conversation_state: Dict[str, Any] = field(default_factory=dict)
+    ongoing_operation: Optional[Dict[str, Any]] = None
+    # Add OpenAI Agents SDK conversation management
+    last_agent_result: Optional[Dict[str, Any]] = None
+    sdk_conversation_history: List[Dict[str, Any]] = field(default_factory=list)
     last_updated: datetime = field(default_factory=datetime.now)
     
     def to_dict(self) -> Dict[str, Any]:
@@ -42,6 +48,10 @@ class AgentContext:
             "current_location": self.current_location,
             "active_tasks": self.active_tasks,
             "current_agent": self.current_agent,
+            "conversation_state": self.conversation_state,
+            "ongoing_operation": self.ongoing_operation,
+            "last_agent_result": self.last_agent_result,
+            "sdk_conversation_history": self.sdk_conversation_history,
             "last_updated": self.last_updated.isoformat()
         }
     
@@ -59,6 +69,10 @@ class AgentContext:
             current_location=data.get("current_location"),
             active_tasks=data.get("active_tasks", []),
             current_agent=data.get("current_agent"),
+            conversation_state=data.get("conversation_state", {}),
+            ongoing_operation=data.get("ongoing_operation"),
+            last_agent_result=data.get("last_agent_result"),
+            sdk_conversation_history=data.get("sdk_conversation_history", []),
             last_updated=datetime.fromisoformat(data.get("last_updated", datetime.now().isoformat()))
         )
 
@@ -142,7 +156,12 @@ class ContextManager:
                 "weather": self.current_context.world_context.get("weather", {}),
                 "recent_conversation": self.current_context.conversation_history[-5:] if self.current_context.conversation_history else [],
                 "active_tasks": self.current_context.active_tasks,
-                "current_agent": self.current_context.current_agent
+                "current_agent": self.current_context.current_agent,
+                "conversation_state": self.current_context.conversation_state,
+                "ongoing_operation": self.current_context.ongoing_operation,
+                # Add OpenAI Agents SDK conversation management
+                "conversation_history": self.current_context.sdk_conversation_history,
+                "last_agent_result": self.current_context.last_agent_result
             }
             
         except Exception as e:
@@ -186,6 +205,19 @@ class ContextManager:
                 
             if "world_context" in updates:
                 self.current_context.world_context.update(updates["world_context"])
+                
+            if "conversation_state" in updates:
+                self.current_context.conversation_state.update(updates["conversation_state"])
+                
+            if "ongoing_operation" in updates:
+                self.current_context.ongoing_operation = updates["ongoing_operation"]
+                
+            # Handle OpenAI Agents SDK conversation management
+            if "conversation_history" in updates:
+                self.current_context.sdk_conversation_history = updates["conversation_history"]
+                
+            if "last_agent_result" in updates:
+                self.current_context.last_agent_result = updates["last_agent_result"]
             
             # Update timestamp
             self.current_context.last_updated = datetime.now()

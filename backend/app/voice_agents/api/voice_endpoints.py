@@ -12,13 +12,17 @@ import logging
 from datetime import datetime
 
 from ...api.deps import get_current_user, get_business_context
+from ...core.config import settings
 from ..core.voice_pipeline import Hero365VoicePipeline
 from ..core.context_manager import ContextManager
+from ..core.audio_processor import audio_processor
 from ..triage.triage_agent import TriageAgent
 from ..specialists.contact_agent import ContactAgent
 from ..specialists.job_agent import JobAgent
 from ..specialists.estimate_agent import EstimateAgent
 from ..specialists.scheduling_agent import SchedulingAgent
+from ..monitoring.voice_metrics import voice_metrics, monitor_voice_operation
+from ..monitoring.health_check import health_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -97,11 +101,20 @@ class VoiceWebSocketManager:
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
         self.session_metadata: Dict[str, Dict[str, Any]] = {}
+        # Add deduplication tracking
+        self.processed_audio_cache: Dict[str, Dict[str, float]] = {}  # session_id -> {audio_hash: timestamp}
+        self.cache_timeout = 30  # seconds
     
     async def connect(self, websocket: WebSocket, session_id: str, user_id: str, business_id: str):
         """Connect a new WebSocket client"""
+        logger.info(f"🔗 Accepting WebSocket connection for session {session_id}")
+        
         await websocket.accept()
         self.active_connections[session_id] = websocket
+        
+        logger.info(f"✅ WebSocket connection accepted for session {session_id}")
+        logger.info(f"📊 Total active connections: {len(self.active_connections)}")
+        logger.info(f"📊 WebSocket client state: {websocket.client_state.name}")
         
         # Initialize session metadata
         self.session_metadata[session_id] = {
@@ -111,80 +124,310 @@ class VoiceWebSocketManager:
             "status": "connected"
         }
         
+        logger.info(f"📝 Session metadata initialized for {session_id}")
+        
+        # Send initial connection confirmation
+        try:
+            await websocket.send_json({
+                "type": "connection_confirmed",
+                "session_id": session_id,
+                "message": "WebSocket connection established",
+                "timestamp": datetime.now().isoformat()
+            })
+            logger.info(f"📤 Connection confirmation sent to session {session_id}")
+        except Exception as e:
+            logger.error(f"❌ Error sending connection confirmation: {e}")
+            await self.disconnect(session_id)
+            return
+        
         # Send initial context
         try:
             context = await context_manager.get_current_context()
             await websocket.send_json({
                 "type": "context_update",
                 "data": context,
-                "session_id": session_id
+                "session_id": session_id,
+                "timestamp": datetime.now().isoformat()
             })
+            logger.info(f"📤 Initial context sent to session {session_id}")
         except Exception as e:
-            logger.error(f"Error sending initial context: {e}")
+            logger.error(f"❌ Error sending initial context: {e}")
+            await self.disconnect(session_id)
     
     async def disconnect(self, session_id: str):
         """Disconnect a WebSocket client"""
+        logger.info(f"🔌 Disconnecting WebSocket for session {session_id}")
+        
         if session_id in self.active_connections:
             del self.active_connections[session_id]
+            logger.info(f"✅ WebSocket connection removed for session {session_id}")
         
         if session_id in self.session_metadata:
             del self.session_metadata[session_id]
+            logger.info(f"📝 Session metadata cleaned up for {session_id}")
+        
+        # Clean up audio cache for this session
+        if session_id in self.processed_audio_cache:
+            del self.processed_audio_cache[session_id]
+            logger.info(f"🗑️ Audio cache cleaned up for session {session_id}")
         
         # End voice session
         if voice_pipeline:
-            await voice_pipeline.end_voice_session(session_id)
+            try:
+                await voice_pipeline.end_voice_session(session_id)
+                logger.info(f"✅ Voice session ended for {session_id}")
+            except Exception as e:
+                logger.error(f"❌ Error ending voice session {session_id}: {e}")
+    
+    def _get_audio_hash(self, audio_data: Any) -> str:
+        """Generate a hash for audio data to detect duplicates"""
+        import hashlib
+        
+        if isinstance(audio_data, str):
+            # Base64 string
+            data_bytes = audio_data.encode('utf-8')
+        else:
+            # Binary data
+            data_bytes = audio_data if isinstance(audio_data, bytes) else str(audio_data).encode('utf-8')
+        
+        return hashlib.md5(data_bytes).hexdigest()
+    
+    def _is_duplicate_audio(self, session_id: str, audio_data: Any) -> bool:
+        """Check if audio data is a duplicate of recently processed audio"""
+        import time
+        
+        if session_id not in self.processed_audio_cache:
+            self.processed_audio_cache[session_id] = {}
+        
+        audio_hash = self._get_audio_hash(audio_data)
+        current_time = time.time()
+        
+        # Clean up old entries
+        session_cache = self.processed_audio_cache[session_id]
+        expired_hashes = [h for h, timestamp in session_cache.items() 
+                         if current_time - timestamp > self.cache_timeout]
+        for h in expired_hashes:
+            del session_cache[h]
+        
+        # Check if this audio was recently processed
+        if audio_hash in session_cache:
+            time_since_processed = current_time - session_cache[audio_hash]
+            if time_since_processed < self.cache_timeout:
+                logger.info(f"🔄 Duplicate audio detected for session {session_id} (processed {time_since_processed:.1f}s ago)")
+                return True
+        
+        # Mark this audio as processed
+        session_cache[audio_hash] = current_time
+        return False
     
     async def send_message(self, session_id: str, message: Dict[str, Any]):
         """Send message to a specific session"""
         if session_id in self.active_connections:
-            try:
-                await self.active_connections[session_id].send_json(message)
-            except Exception as e:
-                logger.error(f"Error sending message to session {session_id}: {e}")
+            websocket = self.active_connections[session_id]
+            
+            # Check WebSocket connection state
+            if websocket.client_state.name != "CONNECTED":
+                logger.warning(f"⚠️ WebSocket for session {session_id} is not connected (state: {websocket.client_state.name})")
                 await self.disconnect(session_id)
+                return
+            
+            try:
+                message_type = message.get("type", "unknown")
+                logger.info(f"📤 Sending message type '{message_type}' to session {session_id}")
+                logger.debug(f"📋 Message content: {message}")
+                
+                # Send the message
+                await websocket.send_json(message)
+                logger.info(f"✅ Message sent successfully to session {session_id}")
+                
+                # Verify the message was actually sent by checking connection state after
+                if websocket.client_state.name != "CONNECTED":
+                    logger.warning(f"⚠️ WebSocket connection lost after sending message to session {session_id}")
+                    await self.disconnect(session_id)
+                    
+            except Exception as e:
+                logger.error(f"❌ Error sending message to session {session_id}: {e}")
+                logger.error(f"❌ WebSocket state: {websocket.client_state.name}")
+                await self.disconnect(session_id)
+        else:
+            logger.warning(f"⚠️ Attempted to send message to non-existent session {session_id}")
+            logger.info(f"📊 Active sessions: {list(self.active_connections.keys())}")
     
     async def handle_voice_message(self, session_id: str, message: Dict[str, Any]):
         """Handle incoming voice messages"""
         try:
             message_type = message.get("type")
+            logger.info(f"🎤 Processing message type: {message_type} for session {session_id}")
             
             if message_type == "text_input":
+                logger.info(f"📝 Processing text input: {message.get('text', '')[:50]}...")
+                
                 # Process text input through voice pipeline
                 response = await voice_pipeline.process_text_input(
                     session_id, 
                     message.get("text", "")
                 )
                 
-                await self.send_message(session_id, {
-                    "type": "agent_response",
-                    "session_id": session_id,
-                    "response": response,
-                    "timestamp": datetime.now().isoformat()
-                })
+                logger.info(f"✅ Text response generated: {response[:50]}...")
+                
+                # Check if client wants audio response
+                want_audio = message.get("want_audio_response", False)
+                
+                if want_audio:
+                    try:
+                        logger.info(f"🔊 Converting text response to speech")
+                        response_audio_base64 = await audio_processor.convert_text_to_base64_audio(response)
+                        
+                        await self.send_message(session_id, {
+                            "type": "agent_response",
+                            "session_id": session_id,
+                            "response": response,
+                            "audio_response": response_audio_base64,
+                            "audio_format": "mp3",
+                            "processing_method": "text_input_openai_tts",
+                            "tts_voice": settings.OPENAI_TTS_VOICE,
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        
+                    except Exception as tts_error:
+                        logger.error(f"❌ TTS conversion error: {tts_error}")
+                        # Fallback to text-only
+                        await self.send_message(session_id, {
+                            "type": "agent_response",
+                            "session_id": session_id,
+                            "response": response,
+                            "tts_error": str(tts_error),
+                            "timestamp": datetime.now().isoformat()
+                        })
+                else:
+                    # Text-only response
+                    await self.send_message(session_id, {
+                        "type": "agent_response",
+                        "session_id": session_id,
+                        "response": response,
+                        "timestamp": datetime.now().isoformat()
+                    })
             
             elif message_type == "audio_data":
-                # This would handle audio processing
-                # For now, return acknowledgment
+                audio_data = message.get("audio")
+                audio_size = message.get("size", len(audio_data) if audio_data else 0)
+                logger.info(f"🎤 Processing audio data: {audio_size} bytes")
+                
+                # Check for duplicate audio
+                if self._is_duplicate_audio(session_id, audio_data):
+                    logger.info(f"⏭️ Skipping duplicate audio for session {session_id}")
+                    await self.send_message(session_id, {
+                        "type": "audio_processing",
+                        "session_id": session_id,
+                        "status": "skipped_duplicate",
+                        "timestamp": datetime.now().isoformat()
+                    })
+                    return
+                
+                # Send processing acknowledgment
                 await self.send_message(session_id, {
                     "type": "audio_processing",
                     "session_id": session_id,
                     "status": "processing",
                     "timestamp": datetime.now().isoformat()
                 })
+                
+                # Process audio through voice pipeline
+                try:
+                    # Real audio processing using OpenAI Whisper
+                    logger.info(f"🎤 Converting audio to text using OpenAI Whisper")
+                    
+                    # Determine audio format
+                    audio_format = message.get("format", "wav").lower()
+                    
+                    # Process audio based on how it was sent
+                    if isinstance(audio_data, str):
+                        # Base64 encoded audio
+                        transcribed_text = await audio_processor.process_base64_audio(
+                            audio_data, 
+                            audio_format
+                        )
+                    else:
+                        # Raw binary audio
+                        transcribed_text = await audio_processor.process_audio_to_text(
+                            audio_data, 
+                            audio_format
+                        )
+                    
+                    logger.info(f"📝 Whisper transcription: '{transcribed_text[:100]}{'...' if len(transcribed_text) > 100 else ''}'")
+                    
+                    # Process transcribed text through triage agent
+                    response = await voice_pipeline.process_text_input(session_id, transcribed_text)
+                    
+                    logger.info(f"✅ Audio processing completed: {response[:50]}...")
+                    
+                    # Convert response text to speech
+                    try:
+                        logger.info(f"🔊 Converting response to speech using OpenAI TTS")
+                        response_audio_base64 = await audio_processor.convert_text_to_base64_audio(response)
+                        
+                        # Send audio response
+                        await self.send_message(session_id, {
+                            "type": "agent_response",
+                            "session_id": session_id,
+                            "response": response,  # Include text for debugging/logging
+                            "audio_response": response_audio_base64,  # TTS audio as base64
+                            "audio_format": "mp3",  # TTS output format
+                            "audio_processed": True,
+                            "transcribed_text": transcribed_text,
+                            "input_audio_format": audio_format,
+                            "original_size": audio_size,
+                            "processing_method": "whisper_stt_openai_tts",
+                            "tts_voice": settings.OPENAI_TTS_VOICE,
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        
+                    except Exception as tts_error:
+                        logger.error(f"❌ TTS conversion error: {tts_error}")
+                        # Fallback to text-only response
+                        await self.send_message(session_id, {
+                            "type": "agent_response",
+                            "session_id": session_id,
+                            "response": response,
+                            "audio_processed": True,
+                            "transcribed_text": transcribed_text,
+                            "audio_format": audio_format,
+                            "original_size": audio_size,
+                            "processing_method": "whisper_stt",
+                            "tts_error": str(tts_error),
+                            "timestamp": datetime.now().isoformat()
+                        })
+                    
+                except Exception as audio_error:
+                    logger.error(f"❌ Audio processing error: {audio_error}")
+                    await self.send_message(session_id, {
+                        "type": "audio_processing",
+                        "session_id": session_id,
+                        "status": "error",
+                        "error": str(audio_error),
+                        "timestamp": datetime.now().isoformat()
+                    })
             
             elif message_type == "context_update":
+                logger.info(f"🔄 Updating context: {message.get('data', {})}")
+                
                 # Update context
                 await context_manager.update_context(message.get("data", {}))
                 
                 # Broadcast context update
+                context_data = await context_manager.get_current_context()
+                logger.info(f"✅ Context updated successfully")
+                
                 await self.send_message(session_id, {
                     "type": "context_updated",
                     "session_id": session_id,
-                    "data": await context_manager.get_current_context(),
+                    "data": context_data,
                     "timestamp": datetime.now().isoformat()
                 })
             
             elif message_type == "session_status":
+                logger.info(f"📊 Getting session status for {session_id}")
+                
                 # Get session status
                 status = await voice_pipeline.get_session_status(session_id)
                 
@@ -194,9 +437,18 @@ class VoiceWebSocketManager:
                     "data": status,
                     "timestamp": datetime.now().isoformat()
                 })
+            
+            else:
+                logger.warning(f"⚠️ Unknown message type: {message_type}")
+                await self.send_message(session_id, {
+                    "type": "error",
+                    "session_id": session_id,
+                    "error": f"Unknown message type: {message_type}",
+                    "timestamp": datetime.now().isoformat()
+                })
         
         except Exception as e:
-            logger.error(f"Error handling voice message: {e}")
+            logger.error(f"❌ Error handling voice message: {e}")
             await self.send_message(session_id, {
                 "type": "error",
                 "session_id": session_id,
@@ -230,6 +482,9 @@ async def start_voice_session(
             business_id=business_id,
             session_metadata=request.session_metadata
         )
+        
+        # Record session start in metrics
+        voice_metrics.record_session_start(session_id, "triage")
         
         # Update context with location if provided
         if request.location:
@@ -347,6 +602,9 @@ async def end_voice_session(
         
         await voice_pipeline.end_voice_session(session_id)
         
+        # Record session end in metrics
+        voice_metrics.record_session_end(session_id, "completed")
+        
         return {
             "success": True,
             "message": "Voice session ended successfully",
@@ -442,12 +700,28 @@ async def upload_audio(
 async def websocket_endpoint(
     websocket: WebSocket,
     session_id: str,
-    user_id: str,
-    business_id: str
+    user_id: str = None,
+    business_id: str = None,
+    token: str = None
 ):
     """WebSocket endpoint for real-time voice interaction"""
+    logger.info(f"🎤 WebSocket connection attempt for session {session_id}")
+    logger.info(f"📝 Parameters: user_id={user_id}, business_id={business_id}, token={'***' if token else 'None'}")
+    
     try:
+        # Validate required parameters
+        if not user_id or not business_id:
+            logger.error("❌ Missing required parameters: user_id and business_id are required")
+            await websocket.close(code=4000, reason="Missing required parameters")
+            return
+        
+        # For now, skip token validation (in production, validate the JWT token here)
+        # TODO: Add proper JWT token validation for WebSocket connections
+        if not token:
+            logger.warning("⚠️ No authentication token provided")
+        
         await websocket_manager.connect(websocket, session_id, user_id, business_id)
+        logger.info(f"✅ WebSocket connected for session {session_id}")
         
         # Start voice session if not already started
         if voice_pipeline:
@@ -456,38 +730,171 @@ async def websocket_endpoint(
                 business_id=business_id,
                 session_metadata={"websocket": True}
             )
+            logger.info(f"🎤 Voice session started for WebSocket {session_id}")
         
         try:
             while True:
-                # Receive message from client
-                message = await websocket.receive_json()
+                # Receive message from client (can be JSON or binary)
+                message = await websocket.receive()
+                logger.info(f"📨 WebSocket message received for session {session_id}: type={message.get('type')}")
                 
-                # Handle the message
-                await websocket_manager.handle_voice_message(session_id, message)
+                if message.get("type") == "websocket.receive":
+                    if "text" in message:
+                        # Handle JSON text message
+                        try:
+                            json_message = json.loads(message["text"])
+                            logger.info(f"📝 JSON message: {json_message.get('type', 'unknown')}")
+                            await websocket_manager.handle_voice_message(session_id, json_message)
+                        except json.JSONDecodeError as e:
+                            logger.error(f"❌ JSON decode error: {e}")
+                            await websocket.send_json({
+                                "type": "error",
+                                "error": "Invalid JSON format"
+                            })
+                    
+                    elif "bytes" in message:
+                        # Handle binary audio data
+                        audio_data = message["bytes"]
+                        logger.info(f"🎤 Audio data received: {len(audio_data)} bytes")
+                        
+                        # Create audio message for processing
+                        # Assume binary audio is PCM16 format (common for mobile apps)
+                        audio_message = {
+                            "type": "audio_data",
+                            "audio": audio_data,
+                            "format": "pcm16",  # Binary audio is typically PCM16 from mobile apps
+                            "size": len(audio_data)
+                        }
+                        
+                        await websocket_manager.handle_voice_message(session_id, audio_message)
+                        
+                else:
+                    logger.warning(f"⚠️ Unexpected message type: {message.get('type')}")
                 
         except WebSocketDisconnect:
-            logger.info(f"WebSocket disconnected for session {session_id}")
+            logger.info(f"🔌 WebSocket disconnected for session {session_id}")
         except Exception as e:
-            logger.error(f"WebSocket error for session {session_id}: {e}")
+            logger.error(f"❌ WebSocket error for session {session_id}: {e}")
         finally:
             await websocket_manager.disconnect(session_id)
+            logger.info(f"🔌 WebSocket cleanup completed for session {session_id}")
             
     except Exception as e:
-        logger.error(f"WebSocket connection error: {e}")
+        logger.error(f"❌ WebSocket connection error: {e}")
         if websocket.client_state.name != "DISCONNECTED":
             await websocket.close()
 
 
-# Health check endpoint
+# Monitoring endpoints
+@router.get("/metrics")
+async def get_voice_metrics(
+    current_user=Depends(get_current_user)
+):
+    """Get voice agent system metrics"""
+    try:
+        metrics = voice_metrics.get_current_metrics()
+        return {
+            "success": True,
+            "metrics": metrics,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting metrics: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get metrics: {str(e)}")
+
+
+@router.get("/metrics/session/{session_id}")
+async def get_session_metrics(
+    session_id: str,
+    current_user=Depends(get_current_user)
+):
+    """Get metrics for a specific session"""
+    try:
+        session_metrics = voice_metrics.get_session_metrics(session_id)
+        if not session_metrics:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        return {
+            "success": True,
+            "session_metrics": session_metrics,
+            "timestamp": datetime.now().isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting session metrics: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get session metrics: {str(e)}")
+
+
+@router.get("/monitoring/health")
+async def get_comprehensive_health(
+    current_user=Depends(get_current_user)
+):
+    """Get comprehensive health status of all voice agent components"""
+    try:
+        health_status = await health_monitor.run_all_checks()
+        return {
+            "success": True,
+            "health": health_status,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting health status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get health status: {str(e)}")
+
+
+@router.get("/monitoring/health/{component}")
+async def get_component_health(
+    component: str,
+    current_user=Depends(get_current_user)
+):
+    """Get health status of a specific component"""
+    try:
+        health_status = await health_monitor.run_single_check(component)
+        return {
+            "success": True,
+            "component": component,
+            "health": health_status,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting component health: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get component health: {str(e)}")
+
+
+@router.get("/monitoring/errors")
+async def get_recent_errors(
+    limit: int = 10,
+    current_user=Depends(get_current_user)
+):
+    """Get recent errors from the voice system"""
+    try:
+        errors = voice_metrics.get_recent_errors(limit)
+        return {
+            "success": True,
+            "errors": errors,
+            "count": len(errors),
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting recent errors: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get recent errors: {str(e)}")
+
+
+# Health check endpoints
 @router.get("/health")
 async def health_check():
     """Health check endpoint"""
     try:
         system_healthy = voice_pipeline is not None
+        audio_health = await audio_processor.health_check()
+        
+        overall_healthy = system_healthy and audio_health.get("status") != "degraded"
         
         return {
-            "status": "healthy" if system_healthy else "unhealthy",
+            "status": "healthy" if overall_healthy else "degraded",
             "voice_system_initialized": system_healthy,
+            "audio_processor": audio_health,
             "timestamp": datetime.now().isoformat()
         }
         
@@ -497,4 +904,58 @@ async def health_check():
             "status": "unhealthy",
             "error": str(e),
             "timestamp": datetime.now().isoformat()
-        } 
+        }
+
+@router.get("/audio/health")
+async def audio_health_check():
+    """Detailed audio processor health check"""
+    return await audio_processor.health_check()
+
+@router.get("/audio/formats")
+async def get_supported_audio_formats():
+    """Get supported audio formats"""
+    return {
+        "supported_formats": audio_processor.get_supported_formats(),
+        "recommended_format": "wav",
+        "max_file_size": "25MB",
+        "processor": "OpenAI Whisper",
+        "auto_conversion": ["pcm16", "pcm", "raw"]
+    }
+
+@router.get("/audio/voices")
+async def get_supported_voices():
+    """Get supported TTS voices"""
+    return {
+        "supported_voices": audio_processor.get_supported_voices(),
+        "default_voice": settings.OPENAI_TTS_VOICE,
+        "tts_model": settings.OPENAI_TTS_MODEL,
+        "output_format": "mp3"
+    }
+
+@router.post("/audio/test-tts")
+async def test_text_to_speech(
+    text: str,
+    voice: str = None,
+    current_user=Depends(get_current_user)
+):
+    """Test text-to-speech conversion"""
+    try:
+        # Limit text length for testing
+        if len(text) > 500:
+            raise HTTPException(status_code=400, detail="Text too long for testing (max 500 characters)")
+        
+        # Convert to audio
+        audio_base64 = await audio_processor.convert_text_to_base64_audio(text, voice)
+        
+        return {
+            "success": True,
+            "audio_base64": audio_base64,
+            "audio_format": "mp3",
+            "text": text,
+            "voice": voice or settings.OPENAI_TTS_VOICE,
+            "audio_size": len(audio_base64)
+        }
+        
+    except Exception as e:
+        logger.error(f"TTS test error: {e}")
+        raise HTTPException(status_code=500, detail=f"TTS conversion failed: {str(e)}") 

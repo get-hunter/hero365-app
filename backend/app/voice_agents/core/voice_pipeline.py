@@ -54,14 +54,12 @@ class Hero365VoicePipeline:
                 session_id=session_id
             )
             
-            # Create runner for this session
-            runner = Runner(self.triage_agent)
-            
             # Store session info
             self.active_sessions[session_id] = {
                 "user_id": user_id,
                 "business_id": business_id,
-                "runner": runner,
+                "triage_agent": self.triage_agent,
+                "context": context,
                 "created_at": datetime.now().isoformat(),
                 "status": "active",
                 "metadata": session_metadata or {}
@@ -88,7 +86,7 @@ class Hero365VoicePipeline:
                                   session_id: str, 
                                   audio_input) -> AsyncGenerator:
         """
-        Process audio input through the multi-agent system.
+        Process audio input through the OpenAI Agents SDK multi-agent system.
         
         Args:
             session_id: Session ID
@@ -102,25 +100,31 @@ class Hero365VoicePipeline:
         
         try:
             session = self.active_sessions[session_id]
-            runner = session["runner"]
+            triage_agent = session["triage_agent"]
             
-            # Process through OpenAI agents SDK
-            async for output in runner.run(audio_input):
-                yield output
-                
+            # For now, audio processing will be handled through the text pathway
+            # This is a placeholder for future audio streaming implementation
+            
+            # Convert audio to text first
+            text_input = await self.audio_processor.process_audio_to_text(audio_input)
+            
+            # Process through OpenAI Agents SDK
+            response = await triage_agent.process_user_request(text_input)
+            
+            # Convert response back to audio
+            audio_response = await self.audio_processor.convert_text_to_speech(response)
+            
+            yield audio_response
+            
         except Exception as e:
-            logger.error(f"Error processing audio stream: {e}")
-            # Yield error message as audio output
-            yield {
-                "type": "error",
-                "data": f"I'm sorry, I encountered an error processing your request: {str(e)}"
-            }
+            logger.error(f"❌ Error processing audio stream: {e}")
+            raise
     
     async def process_text_input(self, 
                                session_id: str, 
                                text_input: str) -> str:
         """
-        Process text input through the multi-agent system.
+        Process text input through the OpenAI Agents SDK multi-agent system.
         
         Args:
             session_id: Session ID
@@ -134,9 +138,9 @@ class Hero365VoicePipeline:
         
         try:
             session = self.active_sessions[session_id]
-            runner = session["runner"]
+            triage_agent = session["triage_agent"]
             
-            # Update context with user input
+            # Update context with user input using context manager
             await self.context_manager.update_context({
                 "conversation": {
                     "agent": "user",
@@ -145,10 +149,14 @@ class Hero365VoicePipeline:
                 }
             })
             
-            # Process through OpenAI agents SDK
-            response = await runner.run(text_input)
+            logger.info(f"🎯 Processing text input with OpenAI Agents SDK: {text_input}")
             
-            # Update context with agent response
+            # Use the OpenAI Agents SDK through the triage agent
+            response = await triage_agent.process_user_request(text_input)
+            
+            logger.info(f"✅ OpenAI Agents SDK response: {response}")
+            
+            # Update context with response using context manager
             await self.context_manager.update_context({
                 "conversation": {
                     "agent": "assistant",
@@ -160,8 +168,8 @@ class Hero365VoicePipeline:
             return response
             
         except Exception as e:
-            logger.error(f"Error processing text input: {e}")
-            return f"I'm sorry, I encountered an error processing your request: {str(e)}"
+            logger.error(f"❌ Error processing text input: {e}")
+            raise
     
     async def end_voice_session(self, session_id: str):
         """

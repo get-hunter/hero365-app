@@ -5,6 +5,7 @@ Hero365 tools integration for voice agents.
 from typing import Dict, Any, List, Optional
 from ...infrastructure.config.dependency_injection import get_container
 from ...core.config import settings
+from .world_context_tools import world_context_tools
 import logging
 import httpx
 from datetime import datetime
@@ -311,57 +312,205 @@ class Hero365Tools:
             return {"success": False, "error": str(e)}
     
     # World Context Tools
-    async def get_weather_info(self, location: str = None) -> Dict[str, Any]:
-        """Get weather information"""
+    async def get_weather_info(self, location: str = None, units: str = "metric") -> Dict[str, Any]:
+        """Get weather information using world context tools"""
         try:
             if not location:
                 context = await self.context_manager.get_current_context()
                 location = context.get("location", {}).get("city", "")
             
             if not location:
-                return {"success": False, "error": "Location not available"}
+                return {
+                    "success": False, 
+                    "error": "Location not available",
+                    "voice_response": "I need a location to get weather information. Please provide a city name."
+                }
             
-            # This would integrate with a weather API
-            # For now, return placeholder data
-            return {
-                "success": True,
-                "data": {
-                    "location": location,
-                    "temperature": "22°C",
-                    "condition": "Partly cloudy",
-                    "humidity": "65%",
-                    "wind": "10 km/h"
-                },
-                "message": "Weather information retrieved"
-            }
+            # Use world context tools for real weather data
+            weather_result = await world_context_tools.get_weather(location, units)
+            
+            if weather_result.get("success"):
+                return {
+                    "success": True,
+                    "data": weather_result["data"],
+                    "voice_response": weather_result["voice_response"]
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": weather_result.get("error", "Weather service unavailable"),
+                    "voice_response": weather_result.get("voice_response", "I couldn't get weather information right now.")
+                }
         except Exception as e:
             logger.error(f"Error getting weather: {e}")
-            return {"success": False, "error": str(e)}
-    
-    async def get_directions(self, destination: str) -> Dict[str, Any]:
-        """Get directions to a destination"""
-        try:
-            context = await self.context_manager.get_current_context()
-            current_location = context.get("location", {})
-            
-            if not current_location:
-                return {"success": False, "error": "Current location not available"}
-            
-            # This would integrate with a mapping API
-            # For now, return placeholder data
             return {
-                "success": True,
-                "data": {
-                    "destination": destination,
-                    "distance": "12.5 km",
-                    "duration": "18 minutes",
-                    "route": "Take Highway 101 North"
-                },
-                "message": "Directions retrieved"
+                "success": False, 
+                "error": str(e),
+                "voice_response": "I'm having trouble getting weather information right now. Please try again later."
             }
+    
+    async def get_directions(self, destination: str, origin: str = None, mode: str = "driving") -> Dict[str, Any]:
+        """Get directions to a destination using world context tools"""
+        try:
+            if not origin:
+                context = await self.context_manager.get_current_context()
+                current_location = context.get("location", {})
+                origin = current_location.get("address") or current_location.get("city", "")
+            
+            if not origin:
+                return {
+                    "success": False, 
+                    "error": "Current location not available",
+                    "voice_response": "I need your current location to provide directions. Please provide a starting location."
+                }
+            
+            # Use world context tools for real directions data
+            directions_result = await world_context_tools.get_directions(origin, destination, mode)
+            
+            if directions_result.get("success"):
+                return {
+                    "success": True,
+                    "data": directions_result["data"],
+                    "voice_response": directions_result["voice_response"]
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": directions_result.get("error", "Directions service unavailable"),
+                    "voice_response": directions_result.get("voice_response", "I couldn't get directions right now.")
+                }
         except Exception as e:
             logger.error(f"Error getting directions: {e}")
-            return {"success": False, "error": str(e)}
+            return {
+                "success": False, 
+                "error": str(e),
+                "voice_response": "I'm having trouble getting directions right now. Please try again later."
+                         }
+    
+    async def get_weather_forecast(self, location: str = None, days: int = 5, units: str = "metric") -> Dict[str, Any]:
+        """Get weather forecast using world context tools"""
+        try:
+            if not location:
+                context = await self.context_manager.get_current_context()
+                location = context.get("location", {}).get("city", "")
+            
+            if not location:
+                return {
+                    "success": False, 
+                    "error": "Location not available",
+                    "voice_response": "I need a location to get weather forecast. Please provide a city name."
+                }
+            
+            # Use world context tools for weather forecast
+            forecast_result = await world_context_tools.get_weather_forecast(location, days, units)
+            
+            if forecast_result.get("success"):
+                return {
+                    "success": True,
+                    "data": forecast_result["data"],
+                    "voice_response": forecast_result["voice_response"]
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": forecast_result.get("error", "Weather forecast service unavailable"),
+                    "voice_response": forecast_result.get("voice_response", "I couldn't get weather forecast right now.")
+                }
+        except Exception as e:
+            logger.error(f"Error getting weather forecast: {e}")
+            return {
+                "success": False, 
+                "error": str(e),
+                "voice_response": "I'm having trouble getting weather forecast right now. Please try again later."
+            }
+    
+    async def search_places(self, query: str, location: str = None, radius: int = 5000) -> Dict[str, Any]:
+        """Search for places using world context tools"""
+        try:
+            if not location:
+                context = await self.context_manager.get_current_context()
+                current_location = context.get("location", {})
+                location = current_location.get("city", "")
+            
+            # Use world context tools for place search
+            places_result = await world_context_tools.search_places(query, location, radius)
+            
+            if places_result.get("success"):
+                return {
+                    "success": True,
+                    "data": places_result["data"],
+                    "voice_response": places_result["voice_response"]
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": places_result.get("error", "Place search service unavailable"),
+                    "voice_response": places_result.get("voice_response", "I couldn't search for places right now.")
+                }
+        except Exception as e:
+            logger.error(f"Error searching places: {e}")
+            return {
+                "success": False, 
+                "error": str(e),
+                "voice_response": "I'm having trouble searching for places right now. Please try again later."
+            }
+    
+    async def web_search(self, query: str, num_results: int = 5) -> Dict[str, Any]:
+        """Perform web search using world context tools"""
+        try:
+            # Use world context tools for web search
+            search_result = await world_context_tools.web_search(query, num_results)
+            
+            if search_result.get("success"):
+                return {
+                    "success": True,
+                    "data": search_result["data"],
+                    "voice_response": search_result["voice_response"]
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": search_result.get("error", "Web search service unavailable"),
+                    "voice_response": search_result.get("voice_response", "I couldn't perform web search right now.")
+                }
+        except Exception as e:
+            logger.error(f"Error performing web search: {e}")
+            return {
+                "success": False, 
+                "error": str(e),
+                "voice_response": "I'm having trouble with web search right now. Please try again later."
+            }
+    
+    async def get_business_hours(self, business_name: str, location: str = None) -> Dict[str, Any]:
+        """Get business hours using world context tools"""
+        try:
+            if not location:
+                context = await self.context_manager.get_current_context()
+                current_location = context.get("location", {})
+                location = current_location.get("city", "")
+            
+            # Use world context tools for business hours
+            hours_result = await world_context_tools.get_business_hours(business_name, location)
+            
+            if hours_result.get("success"):
+                return {
+                    "success": True,
+                    "data": hours_result["data"],
+                    "voice_response": hours_result["voice_response"]
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": hours_result.get("error", "Business hours service unavailable"),
+                    "voice_response": hours_result.get("voice_response", "I couldn't get business hours right now.")
+                }
+        except Exception as e:
+            logger.error(f"Error getting business hours: {e}")
+            return {
+                "success": False, 
+                "error": str(e),
+                "voice_response": "I'm having trouble getting business hours right now. Please try again later."
+            }
     
     # Business Analytics Tools
     async def get_business_analytics(self, period: str = "month") -> Dict[str, Any]:

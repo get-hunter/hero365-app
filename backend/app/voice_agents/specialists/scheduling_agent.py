@@ -2,8 +2,8 @@
 Scheduling management specialist agent for Hero365 voice system.
 """
 
-from typing import Dict, Any, List, Optional
-# from openai_agents import tool, handoff
+from typing import Optional, List
+from agents import Agent, function_tool
 from ..core.base_agent import BaseVoiceAgent
 from ..core.context_manager import ContextManager
 import logging
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class SchedulingAgent(BaseVoiceAgent):
-    """Specialist agent for scheduling and calendar management"""
+    """Specialist agent for scheduling and calendar management using OpenAI Agents SDK"""
     
     def __init__(self, context_manager: ContextManager):
         """
@@ -22,42 +22,47 @@ class SchedulingAgent(BaseVoiceAgent):
             context_manager: Shared context manager
         """
         instructions = """
-        You are the scheduling specialist for Hero365. You help users manage their calendar, 
-        schedule appointments, check availability, and handle all time-related operations.
+        You are the scheduling specialist for Hero365. You help users manage their 
+        calendar and scheduling efficiently and professionally.
         
-        You can help with booking appointments, checking availability, rescheduling, 
-        and managing calendar events efficiently.
+        You have access to tools for:
+        - Checking availability and time slots
+        - Booking appointments
+        - Managing calendar events
+        - Viewing schedules
+        - Rescheduling appointments
+        - Getting scheduling suggestions
         
-        Be helpful and guide users through scheduling tasks with precision and efficiency.
+        Always be helpful and ask for clarification if needed. When booking appointments,
+        collect the required information naturally through conversation.
         """
+        
+        # Create the OpenAI Agents SDK agent with function tools
+        self.sdk_agent = Agent(
+            name="Scheduling Management Specialist",
+            instructions=instructions,
+            tools=[
+                self._get_available_time_slots_tool,
+                self._book_appointment_tool,
+                self._check_availability_tool,
+                self._get_today_schedule_tool,
+                self._get_upcoming_appointments_tool,
+                self._reschedule_appointment_tool
+            ]
+        )
         
         super().__init__(
             name="Scheduling Specialist",
             instructions=instructions,
             context_manager=context_manager,
-            tools=[
-                self.get_available_time_slots,
-                self.book_appointment,
-                self.check_availability,
-                self.create_calendar_event,
-                self.get_today_schedule,
-                self.get_upcoming_appointments,
-                self.reschedule_appointment,
-                self.cancel_appointment,
-                self.get_calendar_view,
-                self.intelligent_scheduling_suggestion
-            ]
+            tools=[]
         )
     
-    def get_handoffs(self) -> List:
-        """Return list of agents this agent can hand off to"""
-        return []  # These would be populated when initializing the system
-    
-    # @tool
-    async def get_available_time_slots(self, 
-                                      date: str, 
-                                      duration: int = 60, 
-                                      service_type: str = None) -> str:
+    @function_tool
+    async def _get_available_time_slots_tool(self,
+                                            date: str,
+                                            duration: int = 60,
+                                            service_type: Optional[str] = None) -> str:
         """Find available time slots for a given date"""
         try:
             user_id, business_id = await self.get_user_and_business_ids()
@@ -80,39 +85,28 @@ class SchedulingAgent(BaseVoiceAgent):
             )
             
             if not result.available_slots:
-                return f"I don't see any available time slots for {date}. Would you like me to check another date or suggest alternative times?"
+                return f"No available time slots found for {date}"
             
-            slot_list = []
-            for slot in result.available_slots:
-                slot_info = f"• {slot.start_time} - {slot.end_time}"
-                if slot.notes:
-                    slot_info += f" ({slot.notes})"
-                slot_list.append(slot_info)
+            slots_text = "\n".join([
+                f"• {slot.start_time} - {slot.end_time}" + (f" ({slot.notes})" if slot.notes else "")
+                for slot in result.available_slots
+            ])
             
-            slots_text = "\n".join(slot_list)
-            
-            return await self.format_success_response(
-                "get_available_time_slots",
-                result,
-                f"Here are the available time slots for {date}:\n\n{slots_text}\n\nWould you like me to book any of these slots?"
-            )
+            return f"📅 Available time slots for {date}:\n{slots_text}"
             
         except Exception as e:
-            return await self.format_error_response(
-                "get_available_time_slots",
-                e,
-                f"I'm having trouble finding available time slots for {date}. Let me try a different approach."
-            )
+            logger.error(f"Error getting available time slots: {e}")
+            return f"❌ I encountered an error while checking availability: {str(e)}"
     
-    # @tool
-    async def book_appointment(self, 
-                              contact_id: str,
-                              date: str,
-                              time: str,
-                              duration: int = 60,
-                              service_type: str = None,
-                              notes: str = None) -> str:
-        """Book an appointment"""
+    @function_tool
+    async def _book_appointment_tool(self,
+                                    contact_id: str,
+                                    date: str,
+                                    time: str,
+                                    duration: int = 60,
+                                    service_type: Optional[str] = None,
+                                    notes: Optional[str] = None) -> str:
+        """Book an appointment with the provided information"""
         try:
             user_id, business_id = await self.get_user_and_business_ids()
             
@@ -120,11 +114,11 @@ class SchedulingAgent(BaseVoiceAgent):
             calendar_management_use_case = self.container.get_calendar_management_use_case()
             
             # Import the DTO
-            from ...application.dto.scheduling_dto import CreateAppointmentDTO
+            from ...application.dto.scheduling_dto import BookAppointmentDTO
             
             # Execute use case
             result = await calendar_management_use_case.execute(
-                CreateAppointmentDTO(
+                BookAppointmentDTO(
                     contact_id=contact_id,
                     date=date,
                     time=time,
@@ -136,34 +130,27 @@ class SchedulingAgent(BaseVoiceAgent):
                 user_id=user_id
             )
             
-            return await self.format_success_response(
-                "book_appointment",
-                result,
-                f"Perfect! I've booked the appointment for {date} at {time}. The appointment ID is {result.id}. Would you like me to send a confirmation to the client?"
-            )
+            return f"✅ Appointment booked successfully for {date} at {time}! Appointment ID: {result.appointment_id}"
             
         except Exception as e:
-            return await self.format_error_response(
-                "book_appointment",
-                e,
-                f"I couldn't book the appointment for {date} at {time}. Please check the details and try again."
-            )
+            logger.error(f"Error booking appointment: {e}")
+            return f"❌ I encountered an error while booking the appointment: {str(e)}"
     
-    # @tool
-    async def check_availability(self, date: str, time: str = None) -> str:
-        """Check availability for a specific date and time"""
+    @function_tool
+    async def _check_availability_tool(self, date: str, time: Optional[str] = None) -> str:
+        """Check availability for a specific date and optionally time"""
         try:
             user_id, business_id = await self.get_user_and_business_ids()
             
-            # Get the calendar management use case
-            calendar_management_use_case = self.container.get_calendar_management_use_case()
+            # Get the availability checking use case
+            availability_use_case = self.container.get_availability_checking_use_case()
             
             # Import the DTO
-            from ...application.dto.scheduling_dto import AvailabilityCheckDTO
+            from ...application.dto.scheduling_dto import CheckAvailabilityDTO
             
             # Execute use case
-            result = await calendar_management_use_case.execute(
-                AvailabilityCheckDTO(
+            result = await availability_use_case.execute(
+                CheckAvailabilityDTO(
                     date=date,
                     time=time,
                     business_id=business_id
@@ -172,82 +159,29 @@ class SchedulingAgent(BaseVoiceAgent):
             )
             
             if result.is_available:
-                return await self.format_success_response(
-                    "check_availability",
-                    result,
-                    f"Great news! You're available on {date}" + (f" at {time}" if time else "") + ". Would you like me to help you book an appointment?"
-                )
+                time_str = f" at {time}" if time else ""
+                return f"✅ You are available on {date}{time_str}"
             else:
-                return await self.format_success_response(
-                    "check_availability",
-                    result,
-                    f"You're not available on {date}" + (f" at {time}" if time else "") + ". Would you like me to suggest alternative times?"
-                )
+                return f"❌ You are not available on {date}" + (f" at {time}" if time else "")
             
         except Exception as e:
-            return await self.format_error_response(
-                "check_availability",
-                e,
-                f"I'm having trouble checking availability for {date}. Let me try a different approach."
-            )
+            logger.error(f"Error checking availability: {e}")
+            return f"❌ I encountered an error while checking availability: {str(e)}"
     
-    # @tool
-    async def create_calendar_event(self, 
-                                   title: str,
-                                   date: str,
-                                   time: str,
-                                   duration: int = 60,
-                                   description: str = None) -> str:
-        """Create a calendar event"""
+    @function_tool
+    async def _get_today_schedule_tool(self) -> str:
+        """Get today's schedule and appointments"""
         try:
             user_id, business_id = await self.get_user_and_business_ids()
             
-            # Get the calendar management use case
-            calendar_management_use_case = self.container.get_calendar_management_use_case()
-            
-            # Import the DTO
-            from ...application.dto.scheduling_dto import CreateCalendarEventDTO
-            
-            # Execute use case
-            result = await calendar_management_use_case.execute(
-                CreateCalendarEventDTO(
-                    title=title,
-                    date=date,
-                    time=time,
-                    duration=duration,
-                    description=description,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            return await self.format_success_response(
-                "create_calendar_event",
-                result,
-                f"Excellent! I've created the calendar event '{title}' for {date} at {time}. The event has been added to your calendar."
-            )
-            
-        except Exception as e:
-            return await self.format_error_response(
-                "create_calendar_event",
-                e,
-                f"I couldn't create the calendar event '{title}'. Please check the details and try again."
-            )
-    
-    # @tool
-    async def get_today_schedule(self) -> str:
-        """Get today's schedule"""
-        try:
-            user_id, business_id = await self.get_user_and_business_ids()
-            
-            # Get the calendar management use case
-            calendar_management_use_case = self.container.get_calendar_management_use_case()
+            # Get the schedule viewing use case
+            schedule_use_case = self.container.get_schedule_viewing_use_case()
             
             # Import the DTO
             from ...application.dto.scheduling_dto import GetScheduleDTO
             
             # Execute use case
-            result = await calendar_management_use_case.execute(
+            result = await schedule_use_case.execute(
                 GetScheduleDTO(
                     date="today",
                     business_id=business_id
@@ -256,96 +190,72 @@ class SchedulingAgent(BaseVoiceAgent):
             )
             
             if not result.appointments:
-                return "You don't have any appointments scheduled for today. Your schedule is wide open! Would you like me to help you schedule something?"
+                return "📅 You have no appointments scheduled for today"
             
-            appointment_list = []
-            for appointment in result.appointments:
-                appt_info = f"• {appointment.time} - {appointment.title}"
-                if appointment.contact_name:
-                    appt_info += f" with {appointment.contact_name}"
-                if appointment.duration:
-                    appt_info += f" ({appointment.duration} min)"
-                appointment_list.append(appt_info)
+            appointments_text = "\n".join([
+                f"• {appt.time} - {appt.title}" + (f" with {appt.contact_name}" if appt.contact_name else "")
+                for appt in result.appointments
+            ])
             
-            schedule_text = "\n".join(appointment_list)
-            
-            return await self.format_success_response(
-                "get_today_schedule",
-                result,
-                f"Here's your schedule for today:\n\n{schedule_text}\n\nAnything you'd like me to help you with regarding these appointments?"
-            )
+            return f"📅 Today's schedule:\n{appointments_text}"
             
         except Exception as e:
-            return await self.format_error_response(
-                "get_today_schedule",
-                e,
-                "I'm having trouble getting your today's schedule. Let me help you with something else."
-            )
+            logger.error(f"Error getting today's schedule: {e}")
+            return f"❌ I encountered an error while getting today's schedule: {str(e)}"
     
-    # @tool
-    async def get_upcoming_appointments(self, days_ahead: int = 7) -> str:
-        """Get upcoming appointments"""
+    @function_tool
+    async def _get_upcoming_appointments_tool(self, days_ahead: int = 7) -> str:
+        """Get upcoming appointments within the specified number of days"""
         try:
             user_id, business_id = await self.get_user_and_business_ids()
             
-            # Get the calendar management use case
-            calendar_management_use_case = self.container.get_calendar_management_use_case()
+            # Get the upcoming appointments use case
+            upcoming_appointments_use_case = self.container.get_upcoming_appointments_use_case()
             
             # Import the DTO
-            from ...application.dto.scheduling_dto import GetScheduleDTO
+            from ...application.dto.scheduling_dto import GetUpcomingAppointmentsDTO
             
             # Execute use case
-            result = await calendar_management_use_case.execute(
-                GetScheduleDTO(
-                    date_range=f"next_{days_ahead}_days",
+            result = await upcoming_appointments_use_case.execute(
+                GetUpcomingAppointmentsDTO(
+                    days_ahead=days_ahead,
                     business_id=business_id
                 ),
                 user_id=user_id
             )
             
             if not result.appointments:
-                return f"You don't have any appointments scheduled for the next {days_ahead} days. Would you like me to help you schedule some?"
+                return f"📅 No upcoming appointments in the next {days_ahead} days"
             
-            appointment_list = []
-            for appointment in result.appointments:
-                appt_info = f"• {appointment.date} at {appointment.time} - {appointment.title}"
-                if appointment.contact_name:
-                    appt_info += f" with {appointment.contact_name}"
-                appointment_list.append(appt_info)
+            appointments_text = "\n".join([
+                f"• {appt.date} {appt.time} - {appt.title}" + (f" with {appt.contact_name}" if appt.contact_name else "")
+                for appt in result.appointments
+            ])
             
-            schedule_text = "\n".join(appointment_list)
-            
-            return await self.format_success_response(
-                "get_upcoming_appointments",
-                result,
-                f"Here are your upcoming appointments for the next {days_ahead} days:\n\n{schedule_text}\n\nWould you like me to help you with any of these appointments?"
-            )
+            return f"📅 Upcoming appointments in the next {days_ahead} days:\n{appointments_text}"
             
         except Exception as e:
-            return await self.format_error_response(
-                "get_upcoming_appointments",
-                e,
-                f"I'm having trouble getting your upcoming appointments. Let me help you with something else."
-            )
+            logger.error(f"Error getting upcoming appointments: {e}")
+            return f"❌ I encountered an error while getting upcoming appointments: {str(e)}"
     
-    # @tool
-    async def reschedule_appointment(self, 
-                                   appointment_id: str,
-                                   new_date: str,
-                                   new_time: str,
-                                   reason: str = None) -> str:
-        """Reschedule an appointment"""
+    @function_tool
+    async def _reschedule_appointment_tool(self,
+                                          appointment_id: str,
+                                          new_date: str,
+                                          new_time: str,
+                                          reason: Optional[str] = None) -> str:
+        """Reschedule an existing appointment"""
         try:
             user_id, business_id = await self.get_user_and_business_ids()
             
-            # Get the calendar management use case
-            calendar_management_use_case = self.container.get_calendar_management_use_case()
+            # Get the reschedule appointment use case
+            reschedule_use_case = self.container.get_reschedule_appointment_use_case()
             
             # Import the DTO
             from ...application.dto.scheduling_dto import RescheduleAppointmentDTO
             
             # Execute use case
-            result = await calendar_management_use_case.execute(
+            result = await reschedule_use_case.execute(
                 RescheduleAppointmentDTO(
                     appointment_id=appointment_id,
                     new_date=new_date,
@@ -356,151 +266,51 @@ class SchedulingAgent(BaseVoiceAgent):
                 user_id=user_id
             )
             
-            return await self.format_success_response(
-                "reschedule_appointment",
-                result,
-                f"Perfect! I've rescheduled the appointment to {new_date} at {new_time}. Would you like me to notify the client about this change?"
-            )
+            return f"✅ Appointment rescheduled successfully to {new_date} at {new_time}!"
             
         except Exception as e:
-            return await self.format_error_response(
-                "reschedule_appointment",
-                e,
-                f"I couldn't reschedule the appointment. Please check the appointment ID and try again."
-            )
+            logger.error(f"Error rescheduling appointment: {e}")
+            return f"❌ I encountered an error while rescheduling the appointment: {str(e)}"
     
-    # @tool
-    async def cancel_appointment(self, appointment_id: str, reason: str = None) -> str:
-        """Cancel an appointment"""
+    async def get_response(self, text_input: str) -> str:
+        """
+        Get response from the scheduling agent using OpenAI Agents SDK.
+        
+        Args:
+            text_input: User's input text
+            
+        Returns:
+            Response from the agent
+        """
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            from agents import Runner
             
-            # Get the calendar management use case
-            calendar_management_use_case = self.container.get_calendar_management_use_case()
+            logger.info(f"📅 Scheduling agent processing: {text_input}")
             
-            # Import the DTO
-            from ...application.dto.scheduling_dto import CancelAppointmentDTO
-            
-            # Execute use case
-            result = await calendar_management_use_case.execute(
-                CancelAppointmentDTO(
-                    appointment_id=appointment_id,
-                    reason=reason,
-                    business_id=business_id
-                ),
-                user_id=user_id
+            # Use the OpenAI Agents SDK to process the request
+            result = await Runner.run(
+                starting_agent=self.sdk_agent,
+                input=text_input
             )
             
-            return await self.format_success_response(
-                "cancel_appointment",
-                result,
-                f"The appointment has been cancelled successfully. Would you like me to notify the client about this cancellation?"
-            )
+            response = result.final_output
+            logger.info(f"✅ Scheduling agent response: {response}")
+            
+            return response
             
         except Exception as e:
-            return await self.format_error_response(
-                "cancel_appointment",
-                e,
-                f"I couldn't cancel the appointment. Please check the appointment ID and try again."
-            )
-    
-    # @tool
-    async def get_calendar_view(self, view_type: str = "week", date: str = None) -> str:
-        """Get calendar view (day, week, month)"""
-        try:
-            user_id, business_id = await self.get_user_and_business_ids()
-            
-            # Get the calendar management use case
-            calendar_management_use_case = self.container.get_calendar_management_use_case()
-            
-            # Import the DTO
-            from ...application.dto.scheduling_dto import GetCalendarViewDTO
-            
-            # Execute use case
-            result = await calendar_management_use_case.execute(
-                GetCalendarViewDTO(
-                    view_type=view_type,
-                    date=date,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            return await self.format_success_response(
-                "get_calendar_view",
-                result,
-                f"Here's your {view_type} calendar view. You have {len(result.appointments)} appointments scheduled. Would you like me to help you with any specific time slot?"
-            )
-            
-        except Exception as e:
-            return await self.format_error_response(
-                "get_calendar_view",
-                e,
-                f"I'm having trouble getting your {view_type} calendar view. Let me help you with something else."
-            )
-    
-    # @tool
-    async def intelligent_scheduling_suggestion(self, 
-                                              service_type: str,
-                                              duration: int = 60,
-                                              preferred_time: str = None) -> str:
-        """Get intelligent scheduling suggestions"""
-        try:
-            user_id, business_id = await self.get_user_and_business_ids()
-            
-            # Get the intelligent scheduling use case
-            intelligent_scheduling_use_case = self.container.get_intelligent_scheduling_use_case()
-            
-            # Import the DTO
-            from ...application.dto.scheduling_dto import IntelligentSchedulingDTO
-            
-            # Execute use case
-            result = await intelligent_scheduling_use_case.execute(
-                IntelligentSchedulingDTO(
-                    service_type=service_type,
-                    duration=duration,
-                    preferred_time=preferred_time,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            if not result.suggestions:
-                return f"I don't have any scheduling suggestions for {service_type} right now. Would you like me to check specific dates and times?"
-            
-            suggestion_list = []
-            for suggestion in result.suggestions:
-                sugg_info = f"• {suggestion.date} at {suggestion.time}"
-                if suggestion.reason:
-                    sugg_info += f" - {suggestion.reason}"
-                suggestion_list.append(sugg_info)
-            
-            suggestions_text = "\n".join(suggestion_list)
-            
-            return await self.format_success_response(
-                "intelligent_scheduling_suggestion",
-                result,
-                f"Here are my scheduling suggestions for {service_type}:\n\n{suggestions_text}\n\nWould you like me to book any of these suggested times?"
-            )
-            
-        except Exception as e:
-            return await self.format_error_response(
-                "intelligent_scheduling_suggestion",
-                e,
-                f"I'm having trouble generating scheduling suggestions. Let me help you find available times manually."
-            )
+            logger.error(f"❌ Error in SchedulingAgent.get_response: {e}")
+            return "I'm having trouble with that request. Could you please be more specific about what you'd like to do with scheduling?"
     
     def get_agent_capabilities(self) -> List[str]:
         """Get list of capabilities for this agent"""
         return [
-            "Find available time slots",
-            "Book appointments",
-            "Check availability",
-            "Create calendar events",
-            "View today's schedule",
-            "Get upcoming appointments",
-            "Reschedule appointments",
-            "Cancel appointments",
-            "Calendar view management",
-            "Intelligent scheduling suggestions"
+            "Check availability and find open time slots",
+            "Book appointments with contact information and scheduling details",
+            "View today's schedule and upcoming appointments",
+            "Reschedule existing appointments",
+            "Get scheduling suggestions and recommendations",
+            "Manage calendar events and time blocks",
+            "Natural conversation for scheduling management",
+            "Automatic parameter collection through conversation"
         ] 

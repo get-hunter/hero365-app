@@ -1,18 +1,49 @@
 """
-Triage agent that routes user requests to appropriate specialist agents.
+Triage agent that routes user requests to appropriate specialist agents using OpenAI Agents SDK.
 """
 
-from typing import List, Dict, Any, Optional
-# from openai_agents import Agent, tool, handoff
+from typing import Dict, Any, Optional, List
+from agents import Agent, Runner, function_tool
 from ..core.base_agent import BaseVoiceAgent
 from ..core.context_manager import ContextManager
+from ...core.config import settings
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 
 
 class TriageAgent(BaseVoiceAgent):
-    """Main triage agent that routes to specialist agents"""
+    """Main triage agent that intelligently routes to specialist agents using OpenAI Agents SDK"""
+    
+    # Consolidated instructions for the triage agent
+    TRIAGE_INSTRUCTIONS = """
+    You are the Hero365 triage agent. You help users with their business needs by using 
+    specialized tools to handle different types of business operations.
+    
+    You have access to specialized tools for:
+    - Contact management: Creating, updating, searching contacts
+    - Job management: Creating, tracking, updating jobs
+    - Estimate management: Creating, managing estimates and quotes
+    - Scheduling: Booking appointments, checking availability
+    - General business questions and support
+    
+    When a user asks for help, analyze their request and use the appropriate tool to handle it.
+    The tools will automatically handle conversation flow and parameter collection.
+    
+    INSTRUCTIONS:
+    - Listen to what the user wants to accomplish
+    - Use the most appropriate tool for their request:
+      * contact_management for contact-related tasks
+      * job_management for job-related tasks
+      * estimate_management for estimate/quote-related tasks
+      * scheduling_management for appointment/calendar-related tasks
+    - If the request is general or you're not sure, provide general help first
+    - Be friendly, helpful, and professional in all interactions
+    - Let the specialist tools handle the detailed interactions
+    
+    All specialist tools are now fully functional and ready to help users.
+    """
     
     def __init__(self, context_manager: ContextManager, specialist_agents: Dict[str, Any]):
         """
@@ -20,281 +51,217 @@ class TriageAgent(BaseVoiceAgent):
         
         Args:
             context_manager: Shared context manager
-            specialist_agents: Dictionary of specialist agents
+            specialist_agents: Dictionary of specialist agent instances
         """
-        self.specialist_agents = specialist_agents
-        
-        instructions = """
-        You are the main assistant for Hero365, an AI-native ERP system for home services 
-        businesses and independent contractors. Your role is to understand what the user needs 
-        and seamlessly connect them with the right specialist to help them.
-        
-        You can help users with:
-        - Contact management (creating, updating, searching contacts)
-        - Job management (scheduling, tracking, updating jobs)
-        - Estimates (creating, sending, converting to invoices)
-        - Invoicing (creating, sending, tracking payments)
-        - Project management (tracking progress, milestones)
-        - Scheduling (appointments, availability, calendar management)
-        - Payments (processing, tracking, collections)
-        
-        When you understand what they need, transfer them to the appropriate specialist.
-        Never tell the user about the transfer - just seamlessly continue the conversation.
-        Be warm, helpful, and professional in your responses.
-        """
-        
         super().__init__(
-            name="Hero365 Assistant",
-            instructions=instructions,
+            name="Triage Agent",
+            instructions=self.TRIAGE_INSTRUCTIONS,
             context_manager=context_manager,
-            tools=[
-                self.get_system_status,
-                self.get_quick_stats,
-                self.search_everything,
-                self.search_web,
-                self.get_business_overview,
-                self.get_user_capabilities
-            ]
+            tools=[]
         )
-    
-    def get_handoffs(self) -> List[Any]:
-        """Return list of agents this agent can hand off to"""
-        return list(self.specialist_agents.values())
-    
-    # @tool
-    async def get_system_status(self) -> str:
-        """Get current system status and recent activity"""
+        
+        self.specialist_agents = specialist_agents
+        self.context_manager = context_manager
+        
+        # Create the OpenAI Agents SDK triage agent (no handoffs, just routing tools)
+        self.sdk_agent = self._create_sdk_agent()
+
+    def _create_sdk_agent(self) -> Agent:
+        """Create the OpenAI Agents SDK agent with specialist agent tools"""
         try:
-            context = await self.get_context()
-            business_name = context.get("business_name", "your business")
+            from agents import Agent
+            import os
             
-            # This would integrate with actual system monitoring
-            # For now, return a basic status
-            return f"""
-            Everything looks good with {business_name}! 
+            # Ensure OpenAI API key is available for the agents SDK
+            if settings.OPENAI_API_KEY:
+                os.environ["OPENAI_API_KEY"] = settings.OPENAI_API_KEY
+                logger.info("✅ OpenAI API key configured for agents SDK")
+            else:
+                logger.error("❌ OpenAI API key not found in settings")
+                raise ValueError("OpenAI API key is required for voice agents")
             
-            The system is running smoothly and all services are operational.
-            
-            What can I help you with today?
-            """
-        except Exception as e:
-            return await self.format_error_response(
-                "get_system_status",
-                e,
-                "I'm having trouble checking the system status right now, but I'm here to help you with your business needs."
-            )
-    
-    # @tool
-    async def get_quick_stats(self) -> str:
-        """Get quick business statistics"""
-        try:
-            context = await self.get_context()
-            business_name = context.get("business_name", "your business")
-            
-            # This would integrate with actual analytics
-            # For now, return placeholder stats
-            return f"""
-            Here's a quick overview of {business_name}:
-            
-            • Active jobs: 3
-            • Pending estimates: 2
-            • Upcoming appointments: 5
-            • Recent activity: 12 interactions today
-            
-            Would you like me to dive deeper into any of these areas?
-            """
-        except Exception as e:
-            return await self.format_error_response(
-                "get_quick_stats",
-                e,
-                "I'm having trouble getting your business stats right now, but I can still help you with specific tasks."
-            )
-    
-    # @tool
-    async def search_everything(self, query: str) -> str:
-        """Search across all Hero365 data"""
-        try:
-            # This would integrate with the actual search functionality
-            # For now, return a placeholder response
-            return f"""
-            I searched for '{query}' across your business data.
-            
-            I found some relevant results, but let me connect you with the right specialist 
-            who can help you with the specific details you need.
-            """
-        except Exception as e:
-            return await self.format_error_response(
-                "search_everything",
-                e,
-                f"I'm having trouble searching for '{query}' right now, but I can connect you with a specialist who can help."
-            )
-    
-    # @tool
-    async def search_web(self, query: str) -> str:
-        """Search the web for real-time information relevant to business operations"""
-        try:
-            # This would integrate with OpenAI's web search tool
-            # For now, return a placeholder response
-            return f"""
-            I searched the web for information about '{query}' relevant to your business.
-            
-            Based on current information, here's what I found: [web search results would go here]
-            
-            Would you like me to help you apply this information to your business operations?
-            """
-        except Exception as e:
-            return await self.format_error_response(
-                "search_web",
-                e,
-                f"I'm having trouble searching the web for '{query}' right now, but I can still help you with your business needs."
-            )
-    
-    # @tool
-    async def get_business_overview(self) -> str:
-        """Get overview of current business status"""
-        try:
-            context = await self.get_context()
-            business_name = context.get("business_name", "your business")
-            user_name = context.get("user_name", "")
-            
-            return f"""
-            Welcome to {business_name}! 
-            
-            I'm here to help you manage your business operations efficiently. 
-            I can assist you with contacts, jobs, estimates, invoices, scheduling, and more.
-            
-            What would you like to work on today?
-            """
-        except Exception as e:
-            return await self.format_error_response(
-                "get_business_overview",
-                e,
-                "I'm here to help you with your business operations. What would you like to work on?"
-            )
-    
-    # @tool
-    async def get_user_capabilities(self) -> str:
-        """Get user's capabilities and permissions"""
-        try:
-            context = await self.get_context()
-            user_role = context.get("user_role", "user")
-            
-            capabilities = [
-                "View and manage contacts",
-                "Create and track jobs",
-                "Generate estimates and invoices",
-                "Schedule appointments",
-                "Access business analytics"
+            # Create tools list starting with general tools
+            tools = [
+                self._get_business_info_tool,
+                self._get_general_help_tool,
             ]
             
-            return f"""
-            As a {user_role}, you have access to:
+            # Add specialist agents as tools
+            if 'contact' in self.specialist_agents:
+                contact_tool = self.specialist_agents['contact'].sdk_agent.as_tool(
+                    tool_name="contact_management",
+                    tool_description="Handle contact management tasks including creating, updating, searching, and managing contacts"
+                )
+                tools.append(contact_tool)
+                logger.info("✅ Added contact management tool")
             
-            """ + "\n".join(f"• {cap}" for cap in capabilities) + """
+            if 'job' in self.specialist_agents:
+                job_tool = self.specialist_agents['job'].sdk_agent.as_tool(
+                    tool_name="job_management",
+                    tool_description="Handle job management tasks including creating, updating, and tracking jobs"
+                )
+                tools.append(job_tool)
+                logger.info("✅ Added job management tool")
             
-            What would you like to do?
-            """
-        except Exception as e:
-            return await self.format_error_response(
-                "get_user_capabilities",
-                e,
-                "I can help you with various business operations. What would you like to work on?"
+            if 'estimate' in self.specialist_agents:
+                estimate_tool = self.specialist_agents['estimate'].sdk_agent.as_tool(
+                    tool_name="estimate_management",
+                    tool_description="Handle estimate management tasks including creating, updating, and managing estimates"
+                )
+                tools.append(estimate_tool)
+                logger.info("✅ Added estimate management tool")
+            
+            if 'scheduling' in self.specialist_agents:
+                scheduling_tool = self.specialist_agents['scheduling'].sdk_agent.as_tool(
+                    tool_name="scheduling_management",
+                    tool_description="Handle scheduling tasks including booking appointments and managing availability"
+                )
+                tools.append(scheduling_tool)
+                logger.info("✅ Added scheduling management tool")
+            
+            # Create the main triage agent with specialist agent tools
+            triage_agent = Agent(
+                name="Hero365 Triage Agent",
+                instructions=self.TRIAGE_INSTRUCTIONS,
+                tools=tools
             )
+            
+            return triage_agent
+            
+        except Exception as e:
+            logger.error(f"❌ Error creating SDK agent: {e}")
+            raise
     
-    # Handoff functions to specialist agents
-    # @handoff
-    def transfer_to_contact_specialist(self) -> Any:
-        """Transfer to contact management specialist"""
-        return self.specialist_agents.get("contact")
-    
-    # @handoff
-    def transfer_to_job_specialist(self) -> Any:
-        """Transfer to job management specialist"""
-        return self.specialist_agents.get("job")
-    
-    # @handoff
-    def transfer_to_estimate_specialist(self) -> Any:
-        """Transfer to estimate specialist"""
-        return self.specialist_agents.get("estimate")
-    
-    # @handoff
-    def transfer_to_invoice_specialist(self) -> Any:
-        """Transfer to invoice specialist"""
-        return self.specialist_agents.get("invoice")
-    
-    # @handoff
-    def transfer_to_payment_specialist(self) -> Any:
-        """Transfer to payment specialist"""
-        return self.specialist_agents.get("payment")
-    
-    # @handoff
-    def transfer_to_project_specialist(self) -> Any:
-        """Transfer to project specialist"""
-        return self.specialist_agents.get("project")
-    
-    # @handoff
-    def transfer_to_scheduling_specialist(self) -> Any:
-        """Transfer to scheduling specialist"""
-        return self.specialist_agents.get("scheduling")
-    
-    # @handoff
-    def escalate_to_human(self) -> Any:
-        """Escalate to human support"""
-        # This would typically connect to a human agent system
-        # For now, return None to indicate this handoff is not yet implemented
-        return None
-    
-    async def determine_intent(self, user_input: str) -> str:
+    @staticmethod
+    @function_tool
+    def _get_business_info_tool() -> str:
+        """Get general business information"""
+        return """
+        Hero365 is your AI-native ERP for home services. I can help you with:
+        - Managing contacts and customer information
+        - Creating and tracking jobs
+        - Creating estimates and quotes
+        - Scheduling appointments
+        - General business operations
+        
+        What would you like help with today?
         """
-        Determine user intent to help with routing decisions.
+    
+    @staticmethod
+    @function_tool
+    def _get_general_help_tool() -> str:
+        """Provide general help information"""
+        return """
+        I'm here to help you with your Hero365 business operations. I can assist with:
+        
+        📞 Contact Management: Create, update, search contacts
+        🔧 Job Management: Create, track, update jobs
+        📊 Estimate Management: Create, manage estimates and quotes
+        📅 Scheduling: Book appointments, check availability
+        
+        Just tell me what you need help with, and I'll connect you with the right specialist!
+        """
+    
+
+    
+    async def process_user_request(self, text_input: str) -> str:
+        """
+        Process user request using OpenAI Agents SDK with proper conversation management.
         
         Args:
-            user_input: User's message
+            text_input: User's input text
             
         Returns:
-            Detected intent category
+            Response from the appropriate specialist agent
         """
         try:
-            # This would use NLP to determine intent
-            # For now, use simple keyword matching
-            user_input_lower = user_input.lower()
+            logger.info(f"🎯 Processing user request with OpenAI Agents SDK: {text_input}")
             
-            # Contact-related intents
-            if any(word in user_input_lower for word in ["contact", "customer", "client", "phone", "email"]):
-                return "contact_management"
+            # Get current context to understand conversation state
+            context = await self.context_manager.get_current_context()
             
-            # Job-related intents
-            elif any(word in user_input_lower for word in ["job", "work", "task", "project", "service"]):
-                return "job_management"
+            # Build input for the SDK - either fresh or with conversation history
+            sdk_input = await self._build_sdk_input(text_input, context)
             
-            # Estimate-related intents
-            elif any(word in user_input_lower for word in ["estimate", "quote", "proposal", "bid"]):
-                return "estimate_management"
+            # Update context with user input
+            await self.context_manager.update_context({
+                "conversation": {
+                    "agent": "user",
+                    "action": "text_input",
+                    "message": text_input
+                }
+            })
             
-            # Invoice-related intents
-            elif any(word in user_input_lower for word in ["invoice", "bill", "payment", "charge"]):
-                return "invoice_management"
+            # Use the OpenAI Agents SDK to process the request
+            result = await Runner.run(
+                starting_agent=self.sdk_agent,
+                input=sdk_input
+            )
             
-            # Scheduling-related intents
-            elif any(word in user_input_lower for word in ["schedule", "appointment", "calendar", "booking"]):
-                return "scheduling"
+            # Store the full result in context for next conversation turn
+            await self.context_manager.update_context({
+                "last_agent_result": result.to_dict() if hasattr(result, 'to_dict') else None,
+                "conversation_history": result.to_input_list()
+            })
             
-            # General or unclear intent
-            else:
-                return "general"
-                
+            # Get the final response
+            response = result.final_output
+            
+            logger.info(f"✅ OpenAI Agents SDK response: {response}")
+            
+            # Update context with the response
+            await self.context_manager.update_context({
+                "conversation": {
+                    "agent": "assistant",
+                    "action": "text_response",
+                    "message": response
+                }
+            })
+            
+            return response
+            
         except Exception as e:
-            logger.error(f"Error determining intent: {e}")
-            return "general"
+            logger.error(f"❌ Error processing user request with OpenAI Agents SDK: {e}")
+            return f"I'm sorry, I encountered an error processing your request. Please try again or be more specific about what you need help with."
+    
+    async def _build_sdk_input(self, text_input: str, context: Dict[str, Any]):
+        """Build input for OpenAI Agents SDK with conversation history if available"""
+        
+        # Check if we have conversation history from previous interactions
+        conversation_history = context.get("conversation_history", [])
+        
+        if conversation_history:
+            # We have conversation history - append new user message
+            logger.info(f"📝 Using conversation history with {len(conversation_history)} previous messages")
+            return conversation_history + [{"role": "user", "content": text_input}]
+        else:
+            # Fresh conversation - just the user input
+            logger.info(f"📝 Starting fresh conversation")
+            return text_input
+    
+    async def get_response(self, text_input: str) -> str:
+        """
+        Get response from the triage agent (compatibility method).
+        
+        Args:
+            text_input: User's input text
+            
+        Returns:
+            Response from the agent
+        """
+        return await self.process_user_request(text_input)
     
     def get_agent_capabilities(self) -> List[str]:
         """Get list of capabilities for this agent"""
         return [
-            "Intent detection and routing",
-            "System status monitoring",
-            "Business overview and statistics",
-            "Universal search capabilities",
-            "Web search integration",
-            "Handoff to specialist agents",
-            "User capability assessment"
+            "Intelligent request routing using OpenAI Agents SDK",
+            "Delegation to specialist agents",
+            "Contact management routing",
+            "Job management routing", 
+            "Estimate management routing",
+            "Scheduling management routing",
+            "General business information",
+            "Context-aware agent selection",
+            "Natural language understanding",
+            "Business operation assistance"
         ] 

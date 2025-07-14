@@ -8650,4 +8650,26 @@ export type VoiceAgentsUploadAudioData = {
 
 export type VoiceAgentsUploadAudioResponse = unknown
 
+export type VoiceAgentsGetVoiceMetricsResponse = unknown
+
+export type VoiceAgentsGetSessionMetricsData = {
+  sessionId: string
+}
+
+export type VoiceAgentsGetSessionMetricsResponse = unknown
+
+export type VoiceAgentsGetComprehensiveHealthResponse = unknown
+
+export type VoiceAgentsGetComponentHealthData = {
+  component: string
+}
+
+export type VoiceAgentsGetComponentHealthResponse = unknown
+
+export type VoiceAgentsGetRecentErrorsData = {
+  limit?: number
+}
+
+export type VoiceAgentsGetRecentErrorsResponse = unknown
+
 export type VoiceAgentsHealthCheckResponse = unknown
