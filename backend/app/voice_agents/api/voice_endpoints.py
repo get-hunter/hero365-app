@@ -19,6 +19,7 @@ from ..core.context_manager import ContextManager
 from ..core.audio_processor import audio_processor
 from ..core.cache_manager import cache_manager
 from ..core.audio_buffer_manager import audio_buffer_manager
+from ..core.realtime_audio_processor import realtime_audio_processor
 from ..triage.triage_agent import TriageAgent
 from ..specialists.contact_agent import ContactAgent
 from ..specialists.job_agent import JobAgent
@@ -55,11 +56,26 @@ def initialize_voice_system():
         # Create voice pipeline
         voice_pipeline = Hero365VoicePipeline(triage_agent)
         
+        # Initialize real-time audio processor cleanup task
+        asyncio.create_task(setup_realtime_cleanup_task())
+        
         logger.info("Voice agent system initialized successfully")
+        logger.info("✅ Real-time audio streaming support enabled")
         
     except Exception as e:
         logger.error(f"Failed to initialize voice system: {e}")
         raise
+
+
+async def setup_realtime_cleanup_task():
+    """Setup periodic cleanup task for real-time audio streams"""
+    while True:
+        try:
+            await asyncio.sleep(300)  # Run every 5 minutes
+            await realtime_audio_processor.cleanup_inactive_streams()
+        except Exception as e:
+            logger.error(f"Error in real-time cleanup task: {e}")
+            await asyncio.sleep(60)  # Wait 1 minute before retrying
 
 
 # Initialize on module load
@@ -107,6 +123,13 @@ class VoiceWebSocketManager:
         # Add deduplication tracking
         self.processed_audio_cache: Dict[str, Dict[str, float]] = {}  # session_id -> {audio_hash: timestamp}
         self.cache_timeout = 30  # seconds
+        
+        # Real-time streaming support
+        self.realtime_sessions: Dict[str, bool] = {}  # session_id -> is_realtime
+        self.realtime_processor = realtime_audio_processor
+        
+        # Set this websocket manager in the real-time processor
+        self.realtime_processor.set_websocket_manager(self)
     
     async def connect(self, websocket: WebSocket, session_id: str, user_id: str, business_id: str):
         """Connect a new WebSocket client"""
@@ -124,12 +147,13 @@ class VoiceWebSocketManager:
             "user_id": user_id,
             "business_id": business_id,
             "connected_at": datetime.now().isoformat(),
-            "status": "connected"
+            "status": "connected",
+            "realtime_enabled": False
         }
         
         logger.info(f"📝 Session metadata initialized for {session_id}")
         
-        # Register processing callback with audio buffer manager
+        # Register processing callback with audio buffer manager (for existing buffered processing)
         from ..core.audio_buffer_manager import audio_buffer_manager
         audio_buffer_manager.register_processing_callback(
             session_id, 
@@ -137,78 +161,105 @@ class VoiceWebSocketManager:
         )
         
         logger.info(f"✅ Processing callback registered for session {session_id}")
-        
-        # Send initial connection confirmation
-        try:
-            await websocket.send_json({
-                "type": "connection_confirmed",
-                "session_id": session_id,
-                "message": "WebSocket connection established",
-                "timestamp": datetime.now().isoformat()
-            })
-            logger.info(f"📤 Connection confirmation sent to session {session_id}")
-        except Exception as e:
-            logger.error(f"❌ Error sending connection confirmation: {e}")
-            await self.disconnect(session_id)
-            return
-        
-        # Send initial context
-        try:
-            context = await context_manager.get_current_context()
-            await websocket.send_json({
-                "type": "context_update",
-                "data": context,
-                "session_id": session_id,
-                "timestamp": datetime.now().isoformat()
-            })
-            logger.info(f"📤 Initial context sent to session {session_id}")
-        except Exception as e:
-            logger.error(f"❌ Error sending initial context: {e}")
-            await self.disconnect(session_id)
     
     async def disconnect(self, session_id: str):
         """Disconnect a WebSocket client"""
-        logger.info(f"🔌 Disconnecting WebSocket for session {session_id}")
-        
         if session_id in self.active_connections:
-            del self.active_connections[session_id]
-            logger.info(f"✅ WebSocket connection removed for session {session_id}")
-        
-        if session_id in self.session_metadata:
-            del self.session_metadata[session_id]
-            logger.info(f"📝 Session metadata cleaned up for {session_id}")
-        
-        # Clean up audio cache for this session
-        if session_id in self.processed_audio_cache:
-            del self.processed_audio_cache[session_id]
-            logger.info(f"🗑️ Audio cache cleaned up for session {session_id}")
-        
-        # Unregister processing callback
-        audio_buffer_manager.unregister_processing_callback(session_id)
-        
-        # Clean up audio buffer manager state
-        audio_buffer_manager.cleanup_session(session_id)
-        
-        # End voice session
-        if voice_pipeline:
+            websocket = self.active_connections[session_id]
+            
             try:
-                await voice_pipeline.end_voice_session(session_id)
-                logger.info(f"✅ Voice session ended for {session_id}")
-            except Exception as e:
-                logger.error(f"❌ Error ending voice session {session_id}: {e}")
+                await websocket.close()
+            except:
+                pass  # Connection might already be closed
+            
+            del self.active_connections[session_id]
+            
+            # Clean up session metadata
+            if session_id in self.session_metadata:
+                del self.session_metadata[session_id]
+            
+            # Stop real-time session if active
+            if session_id in self.realtime_sessions:
+                await self.realtime_processor.stop_real_time_session(session_id)
+                del self.realtime_sessions[session_id]
+            
+            logger.info(f"🔌 WebSocket disconnected for session {session_id}")
     
-    def _get_audio_hash(self, audio_data: Any) -> str:
-        """Generate a hash for audio data to detect duplicates"""
-        import hashlib
+    async def send_message(self, session_id: str, message: Dict[str, Any]):
+        """Send message to WebSocket client"""
+        if session_id in self.active_connections:
+            websocket = self.active_connections[session_id]
+            try:
+                await websocket.send_json(message)
+            except Exception as e:
+                logger.error(f"❌ Error sending message to {session_id}: {e}")
+                await self.disconnect(session_id)
+    
+    async def enable_realtime_streaming(self, session_id: str):
+        """Enable real-time streaming for a session"""
+        if session_id not in self.session_metadata:
+            logger.error(f"❌ Session {session_id} not found")
+            return
         
-        if isinstance(audio_data, str):
-            # Base64 string
-            data_bytes = audio_data.encode('utf-8')
-        else:
-            # Binary data
-            data_bytes = audio_data if isinstance(audio_data, bytes) else str(audio_data).encode('utf-8')
+        # Get session metadata
+        metadata = self.session_metadata[session_id]
+        user_id = metadata["user_id"]
+        business_id = metadata["business_id"]
         
-        return hashlib.md5(data_bytes).hexdigest()
+        # Start real-time session
+        await self.realtime_processor.start_real_time_session(session_id, user_id, business_id)
+        
+        # Mark as real-time enabled
+        self.realtime_sessions[session_id] = True
+        self.session_metadata[session_id]["realtime_enabled"] = True
+        
+        logger.info(f"🎤 Real-time streaming enabled for session {session_id}")
+    
+    async def disable_realtime_streaming(self, session_id: str):
+        """Disable real-time streaming for a session"""
+        if session_id in self.realtime_sessions:
+            await self.realtime_processor.stop_real_time_session(session_id)
+            del self.realtime_sessions[session_id]
+            self.session_metadata[session_id]["realtime_enabled"] = False
+            
+            logger.info(f"🛑 Real-time streaming disabled for session {session_id}")
+    
+    async def handle_realtime_audio_chunk(self, session_id: str, audio_data: bytes):
+        """Handle real-time binary audio chunk"""
+        if session_id not in self.realtime_sessions:
+            logger.warning(f"⚠️ Real-time not enabled for session {session_id}")
+            return
+        
+        # Process chunk in real-time
+        await self.realtime_processor.process_streaming_audio_chunk(session_id, audio_data)
+    
+    async def handle_control_message(self, session_id: str, message: Dict[str, Any]):
+        """Handle control messages for real-time streaming"""
+        message_type = message.get("type")
+        
+        if message_type == "enable_realtime":
+            await self.enable_realtime_streaming(session_id)
+            await self.send_message(session_id, {
+                "type": "realtime_enabled",
+                "session_id": session_id,
+                "status": "enabled",
+                "timestamp": datetime.now().isoformat()
+            })
+            
+        elif message_type == "disable_realtime":
+            await self.disable_realtime_streaming(session_id)
+            await self.send_message(session_id, {
+                "type": "realtime_disabled",
+                "session_id": session_id,
+                "status": "disabled",
+                "timestamp": datetime.now().isoformat()
+            })
+            
+        elif message_type == "finalize_response":
+            # Finalize the real-time response
+            await self.realtime_processor.finalize_stream_response(session_id)
+            
+
     
     def _is_duplicate_audio(self, session_id: str, audio_data: Any) -> bool:
         """Check if audio data is a duplicate of recently processed audio"""
@@ -238,38 +289,18 @@ class VoiceWebSocketManager:
         session_cache[audio_hash] = current_time
         return False
     
-    async def send_message(self, session_id: str, message: Dict[str, Any]):
-        """Send message to a specific session"""
-        if session_id in self.active_connections:
-            websocket = self.active_connections[session_id]
-            
-            # Check WebSocket connection state
-            if websocket.client_state.name != "CONNECTED":
-                logger.warning(f"⚠️ WebSocket for session {session_id} is not connected (state: {websocket.client_state.name})")
-                await self.disconnect(session_id)
-                return
-            
-            try:
-                message_type = message.get("type", "unknown")
-                logger.info(f"📤 Sending message type '{message_type}' to session {session_id}")
-                logger.debug(f"📋 Message content: {message}")
-                
-                # Send the message
-                await websocket.send_json(message)
-                logger.info(f"✅ Message sent successfully to session {session_id}")
-                
-                # Verify the message was actually sent by checking connection state after
-                if websocket.client_state.name != "CONNECTED":
-                    logger.warning(f"⚠️ WebSocket connection lost after sending message to session {session_id}")
-                    await self.disconnect(session_id)
-                    
-            except Exception as e:
-                logger.error(f"❌ Error sending message to session {session_id}: {e}")
-                logger.error(f"❌ WebSocket state: {websocket.client_state.name}")
-                await self.disconnect(session_id)
+    def _get_audio_hash(self, audio_data: Any) -> str:
+        """Generate hash for audio data"""
+        import hashlib
+        
+        if isinstance(audio_data, str):
+            # Base64 encoded audio
+            return hashlib.md5(audio_data.encode()).hexdigest()[:16]
+        elif isinstance(audio_data, bytes):
+            # Raw audio bytes
+            return hashlib.md5(audio_data).hexdigest()[:16]
         else:
-            logger.warning(f"⚠️ Attempted to send message to non-existent session {session_id}")
-            logger.info(f"📊 Active sessions: {list(self.active_connections.keys())}")
+            return hashlib.md5(str(audio_data).encode()).hexdigest()[:16]
     
     async def _process_buffered_audio(self, session_id: str):
         """Process buffered audio with cancellation support"""
@@ -463,6 +494,11 @@ class VoiceWebSocketManager:
             message_type = message.get("type")
             logger.info(f"🎤 Processing message type: {message_type} for session {session_id}")
             
+            # Handle control messages
+            if message_type in ["enable_realtime", "disable_realtime", "finalize_response"]:
+                await self.handle_control_message(session_id, message)
+                return
+            
             if message_type == "text_input":
                 text_input = message.get("text", "")
                 logger.info(f"📝 Processing text input: {text_input[:50]}...")
@@ -487,9 +523,8 @@ class VoiceWebSocketManager:
                 want_audio = message.get("want_audio_response", False)
                 
                 if want_audio:
+                    # Generate TTS response
                     try:
-                        logger.info(f"🔊 Converting text response to speech")
-                        
                         # Check cache for TTS response
                         cached_tts = await cache_manager.get_cached_tts_response(response, settings.OPENAI_TTS_VOICE)
                         
@@ -509,23 +544,20 @@ class VoiceWebSocketManager:
                             "response": response,
                             "audio_response": response_audio_base64,
                             "audio_format": "mp3",
-                            "processing_method": "text_input_openai_tts",
-                            "tts_voice": settings.OPENAI_TTS_VOICE,
                             "timestamp": datetime.now().isoformat()
                         })
                         
-                    except Exception as tts_error:
-                        logger.error(f"❌ TTS conversion error: {tts_error}")
-                        # Fallback to text-only
+                    except Exception as e:
+                        logger.error(f"❌ Error generating TTS response: {e}")
+                        # Send text-only response
                         await self.send_message(session_id, {
                             "type": "agent_response",
                             "session_id": session_id,
                             "response": response,
-                            "tts_error": str(tts_error),
                             "timestamp": datetime.now().isoformat()
                         })
                 else:
-                    # Text-only response
+                    # Send text-only response
                     await self.send_message(session_id, {
                         "type": "agent_response",
                         "session_id": session_id,
@@ -534,6 +566,7 @@ class VoiceWebSocketManager:
                     })
             
             elif message_type == "audio_data":
+                # Handle both real-time and buffered audio processing
                 audio_data = message.get("audio")
                 audio_size = message.get("size", len(audio_data) if audio_data else 0)
                 audio_format = message.get("format", "wav").lower()
@@ -556,33 +589,32 @@ class VoiceWebSocketManager:
                 else:
                     audio_bytes = audio_data
                 
-                # Add audio to buffer
-                audio_buffer_manager.add_audio_chunk(session_id, audio_bytes, audio_format)
-                
-                # Check if we should cancel previous processing due to new audio
-                if audio_buffer_manager.should_extend_processing(session_id):
-                    logger.info(f"🔄 Cancelling previous processing due to new audio for session {session_id}")
-                    await audio_buffer_manager.cancel_previous_processing(session_id)
-                
-                # Just buffering audio, send acknowledgment
-                # Processing will be triggered automatically by the pause detection callback
-                await self.send_message(session_id, {
-                    "type": "audio_buffering",
-                    "session_id": session_id,
-                    "status": "buffered",
-                    "buffer_size": len(audio_bytes),
-                    "timestamp": datetime.now().isoformat()
-                })
+                # Check if this session has real-time enabled
+                if session_id in self.realtime_sessions:
+                    # Process in real-time
+                    await self.handle_realtime_audio_chunk(session_id, audio_bytes)
+                else:
+                    # Use existing buffered processing
+                    audio_buffer_manager.add_audio_chunk(session_id, audio_bytes, audio_format)
+                    
+                    # Check if we should cancel previous processing due to new audio
+                    if audio_buffer_manager.should_extend_processing(session_id):
+                        logger.info(f"🔄 Cancelling previous processing due to new audio for session {session_id}")
+                        await audio_buffer_manager.cancel_previous_processing(session_id)
+                    
+                    # Just buffering audio, send acknowledgment
+                    await self.send_message(session_id, {
+                        "type": "audio_buffering",
+                        "session_id": session_id,
+                        "status": "buffered",
+                        "buffer_size": len(audio_bytes),
+                        "timestamp": datetime.now().isoformat()
+                    })
             
             elif message_type == "context_update":
-                logger.info(f"🔄 Updating context: {message.get('data', {})}")
-                
                 # Update context
-                await context_manager.update_context(message.get("data", {}))
-                
-                # Broadcast context update
-                context_data = await context_manager.get_current_context()
-                logger.info(f"✅ Context updated successfully")
+                context_data = message.get("data", {})
+                await context_manager.update_context(context_data)
                 
                 await self.send_message(session_id, {
                     "type": "context_updated",
@@ -592,10 +624,14 @@ class VoiceWebSocketManager:
                 })
             
             elif message_type == "session_status":
-                logger.info(f"📊 Getting session status for {session_id}")
-                
                 # Get session status
-                status = await voice_pipeline.get_session_status(session_id)
+                status = {
+                    "session_id": session_id,
+                    "status": "active",
+                    "realtime_enabled": session_id in self.realtime_sessions,
+                    "connected_at": self.session_metadata.get(session_id, {}).get("connected_at"),
+                    "active_connections": len(self.active_connections)
+                }
                 
                 await self.send_message(session_id, {
                     "type": "session_status",
@@ -604,15 +640,6 @@ class VoiceWebSocketManager:
                     "timestamp": datetime.now().isoformat()
                 })
             
-            else:
-                logger.warning(f"⚠️ Unknown message type: {message_type}")
-                await self.send_message(session_id, {
-                    "type": "error",
-                    "session_id": session_id,
-                    "error": f"Unknown message type: {message_type}",
-                    "timestamp": datetime.now().isoformat()
-                })
-        
         except Exception as e:
             logger.error(f"❌ Error handling voice message: {e}")
             await self.send_message(session_id, {
@@ -758,7 +785,8 @@ async def get_performance_stats(
                 "Fast TTS model for short texts",
                 "Audio transcription caching",
                 "Pause detection processing",
-                "Audio buffering and cancellation"
+                "Audio buffering and cancellation",
+                "Real-time audio streaming"
             ]
         }
         
@@ -780,7 +808,8 @@ async def get_performance_stats(
                     "transcription_caching": True,
                     "pause_detection": True,
                     "buffered_processing": True,
-                    "cancellation_support": True
+                    "cancellation_support": True,
+                    "realtime_streaming": True
                 }
             }
         }
@@ -808,6 +837,50 @@ async def clear_voice_cache(
     except Exception as e:
         logger.error(f"Error clearing cache: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/session/{session_id}/enable-realtime")
+async def enable_realtime_streaming(
+    session_id: str,
+    current_user=Depends(get_current_user)
+):
+    """Enable real-time streaming for a session"""
+    try:
+        await websocket_manager.enable_realtime_streaming(session_id)
+        
+        return {
+            "success": True,
+            "message": "Real-time streaming enabled",
+            "session_id": session_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Error enabling real-time streaming: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/session/{session_id}/disable-realtime")
+async def disable_realtime_streaming(
+    session_id: str,
+    current_user=Depends(get_current_user)
+):
+    """Disable real-time streaming for a session"""
+    try:
+        await websocket_manager.disable_realtime_streaming(session_id)
+        
+        return {
+            "success": True,
+            "message": "Real-time streaming disabled",
+            "session_id": session_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Error disabling real-time streaming: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
 
 
 @router.get("/session/{session_id}/status")
@@ -974,18 +1047,28 @@ async def websocket_endpoint(
             )
             logger.info(f"🎤 Voice session started for WebSocket {session_id}")
         
+        # Send initial connection confirmation with real-time capabilities
+        await websocket.send_json({
+            "type": "connection_confirmed",
+            "session_id": session_id,
+            "realtime_available": True,
+            "buffered_available": True,
+            "message": "WebSocket connection established with real-time support",
+            "timestamp": datetime.now().isoformat()
+        })
+        
         try:
             while True:
                 # Receive message from client (can be JSON or binary)
                 message = await websocket.receive()
-                logger.info(f"📨 WebSocket message received for session {session_id}: type={message.get('type')}")
                 
                 if message.get("type") == "websocket.receive":
                     if "text" in message:
-                        # Handle JSON text message
+                        # Handle JSON text message (control messages)
                         try:
                             json_message = json.loads(message["text"])
-                            logger.info(f"📝 JSON message: {json_message.get('type', 'unknown')}")
+                            message_type = json_message.get('type', 'unknown')
+                            logger.info(f"📝 JSON control message: {message_type}")
                             await websocket_manager.handle_voice_message(session_id, json_message)
                         except json.JSONDecodeError as e:
                             logger.error(f"❌ JSON decode error: {e}")
@@ -995,20 +1078,23 @@ async def websocket_endpoint(
                             })
                     
                     elif "bytes" in message:
-                        # Handle binary audio data
+                        # Handle binary audio data for real-time streaming
                         audio_data = message["bytes"]
-                        logger.info(f"🎤 Audio data received: {len(audio_data)} bytes")
+                        logger.debug(f"🎤 Real-time audio chunk received: {len(audio_data)} bytes")
                         
-                        # Create audio message for processing
-                        # Assume binary audio is PCM16 format (common for mobile apps)
-                        audio_message = {
-                            "type": "audio_data",
-                            "audio": audio_data,
-                            "format": "pcm16",  # Binary audio is typically PCM16 from mobile apps
-                            "size": len(audio_data)
-                        }
-                        
-                        await websocket_manager.handle_voice_message(session_id, audio_message)
+                        # Check if this session has real-time enabled
+                        if session_id in websocket_manager.realtime_sessions:
+                            # Process as real-time binary audio
+                            await websocket_manager.handle_realtime_audio_chunk(session_id, audio_data)
+                        else:
+                            # Convert to structured message for buffered processing
+                            audio_message = {
+                                "type": "audio_data",
+                                "audio": audio_data,
+                                "format": "pcm16",  # Binary audio is typically PCM16 from mobile apps
+                                "size": len(audio_data)
+                            }
+                            await websocket_manager.handle_voice_message(session_id, audio_message)
                         
                 else:
                     logger.warning(f"⚠️ Unexpected message type: {message.get('type')}")
