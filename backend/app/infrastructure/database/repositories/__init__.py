@@ -19,6 +19,7 @@ from .supabase_product_category_repository import SupabaseProductCategoryReposit
 from .supabase_stock_movement_repository import SupabaseStockMovementRepository
 from .supabase_supplier_repository import SupabaseSupplierRepository
 from .supabase_purchase_order_repository import SupabasePurchaseOrderRepository
+from .supabase_hybrid_search_repository import SupabaseHybridSearchRepository
 
 __all__ = [
     "SupabaseActivityRepository",
@@ -36,4 +37,5 @@ __all__ = [
     "SupabaseStockMovementRepository",
     "SupabaseSupplierRepository",
     "SupabasePurchaseOrderRepository",
+    "SupabaseHybridSearchRepository",
 ] 

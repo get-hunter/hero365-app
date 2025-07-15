@@ -15,6 +15,10 @@ from .sms_service import (
 from .auth_service import (
     AuthServicePort, AuthUser, AuthToken, AuthResult, AuthProvider
 )
+from .embedding_service import (
+    EmbeddingServicePort, EmbeddingServiceError, EmbeddingServiceRateLimitError,
+    EmbeddingServiceQuotaError, EmbeddingServiceModelError
+)
 
 __all__ = [
     # Email service
@@ -37,4 +41,11 @@ __all__ = [
     "AuthToken",
     "AuthResult",
     "AuthProvider",
+    
+    # Embedding service
+    "EmbeddingServicePort",
+    "EmbeddingServiceError",
+    "EmbeddingServiceRateLimitError",
+    "EmbeddingServiceQuotaError",
+    "EmbeddingServiceModelError",
 ] 

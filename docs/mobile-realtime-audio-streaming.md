@@ -23,68 +23,193 @@ iOS App → WebSocket → Backend → OpenAI Agents SDK → Streaming Audio Resp
 
 ```swift
 // WebSocket URL format
-wss://your-backend-domain.com/voice/stream/ws/{business_id}
+ws://localhost:8000/api/v1/voice/ws/{session_id}?user_id={user_id}&business_id={business_id}&token={jwt_token}
 
-// Headers
-Authorization: Bearer {jwt_token}
-Content-Type: application/json
+// Production URL format
+wss://api.hero365.ai/v1/voice/ws/{session_id}?user_id={user_id}&business_id={business_id}&token={jwt_token}
+
+// Required parameters:
+// - session_id: UUID session identifier (in URL path)
+// - user_id: User identifier (required query parameter)
+// - business_id: Business identifier (required query parameter) 
+// - token: JWT authentication token (optional but recommended)
+```
+
+### Connection Flow
+
+#### 1. WebSocket Connection
+First establish WebSocket connection and wait for confirmation:
+
+**Response:**
+```json
+{
+  "type": "connection_confirmed",
+  "session_id": "uuid-v4",
+  "realtime_available": true,
+  "buffered_available": true,
+  "message": "WebSocket connection established with real-time support",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 2. Start Voice Session
+```json
+{
+  "type": "start_session",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Response:**
+```json
+{
+  "type": "session_started",
+  "session_id": "uuid-v4",
+  "status": "active",
+  "message": "Voice session started successfully",
+  "realtime_available": true,
+  "buffered_available": true,
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Welcome Message:**
+```json
+{
+  "type": "agent_response",
+  "session_id": "uuid-v4",
+  "response": "Hello! I'm your Hero365 AI assistant. How can I help you today?",
+  "context": {...},
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 3. Enable Real-time Streaming (Optional)
+```json
+{
+  "type": "enable_realtime",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Response:**
+```json
+{
+  "type": "realtime_enabled",
+  "session_id": "uuid-v4",
+  "status": "enabled",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
 ```
 
 ### Message Types
 
-#### 1. Start Voice Session
+#### 1. Text Input (from mobile)
 ```json
 {
-  "type": "start_session",
-  "session_id": "uuid-v4",
-  "audio_format": "opus",
-  "sample_rate": 16000,
-  "channels": 1
+  "type": "text_input",
+  "text": "Show me today's schedule",
+  "want_audio_response": false,
+  "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
 #### 2. Audio Input (from mobile)
 ```json
 {
-  "type": "audio_input",
-  "session_id": "uuid-v4",
-  "audio_data": "base64-encoded-audio",
-  "sequence": 1,
-  "is_final": false
+  "type": "audio_data",
+  "audio": "base64-encoded-audio-data",
+  "format": "wav",
+  "size": 8192,
+  "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
-#### 3. Audio Output (to mobile)
+**Alternative: Binary Audio Data**
+Send raw binary audio data directly through WebSocket for better performance:
+```swift
+// Send binary audio data directly
+webSocket.send(data: audioData)
+```
+
+#### 3. Audio Processing Response
 ```json
 {
-  "type": "audio_output",
+  "type": "audio_processing",
   "session_id": "uuid-v4",
-  "audio_data": "base64-encoded-audio",
-  "sequence": 1,
-  "is_final": false,
-  "content_type": "audio/opus",
-  "duration_ms": 320
+  "status": "processing|buffered|skipped_duplicate|cancelled",
+  "audio_size": 8192,
+  "buffer_size": 8192,
+  "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
-#### 4. Session Status
+#### 4. Agent Response (from backend)
+```json
+{
+  "type": "agent_response",
+  "session_id": "uuid-v4",
+  "response": "I can help you schedule a job for tomorrow at 2 PM. What type of job is it?",
+  "audio_response": "base64-encoded-mp3-audio",
+  "audio_format": "mp3",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 5. Session Status
 ```json
 {
   "type": "session_status",
   "session_id": "uuid-v4",
-  "status": "processing|speaking|listening|complete",
-  "agent_type": "triage|contact|estimate|job|scheduling"
+  "data": {
+    "status": "active",
+    "realtime_enabled": false,
+    "connected_at": "2024-01-15T10:30:00Z",
+    "active_connections": 1
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
-#### 5. Error Messages
+#### 6. Context Update
+```json
+{
+  "type": "context_update",
+  "data": {
+    "location": {...},
+    "current_task": "creating_estimate",
+    "activity_mode": "working"
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 7. End Session
+```json
+{
+  "type": "end_session",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Response:**
+```json
+{
+  "type": "session_ended",
+  "session_id": "uuid-v4",
+  "status": "ended",
+  "message": "Voice session ended successfully",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 8. Error Messages
 ```json
 {
   "type": "error",
   "session_id": "uuid-v4",
-  "error_code": "AUDIO_PROCESSING_ERROR",
-  "message": "Failed to process audio",
-  "retry_after": 1000
+  "error": "Unknown message type: invalid_type",
+  "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
@@ -101,7 +226,11 @@ class VoiceWebSocketManager: WebSocketDelegate {
     private var isConnected = false
     private var reconnectAttempts = 0
     private let maxReconnectAttempts = 3
-    private var sessionId: String?
+    
+    var sessionId: String?
+    var userId: String?
+    var businessId: String?
+    var authToken: String?
     
     weak var delegate: VoiceWebSocketDelegate?
     
@@ -110,19 +239,24 @@ class VoiceWebSocketManager: WebSocketDelegate {
     }
     
     private func setupWebSocket() {
-        guard let url = URL(string: "wss://your-backend-domain.com/voice/stream/ws/\(businessId)") else {
+        guard let sessionId = sessionId,
+              let userId = userId,
+              let businessId = businessId,
+              let authToken = authToken,
+              let url = URL(string: "ws://localhost:8000/api/v1/voice/ws/\(sessionId)?user_id=\(userId)&business_id=\(businessId)&token=\(authToken)") else {
+            print("❌ Missing required parameters for WebSocket connection")
             return
         }
         
         var request = URLRequest(url: url)
-        request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Note: Query parameters handle authentication, no headers needed for WebSocket
         
         socket = WebSocket(request: request)
         socket?.delegate = self
     }
     
     func connect() {
+        setupWebSocket()
         socket?.connect()
     }
     
@@ -132,26 +266,41 @@ class VoiceWebSocketManager: WebSocketDelegate {
     }
     
     func startVoiceSession() {
-        sessionId = UUID().uuidString
-        let message = VoiceMessage.startSession(
-            sessionId: sessionId!,
-            audioFormat: "opus",
-            sampleRate: 16000,
-            channels: 1
+        // Note: sessionId should be set before creating WebSocket connection
+        let message = VoiceMessage.startSession()
+        sendMessage(message)
+    }
+    
+    func enableRealTimeStreaming() {
+        let message = VoiceMessage.enableRealtime()
+        sendMessage(message)
+    }
+    
+    func sendTextInput(_ text: String, wantAudioResponse: Bool = false) {
+        let message = VoiceMessage.textInput(
+            text: text,
+            wantAudioResponse: wantAudioResponse
         )
         sendMessage(message)
     }
     
-    func sendAudioData(_ audioData: Data, sequence: Int, isFinal: Bool) {
-        guard let sessionId = sessionId else { return }
-        
+    func sendAudioData(_ audioData: Data, format: String = "wav") {
         let base64Audio = audioData.base64EncodedString()
         let message = VoiceMessage.audioInput(
-            sessionId: sessionId,
             audioData: base64Audio,
-            sequence: sequence,
-            isFinal: isFinal
+            format: format,
+            size: audioData.count
         )
+        sendMessage(message)
+    }
+    
+    func sendBinaryAudioData(_ audioData: Data) {
+        // Send binary audio data directly for better performance
+        socket?.write(data: audioData)
+    }
+    
+    func endVoiceSession() {
+        let message = VoiceMessage.endSession()
         sendMessage(message)
     }
     
@@ -197,10 +346,20 @@ class VoiceWebSocketManager: WebSocketDelegate {
         }
         
         switch message.type {
-        case .audioOutput:
-            delegate?.webSocketDidReceiveAudio(message)
+        case .connectionConfirmed:
+            delegate?.webSocketDidConnect()
+        case .sessionStarted:
+            delegate?.webSocketDidStartSession(message)
+        case .agentResponse:
+            delegate?.webSocketDidReceiveResponse(message)
+        case .audioProcessing:
+            delegate?.webSocketDidReceiveAudioProcessing(message)
         case .sessionStatus:
             delegate?.webSocketDidReceiveStatus(message)
+        case .sessionEnded:
+            delegate?.webSocketDidEndSession(message)
+        case .realtimeEnabled:
+            delegate?.webSocketDidEnableRealtime(message)
         case .error:
             delegate?.webSocketDidReceiveError(message)
         default:
@@ -402,15 +561,12 @@ class VoiceRecordingManager {
         
         // Convert and send audio data
         if let audioData = convertBufferToData(buffer) {
-            audioSequence += 1
-            delegate?.voiceRecordingDidReceiveAudio(audioData, sequence: audioSequence, isFinal: false)
+            delegate?.voiceRecordingDidReceiveAudio(audioData, format: "wav")
         }
     }
     
     private func handleSilenceDetected() {
-        // Send final audio chunk
-        audioSequence += 1
-        delegate?.voiceRecordingDidReceiveAudio(Data(), sequence: audioSequence, isFinal: true)
+        // Silence detected, stop recording
         stopRecording()
     }
     
@@ -488,9 +644,21 @@ class VoiceController: UIViewController {
     }
     
     private func startVoiceSession() {
+        // Generate session ID first
+        let sessionId = UUID().uuidString
+        
+        // Setup WebSocket manager with required parameters
+        webSocketManager.sessionId = sessionId
+        webSocketManager.userId = "your_user_id"  // Replace with actual user ID
+        webSocketManager.businessId = "your_business_id"  // Replace with actual business ID
+        webSocketManager.authToken = "your_auth_token"  // Replace with actual auth token
+        
+        // Connect to WebSocket (will auto-start session on connection)
         webSocketManager.connect()
-        webSocketManager.startVoiceSession()
+        
+        // Start recording
         recordingManager.startRecording()
+        
         isVoiceSessionActive = true
         updateUI(for: .recording)
     }
@@ -498,7 +666,11 @@ class VoiceController: UIViewController {
     private func stopVoiceSession() {
         recordingManager.stopRecording()
         audioStreamManager.stopPlayback()
+        
+        // End session before disconnecting
+        webSocketManager.endVoiceSession()
         webSocketManager.disconnect()
+        
         isVoiceSessionActive = false
         updateUI(for: .idle)
     }
@@ -535,6 +707,8 @@ class VoiceController: UIViewController {
 extension VoiceController: VoiceWebSocketDelegate {
     func webSocketDidConnect() {
         print("WebSocket connected")
+        // Auto-start session after connection
+        webSocketManager.startVoiceSession()
     }
     
     func webSocketDidDisconnect(reason: String, code: UInt16) {
@@ -544,35 +718,65 @@ extension VoiceController: VoiceWebSocketDelegate {
         }
     }
     
-    func webSocketDidReceiveAudio(_ message: VoiceMessage) {
-        guard let audioData = Data(base64Encoded: message.audioData) else { return }
+    func webSocketDidStartSession(_ message: VoiceMessage) {
+        print("Voice session started successfully")
+        updateUI(for: .recording)
+    }
+    
+    func webSocketDidEndSession(_ message: VoiceMessage) {
+        print("Voice session ended")
+        updateUI(for: .idle)
+    }
+    
+    func webSocketDidEnableRealtime(_ message: VoiceMessage) {
+        print("Real-time streaming enabled")
+        // Can now send binary audio data directly
+    }
+    
+    func webSocketDidReceiveResponse(_ message: VoiceMessage) {
+        print("Agent response: \(message.response ?? "")")
         
-        let chunk = AudioStreamManager.AudioChunk(
-            data: audioData,
-            sequence: message.sequence,
-            isFinal: message.isFinal
-        )
+        // Handle text response
+        if let response = message.response {
+            DispatchQueue.main.async {
+                self.statusLabel.text = response
+            }
+        }
         
-        audioStreamManager.processAudioChunk(chunk)
-        
-        if !message.isFinal {
+        // Handle audio response
+        if let audioResponse = message.audioResponse,
+           let audioData = Data(base64Encoded: audioResponse) {
+            let chunk = AudioStreamManager.AudioChunk(
+                data: audioData,
+                sequence: 0,
+                isFinal: true
+            )
+            audioStreamManager.processAudioChunk(chunk)
             updateUI(for: .playing)
         }
     }
     
-    func webSocketDidReceiveStatus(_ message: VoiceMessage) {
+    func webSocketDidReceiveAudioProcessing(_ message: VoiceMessage) {
         switch message.status {
         case "processing":
             updateUI(for: .processing)
-        case "speaking":
-            updateUI(for: .playing)
-        case "listening":
-            updateUI(for: .recording)
-        case "complete":
-            updateUI(for: .idle)
+        case "buffered":
+            print("Audio buffered: \(message.size ?? 0) bytes")
+        case "skipped_duplicate":
+            print("Duplicate audio skipped")
+        case "cancelled":
+            print("Audio processing cancelled")
         default:
             break
         }
+    }
+    
+    func webSocketDidReceiveStatus(_ message: VoiceMessage) {
+        guard let statusData = message.data else { return }
+        
+        print("Session status: \(statusData.status ?? "unknown")")
+        print("Real-time enabled: \(statusData.realtimeEnabled ?? false)")
+        print("Active connections: \(statusData.activeConnections ?? 0)")
     }
     
     func webSocketDidReceiveError(_ error: Any) {
@@ -597,8 +801,12 @@ extension VoiceController: VoiceRecordingDelegate {
         print("Voice recording stopped")
     }
     
-    func voiceRecordingDidReceiveAudio(_ audioData: Data, sequence: Int, isFinal: Bool) {
-        webSocketManager.sendAudioData(audioData, sequence: sequence, isFinal: isFinal)
+    func voiceRecordingDidReceiveAudio(_ audioData: Data, format: String) {
+        // Option 1: Send as structured JSON message
+        webSocketManager.sendAudioData(audioData, format: format)
+        
+        // Option 2: Send as binary data for better performance
+        // webSocketManager.sendBinaryAudioData(audioData)
     }
 }
 ```
@@ -610,57 +818,151 @@ import Foundation
 
 struct VoiceMessage: Codable {
     let type: MessageType
-    let sessionId: String
+    let sessionId: String?
+    let text: String?
     let audioData: String?
-    let sequence: Int?
-    let isFinal: Bool?
-    let contentType: String?
-    let durationMs: Int?
+    let format: String?
+    let size: Int?
+    let response: String?
+    let audioResponse: String?
+    let audioFormat: String?
     let status: String?
-    let agentType: String?
-    let errorCode: String?
     let message: String?
-    let retryAfter: Int?
+    let error: String?
+    let data: SessionData?
+    let context: [String: Any]?
+    let wantAudioResponse: Bool?
+    let timestamp: String?
+    
+    struct SessionData: Codable {
+        let status: String?
+        let realtimeEnabled: Bool?
+        let connectedAt: String?
+        let activeConnections: Int?
+    }
     
     enum MessageType: String, Codable {
         case startSession = "start_session"
-        case audioInput = "audio_input"
-        case audioOutput = "audio_output"
+        case endSession = "end_session"
+        case enableRealtime = "enable_realtime"
+        case textInput = "text_input"
+        case audioData = "audio_data"
+        case contextUpdate = "context_update"
         case sessionStatus = "session_status"
+        
+        // Response types
+        case connectionConfirmed = "connection_confirmed"
+        case sessionStarted = "session_started"
+        case sessionEnded = "session_ended"
+        case realtimeEnabled = "realtime_enabled"
+        case agentResponse = "agent_response"
+        case audioProcessing = "audio_processing"
+        case contextUpdated = "context_updated"
         case error = "error"
     }
     
-    static func startSession(sessionId: String, audioFormat: String, sampleRate: Int, channels: Int) -> VoiceMessage {
+    static func startSession() -> VoiceMessage {
         return VoiceMessage(
             type: .startSession,
-            sessionId: sessionId,
+            sessionId: nil,
+            text: nil,
             audioData: nil,
-            sequence: nil,
-            isFinal: nil,
-            contentType: nil,
-            durationMs: nil,
+            format: nil,
+            size: nil,
+            response: nil,
+            audioResponse: nil,
+            audioFormat: nil,
             status: nil,
-            agentType: nil,
-            errorCode: nil,
             message: nil,
-            retryAfter: nil
+            error: nil,
+            data: nil,
+            context: nil,
+            wantAudioResponse: nil,
+            timestamp: ISO8601DateFormatter().string(from: Date())
         )
     }
     
-    static func audioInput(sessionId: String, audioData: String, sequence: Int, isFinal: Bool) -> VoiceMessage {
+    static func endSession() -> VoiceMessage {
         return VoiceMessage(
-            type: .audioInput,
-            sessionId: sessionId,
-            audioData: audioData,
-            sequence: sequence,
-            isFinal: isFinal,
-            contentType: nil,
-            durationMs: nil,
+            type: .endSession,
+            sessionId: nil,
+            text: nil,
+            audioData: nil,
+            format: nil,
+            size: nil,
+            response: nil,
+            audioResponse: nil,
+            audioFormat: nil,
             status: nil,
-            agentType: nil,
-            errorCode: nil,
             message: nil,
-            retryAfter: nil
+            error: nil,
+            data: nil,
+            context: nil,
+            wantAudioResponse: nil,
+            timestamp: ISO8601DateFormatter().string(from: Date())
+        )
+    }
+    
+    static func enableRealtime() -> VoiceMessage {
+        return VoiceMessage(
+            type: .enableRealtime,
+            sessionId: nil,
+            text: nil,
+            audioData: nil,
+            format: nil,
+            size: nil,
+            response: nil,
+            audioResponse: nil,
+            audioFormat: nil,
+            status: nil,
+            message: nil,
+            error: nil,
+            data: nil,
+            context: nil,
+            wantAudioResponse: nil,
+            timestamp: ISO8601DateFormatter().string(from: Date())
+        )
+    }
+    
+    static func textInput(text: String, wantAudioResponse: Bool = false) -> VoiceMessage {
+        return VoiceMessage(
+            type: .textInput,
+            sessionId: nil,
+            text: text,
+            audioData: nil,
+            format: nil,
+            size: nil,
+            response: nil,
+            audioResponse: nil,
+            audioFormat: nil,
+            status: nil,
+            message: nil,
+            error: nil,
+            data: nil,
+            context: nil,
+            wantAudioResponse: wantAudioResponse,
+            timestamp: ISO8601DateFormatter().string(from: Date())
+        )
+    }
+    
+    static func audioInput(audioData: String, format: String = "wav", size: Int) -> VoiceMessage {
+        return VoiceMessage(
+            type: .audioData,
+            sessionId: nil,
+            text: nil,
+            audioData: audioData,
+            format: format,
+            size: size,
+            response: nil,
+            audioResponse: nil,
+            audioFormat: nil,
+            status: nil,
+            message: nil,
+            error: nil,
+            data: nil,
+            context: nil,
+            wantAudioResponse: nil,
+            timestamp: ISO8601DateFormatter().string(from: Date())
         )
     }
 }
@@ -675,7 +977,11 @@ enum VoiceSessionState {
 protocol VoiceWebSocketDelegate: AnyObject {
     func webSocketDidConnect()
     func webSocketDidDisconnect(reason: String, code: UInt16)
-    func webSocketDidReceiveAudio(_ message: VoiceMessage)
+    func webSocketDidStartSession(_ message: VoiceMessage)
+    func webSocketDidEndSession(_ message: VoiceMessage)
+    func webSocketDidEnableRealtime(_ message: VoiceMessage)
+    func webSocketDidReceiveResponse(_ message: VoiceMessage)
+    func webSocketDidReceiveAudioProcessing(_ message: VoiceMessage)
     func webSocketDidReceiveStatus(_ message: VoiceMessage)
     func webSocketDidReceiveError(_ error: Any)
     func webSocketReconnectionFailed()
@@ -684,7 +990,7 @@ protocol VoiceWebSocketDelegate: AnyObject {
 protocol VoiceRecordingDelegate: AnyObject {
     func voiceRecordingDidStart()
     func voiceRecordingDidStop()
-    func voiceRecordingDidReceiveAudio(_ audioData: Data, sequence: Int, isFinal: Bool)
+    func voiceRecordingDidReceiveAudio(_ audioData: Data, format: String)
 }
 ```
 
@@ -881,9 +1187,99 @@ class ConnectionMonitor {
 }
 ```
 
+## Complete Integration Example
+
+```swift
+class VoiceViewController: UIViewController {
+    private let webSocketManager = VoiceWebSocketManager()
+    private let recordingManager = VoiceRecordingManager()
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        setupVoiceSystem()
+    }
+    
+    private func setupVoiceSystem() {
+        webSocketManager.delegate = self
+        recordingManager.delegate = self
+        
+        // Set required parameters
+        webSocketManager.userId = AuthManager.shared.userId
+        webSocketManager.businessId = AuthManager.shared.businessId
+        webSocketManager.authToken = AuthManager.shared.authToken
+    }
+    
+    @IBAction func startVoiceSession() {
+        let sessionId = UUID().uuidString
+        webSocketManager.sessionId = sessionId
+        webSocketManager.connect()
+    }
+    
+    @IBAction func sendTextMessage() {
+        webSocketManager.sendTextInput("Show me today's schedule", wantAudioResponse: true)
+    }
+    
+    @IBAction func enableRealTimeStreaming() {
+        webSocketManager.enableRealTimeStreaming()
+    }
+    
+    @IBAction func endVoiceSession() {
+        webSocketManager.endVoiceSession()
+        webSocketManager.disconnect()
+    }
+}
+
+extension VoiceViewController: VoiceWebSocketDelegate {
+    func webSocketDidConnect() {
+        // Connection established, start session
+        webSocketManager.startVoiceSession()
+    }
+    
+    func webSocketDidStartSession(_ message: VoiceMessage) {
+        // Session started, can now interact with agent
+        recordingManager.startRecording()
+    }
+    
+    func webSocketDidReceiveResponse(_ message: VoiceMessage) {
+        // Handle agent response
+        if let response = message.response {
+            updateUI(with: response)
+        }
+        
+        if let audioData = message.audioResponse {
+            playAudioResponse(audioData)
+        }
+    }
+    
+    // ... other delegate methods
+}
+```
+
+## Key Points
+
+1. **WebSocket URL**: `ws://localhost:8000/api/v1/voice/ws/{session_id}?user_id={user_id}&business_id={business_id}&token={token}`
+
+2. **Required Parameters**: 
+   - `session_id` (in URL path)
+   - `user_id` (query parameter)
+   - `business_id` (query parameter)
+   - `token` (query parameter)
+
+3. **Message Flow**:
+   - Connect → `connection_confirmed`
+   - Send `start_session` → `session_started` + `agent_response`
+   - Send `enable_realtime` → `realtime_enabled` (optional)
+   - Send `audio_data` or `text_input` → `agent_response`
+   - Send `end_session` → `session_ended`
+
+4. **Audio Formats**: WAV, MP3, or binary PCM data
+
 ## Integration Checklist
 
-- [ ] WebSocket connection established
+- [ ] WebSocket connection with correct URL format
+- [ ] Required parameters (user_id, business_id, token) provided
+- [ ] Session flow implemented (start → interact → end)
+- [ ] Message types match backend implementation
 - [ ] Audio recording permissions granted
 - [ ] Audio playback session configured
 - [ ] Error handling implemented
@@ -902,4 +1298,4 @@ class ConnectionMonitor {
 - **Memory**: < 50MB audio cache
 - **Battery**: Optimized for extended voice sessions
 
-This implementation provides a solid foundation for real-time voice streaming with excellent performance characteristics and robust error handling. 
+This implementation provides a solid foundation for real-time voice streaming with excellent performance characteristics and robust error handling, matching the actual backend implementation. 

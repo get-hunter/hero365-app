@@ -226,10 +226,13 @@ class VoiceWebSocketManager:
     
     async def handle_realtime_audio_chunk(self, session_id: str, audio_data: bytes):
         """Handle real-time binary audio chunk"""
+        logger.info(f"🎤 handle_realtime_audio_chunk called for session {session_id} with {len(audio_data)} bytes")
+        
         if session_id not in self.realtime_sessions:
             logger.warning(f"⚠️ Real-time not enabled for session {session_id}")
             return
         
+        logger.info(f"🎤 Forwarding audio chunk to realtime processor for session {session_id}")
         # Process chunk in real-time
         await self.realtime_processor.process_streaming_audio_chunk(session_id, audio_data)
     
@@ -499,7 +502,58 @@ class VoiceWebSocketManager:
                 await self.handle_control_message(session_id, message)
                 return
             
-            if message_type == "text_input":
+            elif message_type == "start_session":
+                # Handle session start message
+                logger.info(f"🎤 Starting voice session for {session_id}")
+                
+                # Send session started confirmation
+                await self.send_message(session_id, {
+                    "type": "session_started",
+                    "session_id": session_id,
+                    "status": "active",
+                    "message": "Voice session started successfully",
+                    "realtime_available": True,
+                    "buffered_available": True,
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+                # Get current context and send welcome message
+                context = await context_manager.get_current_context()
+                welcome_message = "Hello! I'm your Hero365 AI assistant. How can I help you today?"
+                
+                await self.send_message(session_id, {
+                    "type": "agent_response",
+                    "session_id": session_id,
+                    "response": welcome_message,
+                    "context": context,
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+                return
+            
+            elif message_type == "end_session":
+                # Handle session end message
+                logger.info(f"🎤 Ending voice session for {session_id}")
+                
+                # Clean up session if needed
+                if voice_pipeline:
+                    try:
+                        await voice_pipeline.end_voice_session(session_id)
+                    except Exception as e:
+                        logger.warning(f"⚠️ Error ending voice session: {e}")
+                
+                # Send session ended confirmation
+                await self.send_message(session_id, {
+                    "type": "session_ended",
+                    "session_id": session_id,
+                    "status": "ended",
+                    "message": "Voice session ended successfully",
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+                return
+            
+            elif message_type == "text_input":
                 text_input = message.get("text", "")
                 logger.info(f"📝 Processing text input: {text_input[:50]}...")
                 
@@ -637,6 +691,16 @@ class VoiceWebSocketManager:
                     "type": "session_status",
                     "session_id": session_id,
                     "data": status,
+                    "timestamp": datetime.now().isoformat()
+                })
+            
+            else:
+                # Handle unknown message types
+                logger.warning(f"⚠️ Unknown message type: {message_type}")
+                await self.send_message(session_id, {
+                    "type": "error",
+                    "session_id": session_id,
+                    "error": f"Unknown message type: {message_type}",
                     "timestamp": datetime.now().isoformat()
                 })
             
@@ -1061,6 +1125,7 @@ async def websocket_endpoint(
             while True:
                 # Receive message from client (can be JSON or binary)
                 message = await websocket.receive()
+                logger.info(f"📨 WebSocket message received for session {session_id}: {list(message.keys())}")
                 
                 if message.get("type") == "websocket.receive":
                     if "text" in message:
@@ -1080,13 +1145,15 @@ async def websocket_endpoint(
                     elif "bytes" in message:
                         # Handle binary audio data for real-time streaming
                         audio_data = message["bytes"]
-                        logger.debug(f"🎤 Real-time audio chunk received: {len(audio_data)} bytes")
+                        logger.info(f"🎤 Binary audio chunk received: {len(audio_data)} bytes for session {session_id}")
                         
                         # Check if this session has real-time enabled
                         if session_id in websocket_manager.realtime_sessions:
+                            logger.info(f"🎤 Processing real-time audio chunk for session {session_id}")
                             # Process as real-time binary audio
                             await websocket_manager.handle_realtime_audio_chunk(session_id, audio_data)
                         else:
+                            logger.info(f"🎤 Processing buffered audio chunk for session {session_id}")
                             # Convert to structured message for buffered processing
                             audio_message = {
                                 "type": "audio_data",

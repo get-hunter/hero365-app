@@ -1,694 +1,246 @@
-# Clean Architecture Implementation Plan
+# Hero365 Hybrid Search Implementation Plan
 
 ## Overview
-Transform the Hero365 app from a traditional FastAPI structure to clean architecture with proper separation of concerns and dependency inversion.
-
-## OpenAI Voice Agents Implementation - **Done**
-
-Created comprehensive implementation plan for OpenAI agents SDK voice multi-agent system.
-Designed architecture with triage agent routing to specialist agents for contacts, jobs, estimates, invoices, and payments using TTS-LLM-STT pattern.
-
-## Phase 1: Domain Layer Foundation
-### Step 1.1: Create domain directory structure - **Done**
-- [x] Create domain entities directory
-- [x] Create value objects directory  
-- [x] Create repositories interfaces directory
-- [x] Create domain services directory
-- [x] Create domain exceptions directory
-
-Created complete domain layer directory structure with proper package initialization.
-All directories are now ready for domain layer implementation with clear separation of concerns.
-
-### Step 1.2: Implement User domain entity - **Done**
-- [x] Create User entity with business logic
-- [x] Define User behavior methods
-- [x] Separate from database concerns
-
-Implemented comprehensive User domain entity with business rules and behavior methods.
-Entity includes validation, profile management, account lifecycle, and permission checking methods.
-
-### Step 1.3: Implement Item domain entity - **Done**
-- [x] Create Item entity with business logic
-- [x] Define Item behavior methods
-- [x] Separate from database concerns
-
-Implemented comprehensive Item domain entity with business rules and behavior methods.
-Entity includes content validation, soft delete, ownership, permissions, and utility methods.
-
-### Step 1.4: Create value objects - **Done**
-- [x] Email value object with validation
-- [x] Phone value object with validation
-- [x] Password value object with validation
-
-Created Email, Phone, and Password value objects with comprehensive validation and business methods.
-All value objects are immutable and include domain-specific behaviors like formatting, validation, and security.
-
-### Step 1.5: Define repository interfaces - **Done**
-- [x] UserRepository interface
-- [x] ItemRepository interface
-- [x] Base repository interface
-
-Created comprehensive repository interfaces following the Repository pattern with domain-specific operations.
-Interfaces define contracts for data access without implementation details, supporting dependency inversion.
-
-### Step 1.6: Create domain exceptions - **Done**
-- [x] Domain-specific exceptions
-- [x] Business rule violations
-
-Created comprehensive domain exception hierarchy with specific exceptions for validation, business rules, and entity operations.
-Exceptions include proper error codes and contextual information for better error handling.
-
-## Phase 2: Application Layer
-### Step 2.1: Create application directory structure - **Done**
-- [x] Create use cases directory
-- [x] Create DTOs directory
-- [x] Create ports directory
-- [x] Create application exceptions
-
-Created complete application layer directory structure with organized subdirectories.
-Implemented comprehensive application exception hierarchy for use case error handling.
-
-### Step 2.2: Implement User use cases - **Done**
-- [x] CreateUser use case
-- [x] UpdateUser use case
-- [x] DeleteUser use case
-- [x] GetUser use case
-
-Implemented comprehensive user management use cases with business logic validation.
-All use cases include proper permission checks, validation, and error handling following clean architecture principles.
-
-### Step 2.3: Implement Auth use cases - **Done**
-- [x] AuthenticateUser use case
-- [x] RegisterUser use case
-- [x] ResetPassword use case
-
-Implemented comprehensive authentication use cases with proper validation and security measures.
-Use cases handle both local and Supabase authentication patterns with appropriate business logic.
-
-### Step 2.4: Implement Item use cases - **Done**
-- [x] CreateItem use case
-- [x] UpdateItem use case
-- [x] DeleteItem use case
-- [x] GetItems use case
-
-Implemented comprehensive item management use cases with proper permission controls and business logic.
-Use cases support bulk operations, soft/hard deletion, statistics, and user-based filtering.
-
-### Step 2.5: Create DTOs - **Done**
-- [x] User DTOs
-- [x] Item DTOs
-- [x] Auth DTOs
-
-Created comprehensive DTOs for all domain entities with proper data transfer structures.
-DTOs include creation, update, search, and specialized DTOs for different use cases.
-
-### Step 2.6: Define application ports - **Done**
-- [x] Email service port interface
-- [x] SMS service port interface  
-- [x] Authentication service port interface
-
-Created comprehensive port interfaces for external services following the ports and adapters pattern.
-Interfaces define contracts for email, SMS, and authentication services without implementation details.
-
-## Phase 3: Infrastructure Layer
-### Step 3.1: Create infrastructure directory structure - **Done**
-- [x] Create database directory
-- [x] Create external services directory
-- [x] Create web directory
-- [x] Create config directory
-
-Created complete infrastructure layer directory structure with proper package organization.
-Each directory has clear separation of concerns for database, external services, web, and configuration.
-
-### Step 3.2: Move and refactor database models - **Done**
-- [x] Move current models to infrastructure layer
-- [x] Separate database models from domain entities
-- [x] Create mapping between domain and database layers
-
-Created SQLModel database models separated from domain entities with proper timestamps and relationships.
-Implemented comprehensive mappers for converting between domain entities and database models.
-
-### Step 3.3: Implement concrete repositories - **Done**
-- [x] SQLModel User repository implementation
-- [x] SQLModel Item repository implementation
-- [x] Database repository structure created
-- [x] Repository interfaces fully implemented
-
-Implemented complete SQLModel repositories for both User and Item entities with all CRUD operations, search, pagination, and error handling.
-Repositories follow clean architecture principles with proper domain entity conversion and comprehensive database operations.
-
-### Step 3.4: Create external service adapters - **Done**
-- [x] Supabase auth service adapter
-- [x] SMTP email service adapter
-- [x] Twilio SMS service adapter
-
-Created comprehensive external service adapters implementing all application port interfaces.
-Adapters handle authentication, email delivery, and SMS services with proper error handling and service abstraction.
-
-### Step 3.5: Setup dependency injection - **Done**
-- [x] Create DI container
-- [x] Configure service bindings
-- [x] Setup factory patterns
-- [x] Wire all use cases with dependencies
-- [x] Migrated from SQLModel to Supabase client SDK
-- [x] Fixed all import issues and application startup
-
-Implemented comprehensive dependency injection container managing all application dependencies.
-Migrated to full Supabase client SDK approach, resolved all import issues, and confirmed application can start successfully.
-
-## Phase 4: Presentation Layer
-### Step 4.1: Create presentation directory structure - **Done**
-- [x] Create controllers directory
-- [x] Create API schemas directory
-- [x] Create middleware directory
-
-Created complete presentation layer structure with organized directories for controllers, schemas, and middleware.
-All directories initialized with proper package structure and documentation.
-
-### Step 4.2: Refactor API controllers - **Done**
-- [x] Item controller with use case dependencies
-- [x] Comprehensive controller infrastructure established
-- [x] Routes refactored to use clean architecture
-
-Implemented clean architecture item controller with proper dependency injection and use case delegation.
-Refactored item routes to use new controller with proper request/response schemas, error handling, and dependency injection.
-
-### Step 4.3: Create API schemas - **Done**
-- [x] Request schemas
-- [x] Response schemas
-- [x] Validation schemas
-
-Created comprehensive API schemas for items, users, and authentication with proper validation and documentation.
-All schemas include proper field validation, type checking, and business rule enforcement.
-
-### Step 4.4: Implement middleware - **Done**
-- [x] Error handling middleware
-- [x] CORS middleware
-- [x] Auth middleware
-
-Implemented comprehensive middleware suite for clean architecture including centralized error handling, CORS configuration, and JWT authentication.
-All middleware includes proper exception handling, logging, and security features following clean architecture principles.
-
-## Phase 5: Integration & Testing
-### Step 5.1: Update main application - **Done**
-- [x] Wire up dependency injection
-- [x] Update FastAPI app configuration
-- [x] Migrate routes to new structure
-
-Updated main application to use clean architecture middleware stack with proper error handling, CORS, and authentication.
-Refactored all route imports and schemas to use new clean architecture patterns and removed legacy dependencies.
-
-### Step 5.2: Update tests - **Skipped**
-- [x] Skipped per user request
-- [x] Tests will be implemented later
-
-User requested to skip test creation for now. Tests can be implemented later following the clean architecture patterns established.
-
-## Phase 6: Intelligent Job Scheduling Enhancement
-### Step 6.1: Analyze existing scheduling infrastructure - **Done**
-- [x] Reviewed existing job management system
-- [x] Analyzed user capabilities framework
-- [x] Examined intelligent scheduling engine
-- [x] Assessed business membership and permissions
-
-Completed comprehensive analysis of Hero365's existing scheduling infrastructure. Found sophisticated system already in place with user capabilities tracking, intelligent scheduling engine, and comprehensive job management. Identified enhancement opportunities for 10x improvement.
-
-### Step 6.2: Implement Real-time Optimization with External Services - **Done**
-- [x] Created Google Maps API adapter for real-time travel time calculations
-- [x] Implemented Weather Service adapter for weather impact analysis
-- [x] Built external service port interfaces following clean architecture
-- [x] Developed intelligent scheduling use case with real-time integration
-- [x] Created comprehensive DTOs for scheduling operations
-- [x] Implemented API routes for schedule optimization and real-time adaptation
-- [x] Added Pydantic schemas for API validation
-- [x] Updated configuration for external service integration
-- [x] Integrated with dependency injection system
-
-Successfully implemented real-time optimization system that integrates with Google Maps API for dynamic route optimization and weather services for schedule adaptation. The system provides intelligent job scheduling with travel time optimization, weather impact analysis, and real-time schedule adaptation capabilities.
-
-### Step 6.2: Create intelligent scheduling proposal - **Done**
-- [x] Developed comprehensive 10x implementation proposal
-- [x] Created API documentation for new scheduling endpoints
-- [x] Designed phased implementation approach
-- [x] Established ROI targets and success metrics
-
-Created detailed proposal for intelligent job scheduling enhancement with 25-35% operational improvement targets. Proposal includes advanced algorithms, real-time adaptation, and ML-powered optimization. API documentation covers new scheduling endpoints and mobile app integration requirements.
-
-## Phase 6: Legacy Cleanup
-### Step 6.1: Remove legacy files - **Done**
-- [x] Delete old CRUD files
-- [x] Eliminate models.py completely
-
-Removed old CRUD file and completely eliminated models.py by moving all classes to appropriate clean architecture locations.
-Moved Message to common_schemas.py and auth classes (Token, TokenPayload, NewPassword) to auth_schemas.py.
-Updated all route imports to use clean architecture schemas and confirmed application works perfectly without legacy models.
-
-## Phase 7: Business Management System Implementation
-### Step 7.1: Create business management domain entities - **Done**
-- [x] Create Business domain entity with comprehensive business logic
-- [x] Create BusinessMembership entity with role-based permissions
-- [x] Create BusinessInvitation entity with invitation lifecycle management
-- [x] Define enums for CompanySize, BusinessRole, InvitationStatus, and ReferralSource
-
-Implemented comprehensive business management domain entities following clean architecture principles.
-Created Business, BusinessMembership, and BusinessInvitation entities with complete business logic, validation, and lifecycle management.
-
-### Step 7.2: Create business management repository interfaces - **Done**
-- [x] Create BusinessRepository interface with full CRUD operations
-- [x] Create BusinessMembershipRepository interface with role-based operations
-- [x] Create BusinessInvitationRepository interface with invitation management
-- [x] Define comprehensive query methods for all business operations
-
-Created complete repository interfaces for all business management entities following the Repository pattern.
-Interfaces support pagination, filtering, searching, and all business-specific operations with proper error handling contracts.
-
-### Step 7.3: Create database schema and migration - **Done**
-- [x] Design comprehensive database schema for business management
-- [x] Create SQL migration with all tables, constraints, and indexes
-- [x] Add database functions for invitation expiry and cleanup
-- [x] Set up Row Level Security (RLS) policies for multi-tenant isolation
-
-Implemented complete database schema with proper relationships, constraints, indexes, and RLS policies.
-Created migration scripts with comprehensive business management tables and database functions for automated cleanup.
-
-### Step 7.4: Implement Supabase repositories - **Done**
-- [x] Create SupabaseBusinessRepository with all CRUD operations
-- [x] Create SupabaseBusinessMembershipRepository with role management
-- [x] Create SupabaseBusinessInvitationRepository with invitation lifecycle
-- [x] Add comprehensive error handling and logging
-
-Implemented complete Supabase repository implementations for all business entities with comprehensive CRUD operations.
-Repositories include proper error handling, logging, entity conversion, and database-specific optimizations.
-
-### Step 7.5: Create business use cases - **Done**
-- [x] CreateBusiness use case with onboarding logic
-- [x] GetUserBusinesses use case with membership data
-- [x] InviteTeamMember use case with email notifications
-- [x] AcceptInvitation use case with membership creation
-- [x] UpdateBusiness use case with permission validation
-
-Implemented comprehensive business management use cases following clean architecture principles.
-Use cases include proper business logic, validation, permission checking, and integration with external services.
-
-### Step 7.6: Create business DTOs and schemas - **Done**
-- [x] Business creation, update, and response DTOs
-- [x] BusinessMembership DTOs with role and permission data
-- [x] BusinessInvitation DTOs with complete invitation lifecycle
-- [x] API request/response schemas with comprehensive validation
-
-Created complete DTO layer and API schemas for all business entities with proper validation and documentation.
-DTOs support all business operations with appropriate data transfer patterns and business rule validation.
-
-### Step 7.7: Implement business API controllers and routes - **Done**
-- [x] BusinessController with clean architecture integration
-- [x] Complete CRUD API endpoints for businesses
-- [x] Team management endpoints with role validation
-- [x] Invitation management endpoints with lifecycle support
-- [x] Comprehensive error handling and response formatting
-
-Implemented complete business API layer with controllers and routes following clean architecture principles.
-API includes comprehensive business management, team management, and invitation management with proper validation and error handling.
-
-### Step 7.8: Update dependency injection and main application - **Done**
-- [x] Add business repositories to DI container
-- [x] Wire business use cases with proper dependencies
-- [x] Update main application to include business routes
-- [x] Verify all business operations work end-to-end
-
-Updated dependency injection container and main application to support complete business management system.
-Verified all business operations work properly with proper clean architecture integration and error handling.
-
-## Phase 8: Enhanced Authentication & Authorization System - **Done**
-### Step 8.1: Enhanced JWT Token System - **Done**
-- [x] Enhanced AuthFacade with business context support
-- [x] Create enhanced JWT tokens with business membership information
-- [x] Implement business context switching functionality
-- [x] Support both legacy Supabase tokens and enhanced JWT tokens
-
-Implemented comprehensive JWT enhancement system with business context embedded in tokens.
-Enhanced tokens include current business ID, business memberships array with roles and permissions, enabling seamless multi-tenant operation.
-
-### Step 8.2: Business Context Middleware - **Done**
-- [x] Create BusinessContextMiddleware for business access validation
-- [x] Implement BusinessPermissionMiddleware for permission checking
-- [x] Add business context extraction from requests (path, query, headers)
-- [x] Integrate with existing authentication middleware
-
-Created sophisticated middleware system for business context validation and permission enforcement.
-Middleware automatically validates business access, extracts business context from requests, and enforces business-scoped permissions.
-
-### Step 8.3: Business Context API - **Done**
-- [x] Create business context switching API endpoints
-- [x] Get current business context endpoint
-- [x] List available businesses endpoint
-- [x] Refresh business context token endpoint
-
-Implemented complete business context management API allowing users to switch between businesses and manage their business context.
-API provides seamless business switching with new JWT tokens containing updated business context.
-
-### Step 8.4: Enhanced Authentication Middleware - **Done**
-- [x] Updated AuthMiddleware to support enhanced JWT tokens
-- [x] Added fallback to legacy Supabase token validation
-- [x] Enhanced business permission checking functions
-- [x] Added business context extraction utilities
-
-Enhanced existing authentication middleware to support both legacy and enhanced JWT tokens.
-Added comprehensive business context and permission utilities for seamless integration with business-scoped operations.
-
-### Step 8.5: Main Application Integration - **Done**
-- [x] Updated main application middleware stack
-- [x] Added business context routes to API router
-- [x] Configured middleware processing order for optimal security
-- [x] Updated CORS and error handling for business context
-
-Integrated enhanced authentication system into main application with proper middleware ordering.
-Business context middleware processes after authentication but before business operations, ensuring secure multi-tenant access.
-
-### Step 8.6: API Documentation - **Done**
-- [x] Created comprehensive authentication enhancement documentation
-- [x] Documented JWT token structure and business context
-- [x] Added API endpoint documentation with examples
-- [x] Included integration examples and migration guide
-
-Created complete documentation for enhanced authentication system including API endpoints, token structure, security features, and integration examples.
-Documentation provides clear guidance for frontend integration and migration from legacy tokens.
-
-Enhanced authentication system successfully implements:
-- JWT tokens with embedded business context and permissions
-- Automatic business access validation on all business-scoped requests  
-- Seamless business context switching with new token generation
-- Backwards compatibility with existing Supabase authentication
-- Comprehensive middleware for security and permission enforcement
-- Complete API for business context management
-- Detailed documentation for implementation and integration
-
-## Next Phase: Contact Management System (Phase 9)
-The foundation is now complete for implementing the contact management system with full business context support and permission enforcement.
-
-## Phase 9: Contact Management System Enhancement - **In Progress**
-### Step 9.1: Contact Model Schema Updates - **Done**
-- [x] Added relationship_status enum with values ('prospect', 'qualified_lead', 'opportunity', 'active_client', 'past_client', 'lost_lead', 'inactive')
-- [x] Added lifecycle_stage enum with values ('awareness', 'interest', 'consideration', 'decision', 'retention', 'customer')
-- [x] Added status_history JSONB field for tracking relationship status changes
-- [x] Added interaction_history JSONB field for recent interaction summaries
-- [x] Added display_name computed column combining first_name, last_name, and company_name
-- [x] Enhanced Contact domain entity with new business logic methods
-- [x] Added database triggers for automatic status history tracking
-- [x] Created migration script with proper indexes and constraints
-
-Enhanced contact model with relationship tracking and lifecycle management capabilities.
-Created comprehensive database migration and updated domain entity with advanced business logic for status progression and interaction tracking.
-
-### Step 9.2: Contact Interaction API Endpoints - **Done**
-- [x] Create InteractionType enum and ContactInteraction entities
-- [x] Implement contact interaction endpoints (/contacts/{id}/interactions)
-- [x] Add contact status update endpoint (/contacts/{id}/status)
-- [x] Create Pydantic models for interaction requests/responses
-- [x] Add permission middleware for contact operations
-- [x] Update repository layer for interaction management
-
-Implemented comprehensive contact interaction and status management API endpoints with proper RBAC integration.
-Added POST /contacts/{id}/interactions, GET /contacts/{id}/interactions, and PUT /contacts/{id}/status endpoints with full business logic validation and permission controls.
-
-### Step 9.3: Contact Activity & Timeline - **Done**
-- [x] Create comprehensive Activity domain entity with status tracking and business logic
-- [x] Create ActivityTemplate domain entity for standardized activity creation
-- [x] Create activity repository interfaces with timeline and analytics support
-- [x] Create comprehensive database migration with activity tables, indexes, and RLS policies
-- [x] Create ManageActivitiesUseCase with full CRUD, timeline, and template operations
-- [x] Create comprehensive DTOs for activities, templates, timeline, and analytics
-- [x] Create API schemas for activity management endpoints
-- [x] Implement activity API endpoints with proper RBAC integration
-- [x] Create timeline aggregation service for unified activity feeds
-- [x] Implement reminder and notification system
-
-Created comprehensive activity and timeline system with complete domain layer, API endpoints, and services.
-Implemented activity management with timeline aggregation, reminder system, and unified activity feeds with proper RBAC integration and database optimization.
-
-## Progress Tracking
-Each completed step will be marked with "Done" and include a two-line summary of what was accomplished.
-
-## Phase 10: Estimates & Invoices Management System - **In Progress**
-### Step 10.1: Create estimates and invoices domain entities - **Done**
-- [x] Create Estimate domain entity with status management, financial calculations, and business logic
-- [x] Create Invoice domain entity with payment tracking, status management, and conversion logic
-- [x] Create EstimateLineItem and InvoiceLineItem value objects for itemized pricing
-- [x] Create EstimateTemplate and InvoiceTemplate entities for branding and customization
-- [x] Create Payment entity for invoice payment tracking
-- [x] Define enums for EstimateStatus, InvoiceStatus, PaymentStatus, PaymentMethod, TemplateType
-- [x] Implement financial calculation logic with taxes, discounts, and currency support
-
-Created comprehensive domain entities for estimates, invoices, and templates with complete business logic and financial calculations.
-Added all required enums and value objects for the estimates and invoices management system with proper validation and status workflows.
-
-### Step 10.2: Create repository interfaces - **Done**
-- [x] Create EstimateRepository interface with comprehensive CRUD and search operations
-- [x] Create InvoiceRepository interface with payment tracking and analytics
-- [x] Create EstimateTemplateRepository interface for template management
-- [x] Define filtering, search, and analytics query methods for reporting
-- [x] Update repository package exports with new interfaces
-
-Created comprehensive repository interfaces for EstimateRepository, InvoiceRepository, and EstimateTemplateRepository with full CRUD operations, business-scoped queries, search capabilities, financial analytics, bulk operations, and specialized domain methods.
-Updated repository package __init__.py to export all new interfaces following established patterns in the codebase.
-
-### Step 10.3: Create database schema and migration - **Done**
-- [x] Design comprehensive database schema for estimates, invoices, line_items, templates, payments
-- [x] Create SQL migration with proper relationships, constraints, and indexes
-- [x] Add database functions for automatic calculations and status updates
-- [x] Set up Row Level Security (RLS) policies for business-scoped access
-- [x] Create database triggers for audit trails and status history
-- [x] Include job relationships for estimates and invoices generation from jobs
-- [x] Update repository interfaces to support job-based queries
-
-Created comprehensive database migration (20250201000002_create_estimates_invoices_schema.sql) with 6 tables, 28 indexes, 9 triggers, 6 RLS policies, and 4 utility functions.
-Added job_id relationships to both estimates and invoices tables enabling generation from contacts, projects, or jobs with full business logic automation.
-
-### Step 10.4: Implement Supabase repositories - **Done**
-- [x] Create SupabaseEstimateRepository with full CRUD operations and search
-- [x] Create SupabaseInvoiceRepository with payment integration and analytics
-- [x] Create SupabaseEstimateTemplateRepository with template management operations
-- [x] Add repositories to dependency injection container with proper bindings
-- [x] Update repository package exports and infrastructure layer organization
-
-Created comprehensive Supabase repository implementations for EstimateRepository (797 lines), InvoiceRepository (577 lines), and EstimateTemplateRepository (183 lines) with complete CRUD operations.
-Updated dependency injection container with proper repository bindings and wired all new repositories into the clean architecture infrastructure.
-
-### Step 10.5: Create use cases - **Done**
-- [x] CreateEstimate use case with template application and client validation
-- [x] ConvertEstimateToInvoice use case with business logic and validation
-- [x] CreateInvoice use case for direct invoice creation
-- [x] ProcessPayment use case with payment processing and status management
-- [x] Comprehensive business logic validation and error handling
-- [x] Integration with contact, project, and job entities
-
-Created comprehensive use cases for estimates and invoices management including CreateEstimateUseCase, ConvertEstimateToInvoiceUseCase, CreateInvoiceUseCase, and ProcessPaymentUseCase.
-All use cases include proper business logic validation, permission checking, entity relationships, and comprehensive error handling following clean architecture principles.
-
-### Step 10.6: Create DTOs and schemas - **Done**
-- [x] Estimate and Invoice DTOs with comprehensive financial data
-- [x] Template DTOs with design and customization options
-- [x] Payment DTOs with transaction tracking
-- [x] API request/response schemas with validation rules
-- [x] Search and filter DTOs for advanced querying
-
-Created comprehensive DTDs and schemas for estimates and invoices management including EstimateDTO, InvoiceDTO, CreateEstimateDTO, CreateInvoiceDTO, ProcessPaymentDTO, and all supporting DTOs.
-Implemented complete Pydantic API schemas with validation rules, field constraints, and proper error handling for all estimate and invoice endpoints.
-
-### Step 10.7: Implement API controllers and routes - **Done**
-- [x] EstimateController with full CRUD and status management
-- [x] InvoiceController with payment processing and analytics
-- [x] TemplateController for estimate and invoice templates
-- [x] PaymentController for payment recording and tracking
-- [x] Comprehensive error handling and business rule validation
-
-Created comprehensive API routes for estimates and invoices with full CRUD operations, payment processing, analytics, and status management following established patterns.
-Updated dependency injection container with estimate and invoice use cases and registered new routes in the main application router for complete API integration.
-
-### Step 10.8: Email and PDF integration - **Not Started**
-- [ ] Email service integration for estimate and invoice delivery
-- [ ] PDF generation service with template customization
-- [ ] Email tracking and delivery confirmation
-- [ ] Automated reminder system for overdue invoices
-- [ ] Payment link generation for online payments
-
-### Step 10.9: Update dependency injection and main application - **Not Started**
-- [ ] Add estimates and invoices repositories to DI container
-- [ ] Wire all use cases with proper dependencies
-- [ ] Update main application to include new routes
-- [ ] Verify all operations work end-to-end
-
-### Step 10.10: Create API documentation - **Not Started**
-- [ ] Create comprehensive API documentation for estimates and invoices
-- [ ] Document all endpoints with request/response examples
-- [ ] Include business rules and validation requirements
-- [ ] Add integration examples for mobile app consumption
-
-## Phase 11: Products & Inventory Management System - **✅ COMPLETED**
-
-### Step 11.1: Enhanced Domain Foundation - **Done**
-- [x] Create comprehensive inventory management enums in domain/enums.py
-- [x] Add ProductType, ProductStatus, PricingModel, UnitOfMeasure enums
-- [x] Add InventoryMethod, CostingMethod, StockMovementType, StockStatus enums
-- [x] Add PurchaseOrderStatus, SupplierStatus enums with display methods
-- [x] Implement all enum display methods for user-friendly representations
-
-Enhanced domain layer with comprehensive inventory management enums supporting product types, pricing models, inventory tracking methods, stock movements, and supplier management.
-Added complete enumeration system with display methods for mobile app integration and user-friendly representations.
-
-### Step 11.2: Core Product Domain Entity - **Done**
-- [x] Implement comprehensive Product entity with Pydantic validation
-- [x] Add ProductPricingTier for volume-based pricing tiers
-- [x] Add ProductLocation for multi-location inventory tracking
-- [x] Add ProductSupplier for supplier relationship management
-- [x] Implement cost tracking with multiple costing methods (FIFO, LIFO, Weighted Average)
-- [x] Add comprehensive pricing calculations and business rule validation
-- [x] Implement inventory availability and reorder point logic
-
-Created comprehensive Product domain entity (520 lines) with full inventory management capabilities including multi-location tracking, supplier management, tiered pricing, cost accounting, and complete business logic validation.
-Product entity supports all inventory management features required for mobile app integration and ERP functionality.
-
-### Step 11.3: Product Category Hierarchical System - **Done**
-- [x] Create ProductCategory entity with hierarchical structure support
-- [x] Add CategoryDefaults for category-level product defaults
-- [x] Implement category hierarchy validation (10-level max depth)
-- [x] Add category product counting and status management
-- [x] Implement category default application to products
-- [x] Add comprehensive business logic for category management
-
-Created ProductCategory entity with hierarchical organization supporting up to 10 levels of categorization with automatic path generation and product count tracking.
-Implemented category defaults system allowing category-level tax rates, markup percentages, and inventory settings to be applied to products automatically.
-
-### Step 11.4: Stock Movement Audit Trail System - **Done**
-- [x] Create StockMovement entity for comprehensive inventory tracking
-- [x] Add StockMovementContext for detailed movement metadata
-- [x] Implement all movement types (purchase, sale, transfer, adjustment, etc.)
-- [x] Add before/after quantity snapshots for audit trail
-- [x] Implement cost tracking and landed cost calculations
-- [x] Add movement validation and reversal capabilities
-
-Created comprehensive StockMovement entity with complete audit trail capabilities tracking all inventory changes with before/after snapshots, cost information, and business context.
-Implemented movement reversal system and comprehensive validation ensuring data integrity and regulatory compliance.
-
-### Step 11.5: Supplier Management System - **Done**
-- [x] Create Supplier entity with comprehensive contact management
-- [x] Add SupplierContact for multiple contact persons per supplier
-- [x] Add PaymentTerms with discount calculation methods
-- [x] Add SupplierPerformance with automated metrics tracking
-- [x] Implement supplier status management and approval workflows
-- [x] Add performance scoring and grade calculation system
-
-Created comprehensive Supplier entity (535 lines) with full supplier relationship management including multiple contacts, payment terms, performance tracking, and automated scoring system.
-Implemented supplier performance metrics with on-time delivery tracking, quality scoring, and overall performance grading for supplier optimization.
-
-### Step 11.6: Purchase Order Management System - **Done**
-- [x] Create PurchaseOrder entity with comprehensive workflow support
-- [x] Add PurchaseOrderLineItem for detailed line-level tracking
-- [x] Implement approval workflow with multi-level authorization
-- [x] Add receiving tracking with partial receipt support
-- [x] Implement cost calculations with taxes and additional costs
-- [x] Add delivery performance tracking and overdue monitoring
-
-Created comprehensive PurchaseOrder entity with full procurement workflow including line items, approval processes, receiving tracking, and delivery performance monitoring.
-Implemented complete purchase order lifecycle from draft creation through approval, sending, confirmation, receiving, and closure with comprehensive business rule validation.
-
-### Step 11.7: Repository Interfaces - **Done**
-- [x] Create ProductRepository interface with comprehensive CRUD and search operations
-- [x] Create ProductCategoryRepository interface with hierarchy management
-- [x] Create StockMovementRepository interface with audit trail queries
-- [x] Create SupplierRepository interface with performance analytics
-- [x] Create PurchaseOrderRepository interface with workflow support
-- [x] Define filtering, search, and analytics query methods for inventory reporting
-
-**Completed:**
-All repository interfaces for the inventory management system have been successfully created. This includes 5 comprehensive interfaces: ProductRepository (with inventory tracking, cost management, and mobile optimization), ProductCategoryRepository (with hierarchical structure support), StockMovementRepository (with complete audit trail capabilities), SupplierRepository (with performance tracking and analytics), and PurchaseOrderRepository (with workflow management and approval processes). Each interface provides extensive operations covering CRUD, search, analytics, mobile optimization, and business-specific functionality. All interfaces have been added to the domain repositories __init__.py file for proper module exports.
-
-### Step 11.8: Database Schema and Migration - **Done**
-- [x] Design comprehensive database schema for all inventory entities
-- [x] Create Supabase migration file with proper table structures
-- [x] Implement hierarchical category structure with materialized paths
-- [x] Add comprehensive indexing for performance optimization
-- [x] Set up Row Level Security (RLS) policies for data isolation
-- [x] Create automated triggers for data consistency
-- [x] Include audit trails and performance tracking fields
-- [x] Test migration syntax with dry run
-
-**Completed:**
-Successfully created a comprehensive 763-line Supabase migration file (20250206000000_create_inventory_management_schema.sql) containing all inventory management tables: product_categories (hierarchical with materialized paths), suppliers (with performance metrics), products (complete inventory tracking with multiple costing methods), purchase_orders (workflow support with approvals), purchase_order_line_items, stock_movements (complete audit trail), supplier_contacts, product_pricing_tiers, and purchase_order_approvals. The migration includes comprehensive indexing, RLS policies for business-level data isolation, automated triggers for data consistency (available stock calculations, quantity remaining, timestamps), and support for multi-location inventory. All constraints, check conditions, and foreign key relationships are properly implemented. Migration syntax validated successfully with dry run.
-
-### Step 11.9: Implement Supabase Repositories - **Done**
-- [x] Create SupabaseProductRepository with full CRUD and inventory operations
-- [x] Create SupabaseProductCategoryRepository with hierarchy management
-- [x] Create SupabaseStockMovementRepository with audit trail functionality
-- [x] Create SupabaseSupplierRepository with performance tracking
-- [x] Create SupabasePurchaseOrderRepository with workflow management
-- [x] Add repositories to dependency injection container with proper bindings
-
-**Completed:**
-Successfully implemented 5 comprehensive Supabase repository implementations following the established codebase patterns: SupabaseProductRepository (with comprehensive inventory tracking, cost management, and mobile optimization), SupabaseProductCategoryRepository (with hierarchical path management), SupabaseStockMovementRepository (with complete audit trail capabilities), SupabaseSupplierRepository (with performance tracking and analytics), and SupabasePurchaseOrderRepository (with workflow management and approval processes). All repositories include proper error handling, data conversion methods, logging, and comprehensive business logic implementation. Updated infrastructure database repositories __init__.py and dependency injection configuration to register all new repositories with proper interface bindings and global getter functions for clean architecture integration.
-
-### Step 11.10: Create Use Cases - **Done**
-- [x] CreateProduct use case with category integration and validation
-- [x] ManageInventory use case with stock movement automation
-- [x] ProcessPurchaseOrder use case with approval workflow
-- [x] InventoryReorderManagement use case with automated reorder suggestions
-- [ ] SupplierPerformanceTracking use case with automated metrics
-- [ ] Integration with estimate and invoice creation for inventory deduction
-
-**Completed:**
-Created comprehensive inventory management use cases following established clean architecture patterns:
-1. CreateProductUseCase - Product creation with category integration, business logic validation, and comprehensive error handling
-2. ManageInventoryUseCase - Stock movements, adjustments, and reservations with full audit trail
-3. ProcessPurchaseOrderUseCase - Complete purchase order workflow including creation, approval, sending, and receiving
-4. InventoryReorderManagementUseCase - Automated reorder suggestions and inventory optimization algorithms
-
-### Step 11.11: Create DTOs and Schemas - **Done**
-- [x] Product and Category DTOs with comprehensive inventory data
-- [x] Stock Movement DTOs with audit trail information
-- [x] Supplier and Purchase Order DTOs with workflow status
-- [x] Mobile-optimized API schemas for inventory management
-- [x] Search and filter DTOs for advanced inventory querying
-
-**Completed:**
-Created comprehensive API schemas and DTOs for the entire inventory management system. Implemented product_schemas.py (485 lines) with complete Pydantic schemas including CreateProductSchema, ProductResponseSchema, StockAdjustmentSchema, ProductSearchSchema, ReorderSuggestionSchema, and all supporting schemas for mobile-optimized inventory management. All DTOs include proper validation, field constraints, JSON encoders, and comprehensive error handling. Updated DTOs and schemas __init__.py files to properly export all inventory management schemas for API integration.
-
-### Step 11.12: Implement API Controllers and Routes - **Done**
-- [x] ProductController with full CRUD and inventory management
-- [x] InventoryController with stock movement and reorder management
-- [x] Mobile-optimized endpoints for estimate/invoice item selection
-- [x] Comprehensive error handling and business rule validation
-- [x] SupplierController with performance tracking and management
-- [x] PurchaseOrderController with approval workflow and receiving
-
-**Completed:**
-Successfully implemented comprehensive inventory management API routes including products (607 lines), suppliers (771 lines), and purchase orders (729 lines) with full workflow capabilities. Created complete REST API endpoints for product CRUD operations, stock management, inventory search and filtering, reorder suggestions, supplier management with performance tracking, and purchase order workflow including creation, approval, sending, and receiving processes. All routes include proper authentication, permission checking, business rule validation, and comprehensive error handling. Updated dependency injection container with ProcessPurchaseOrderUseCase and registered all new routes in the main API router for complete inventory management system integration.
-
-### Step 11.13: Mobile App Integration Endpoints - **Skipped**
-- [x] Standard API endpoints provide full functionality for any client application
-- [x] Inventory availability checking integrated in product APIs
-- [x] Real-time stock level updates via existing product endpoints
-- [x] Product search and filtering with comprehensive criteria
-- [x] Barcode support integrated in product search functionality
-- [x] API designed for both web and mobile consumption
-
-**Completed:**
-Skipped mobile-specific endpoints as requested. The existing API endpoints provide comprehensive functionality that can be consumed by any client application including mobile apps. All inventory management features are available through the standard REST API including product catalog, availability checking, stock management, supplier management, and purchase order workflow.
-
-### Step 11.14: Update Dependency Injection and Main Application - **Done**
-- [x] Add inventory management repositories to DI container
-- [x] Wire all inventory use cases with proper dependencies
-- [x] Update main application to include new inventory routes
-- [x] Verify all inventory operations work end-to-end
-- [x] Add inventory management to business context validation
-
-**Completed:**
-Successfully updated dependency injection container with all inventory management repositories (ProductRepository, ProductCategoryRepository, StockMovementRepository, SupplierRepository, PurchaseOrderRepository) and use cases (CreateProductUseCase, ManageInventoryUseCase, ProcessPurchaseOrderUseCase, InventoryReorderManagementUseCase). Updated main application router to include all inventory management routes (/products, /suppliers, /purchase-orders) with proper prefixes and tags. Business context validation uses existing permission system (view_projects, edit_projects) which covers inventory management operations. All inventory management components are properly integrated into the application architecture.
-
-### Step 11.15: Create API Documentation - **Done**
-- [x] Create comprehensive API documentation for inventory management
-- [x] Document all endpoints with request/response examples for mobile app
-- [x] Include business rules and inventory management workflows
-- [x] Add integration examples for estimate/invoice item management
-- [x] Document real-time inventory updates and mobile synchronization
-
-**Completed:**
-Created comprehensive API documentation (docs/api/inventory-management-api.md) covering the complete inventory management system. The documentation includes detailed endpoint specifications for products, suppliers, purchase orders, and stock movements with comprehensive request/response schemas, authentication requirements, error handling, mobile app integration examples, business rules, workflow descriptions, and integration patterns with other systems. The documentation follows the established format and provides complete guidance for mobile app developers to consume the inventory management APIs.
+Implement hybrid search capabilities using pgvector extension in Supabase to provide AI agents with better context through semantic similarity and relationship verification.
+
+## Phase 1: Vector Database Foundation
+
+### Step 1.1: Enable pgvector Extension
+- [ ] Create migration to enable pgvector extension in Supabase
+- [ ] Test extension availability and vector operations
+- [ ] Validate vector indexing capabilities
+
+### Step 1.2: Create Entity Embeddings Table
+- [ ] Design `entity_embeddings` table schema with:
+  - `id` (UUID primary key)
+  - `entity_type` (enum: contact, job, estimate, invoice, product, project)
+  - `entity_id` (UUID reference to actual entity)
+  - `business_id` (UUID for multi-tenancy)
+  - `embedding` (vector(1536) for OpenAI embeddings)
+  - `content_hash` (text for change detection)
+  - `created_at`, `updated_at` timestamps
+- [ ] Create indexes for performance optimization
+- [ ] Create enum type for entity types
+
+### Step 1.3: Relationship Verification Functions
+- [ ] Create database functions to verify business relationships:
+  - `verify_contact_relationships(contact_id, related_ids[])`
+  - `verify_job_relationships(job_id, related_ids[])`
+  - `verify_estimate_relationships(estimate_id, related_ids[])`
+  - `verify_product_relationships(product_id, related_ids[])`
+- [ ] Create unified relationship checker function
+- [ ] Test relationship verification with sample data
+
+## Phase 2: Embedding Management Infrastructure
+
+### Step 2.1: External Embedding Service
+- [ ] Create `EmbeddingService` interface in application/ports/
+- [ ] Implement OpenAI embeddings adapter in infrastructure/external_services/
+- [ ] Add embedding generation for text content
+- [ ] Add batch embedding processing capabilities
+- [ ] Configure embedding model settings (text-embedding-3-small)
+
+### Step 2.2: Content Extraction Layer
+- [ ] Create content extraction functions for each entity type:
+  - Contact: name, email, phone, address, notes
+  - Job: title, description, status, address
+  - Estimate: title, description, items, total
+  - Invoice: similar to estimate
+  - Product: name, description, category, specifications
+  - Project: name, description, scope
+- [ ] Implement content change detection using hashing
+- [ ] Create unified content extractor interface
+
+### Step 2.3: Embedding Repository
+- [ ] Create `HybridSearchRepository` interface in domain/repositories/
+- [ ] Implement Supabase-based repository in infrastructure/database/repositories/
+- [ ] Add methods for:
+  - `store_embedding(entity_type, entity_id, content, business_id)`
+  - `update_embedding(entity_type, entity_id, content)`
+  - `search_similar(query_embedding, entity_types[], limit, threshold)`
+  - `verify_relationships(entity_type, entity_id, related_results[])`
+- [ ] Add error handling and logging
+
+## Phase 3: Search Engine Core
+
+### Step 3.1: Hybrid Search Use Case
+- [ ] Create `HybridSearchUseCase` in application/use_cases/
+- [ ] Implement search logic combining:
+  - Text-based search (existing ilike queries)
+  - Vector similarity search
+  - Relationship verification
+  - Business context filtering
+- [ ] Add search result ranking and scoring
+- [ ] Implement search result aggregation
+
+### Step 3.2: Search API Layer
+- [ ] Create search schemas in api/schemas/search_schemas.py
+- [ ] Add search route in api/routes/search.py
+- [ ] Implement search endpoints:
+  - `POST /search/hybrid` - unified search across entities
+  - `POST /search/similar/{entity_type}/{entity_id}` - find similar entities
+  - `POST /search/related/{entity_type}/{entity_id}` - find related entities
+- [ ] Add input validation and error handling
+
+### Step 3.3: Search Integration Service
+- [ ] Create `SearchIntegrationService` in application/services/
+- [ ] Implement search context building for agents
+- [ ] Add search result formatting for different contexts
+- [ ] Create search history and analytics tracking
+
+## Phase 4: Agent Integration
+
+### Step 4.1: Enhanced Agent Tools
+- [ ] Update `Hero365Tools` class to include hybrid search capabilities
+- [ ] Add new tool methods:
+  - `hybrid_search_entities(query, entity_types, limit)`
+  - `find_similar_entities(entity_type, entity_id, limit)`
+  - `verify_entity_relationships(entity_type, entity_id, related_ids)`
+- [ ] Update existing tools to use hybrid search when appropriate
+- [ ] Add context enrichment for search results
+
+### Step 4.2: Agent Context Enhancement
+- [ ] Update `ContextManager` to use hybrid search for context building
+- [ ] Implement smart context loading based on conversation history
+- [ ] Add proactive context suggestions for agents
+- [ ] Create context relevance scoring
+
+### Step 4.3: Specialized Agent Updates
+- [ ] Update `ContactAgent` to use hybrid search for contact discovery
+- [ ] Update `JobAgent` to find related jobs, estimates, and contacts
+- [ ] Update `EstimateAgent` to find similar estimates and related entities
+- [ ] Update `InvoiceAgent` to leverage payment history and related data
+- [ ] Add cross-agent context sharing capabilities
+
+## Phase 5: Background Processing
+
+### Step 5.1: Embedding Sync System
+- [ ] Create background task system for embedding generation
+- [ ] Implement entity change detection triggers
+- [ ] Add batch processing for existing entity embeddings
+- [ ] Create embedding refresh scheduling
+- [ ] Add error handling and retry mechanisms
+
+
+### Step 5.2: Data Migration
+- [ ] Create migration script for existing entities
+- [ ] Implement progressive embedding generation
+- [ ] Add data validation and integrity checks
+- [ ] Create rollback procedures
+
+## Phase 6: Testing and Optimization
+
+### Step 6.1: Unit Testing
+- [ ] Create tests for embedding service
+- [ ] Test hybrid search repository
+- [ ] Test search use cases
+- [ ] Test agent tool integration
+- [ ] Add performance benchmarks
+
+### Step 6.2: Integration Testing
+- [ ] Test end-to-end search workflows
+- [ ] Test agent interactions with search
+- [ ] Test multi-entity search scenarios
+- [ ] Test relationship verification accuracy
+- [ ] Test search performance under load
+
+### Step 6.3: Performance Optimization
+- [ ] Optimize vector search queries
+- [ ] Implement search result caching
+- [ ] Add index optimization
+- [ ] Implement query optimization
+- [ ] Add connection pooling for search operations
+
+## Phase 7: Documentation and Deployment
+
+### Step 7.1: API Documentation
+- [ ] Generate OpenAPI documentation for search endpoints
+- [ ] Create mobile app integration guide
+- [ ] Document search query patterns
+- [ ] Add search best practices guide
+
+### Step 7.2: Deployment Preparation
+- [ ] Update environment configurations
+- [ ] Add production migration scripts
+- [ ] Create deployment checklist
+- [ ] Add monitoring setup
+
+### Step 7.3: Feature Rollout
+- [ ] Implement feature flags for gradual rollout
+- [ ] Create A/B testing framework
+- [ ] Add performance monitoring
+- [ ] Plan user training materials
+
+## Success Metrics
+
+### Technical Metrics
+- [ ] Search response time < 200ms for 95% of queries
+- [ ] Vector similarity accuracy > 85%
+- [ ] Relationship verification accuracy > 95%
+- [ ] Search result relevance score > 0.8
+
+### Business Metrics
+- [ ] Agent response accuracy improvement > 30%
+- [ ] User task completion time reduction > 25%
+- [ ] Cross-entity discovery rate > 40%
+- [ ] Search-driven action success rate > 80%
+
+## Risk Mitigation
+
+### Technical Risks
+- [ ] Vector index performance degradation - mitigation: implement index optimization
+- [ ] Embedding cost escalation - mitigation: implement caching and batch processing
+- [ ] Search latency issues - mitigation: implement query optimization and caching
+- [ ] Data consistency issues - mitigation: implement robust sync mechanisms
+
+### Business Risks
+- [ ] Agent context confusion - mitigation: implement strict relationship verification
+- [ ] Search result irrelevance - mitigation: implement relevance scoring and feedback
+- [ ] System complexity increase - mitigation: maintain clean architecture boundaries
+- [ ] Migration complexity - mitigation: implement progressive rollout strategy
+
+## Next Steps
+1. Start with Phase 1.1 - Enable pgvector extension
+2. Progress through phases sequentially
+3. Test thoroughly at each phase
+4. Maintain existing functionality during implementation
+5. Document all changes and decisions
+
+---
+
+## Implementation Log
+*Track completion of each step with "Done" status and brief summary*
+
+### Phase 1: Vector Database Foundation
+- Step 1.1: Enable pgvector Extension - **Done**
+- Step 1.2: Create Entity Embeddings Table - **Done**
+- Step 1.3: Relationship Verification Functions - **Done**
+
+### Phase 2: Embedding Management Infrastructure
+- Step 2.1: External Embedding Service - **Done**
+- Step 2.2: Content Extraction Layer - **Done**
+- Step 2.3: Embedding Repository - **Done**
+
+### Phase 3: Search Engine Core
+- Step 3.1: Hybrid Search Use Case - **Pending**
+- Step 3.2: Search API Layer - **Pending**
+- Step 3.3: Search Integration Service - **Pending**
+
+### Phase 4: Agent Integration
+- Step 4.1: Enhanced Agent Tools - **Pending**
+- Step 4.2: Agent Context Enhancement - **Pending**
+- Step 4.3: Specialized Agent Updates - **Pending**
+
+### Phase 5: Background Processing
+- Step 5.1: Embedding Sync System - **Pending**
+- Step 5.2: Data Migration - **Pending**
+
+### Phase 6: Testing and Optimization
+- Step 6.1: Unit Testing - **Pending**
+- Step 6.2: Integration Testing - **Pending**
+- Step 6.3: Performance Optimization - **Pending**
+
+### Phase 7: Documentation and Deployment
+- Step 7.1: API Documentation - **Pending**
+- Step 7.2: Deployment Preparation - **Pending**
+- Step 7.3: Feature Rollout - **Pending**

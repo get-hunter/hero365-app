@@ -2,84 +2,95 @@
 
 ## Overview
 
-This document provides the API specification for Hero365's real-time voice streaming endpoints, designed for seamless integration with the iOS mobile app.
+This document provides the comprehensive API specification for Hero365's real-time voice streaming endpoints, designed for seamless integration with the iOS mobile app. The system supports both real-time streaming and buffered audio processing modes.
 
 ## Base URL
 
 ```
-Production: https://api.hero365.com
-Development: https://dev-api.hero365.com
+Development: ws://localhost:8000
+Production: wss://api.hero365.ai
 ```
 
 ## Authentication
 
-All requests require Bearer token authentication:
+WebSocket connections require authentication through URL query parameters:
 
 ```
-Authorization: Bearer {jwt_token}
+?user_id={user_id}&business_id={business_id}&token={jwt_token}
 ```
 
 ## WebSocket Endpoints
 
 ### Voice Streaming WebSocket
 
-**Endpoint**: `wss://api.hero365.app/v1/voice/stream/ws/{business_id}`
+**Endpoint**: `ws://localhost:8000/api/v1/voice/ws/{session_id}`
 
-**Purpose**: Bidirectional real-time audio streaming for voice interactions
-
-**Connection Requirements**:
-- Valid JWT token in Authorization header
-- Business ID in URL path
-- WebSocket upgrade headers
+**Query Parameters**:
+- `user_id`: User ID (required)
+- `business_id`: Business ID (required)  
+- `token`: JWT authentication token (required)
 
 **Connection Example**:
 ```javascript
-const ws = new WebSocket('wss://api.hero365.com/voice/stream/ws/123', {
-  headers: {
-    'Authorization': 'Bearer your_jwt_token_here'
-  }
-});
+const sessionId = "550e8400-e29b-41d4-a716-446655440000";
+const userId = "user-123";
+const businessId = "business-456";
+const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+
+const ws = new WebSocket(
+  `ws://localhost:8000/api/v1/voice/ws/${sessionId}?user_id=${userId}&business_id=${businessId}&token=${token}`
+);
 ```
 
 ## Message Protocol
 
 ### Message Structure
 
-All messages follow this JSON structure:
+All JSON messages follow this structure:
 
 ```json
 {
   "type": "message_type",
-  "session_id": "uuid-v4-string",
+  "session_id": "optional-session-id",
   "timestamp": "2024-01-15T10:30:00Z",
   "data": { /* message-specific data */ }
 }
 ```
 
+### Connection Flow
+
+1. **Connect** → Server sends `connection_confirmed`
+2. **Start Session** → Server sends `session_started` + `agent_response`
+3. **[Optional] Enable Realtime** → Server sends `realtime_enabled`
+4. **Send Audio/Text** → Server sends `agent_response`
+5. **End Session** → Server sends `session_ended`
+
 ### Message Types
 
-#### 1. Session Management
+#### 1. Connection Management
 
-##### Start Session
-**Direction**: Client → Server
-**Purpose**: Initialize new voice session
+##### Connection Confirmed
+**Direction**: Server → Client
+**Purpose**: Confirm WebSocket connection established
 
 ```json
 {
-  "type": "start_session",
+  "type": "connection_confirmed",
   "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "data": {
-    "audio_format": "opus",
-    "sample_rate": 16000,
-    "channels": 1,
-    "buffer_size": 1024,
-    "user_id": "user-123",
-    "context": {
-      "location": "estimate_creation",
-      "previous_session_id": "optional-uuid"
-    }
-  }
+  "realtime_available": true,
+  "buffered_available": true,
+  "message": "WebSocket connection established with real-time support",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+##### Start Session
+**Direction**: Client → Server
+**Purpose**: Initialize voice interaction session
+
+```json
+{
+  "type": "start_session"
 }
 ```
 
@@ -91,15 +102,11 @@ All messages follow this JSON structure:
 {
   "type": "session_started",
   "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "data": {
-    "agent_type": "triage",
-    "session_config": {
-      "silence_threshold": 600,
-      "max_duration": 300000,
-      "streaming_enabled": true
-    }
-  }
+  "status": "active",
+  "message": "Voice session started successfully",
+  "realtime_available": true,
+  "buffered_available": true,
+  "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
@@ -109,384 +116,573 @@ All messages follow this JSON structure:
 
 ```json
 {
-  "type": "end_session",
-  "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "data": {
-    "reason": "user_ended|timeout|error",
-    "duration_ms": 45000
-  }
+  "type": "end_session"
 }
 ```
 
-#### 2. Audio Data
+##### Session Ended
+**Direction**: Server → Client
+**Purpose**: Confirm session termination
 
-##### Audio Input
+```json
+{
+  "type": "session_ended",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "ended",
+  "message": "Voice session ended successfully",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 2. Real-time Control
+
+##### Enable Realtime
 **Direction**: Client → Server
-**Purpose**: Send audio data from mobile device
+**Purpose**: Enable real-time streaming mode
 
 ```json
 {
-  "type": "audio_input",
+  "type": "enable_realtime"
+}
+```
+
+##### Realtime Enabled
+**Direction**: Server → Client
+**Purpose**: Confirm real-time mode enabled
+
+```json
+{
+  "type": "realtime_enabled",
   "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "timestamp": "2024-01-15T10:30:00Z",
+  "status": "enabled",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+##### Disable Realtime
+**Direction**: Client → Server
+**Purpose**: Disable real-time streaming mode
+
+```json
+{
+  "type": "disable_realtime"
+}
+```
+
+##### Realtime Disabled
+**Direction**: Server → Client
+**Purpose**: Confirm real-time mode disabled
+
+```json
+{
+  "type": "realtime_disabled",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "disabled",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 3. Audio Processing
+
+##### Audio Data
+**Direction**: Client → Server
+**Purpose**: Send audio data for processing
+
+```json
+{
+  "type": "audio_data",
+  "audio": "base64-encoded-audio-data",
+  "format": "wav",
+  "size": 1024
+}
+```
+
+**Binary Audio**: For real-time mode, raw binary audio data can be sent directly as WebSocket binary messages.
+
+##### Audio Buffering
+**Direction**: Server → Client
+**Purpose**: Confirm audio data buffered
+
+```json
+{
+  "type": "audio_buffering",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "buffered",
+  "buffer_size": 1024,
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+##### Audio Processing
+**Direction**: Server → Client
+**Purpose**: Inform client about audio processing status
+
+```json
+{
+  "type": "audio_processing",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "processing",
+  "audio_size": 4096,
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 4. Text Processing
+
+##### Text Input
+**Direction**: Client → Server
+**Purpose**: Send text input for processing
+
+```json
+{
+  "type": "text_input",
+  "text": "Create an estimate for John Smith",
+  "want_audio_response": true
+}
+```
+
+##### Agent Response
+**Direction**: Server → Client
+**Purpose**: Send AI agent response
+
+```json
+{
+  "type": "agent_response",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "response": "I'll help you create an estimate for John Smith. What services do you need to include?",
+  "audio_response": "base64-encoded-audio-response",
+  "audio_format": "mp3",
+  "context": {
+    "current_agent": "estimate",
+    "intent": "create_estimate",
+    "entities": ["John Smith"]
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 5. Context Management
+
+##### Context Update
+**Direction**: Client → Server
+**Purpose**: Update session context
+
+```json
+{
+  "type": "context_update",
   "data": {
-    "audio_data": "base64-encoded-audio-bytes",
-    "sequence": 1,
-    "is_final": false,
-    "format": "opus",
-    "duration_ms": 320,
-    "sample_rate": 16000,
-    "channels": 1
+    "location": "estimate_creation",
+    "customer_info": {
+      "name": "John Smith",
+      "phone": "+1234567890"
+    }
   }
 }
 ```
 
-##### Audio Output
+##### Context Updated
 **Direction**: Server → Client
-**Purpose**: Stream audio response back to mobile device
+**Purpose**: Confirm context update
 
 ```json
 {
-  "type": "audio_output",
+  "type": "context_updated",
   "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "timestamp": "2024-01-15T10:30:00Z",
   "data": {
-    "audio_data": "base64-encoded-audio-bytes",
-    "sequence": 1,
-    "is_final": false,
-    "content_type": "audio/opus",
-    "duration_ms": 320,
-    "sample_rate": 16000,
-    "channels": 1,
-    "agent_type": "contact",
-    "response_latency_ms": 450
-  }
+    "location": "estimate_creation",
+    "customer_info": {
+      "name": "John Smith",
+      "phone": "+1234567890"
+    }
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
-#### 3. Session Status
+#### 6. Session Status
 
-##### Status Update
+##### Session Status Request
+**Direction**: Client → Server
+**Purpose**: Request current session status
+
+```json
+{
+  "type": "session_status"
+}
+```
+
+##### Session Status Response
 **Direction**: Server → Client
-**Purpose**: Inform client about current session state
+**Purpose**: Provide current session status
 
 ```json
 {
   "type": "session_status",
   "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "timestamp": "2024-01-15T10:30:00Z",
   "data": {
-    "status": "processing|speaking|listening|complete|error",
-    "agent_type": "triage|contact|estimate|job|scheduling",
-    "processing_stage": "transcription|llm|tts|complete",
-    "estimated_completion_ms": 1200,
-    "context": {
-      "intent": "create_estimate",
-      "entities": ["customer_name", "service_type"],
-      "confidence": 0.95
-    }
-  }
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "active",
+    "realtime_enabled": false,
+    "connected_at": "2024-01-15T10:30:00Z",
+    "active_connections": 3
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
-##### Agent Transfer
+#### 7. Real-time Streaming Events
+
+##### Voice Activity
 **Direction**: Server → Client
-**Purpose**: Notify client when conversation transfers to different agent
+**Purpose**: Real-time voice activity detection
 
 ```json
 {
-  "type": "agent_transfer",
+  "type": "voice_activity",
   "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "data": {
-    "from_agent": "triage",
-    "to_agent": "estimate",
-    "transfer_reason": "user_intent_detected",
-    "context_preserved": true,
-    "new_capabilities": ["estimate_creation", "pricing_calculation"]
-  }
+  "level": 0.75,
+  "is_speaking": true,
+  "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
-#### 4. Error Handling
+##### Processing Interrupted
+**Direction**: Server → Client
+**Purpose**: Notify when processing is interrupted
+
+```json
+{
+  "type": "processing_interrupted",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "reason": "user_speaking",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 8. Error Handling
 
 ##### Error Message
 **Direction**: Server → Client
-**Purpose**: Communicate errors and recovery instructions
+**Purpose**: Communicate errors
 
 ```json
 {
   "type": "error",
   "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "data": {
-    "error_code": "AUDIO_PROCESSING_ERROR",
-    "error_message": "Failed to process audio chunk",
-    "error_details": "Invalid audio format or corrupted data",
-    "retry_after": 1000,
-    "recoverable": true,
-    "suggested_action": "resend_last_chunk"
-  }
+  "error": "Invalid audio format",
+  "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
-### Error Codes
-
-| Error Code | Description | Recoverable | Suggested Action |
-|------------|-------------|-------------|------------------|
-| `INVALID_SESSION` | Session ID not found or expired | No | Start new session |
-| `AUTHENTICATION_ERROR` | Invalid or expired JWT token | No | Re-authenticate |
-| `AUDIO_PROCESSING_ERROR` | Failed to process audio chunk | Yes | Resend chunk |
-| `RATE_LIMIT_EXCEEDED` | Too many requests | Yes | Wait and retry |
-| `AGENT_UNAVAILABLE` | Voice agent temporarily unavailable | Yes | Retry after delay |
-| `INVALID_AUDIO_FORMAT` | Unsupported audio format | No | Use supported format |
-| `SESSION_TIMEOUT` | Session exceeded maximum duration | No | Start new session |
-| `NETWORK_ERROR` | Network connectivity issues | Yes | Reconnect |
-
 ## REST API Endpoints
 
-### Get Session History
+### Start Voice Session
 
-**Endpoint**: `GET /api/v1/voice/sessions/{session_id}`
+**Endpoint**: `POST /api/v1/voice/start-session`
 
-**Purpose**: Retrieve session details and conversation history
+**Purpose**: Initialize a new voice session
 
-**Parameters**:
-- `session_id`: UUID of the voice session
+**Request Body**:
+```json
+{
+  "session_metadata": {
+    "device_type": "ios",
+    "app_version": "1.0.0"
+  },
+  "location": {
+    "latitude": 37.7749,
+    "longitude": -122.4194
+  },
+  "device_info": {
+    "model": "iPhone 15",
+    "os_version": "17.0"
+  }
+}
+```
 
 **Response**:
 ```json
 {
   "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "business_id": "123",
-  "user_id": "user-123",
-  "created_at": "2024-01-15T10:30:00Z",
-  "ended_at": "2024-01-15T10:35:30Z",
-  "duration_ms": 330000,
-  "status": "completed",
-  "agents_used": ["triage", "estimate"],
-  "conversation_summary": {
-    "intent": "create_estimate",
-    "entities_extracted": {
-      "customer_name": "John Smith",
-      "service_type": "plumbing",
-      "address": "123 Main St"
-    },
-    "actions_taken": ["estimate_created"],
-    "outcome": "successful"
-  },
-  "audio_metrics": {
-    "total_audio_duration_ms": 180000,
-    "average_response_latency_ms": 520,
-    "audio_quality_score": 0.92
+  "status": "active",
+  "message": "Voice session started successfully",
+  "user_context": {
+    "current_agent": "triage",
+    "location": {
+      "latitude": 37.7749,
+      "longitude": -122.4194
+    }
   }
 }
 ```
 
-### List User Sessions
+### Process Text Input
 
-**Endpoint**: `GET /api/v1/voice/sessions`
+**Endpoint**: `POST /api/v1/voice/text-input`
 
-**Purpose**: Get user's voice session history
+**Purpose**: Process text input through voice agent system
 
-**Query Parameters**:
-- `limit`: Number of sessions to return (default: 20, max: 100)
-- `offset`: Pagination offset (default: 0)
-- `status`: Filter by session status (completed, active, error)
-- `date_from`: Start date filter (ISO 8601)
-- `date_to`: End date filter (ISO 8601)
+**Request Body**:
+```json
+{
+  "message": "Create an estimate for John Smith",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
 
 **Response**:
 ```json
 {
-  "sessions": [
-    {
+  "response": "I'll help you create an estimate for John Smith. What services do you need to include?",
       "session_id": "550e8400-e29b-41d4-a716-446655440000",
-      "created_at": "2024-01-15T10:30:00Z",
-      "duration_ms": 330000,
-      "status": "completed",
-      "primary_agent": "estimate",
-      "summary": "Created estimate for plumbing service"
-    }
-  ],
-  "pagination": {
-    "total": 150,
-    "limit": 20,
-    "offset": 0,
-    "has_more": true
-  }
+  "current_agent": "estimate"
 }
 ```
 
-### Session Analytics
+### Enable Real-time Streaming
 
-**Endpoint**: `GET /api/v1/voice/analytics`
+**Endpoint**: `POST /api/v1/voice/session/{session_id}/enable-realtime`
 
-**Purpose**: Get voice session analytics and metrics
-
-**Query Parameters**:
-- `period`: Time period (day, week, month, year)
-- `date_from`: Start date filter
-- `date_to`: End date filter
+**Purpose**: Enable real-time streaming for a session
 
 **Response**:
 ```json
 {
-  "period": "week",
-  "date_from": "2024-01-08T00:00:00Z",
-  "date_to": "2024-01-15T00:00:00Z",
-  "metrics": {
-    "total_sessions": 45,
-    "successful_sessions": 42,
-    "average_duration_ms": 240000,
-    "average_response_latency_ms": 520,
-    "agent_distribution": {
-      "triage": 45,
-      "estimate": 28,
-      "contact": 15,
-      "job": 12,
-      "scheduling": 8
-    },
-    "intent_distribution": {
-      "create_estimate": 28,
-      "schedule_job": 12,
-      "contact_management": 15,
-      "general_inquiry": 10
-    },
-    "quality_metrics": {
-      "average_audio_quality": 0.91,
-      "connection_stability": 0.96,
-      "user_satisfaction": 0.89
-    }
-  }
+  "success": true,
+  "message": "Real-time streaming enabled",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
+
+## Audio Processing Modes
+
+### 1. Buffered Processing (Default)
+- Audio chunks are collected and processed together
+- Better for complete conversations
+- Lower real-time requirements
+- Suitable for most use cases
+
+### 2. Real-time Streaming
+- Audio is processed immediately as it arrives
+- Supports voice activity detection
+- Enables interruption handling
+- Better for interactive conversations
 
 ## Mobile Integration Guidelines
 
 ### Connection Management
 
-1. **Initial Connection**:
-   - Establish WebSocket connection when app starts
-   - Keep connection alive in background (within iOS limits)
-   - Handle connection interruptions gracefully
+**Swift WebSocket Connection**:
+```swift
+import Foundation
+import Network
 
-2. **Session Lifecycle**:
-   - Start session when user initiates voice interaction
-   - End session when user stops or after timeout
-   - Clean up resources properly
+class VoiceStreamingManager: NSObject, URLSessionWebSocketDelegate {
+    private var webSocketTask: URLSessionWebSocketTask?
+    private var urlSession: URLSession?
+    
+    func connect(sessionId: String, userId: String, businessId: String, token: String) {
+        let urlString = "ws://localhost:8000/api/v1/voice/ws/\(sessionId)?user_id=\(userId)&business_id=\(businessId)&token=\(token)"
+        
+        guard let url = URL(string: urlString) else { return }
+        
+        urlSession = URLSession(configuration: .default, delegate: self, delegateQueue: OperationQueue())
+        webSocketTask = urlSession?.webSocketTask(with: url)
+        webSocketTask?.resume()
+        
+        receiveMessage()
+    }
+}
+```
 
-3. **Error Handling**:
-   - Implement exponential backoff for reconnection
-   - Cache audio data during network interruptions
-   - Provide user feedback for connection issues
+### Session Management
 
-### Audio Streaming Best Practices
+**Start Session**:
+```swift
+func startSession() {
+    let message = ["type": "start_session"]
+    sendMessage(message)
+}
 
-1. **Audio Format**:
-   - Use Opus codec for optimal compression and quality
-   - 16kHz sample rate for voice optimization
-   - Mono channel to reduce bandwidth
+func sendMessage(_ message: [String: Any]) {
+    guard let data = try? JSONSerialization.data(withJSONObject: message),
+          let string = String(data: data, encoding: .utf8) else { return }
+    
+    let message = URLSessionWebSocketTask.Message.string(string)
+    webSocketTask?.send(message) { error in
+        if let error = error {
+            print("Send error: \(error)")
+        }
+    }
+}
+```
 
-2. **Buffering Strategy**:
-   - Implement circular buffer for smooth playback
-   - Maintain 500ms buffer for network jitter
-   - Start playback after minimum buffer threshold
+### Audio Processing
 
-3. **Performance Optimization**:
-   - Reuse audio buffers to reduce allocations
-   - Process audio on background threads
-   - Monitor memory usage and cleanup
-
-### iOS-Specific Considerations
-
-1. **Audio Session Configuration**:
+**Send Audio Data**:
    ```swift
-   try AVAudioSession.sharedInstance().setCategory(
-       .playAndRecord,
-       mode: .voiceChat,
-       options: [.defaultToSpeaker, .allowBluetooth]
-   )
-   ```
+func sendAudioData(_ audioData: Data) {
+    let base64Audio = audioData.base64EncodedString()
+    let message: [String: Any] = [
+        "type": "audio_data",
+        "audio": base64Audio,
+        "format": "wav",
+        "size": audioData.count
+    ]
+    sendMessage(message)
+}
 
-2. **Background Processing**:
-   - Use background task identifiers for audio processing
-   - Handle audio interruptions (calls, notifications)
-   - Manage battery usage efficiently
+// For real-time mode, send binary data directly
+func sendRealtimeAudioData(_ audioData: Data) {
+    let message = URLSessionWebSocketTask.Message.data(audioData)
+    webSocketTask?.send(message) { error in
+        if let error = error {
+            print("Send error: \(error)")
+        }
+    }
+}
+```
 
-3. **Privacy & Permissions**:
-   - Request microphone permissions appropriately
-   - Implement clear privacy disclosures
-   - Handle permission denials gracefully
+### Message Handling
 
-### Testing & Debugging
+**Receive Messages**:
+```swift
+func receiveMessage() {
+    webSocketTask?.receive { [weak self] result in
+        switch result {
+        case .success(let message):
+            switch message {
+            case .string(let text):
+                self?.handleTextMessage(text)
+            case .data(let data):
+                self?.handleBinaryMessage(data)
+            @unknown default:
+                break
+            }
+            self?.receiveMessage() // Continue receiving
+        case .failure(let error):
+            print("Receive error: \(error)")
+        }
+    }
+}
 
-1. **Connection Testing**:
-   - Test with various network conditions
-   - Verify reconnection behavior
-   - Monitor WebSocket ping/pong
+private func handleTextMessage(_ text: String) {
+    guard let data = text.data(using: .utf8),
+          let message = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let type = message["type"] as? String else { return }
+    
+    switch type {
+    case "connection_confirmed":
+        handleConnectionConfirmed(message)
+    case "session_started":
+        handleSessionStarted(message)
+    case "agent_response":
+        handleAgentResponse(message)
+    case "session_ended":
+        handleSessionEnded(message)
+    case "error":
+        handleError(message)
+    default:
+        print("Unknown message type: \(type)")
+    }
+}
+```
 
-2. **Audio Quality Testing**:
-   - Test with different device types
-   - Verify audio synchronization
-   - Monitor latency metrics
+## Error Handling
 
-3. **Error Scenarios**:
-   - Test network interruptions
-   - Verify error message handling
-   - Test session timeout behavior
+### Common Error Types
 
-## Rate Limits
+1. **Connection Errors**
+   - Missing required parameters
+   - Invalid authentication token
+   - Network connectivity issues
 
-| Endpoint | Rate Limit | Window |
-|----------|------------|--------|
-| WebSocket Connection | 10 connections/minute | Per user |
-| Audio Input | 1000 chunks/minute | Per session |
-| Session Creation | 20 sessions/hour | Per user |
-| Analytics API | 100 requests/hour | Per user |
+2. **Session Errors**
+   - Session not found
+   - Session expired
+   - Invalid session state
+
+3. **Audio Processing Errors**
+   - Invalid audio format
+   - Audio processing timeout
+   - Processing interrupted
+
+### Error Response Format
+
+```json
+{
+  "type": "error",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "error": "Descriptive error message",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+## Best Practices
+
+### 1. Connection Management
+- Handle connection interruptions gracefully
+- Implement reconnection logic with exponential backoff
+- Validate WebSocket state before sending messages
+
+### 2. Audio Quality
+- Use appropriate audio formats (WAV, Opus recommended)
+- Implement proper sample rate (16kHz recommended)
+- Handle audio buffer management efficiently
+
+### 3. Real-time Processing
+- Enable real-time mode only when needed
+- Handle voice activity detection properly
+- Implement interruption handling
+
+### 4. Error Handling
+- Always handle WebSocket errors
+- Implement timeout mechanisms
+- Provide user feedback for connection issues
+
+### 5. Performance
+- Buffer audio data appropriately
+- Minimize WebSocket message frequency
+- Clean up resources properly
+
+## Testing
+
+### Development Testing
+```bash
+# Start backend server
+cd backend
+fastapi run --reload app/main.py
+
+# Test WebSocket connection
+wscat -c "ws://localhost:8000/api/v1/voice/ws/test-session?user_id=test&business_id=test&token=test"
+```
+
+### Message Testing
+```json
+// Send start session
+{"type": "start_session"}
+
+// Send text input
+{"type": "text_input", "text": "Hello", "want_audio_response": false}
+
+// Send end session
+{"type": "end_session"}
+```
 
 ## Security Considerations
 
-1. **Authentication**:
-   - JWT tokens must be valid and not expired
-   - Implement token refresh mechanism
-   - Use secure token storage
+1. **Authentication**: Always include valid JWT tokens
+2. **Input Validation**: Validate all message types and data
+3. **Rate Limiting**: Implement client-side rate limiting
+4. **Data Privacy**: Audio data is processed in real-time, not stored
+5. **Connection Security**: Use WSS for production connections
 
-2. **Data Protection**:
-   - Audio data is not stored long-term
-   - Implement end-to-end encryption for sensitive conversations
-   - Log only necessary debugging information
+## Support
 
-3. **Rate Limiting**:
-   - Implement client-side rate limiting
-   - Handle rate limit responses gracefully
-   - Implement backoff strategies
-
-## Support & Troubleshooting
-
-### Common Issues
-
-1. **High Latency**:
-   - Check network connectivity
-   - Verify audio format compatibility
-   - Monitor server response times
-
-2. **Audio Quality Problems**:
-   - Verify microphone permissions
-   - Check audio session configuration
-   - Monitor background app restrictions
-
-3. **Connection Issues**:
-   - Verify JWT token validity
-   - Check WebSocket URL format
-   - Monitor network connectivity
-
-### Debugging Tools
-
-1. **WebSocket Inspector**: Monitor real-time messages
-2. **Audio Analyzer**: Verify audio quality metrics
-3. **Network Monitor**: Check connection stability
-4. **Performance Profiler**: Monitor resource usage
+For technical support or questions about the voice streaming API:
+- Check the backend logs for detailed error information
+- Verify WebSocket connection parameters
+- Ensure proper authentication token format
+- Test with simple messages before implementing complex flows
 
 For additional support, contact the Hero365 development team or refer to the main documentation repository. 

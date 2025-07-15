@@ -61,24 +61,31 @@ class RealTimeAudioStream:
         self.audio_buffer.append(chunk)
         self.voice_activity_level = chunk.voice_activity
         
-        # Update speaking state based on voice activity
-        if chunk.voice_activity > 0.3:  # User is speaking
+        # Update speaking state based on voice activity (restored thresholds with adaptive gain)
+        if chunk.voice_activity > 0.01:  # User is speaking (restored from 0.001)
             self.is_user_speaking = True
             self.last_significant_audio_time = chunk.timestamp
-        elif chunk.voice_activity < 0.1:  # Silence
+        elif chunk.voice_activity < 0.005:  # Silence (restored from 0.0001)
             # Check if we've been silent long enough to stop considering user as speaking
             if time.time() - self.last_significant_audio_time > self.silence_threshold:
                 self.is_user_speaking = False
         
     def should_transcribe(self) -> bool:
         """Check if it's time to generate a partial transcription"""
-        return (time.time() - self.last_transcription_time > self.transcription_interval and 
-                not self.is_user_speaking)
+        # Allow transcription during speech, but with a longer interval for active speech
+        if self.is_user_speaking:
+            # During active speech, transcribe less frequently to avoid interruptions
+            return time.time() - self.last_transcription_time > (self.transcription_interval * 2)
+        else:
+            # After silence, transcribe more frequently for responsiveness
+            return time.time() - self.last_transcription_time > self.transcription_interval
     
     def should_respond(self) -> bool:
         """Check if it's time to generate a partial response"""
+        # Only respond during silence to avoid interrupting the user
         return (time.time() - self.last_response_time > self.response_interval and 
-                not self.is_user_speaking)
+                not self.is_user_speaking and
+                len(self.current_transcription.strip()) > 0)
     
     def should_interrupt_processing(self) -> bool:
         """Check if current processing should be interrupted due to new speech"""
@@ -112,11 +119,51 @@ class RealTimeAudioStream:
             duration_seconds = self.max_transcription_window
             
         cutoff_time = time.time() - duration_seconds
-        recent_chunks = [
-            chunk.data for chunk in self.audio_buffer 
-            if chunk.timestamp > cutoff_time and chunk.voice_activity > 0.3
+        total_chunks = len(self.audio_buffer)
+        
+        # Get all recent chunks (remove voice activity filtering for debugging)
+        all_recent_chunks = [
+            chunk for chunk in self.audio_buffer 
+            if chunk.timestamp > cutoff_time
         ]
-        return b''.join(recent_chunks)
+        
+        # Get chunks with voice activity (restored threshold with adaptive gain)
+        voice_chunks = [
+            chunk for chunk in all_recent_chunks 
+            if chunk.voice_activity > 0.01  # Restored from 0.001
+        ]
+        
+        # Get chunks with any voice activity (even very low)
+        any_voice_chunks = [
+            chunk for chunk in all_recent_chunks 
+            if chunk.voice_activity > 0.0
+        ]
+        
+        logger.info(f"🎤 Audio buffer analysis for session {self.session_id}:")
+        logger.info(f"   - Total chunks in buffer: {total_chunks}")
+        logger.info(f"   - Recent chunks (last {duration_seconds}s): {len(all_recent_chunks)}")
+        logger.info(f"   - Recent chunks with voice activity > 0.01: {len(voice_chunks)}")
+        logger.info(f"   - Recent chunks with any voice activity > 0.0: {len(any_voice_chunks)}")
+        
+        if any_voice_chunks:
+            # Log voice activity levels
+            voice_levels = [f"{chunk.voice_activity:.4f}" for chunk in any_voice_chunks]
+            logger.info(f"   - Voice activity levels: {voice_levels}")
+        
+        # For debugging low-level audio, use all recent chunks instead of filtering
+        # This will help us understand if the audio data is present but just quiet
+        recent_audio_data = b''.join(chunk.data for chunk in all_recent_chunks)
+        voice_filtered_data = b''.join(chunk.data for chunk in voice_chunks)
+        
+        logger.info(f"   - Combined audio data (all recent): {len(recent_audio_data)} bytes")
+        logger.info(f"   - Combined audio data (voice filtered): {len(voice_filtered_data)} bytes")
+        
+        # Return all recent audio if voice filtering results in no data
+        if len(voice_filtered_data) == 0 and len(recent_audio_data) > 0:
+            logger.info(f"   - Using all recent audio data due to low voice activity")
+            return recent_audio_data
+        
+        return voice_filtered_data
     
 
     
@@ -131,12 +178,14 @@ class SimpleVoiceActivityDetector:
     """Simple voice activity detection based on audio energy"""
     
     def __init__(self):
-        self.energy_threshold = 0.01
-        self.silence_threshold = 0.005
+        # Restored thresholds - mobile team implemented adaptive gain
+        self.energy_threshold = 0.01  # Restored from 0.001
+        self.silence_threshold = 0.005  # Restored from 0.0001
         
     def detect_voice_activity(self, audio_data: bytes) -> float:
         """Detect voice activity level (0.0 to 1.0)"""
         if len(audio_data) < 2:
+            logger.debug(f"🔍 Audio data too short: {len(audio_data)} bytes")
             return 0.0
         
         # Convert bytes to 16-bit integers
@@ -146,18 +195,51 @@ class SimpleVoiceActivityDetector:
             samples.append(sample)
         
         if not samples:
+            logger.debug(f"🔍 No samples extracted from {len(audio_data)} bytes")
             return 0.0
         
         # Calculate RMS energy
         energy = sum(sample ** 2 for sample in samples) / len(samples)
         normalized_energy = min(energy / 32768**2, 1.0)  # Normalize to 0-1
         
-        # Simple threshold-based detection
+        # More detailed debugging
+        max_sample = max(abs(s) for s in samples) if samples else 0
+        avg_sample = sum(abs(s) for s in samples) / len(samples) if samples else 0
+        non_zero_samples = sum(1 for s in samples if s != 0)
+        
+        logger.info(f"🔍 Audio analysis for {len(audio_data)} bytes:")
+        logger.info(f"   - Samples: {len(samples)}, Non-zero: {non_zero_samples}")
+        logger.info(f"   - Max sample: {max_sample}, Avg sample: {avg_sample:.2f}")
+        logger.info(f"   - Energy: {energy:.6f}, Normalized: {normalized_energy:.6f}")
+        logger.info(f"   - Thresholds: energy={self.energy_threshold}, silence={self.silence_threshold}")
+        
+        # Check if audio is completely silent
+        if max_sample == 0:
+            logger.info(f"   - Result: 0.0 (completely silent)")
+            return 0.0
+        
+        # Lower thresholds for debugging low-level audio
         if normalized_energy > self.energy_threshold:
-            return min(normalized_energy * 10, 1.0)  # Amplify for better detection
+            result = min(normalized_energy * 10, 1.0)  # Amplify for better detection
+            logger.info(f"   - Result: {result:.4f} (high energy)")
+            if max_sample > 100:
+                logger.info(f"   ✅ EXCELLENT: Adaptive gain working perfectly!")
+            return result
         elif normalized_energy > self.silence_threshold:
-            return normalized_energy * 2
+            result = normalized_energy * 2
+            logger.info(f"   - Result: {result:.4f} (medium energy)")
+            if max_sample > 50:
+                logger.info(f"   ✅ GOOD: Audio levels look healthy")
+            return result
+        elif normalized_energy > 0.0:
+            # Very low energy but not completely silent
+            result = normalized_energy * 0.5
+            logger.info(f"   - Result: {result:.4f} (very low energy)")
+            if max_sample > 20:
+                logger.info(f"   ⚠️ FAIR: Some audio detected but could be stronger")
+            return result
         else:
+            logger.info(f"   - Result: 0.0 (below silence threshold)")
             return 0.0
 
 
@@ -224,14 +306,21 @@ class RealTimeAudioProcessor:
     
     async def process_streaming_audio_chunk(self, session_id: str, audio_data: bytes):
         """Process a single audio chunk in real-time with interruption handling"""
+        logger.info(f"🎤 process_streaming_audio_chunk called for session {session_id} with {len(audio_data)} bytes")
+        
         if session_id not in self.active_streams:
             logger.warning(f"⚠️ No active stream for session {session_id}")
             return
         
         stream = self.active_streams[session_id]
+        logger.info(f"🎤 Processing audio chunk for active stream {session_id}")
+        
+        # Debug audio data format
+        self._debug_audio_data(audio_data, session_id)
         
         # Detect voice activity
         voice_activity = self.voice_activity_detector.detect_voice_activity(audio_data)
+        logger.info(f"🎤 Voice activity detected: {voice_activity:.2f} for session {session_id}")
         
         # Create audio chunk
         chunk = AudioStreamChunk(
@@ -242,6 +331,7 @@ class RealTimeAudioProcessor:
         
         # Add to stream (this updates speaking state)
         stream.add_chunk(chunk)
+        logger.info(f"🎤 Audio chunk added to stream for session {session_id}, is_user_speaking: {stream.is_user_speaking}")
         
         # Check if we should interrupt current processing
         if stream.should_interrupt_processing():
@@ -267,9 +357,12 @@ class RealTimeAudioProcessor:
                 "timestamp": datetime.now().isoformat()
             })
         
-        # Process transcription if needed (only when user is not speaking)
-        if stream.should_transcribe() and voice_activity > 0.3:
+        # Process transcription if needed (during speech or after silence)
+        if stream.should_transcribe():
+            logger.info(f"🎤 Triggering transcription for session {session_id}")
             await self._process_partial_transcription(stream)
+        else:
+            logger.debug(f"🎤 Skipping transcription for session {session_id} (not ready yet)")
         
         # Process response if needed (only when user is not speaking)
         if stream.should_respond() and len(stream.current_transcription.strip()) > self.min_response_length:
@@ -278,13 +371,49 @@ class RealTimeAudioProcessor:
         # Cleanup old audio
         stream.cleanup_old_audio()
     
+    def _debug_audio_data(self, audio_data: bytes, session_id: str):
+        """Debug audio data format and content"""
+        if len(audio_data) < 10:
+            return
+        
+        # Sample the first few bytes for format analysis
+        first_samples = []
+        for i in range(0, min(20, len(audio_data) - 1), 2):
+            sample = int.from_bytes(audio_data[i:i+2], byteorder='little', signed=True)
+            first_samples.append(sample)
+        
+        # Check if all samples are zero (completely silent)
+        all_zero = all(s == 0 for s in first_samples)
+        
+        logger.info(f"🔍 Audio data format analysis for session {session_id}:")
+        logger.info(f"   - Total bytes: {len(audio_data)}")
+        logger.info(f"   - Expected samples: {len(audio_data) // 2}")
+        logger.info(f"   - First 10 samples: {first_samples}")
+        logger.info(f"   - All zeros: {all_zero}")
+        
+        if not all_zero:
+            max_sample = max(abs(s) for s in first_samples)
+            logger.info(f"   - Max sample in first 10: {max_sample}")
+            
+            # Check if mobile team's adaptive gain is working
+            if max_sample > 100:
+                logger.info(f"🎯 ADAPTIVE GAIN WORKING: High amplitude detected ({max_sample})")
+            elif max_sample > 10:
+                logger.info(f"🔧 MODERATE GAIN: Medium amplitude detected ({max_sample})")
+            else:
+                logger.info(f"⚠️ LOW GAIN: Still low amplitude ({max_sample}) - gain may need adjustment")
+    
     async def _process_partial_transcription(self, stream: RealTimeAudioStream):
         """Generate partial transcription from recent audio with context switching detection"""
         try:
+            logger.info(f"🎤 Starting partial transcription for session {stream.session_id}")
+            
             # Get recent audio
             recent_audio = stream.get_recent_audio(duration_seconds=2.0)
+            logger.info(f"🎤 Recent audio length: {len(recent_audio)} bytes (min required: {self.min_transcription_length})")
             
             if len(recent_audio) < self.min_transcription_length:
+                logger.info(f"🎤 Skipping transcription - audio too short: {len(recent_audio)} < {self.min_transcription_length}")
                 return
             
             # Generate audio hash for caching
@@ -297,6 +426,8 @@ class RealTimeAudioProcessor:
                 transcription = cached_transcription
                 logger.info(f"⚡ Using cached partial transcription: '{transcription[:50]}...'")
             else:
+                logger.info(f"🎤 Sending {len(recent_audio)} bytes to OpenAI Whisper for transcription")
+                
                 # Transcribe with OpenAI Whisper
                 transcription = await audio_processor.process_audio_to_text(
                     recent_audio, 
@@ -307,7 +438,13 @@ class RealTimeAudioProcessor:
                 # Cache the transcription
                 await cache_manager.cache_transcription(audio_hash, transcription)
                 
-                logger.info(f"🎤 Real-time transcription: '{transcription[:50]}...'")
+                logger.info(f"🎤 Real-time transcription result: '{transcription[:100]}...'")
+                
+                # Success indicator for mobile team's adaptive gain
+                if len(recent_audio) > 50000:  # Good amount of audio data
+                    logger.info(f"✅ TRANSCRIPTION SUCCESS: Adaptive gain system working well!")
+                else:
+                    logger.info(f"✅ TRANSCRIPTION SUCCESS: Audio processed successfully")
             
             # Detect context switches
             context_switched = self._detect_context_switch(stream.current_transcription, transcription)
@@ -343,7 +480,10 @@ class RealTimeAudioProcessor:
                 })
                 
         except Exception as e:
-            logger.error(f"❌ Error in partial transcription: {e}")
+            logger.error(f"❌ Error in partial transcription for session {stream.session_id}: {e}")
+            logger.error(f"❌ Exception type: {type(e).__name__}")
+            import traceback
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
     
     async def _process_partial_response(self, stream: RealTimeAudioStream):
         """Generate partial response from current transcription with cancellation support"""
@@ -399,7 +539,7 @@ class RealTimeAudioProcessor:
                 raise asyncio.CancelledError("Response generation cancelled")
             
             # Import voice pipeline here to avoid circular imports
-            from .voice_pipeline import voice_pipeline
+            from ..api.voice_endpoints import voice_pipeline
             
             if voice_pipeline:
                 # Generate response using existing voice pipeline
@@ -455,7 +595,7 @@ class RealTimeAudioProcessor:
                 logger.info(f"📝 Complete transcription: '{complete_transcription[:100]}...'")
                 
                 # Import voice pipeline here to avoid circular imports
-                from .voice_pipeline import voice_pipeline
+                from ..api.voice_endpoints import voice_pipeline
                 
                 if voice_pipeline:
                     final_response = await voice_pipeline.process_text_input(
