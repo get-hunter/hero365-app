@@ -1,69 +1,16 @@
 #!/bin/bash
 
-# Hero365 LiveKit Voice Agent Worker Startup Script
-# This script starts the LiveKit agent worker for voice interactions
+# Hero365 Voice Agent Worker Startup Script
+# This script starts the LiveKit worker for voice sessions
 
-echo "🎙️ Starting Hero365 LiveKit Voice Agent Worker..."
+echo "🧹 Cleaning up any existing workers..."
+# Kill any existing LiveKit processes
+lsof -ti:8081 | xargs kill -9 2>/dev/null || true
+pkill -9 -f "livekit" 2>/dev/null || true
+pkill -9 -f "python.*worker" 2>/dev/null || true
 
-# Change to the backend directory
-cd "$(dirname "$0")/.."
+echo "⏳ Waiting for cleanup..."
+sleep 3
 
-# Load environment variables
-if [ -f "../environments/production.env" ]; then
-    echo "📋 Loading environment variables from production.env..."
-    set -a
-    source ../environments/production.env
-    set +a
-else
-    echo "❌ Environment file not found at ../environments/production.env"
-    exit 1
-fi
-
-# Check if virtual environment exists
-if [ ! -d ".venv" ]; then
-    echo "❌ Virtual environment not found. Please run 'uv venv' first."
-    exit 1
-fi
-
-# Activate virtual environment
-source .venv/bin/activate
-
-# Check required environment variables
-if [ -z "$LIVEKIT_URL" ]; then
-    echo "❌ LIVEKIT_URL environment variable is required"
-    exit 1
-fi
-
-if [ -z "$LIVEKIT_API_KEY" ]; then
-    echo "❌ LIVEKIT_API_KEY environment variable is required"
-    exit 1
-fi
-
-if [ -z "$LIVEKIT_API_SECRET" ]; then
-    echo "❌ LIVEKIT_API_SECRET environment variable is required"
-    exit 1
-fi
-
-if [ -z "$OPENAI_API_KEY" ]; then
-    echo "❌ OPENAI_API_KEY environment variable is required"
-    exit 1
-fi
-
-if [ -z "$DEEPGRAM_API_KEY" ]; then
-    echo "❌ DEEPGRAM_API_KEY environment variable is required"
-    exit 1
-fi
-
-if [ -z "$CARTESIA_API_KEY" ]; then
-    echo "❌ CARTESIA_API_KEY environment variable is required"
-    exit 1
-fi
-
-echo "✅ Environment variables verified"
-echo "🔗 Connecting to LiveKit server: $LIVEKIT_URL"
-
-# Start the LiveKit agent worker
-echo "🚀 Starting worker..."
-python -m app.voice_agents.worker start
-
-echo "🎙️ Voice agent worker exited" 
+echo "🚀 Starting Hero365 Voice Agent Worker..."
+uv run python -m app.livekit_agents.worker start 

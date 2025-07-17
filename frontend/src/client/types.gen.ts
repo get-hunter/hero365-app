@@ -8627,6 +8627,10 @@ export type VoiceAgentsProcessVoiceCommandData = {
 
 export type VoiceAgentsProcessVoiceCommandResponse = unknown
 
+export type VoiceAgentsGetPerformanceStatsResponse = unknown
+
+export type VoiceAgentsClearVoiceCacheResponse = unknown
+
 export type VoiceAgentsGetSessionStatusData = {
   sessionId: string
 }
@@ -8673,3 +8677,18 @@ export type VoiceAgentsGetRecentErrorsData = {
 export type VoiceAgentsGetRecentErrorsResponse = unknown
 
 export type VoiceAgentsHealthCheckResponse = unknown
+
+export type VoiceAgentsAudioHealthCheckResponse = unknown
+
+export type VoiceAgentsGetSupportedAudioFormatsResponse = unknown
+
+export type VoiceAgentsGetSupportedVoicesResponse = unknown
+
+export type VoiceAgentsGetSupportedLanguagesResponse = unknown
+
+export type VoiceAgentsTestTextToSpeechData = {
+  text: string
+  voice?: string
+}
+
+export type VoiceAgentsTestTextToSpeechResponse = unknown

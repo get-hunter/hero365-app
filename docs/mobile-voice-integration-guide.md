@@ -1,585 +1,736 @@
-# Mobile App Voice Integration Guide
-## Hero365 Voice Agent System - Ultra-Fast Response Implementation
+# Hero365 Mobile Voice Integration Guide
 
-This guide provides step-by-step instructions for implementing the optimized voice system in your mobile app with "send on pause, extend on resume" functionality.
+## 🚀 Overview
 
-## Overview
+This guide provides comprehensive instructions for integrating Hero365's LiveKit voice agents into the iOS Swift mobile application. The integration enables real-time voice communication with AI agents for contact management, job scheduling, estimate creation, and more.
 
-The new voice system dramatically improves response times by:
-- **Processing starts on 800ms pause** (instead of waiting 2-3 seconds for silence)
-- **Smart cancellation** when user continues speaking
-- **Audio buffering** for natural conversation flow
-- **Instant cache responses** for common queries
+## 🏗️ Architecture Overview
 
-## WebSocket Connection Setup
+```
+iOS Swift App → LiveKit WebRTC → Hero365 Voice Workers → Hero365 Backend API
+                                        ↓
+                            AI Agents (Contact, Job, Estimate, Scheduling)
+```
 
-### 1. Connect to Voice WebSocket
+### Key Components
+
+1. **LiveKit iOS SDK**: Handles WebRTC communication
+2. **Hero365 API**: Manages session creation and authentication
+3. **Voice Workers**: Process voice interactions with AI agents
+4. **Real-time Context**: Maintains conversation state and business context
+
+## 📋 Prerequisites
+
+### iOS Development
+- iOS 14.0+ 
+- Xcode 14+
+- Swift 5.7+
+- CocoaPods or Swift Package Manager
+
+### Required Dependencies
+```swift
+// Add to Package.swift or Podfile
+dependencies: [
+    .package(url: "https://github.com/livekit/client-sdk-swift", from: "2.0.0"),
+    .package(url: "https://github.com/Alamofire/Alamofire", from: "5.8.0")
+]
+```
+
+## 🔧 Implementation Steps
+
+### Step 1: Initialize LiveKit in iOS App
 
 ```swift
-// iOS Swift Example
-let url = URL(string: "wss://api.hero365.ai/v1/voice/ws/\(sessionId)?user_id=\(userId)&business_id=\(businessId)&token=\(authToken)")!
-let webSocket = URLSessionWebSocketTask(session: URLSession.shared, url: url)
+import LiveKit
+import Combine
 
-webSocket.resume()
-```
-
-**Endpoint**: `wss://your-domain/api/v1/voice/ws/{session_id}`
-
-**Query Parameters**:
-- `user_id`: User ID (required)
-- `business_id`: Business ID (required) 
-- `token`: JWT authentication token (required)
-
-### 2. Connection Confirmation
-
-Wait for connection confirmation:
-
-```json
-{
-  "type": "connection_confirmed",
-  "session_id": "voice_session_...",
-  "message": "WebSocket connected successfully",
-  "timestamp": "2025-07-14T17:30:00Z"
-}
-```
-
-## Audio Streaming Protocol
-
-### Audio Format Requirements
-
-**Recommended Format**: WAV, 16kHz, Mono
-```
-- Format: WAV (with proper headers)
-- Sample Rate: 16,000 Hz
-- Channels: 1 (mono)
-- Bit Depth: 16-bit
-- Encoding: Little-endian PCM
-```
-
-**Alternative Formats**: PCM16, MP3 (will be auto-converted)
-
-### Message Types
-
-#### 1. Audio Data Message
-
-```json
-{
-  "type": "audio_data",
-  "audio": "<base64_encoded_audio_bytes>",
-  "format": "wav",
-  "size": 8192,
-  "timestamp": "2025-07-14T17:30:01.123Z"
-}
-```
-
-#### 2. Text Input Message
-
-```json
-{
-  "type": "text_input", 
-  "text": "Hello, what time is it?",
-  "want_audio_response": true
-}
-```
-
-## Mobile Implementation Strategy
-
-### 1. Audio Recording Setup
-
-```swift
-// iOS AVAudioEngine Setup for Real-time Streaming
-import AVFoundation
-
-class VoiceRecorder {
-    private let audioEngine = AVAudioEngine()
-    private let inputNode: AVAudioInputNode
-    private var webSocket: URLSessionWebSocketTask?
+class VoiceAgentManager: ObservableObject {
+    @Published var isConnected = false
+    @Published var isRecording = false
+    @Published var sessionStatus: VoiceSessionStatus?
+    
+    private var room: Room?
+    private var localAudioTrack: LocalAudioTrack?
+    private var remoteAudioTrack: RemoteAudioTrack?
+    private var cancellables = Set<AnyCancellable>()
+    
+    // Hero365 API client
+    private let apiClient = Hero365APIClient()
     
     init() {
-        inputNode = audioEngine.inputNode
         setupAudioSession()
-        setupAudioRecording()
     }
     
     private func setupAudioSession() {
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.record, mode: .measurement, options: .duckOthers)
-        try? session.setActive(true, options: .notifyOthersOnDeactivation)
+        let audioSession = AVAudioSession.sharedInstance()
+        try? audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth])
+        try? audioSession.setActive(true)
+    }
+}
+```
+
+### Step 2: Start Voice Session
+
+```swift
+extension VoiceAgentManager {
+    func startVoiceSession(sessionType: SessionType = .general) async throws {
+        // 1. Create session request
+        let deviceInfo = MobileDeviceInfo(
+            deviceModel: UIDevice.current.model,
+            osVersion: UIDevice.current.systemVersion,
+            appVersion: Bundle.main.appVersion,
+            networkType: getCurrentNetworkType(),
+            batteryLevel: UIDevice.current.batteryLevel
+        )
+        
+        let sessionRequest = VoiceSessionRequest(
+            deviceInfo: deviceInfo,
+            sessionType: sessionType,
+            language: Locale.current.languageCode,
+            backgroundAudioEnabled: true,
+            maxDurationMinutes: 60
+        )
+        
+        // 2. Start session via Hero365 API
+        let sessionResponse = try await apiClient.startVoiceSession(request: sessionRequest)
+        
+        // 3. Connect to LiveKit room
+        try await connectToRoom(sessionResponse: sessionResponse)
+        
+        // 4. Set up audio tracks
+        try await setupAudioTracks()
+        
+        // 5. Start monitoring session
+        startSessionMonitoring(sessionId: sessionResponse.sessionId)
+        
+        self.isConnected = true
     }
     
-    private func setupAudioRecording() {
-        let recordingFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, 
-                                          sampleRate: 16000, 
-                                          channels: 1, 
-                                          interleaved: false)!
+    private func connectToRoom(sessionResponse: VoiceSessionResponse) async throws {
+        let connectOptions = ConnectOptions(
+            autoSubscribe: true,
+            publishOnlyMode: false
+        )
         
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, time in
-            self?.processAudioBuffer(buffer)
+        room = Room()
+        
+        // Set up room event handlers
+        room?.add(delegate: self)
+        
+        // Connect to LiveKit room
+        try await room?.connect(
+            url: sessionResponse.livekitUrl,
+            token: sessionResponse.accessToken,
+            connectOptions: connectOptions
+        )
+    }
+}
+```
+
+### Step 3: Handle Audio Tracks
+
+```swift
+extension VoiceAgentManager {
+    private func setupAudioTracks() async throws {
+        guard let room = room else { return }
+        
+        // Create local audio track with mobile optimizations
+        let audioOptions = AudioCaptureOptions(
+            sampleRate: 16000,
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+        )
+        
+        localAudioTrack = try await LocalAudioTrack.create(options: audioOptions)
+        
+        // Publish audio track to room
+        try await room.localParticipant.publish(audioTrack: localAudioTrack!)
+        
+        print("✅ Audio tracks configured for mobile")
+    }
+    
+    func startRecording() {
+        localAudioTrack?.enable()
+        isRecording = true
+        print("🎤 Recording started")
+    }
+    
+    func stopRecording() {
+        localAudioTrack?.disable()
+        isRecording = false
+        print("🛑 Recording stopped")
+    }
+}
+```
+
+### Step 4: Implement Room Delegate
+
+```swift
+extension VoiceAgentManager: RoomDelegate {
+    func room(_ room: Room, didConnect isReconnect: Bool) {
+        print("✅ Connected to Hero365 voice room")
+        DispatchQueue.main.async {
+            self.isConnected = true
+        }
+    }
+    
+    func room(_ room: Room, didDisconnect error: Error?) {
+        print("❌ Disconnected from voice room: \(error?.localizedDescription ?? "Unknown")")
+        DispatchQueue.main.async {
+            self.isConnected = false
+            self.isRecording = false
+        }
+    }
+    
+    func room(_ room: Room, participant: RemoteParticipant, didSubscribe publication: RemoteTrackPublication, track: Track) {
+        if let audioTrack = track as? RemoteAudioTrack {
+            remoteAudioTrack = audioTrack
+            print("🔊 Subscribed to agent audio track")
+        }
+    }
+    
+    func room(_ room: Room, participant: RemoteParticipant, didReceive data: Data, from: RemoteParticipant?) {
+        // Handle agent messages and responses
+        handleAgentMessage(data: data)
+    }
+}
+```
+
+### Step 5: Handle Agent Communication
+
+```swift
+extension VoiceAgentManager {
+    private func handleAgentMessage(data: Data) {
+        do {
+            if let message = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                let messageType = message["type"] as? String
+                
+                switch messageType {
+                case "agent_response":
+                    handleAgentResponse(message)
+                case "function_call_result":
+                    handleFunctionResult(message)
+                case "session_update":
+                    handleSessionUpdate(message)
+                default:
+                    print("📨 Unknown message type: \(messageType ?? "nil")")
+                }
+            }
+        } catch {
+            print("❌ Failed to parse agent message: \(error)")
+        }
+    }
+    
+    private func handleAgentResponse(_ message: [String: Any]) {
+        if let response = message["response"] as? String {
+            print("🤖 Agent response: \(response)")
+            
+            // Update UI with agent response
+            DispatchQueue.main.async {
+                // Update conversation view
+                self.addConversationEntry(
+                    type: .agent,
+                    content: response,
+                    timestamp: Date()
+                )
+            }
         }
     }
 }
 ```
 
-### 2. Audio Buffering & Pause Detection
+## 📱 UI Integration
+
+### SwiftUI Voice Interface
 
 ```swift
-class AudioBufferManager {
-    private var audioChunks: [Data] = []
-    private var lastAudioTime: Date = Date()
-    private var isProcessing = false
+import SwiftUI
+
+struct VoiceAgentView: View {
+    @StateObject private var voiceManager = VoiceAgentManager()
+    @State private var selectedAgent: AgentType = .triage
+    @State private var showingSessionStats = false
     
-    // Configuration (matching backend)
-    private let pauseThresholdMs: TimeInterval = 0.8  // 800ms
-    private let minAudioLengthMs: TimeInterval = 0.2  // 200ms
-    private let maxExtensionMs: TimeInterval = 5.0    // 5000ms
-    
-    func addAudioChunk(_ audioData: Data) {
-        audioChunks.append(audioData)
-        lastAudioTime = Date()
-        
-        // Send audio chunk immediately to backend
-        sendAudioChunk(audioData)
-        
-        // Schedule pause detection check
-        DispatchQueue.main.asyncAfter(deadline: .now() + pauseThresholdMs) {
-            self.checkForPause()
+    var body: some View {
+        VStack(spacing: 20) {
+            // Agent Selection
+            agentSelectionView
+            
+            // Voice Controls
+            voiceControlsView
+            
+            // Session Status
+            sessionStatusView
+            
+            // Conversation History
+            conversationView
+        }
+        .padding()
+        .onAppear {
+            voiceManager.initialize()
         }
     }
     
-    private func checkForPause() {
-        let timeSinceLastAudio = Date().timeIntervalSince(lastAudioTime)
-        
-        if timeSinceLastAudio >= pauseThresholdMs && !audioChunks.isEmpty {
-            let totalDuration = estimateAudioDuration()
+    private var voiceControlsView: some View {
+        VStack(spacing: 16) {
+            // Main voice button
+            Button(action: toggleVoiceSession) {
+                Image(systemName: voiceManager.isRecording ? "mic.fill" : "mic")
+                    .font(.system(size: 60))
+                    .foregroundColor(voiceManager.isRecording ? .red : .blue)
+                    .background(
+                        Circle()
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(width: 120, height: 120)
+                    )
+            }
+            .scaleEffect(voiceManager.isRecording ? 1.1 : 1.0)
+            .animation(.easeInOut(duration: 0.2), value: voiceManager.isRecording)
             
-            if totalDuration >= minAudioLengthMs {
-                print("⏸️ Pause detected: \(Int(timeSinceLastAudio * 1000))ms silence")
-                // Backend will automatically start processing
-                // No action needed from mobile app
+            // Status text
+            Text(voiceManager.isConnected ? 
+                 (voiceManager.isRecording ? "Listening..." : "Tap to speak") : 
+                 "Connecting...")
+                .font(.headline)
+                .foregroundColor(voiceManager.isConnected ? .primary : .secondary)
+        }
+    }
+    
+    private func toggleVoiceSession() {
+        if voiceManager.isConnected {
+            if voiceManager.isRecording {
+                voiceManager.stopRecording()
+            } else {
+                voiceManager.startRecording()
+            }
+        } else {
+            Task {
+                try await voiceManager.startVoiceSession(sessionType: .general)
+            }
+        }
+    }
+}
+```
+
+## 🔗 API Integration
+
+### Hero365 API Client
+
+```swift
+import Alamofire
+
+class Hero365APIClient {
+    private let baseURL = "https://api.hero365.ai/api/v1"
+    private let session = Session.default
+    
+    func startVoiceSession(request: VoiceSessionRequest) async throws -> VoiceSessionResponse {
+        return try await session.request(
+            "\(baseURL)/mobile/voice/session/start",
+            method: .post,
+            parameters: request,
+            encoder: JSONParameterEncoder.default,
+            headers: authHeaders()
+        )
+        .validate()
+        .serializingDecodable(VoiceSessionResponse.self)
+        .value
+    }
+    
+    func getSessionStatus(sessionId: String) async throws -> VoiceSessionStatusResponse {
+        return try await session.request(
+            "\(baseURL)/mobile/voice/session/\(sessionId)/status",
+            headers: authHeaders()
+        )
+        .validate()
+        .serializingDecodable(VoiceSessionStatusResponse.self)
+        .value
+    }
+    
+    func updateSessionState(sessionId: String, update: SessionStateUpdate) async throws {
+        try await session.request(
+            "\(baseURL)/mobile/voice/session/\(sessionId)/update-state",
+            method: .post,
+            parameters: update,
+            encoder: JSONParameterEncoder.default,
+            headers: authHeaders()
+        )
+        .validate()
+        .serializingDecodable(EmptyResponse.self)
+        .value
+    }
+    
+    func endVoiceSession(sessionId: String) async throws {
+        try await session.request(
+            "\(baseURL)/mobile/voice/session/\(sessionId)/end",
+            method: .post,
+            headers: authHeaders()
+        )
+        .validate()
+        .serializingDecodable(EmptyResponse.self)
+        .value
+    }
+    
+    private func authHeaders() -> HTTPHeaders {
+        return [
+            "Authorization": "Bearer \(AuthManager.shared.accessToken)",
+            "Content-Type": "application/json"
+        ]
+    }
+}
+```
+
+## 📊 Performance Optimization
+
+### Battery & Network Optimization
+
+```swift
+class VoiceOptimizer {
+    static func optimizeForDevice() -> AudioCaptureOptions {
+        let device = UIDevice.current
+        
+        // Battery optimization
+        let batteryLevel = device.batteryLevel
+        let isLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
+        
+        // Network optimization
+        let networkType = getCurrentNetworkType()
+        
+        return AudioCaptureOptions(
+            sampleRate: isLowPowerMode ? 8000 : 16000,
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: !isLowPowerMode,
+            autoGainControl: true,
+            // Reduce quality on cellular to save data
+            bitrate: networkType == .cellular ? 32000 : 64000
+        )
+    }
+    
+    static func getCurrentNetworkType() -> NetworkType {
+        // Implementation to detect WiFi vs Cellular
+        // Using Network framework or Reachability
+        return .wifi // Placeholder
+    }
+}
+```
+
+### Background Audio Handling
+
+```swift
+extension VoiceAgentManager {
+    func handleAppDidEnterBackground() {
+        // Reduce audio quality for background
+        localAudioTrack?.set(enabled: false)
+        
+        // Notify backend of background state
+        Task {
+            let update = SessionStateUpdate(
+                deviceState: DeviceState(
+                    isForeground: false,
+                    isLocked: false,
+                    networkType: VoiceOptimizer.getCurrentNetworkType()
+                )
+            )
+            try? await apiClient.updateSessionState(sessionId: currentSessionId, update: update)
+        }
+    }
+    
+    func handleAppWillEnterForeground() {
+        // Restore audio quality
+        localAudioTrack?.set(enabled: true)
+        
+        // Notify backend of foreground state
+        Task {
+            let update = SessionStateUpdate(
+                deviceState: DeviceState(
+                    isForeground: true,
+                    isLocked: false,
+                    networkType: VoiceOptimizer.getCurrentNetworkType()
+                )
+            )
+            try? await apiClient.updateSessionState(sessionId: currentSessionId, update: update)
+        }
+    }
+}
+```
+
+## 🔒 Security Considerations
+
+### Token Management
+
+```swift
+class TokenManager {
+    private var currentToken: String?
+    private var tokenExpiry: Date?
+    
+    func getValidToken() async throws -> String {
+        if let token = currentToken,
+           let expiry = tokenExpiry,
+           expiry > Date().addingTimeInterval(300) { // 5 min buffer
+            return token
+        }
+        
+        // Refresh token through Hero365 API
+        return try await refreshToken()
+    }
+    
+    private func refreshToken() async throws -> String {
+        // Implementation to refresh LiveKit token
+        // This should call your Hero365 API to get a new token
+        fatalError("Implement token refresh")
+    }
+}
+```
+
+### Privacy & Permissions
+
+```swift
+class PermissionManager {
+    static func requestMicrophonePermission() async -> Bool {
+        return await withCheckedContinuation { continuation in
+            AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                continuation.resume(returning: granted)
             }
         }
     }
     
-    private func estimateAudioDuration() -> TimeInterval {
-        let totalBytes = audioChunks.reduce(0) { $0 + $1.count }
-        // PCM16, 16kHz, mono: 2 bytes per sample, 16000 samples per second
-        let samples = totalBytes / 2
-        return Double(samples) / 16000.0
+    static func checkPermissions() -> Bool {
+        let micPermission = AVAudioSession.sharedInstance().recordPermission
+        return micPermission == .granted
     }
 }
 ```
 
-### 3. Send Audio to Backend
+## 🚨 Error Handling
+
+### Comprehensive Error Management
 
 ```swift
-private func sendAudioChunk(_ audioData: Data) {
-    let base64Audio = audioData.base64EncodedString()
+enum VoiceAgentError: LocalizedError {
+    case permissionDenied
+    case networkUnavailable
+    case sessionExpired
+    case audioSetupFailed
+    case livekitConnectionFailed(Error)
+    case apiError(Int, String)
     
-    let message: [String: Any] = [
-        "type": "audio_data",
-        "audio": base64Audio,
-        "format": "wav",
-        "size": audioData.count,
-        "timestamp": ISO8601DateFormatter().string(from: Date())
-    ]
-    
-    guard let jsonData = try? JSONSerialization.data(withJSONObject: message),
-          let jsonString = String(data: jsonData, encoding: .utf8) else {
-        return
-    }
-    
-    webSocket?.send(.string(jsonString)) { error in
-        if let error = error {
-            print("❌ Error sending audio: \(error)")
+    var errorDescription: String? {
+        switch self {
+        case .permissionDenied:
+            return "Microphone permission is required for voice interactions"
+        case .networkUnavailable:
+            return "Network connection is required for voice agents"
+        case .sessionExpired:
+            return "Voice session has expired. Please start a new session"
+        case .audioSetupFailed:
+            return "Failed to set up audio. Please check your device settings"
+        case .livekitConnectionFailed(let error):
+            return "Voice connection failed: \(error.localizedDescription)"
+        case .apiError(let code, let message):
+            return "API Error (\(code)): \(message)"
         }
     }
 }
-```
 
-## Response Handling
-
-### Response Message Types
-
-#### 1. Audio Buffering Acknowledgment
-
-```json
-{
-  "type": "audio_buffering",
-  "session_id": "voice_session_...",
-  "status": "buffered", 
-  "buffer_size": 8192,
-  "timestamp": "2025-07-14T17:30:01.456Z"
-}
-```
-
-**Action**: Continue recording, audio is being buffered
-
-#### 2. Processing Started
-
-```json
-{
-  "type": "audio_processing",
-  "session_id": "voice_session_...",
-  "status": "processing",
-  "audio_size": 32768,
-  "timestamp": "2025-07-14T17:30:02.123Z"
-}
-```
-
-**Action**: Show processing indicator, pause detected
-
-#### 3. Processing Cancelled
-
-```json
-{
-  "type": "audio_processing", 
-  "session_id": "voice_session_...",
-  "status": "cancelled",
-  "timestamp": "2025-07-14T17:30:02.456Z"
-}
-```
-
-**Action**: User continued speaking, previous processing cancelled
-
-#### 4. Agent Response
-
-```json
-{
-  "type": "agent_response",
-  "session_id": "voice_session_...", 
-  "response": "Hello! Today is July 14, 2025 at 5:30 PM. How can I help you?",
-  "audio_response": "<base64_encoded_mp3_audio>",
-  "audio_format": "mp3",
-  "transcribed_text": "Hello what time is it",
-  "processing_method": "buffered_pause_detection",
-  "timestamp": "2025-07-14T17:30:03.789Z"
-}
-```
-
-**Action**: Play audio response, show text, processing complete
-
-### Response Handling Implementation
-
-```swift
-func handleWebSocketMessage(_ message: URLSessionWebSocketTask.Message) {
-    guard case .string(let text) = message,
-          let data = text.data(using: .utf8),
-          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-          let type = json["type"] as? String else {
-        return
-    }
-    
-    switch type {
-    case "audio_buffering":
-        // Audio is being buffered - continue recording
-        updateUI(status: "Listening...")
+extension VoiceAgentManager {
+    private func handleError(_ error: Error) {
+        print("❌ Voice Agent Error: \(error)")
         
-    case "audio_processing":
-        let status = json["status"] as? String
-        switch status {
-        case "processing":
-            updateUI(status: "Processing...")
-            showProcessingIndicator()
+        DispatchQueue.main.async {
+            // Show user-friendly error message
+            self.showError(error)
             
-        case "cancelled": 
-            // Previous processing cancelled - normal behavior
-            print("🚫 Processing cancelled - user continued speaking")
-            
-        default:
-            break
+            // Reset connection state if needed
+            if case VoiceAgentError.sessionExpired = error {
+                self.resetSession()
+            }
         }
+    }
+    
+    private func showError(_ error: Error) {
+        // Implementation to show error to user
+        // Could be a toast, alert, or inline message
+    }
+}
+```
+
+## 📈 Analytics & Monitoring
+
+### Session Analytics
+
+```swift
+class VoiceAnalytics {
+    static func trackSessionStart(sessionType: SessionType) {
+        // Track with your analytics provider
+        Analytics.track("voice_session_start", properties: [
+            "session_type": sessionType.rawValue,
+            "device_model": UIDevice.current.model,
+            "os_version": UIDevice.current.systemVersion
+        ])
+    }
+    
+    static func trackVoiceInteraction(duration: TimeInterval, success: Bool) {
+        Analytics.track("voice_interaction", properties: [
+            "duration": duration,
+            "success": success,
+            "timestamp": Date().timeIntervalSince1970
+        ])
+    }
+    
+    static func trackSessionEnd(duration: TimeInterval, interactionCount: Int) {
+        Analytics.track("voice_session_end", properties: [
+            "total_duration": duration,
+            "interaction_count": interactionCount
+        ])
+    }
+}
+```
+
+## 🧪 Testing
+
+### Unit Tests
+
+```swift
+import XCTest
+@testable import Hero365
+
+class VoiceAgentManagerTests: XCTestCase {
+    var voiceManager: VoiceAgentManager!
+    
+    override func setUp() {
+        super.setUp()
+        voiceManager = VoiceAgentManager()
+    }
+    
+    func testSessionInitialization() async throws {
+        // Mock API response
+        let mockResponse = VoiceSessionResponse(
+            sessionId: "test_session",
+            roomName: "test_room",
+            accessToken: "mock_token",
+            livekitUrl: "ws://localhost:7880",
+            voiceConfig: [:],
+            agentCapabilities: ["Contact management"],
+            sessionExpiresAt: Date().addingTimeInterval(3600),
+            status: .active
+        )
         
-    case "agent_response":
-        // Processing complete - play response
-        handleAgentResponse(json)
-        hideProcessingIndicator()
-        
-    default:
-        print("Unknown message type: \(type)")
-    }
-}
-
-private func handleAgentResponse(_ response: [String: Any]) {
-    // Show text response
-    if let text = response["response"] as? String {
-        displayAgentText(text)
+        // Test session creation
+        // Implementation of test logic
     }
     
-    // Play audio response
-    if let audioBase64 = response["audio_response"] as? String,
-       let audioData = Data(base64Encoded: audioBase64) {
-        playAudioResponse(audioData)
-    }
-    
-    // Log transcription for debugging
-    if let transcription = response["transcribed_text"] as? String {
-        print("📝 Transcribed: '\(transcription)'")
+    func testAudioPermissions() async {
+        let hasPermission = await PermissionManager.requestMicrophonePermission()
+        XCTAssertTrue(hasPermission, "Microphone permission should be granted for tests")
     }
 }
 ```
 
-## User Interface Guidelines
+## 📚 API Reference
 
-### 1. Recording States
+### Complete API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/mobile/voice/session/start` | POST | Start new voice session |
+| `/mobile/voice/session/{id}/status` | GET | Get session status |
+| `/mobile/voice/session/{id}/update-state` | POST | Update session state |
+| `/mobile/voice/session/{id}/end` | POST | End voice session |
+| `/mobile/voice/health` | GET | Check system health |
+| `/mobile/voice/agent-capabilities` | GET | Get available agents |
+
+### Data Models
+
+All data models are automatically generated from the OpenAPI specification. Key models include:
+
+- `VoiceSessionRequest` - Request to start session
+- `VoiceSessionResponse` - Session creation response  
+- `VoiceSessionStatusResponse` - Session status
+- `MobileDeviceInfo` - Device information
+- `SessionStateUpdate` - State update payload
+
+## 🚀 Deployment
+
+### Environment Configuration
 
 ```swift
-enum RecordingState {
-    case idle           // Not recording
-    case listening      // Recording, buffering audio
-    case processing     // Pause detected, processing started
-    case responding     // Playing agent response
-    case cancelled      // Processing was cancelled
-}
-
-func updateRecordingState(_ state: RecordingState) {
-    DispatchQueue.main.async {
-        switch state {
-        case .idle:
-            recordButton.setTitle("🎤 Tap to Talk", for: .normal)
-            recordButton.backgroundColor = .systemBlue
-            
-        case .listening:
-            recordButton.setTitle("🎤 Listening...", for: .normal)
-            recordButton.backgroundColor = .systemGreen
-            
-        case .processing:
-            recordButton.setTitle("🤔 Thinking...", for: .normal)
-            recordButton.backgroundColor = .systemOrange
-            
-        case .responding:
-            recordButton.setTitle("🔊 Speaking...", for: .normal)
-            recordButton.backgroundColor = .systemPurple
-            
-        case .cancelled:
-            // Briefly show cancelled state, then return to listening
-            recordButton.setTitle("🔄 Continue...", for: .normal)
-            recordButton.backgroundColor = .systemYellow
+// Configuration for different environments
+enum Environment {
+    case development
+    case staging
+    case production
+    
+    var apiBaseURL: String {
+        switch self {
+        case .development:
+            return "http://localhost:8000/api/v1"
+        case .staging:
+            return "https://staging-api.hero365.ai/api/v1"
+        case .production:
+            return "https://api.hero365.ai/api/v1"
+        }
+    }
+    
+    var livekitURL: String {
+        switch self {
+        case .development:
+            return "ws://localhost:7880"
+        case .staging:
+            return "wss://staging-livekit.hero365.ai"
+        case .production:
+            return "wss://livekit.hero365.ai"
         }
     }
 }
 ```
 
-### 2. Visual Feedback
-
-- **Listening**: Green pulsing microphone icon
-- **Processing**: Orange thinking animation  
-- **Cancelled**: Brief yellow flash, then back to green
-- **Responding**: Purple speaking animation
-
-### 3. Natural Conversation Flow
-
-Allow users to:
-- **Interrupt themselves**: New audio cancels previous processing
-- **Pause naturally**: 800ms pause triggers processing
-- **Correct mistakes**: Cancellation handles speech corrections
-- **Think while speaking**: System waits for natural pauses
-
-## Error Handling
-
-### Connection Errors
-
-```swift
-func handleConnectionError(_ error: Error) {
-    print("❌ WebSocket error: \(error)")
-    
-    // Attempt reconnection
-    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-        self.reconnectWebSocket()
-    }
-    
-    // Show user-friendly message
-    showAlert("Connection lost. Reconnecting...")
-}
-```
-
-### Audio Processing Errors
-
-```swift
-func handleProcessingError(_ error: [String: Any]) {
-    if let errorMessage = error["error"] as? String {
-        print("❌ Processing error: \(errorMessage)")
-        showAlert("Voice processing failed. Please try again.")
-    }
-}
-```
-
-## Performance Monitoring
-
-### Monitor Voice Performance
-
-```swift
-func fetchPerformanceStats() {
-    let url = "https://api.hero365.ai/v1/voice/performance-stats"
-    
-    // Fetch performance statistics
-    URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
-        guard let data = data,
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let stats = json["performance_stats"] as? [String: Any] else {
-            return
-        }
-        
-        // Log buffer manager stats
-        if let bufferStats = stats["audio_buffer_manager"] as? [String: Any] {
-            print("📊 Buffer Stats:", bufferStats)
-        }
-        
-        // Log cache hit rates  
-        if let cacheStats = stats["cache_stats"] as? [String: Any] {
-            print("⚡ Cache Stats:", cacheStats)
-        }
-    }.resume()
-}
-```
-
-## Testing Your Implementation
-
-### 1. Basic Functionality Test
-
-```swift
-func testBasicVoiceFlow() {
-    // 1. Connect to WebSocket
-    connectToVoiceWebSocket()
-    
-    // 2. Start recording
-    startRecording()
-    
-    // 3. Speak: "Hello, what time is it?"
-    // 4. Pause for 1 second
-    // Expected: Processing should start automatically
-    
-    // 5. Verify response received with correct date
-    // Expected: "Today is July 14, 2025..."
-}
-```
-
-### 2. Pause Detection Test
-
-```swift
-func testPauseDetection() {
-    startRecording()
-    
-    // Speak: "Hello..." (pause 1 second) "what time is it?"
-    // Expected: Processing starts after first pause, gets cancelled, then processes complete utterance
-    
-    // Monitor logs for:
-    // - "⏸️ Pause detected"
-    // - "🚫 Processing cancelled" 
-    // - Final response with complete transcription
-}
-```
-
-### 3. Interruption Test
-
-```swift
-func testInterruption() {
-    startRecording()
-    
-    // Speak: "What is the weather..." (pause) "actually, what time is it?"
-    // Expected: Weather processing cancelled, time query processed
-    
-    // Verify only one final response received
-}
-```
-
-## Configuration Options
-
-### Customize Timing (Optional)
-
-The backend uses these default values, but you can request custom configuration:
-
-```json
-{
-  "pause_threshold_ms": 800,    // Time to wait before processing
-  "max_extension_ms": 5000,     // Max time to wait for continuation  
-  "min_audio_length_ms": 200,   // Minimum audio length to process
-  "enable_pause_processing": true
-}
-```
-
-## Best Practices
-
-### 1. Audio Quality
-- Use 16kHz sample rate for optimal Whisper performance
-- Implement noise cancellation if possible
-- Handle background noise gracefully
-
-### 2. User Experience  
-- Provide clear visual feedback for each state
-- Don't interrupt users - let the system handle cancellation
-- Show processing status but don't make users wait
-
-### 3. Performance
-- Stream audio chunks immediately (don't buffer on mobile)
-- Let backend handle pause detection logic
-- Monitor WebSocket connection health
-
-### 4. Error Recovery
-- Implement automatic reconnection
-- Handle network interruptions gracefully
-- Provide offline fallback if needed
-
-## Language Configuration
-
-The system defaults to English transcription. For future multi-language support:
-
-```swift
-// Check supported languages
-let languagesURL = "https://api.hero365.ai/v1/voice/audio/languages"
-
-// Current default: English ("en")
-// Future: User preference based language selection
-```
-
-## Security Considerations
-
-1. **Authentication**: Always include JWT token in WebSocket connection
-2. **Audio Data**: Audio is processed server-side and not stored permanently
-3. **Encryption**: WebSocket connection uses WSS (secure WebSocket)
-4. **Privacy**: Implement clear user consent for voice recording
-
-## Troubleshooting
+## 🆘 Troubleshooting
 
 ### Common Issues
 
-1. **No response after speaking**
-   - Check WebSocket connection status
-   - Verify audio format (WAV, 16kHz recommended)
-   - Check if audio chunks are being sent
+1. **Audio Not Working**
+   - Check microphone permissions
+   - Verify audio session configuration
+   - Test on physical device (not simulator)
 
-2. **Multiple responses**
-   - This shouldn't happen with the new system
-   - If it does, check for WebSocket message duplication
+2. **Connection Failures** 
+   - Verify network connectivity
+   - Check LiveKit server status
+   - Validate access tokens
 
-3. **Slow response times**
-   - Check `/voice/performance-stats` for cache hit rates
-   - Verify pause detection is working (check logs)
-   - Test with common queries first (should be cached)
+3. **High Battery Usage**
+   - Enable low power mode optimizations
+   - Reduce audio quality on cellular
+   - Implement proper background handling
 
-4. **Processing gets stuck**
-   - Implement timeout handling (30 seconds recommended)
-   - Restart WebSocket connection if needed
+4. **Poor Audio Quality**
+   - Check network conditions
+   - Adjust audio settings for device
+   - Enable noise cancellation
 
 ### Debug Logging
 
-Enable verbose logging to track the voice flow:
-
 ```swift
-func enableVoiceLogging() {
-    // Log all WebSocket messages
-    // Log audio chunk sizes and timing
-    // Log state transitions
-    // Monitor performance metrics
+// Enable detailed logging for development
+#if DEBUG
+extension VoiceAgentManager {
+    func enableDebugLogging() {
+        Room.loggingLevel = .debug
+        // Add custom logging for voice interactions
+    }
 }
+#endif
 ```
 
-## Summary
+## 📞 Support
 
-This implementation provides ultra-fast voice response times through intelligent pause detection and smart cancellation. The key benefits:
+For integration support:
+- **Technical Issues**: Create GitHub issue with logs
+- **API Questions**: Check OpenAPI documentation
+- **Performance**: Share device logs and network conditions
 
-- **⚡ 3x faster responses** (800ms vs 2-3 seconds)
-- **🎭 Natural conversation flow** with interruption handling
-- **🧠 Smart processing** that prevents duplicate responses  
-- **💾 Intelligent caching** for instant common query responses
+---
 
-Follow this guide to create a voice interface that feels truly conversational and responsive! 
+**Next Steps**: Implement the mobile client following this guide, then proceed to testing with the Hero365 staging environment. 
