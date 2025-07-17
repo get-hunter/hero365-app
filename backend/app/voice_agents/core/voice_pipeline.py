@@ -82,6 +82,64 @@ class Hero365VoicePipeline:
             logger.error(f"Error starting voice session: {e}")
             raise
     
+    async def create_session_with_id(self, 
+                                   session_id: str,
+                                   user_id: str, 
+                                   business_id: str,
+                                   session_metadata: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Create a voice session with a specific session ID (for real-time streaming).
+        
+        Args:
+            session_id: Custom session ID to use
+            user_id: User ID
+            business_id: Business ID  
+            session_metadata: Optional metadata for the session
+            
+        Returns:
+            Session ID that was created
+        """
+        try:
+            # Check if session already exists
+            if session_id in self.active_sessions:
+                logger.warning(f"⚠️ Voice pipeline session {session_id} already exists")
+                return session_id
+            
+            # Initialize context
+            context = await self.context_manager.initialize_context(
+                user_id=user_id,
+                business_id=business_id,
+                session_id=session_id
+            )
+            
+            # Store session info
+            self.active_sessions[session_id] = {
+                "user_id": user_id,
+                "business_id": business_id,
+                "triage_agent": self.triage_agent,
+                "context": context,
+                "created_at": datetime.now().isoformat(),
+                "status": "active",
+                "metadata": session_metadata or {}
+            }
+            
+            # Update context with session start
+            await self.context_manager.update_context({
+                "conversation": {
+                    "agent": "system",
+                    "action": "session_start",
+                    "message": f"Voice session started for {context.user_info.get('name', 'user')}"
+                }
+            })
+            
+            logger.info(f"Created voice pipeline session {session_id} for user {user_id}")
+            
+            return session_id
+            
+        except Exception as e:
+            logger.error(f"Error creating voice pipeline session {session_id}: {e}")
+            raise
+    
     async def process_audio_stream(self, 
                                   session_id: str, 
                                   audio_input) -> AsyncGenerator:

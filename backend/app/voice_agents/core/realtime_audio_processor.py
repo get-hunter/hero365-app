@@ -45,7 +45,7 @@ class RealTimeAudioStream:
         self.created_at = time.time()
         
         # Real-time processing intervals
-        self.transcription_interval = 0.3  # Transcribe every 300ms
+        self.transcription_interval = 0.15  # Transcribe every 150ms for better responsiveness
         self.response_interval = 0.8      # Generate response every 800ms
         self.max_transcription_window = 3.0  # Use last 3 seconds for transcription
         
@@ -61,35 +61,148 @@ class RealTimeAudioStream:
         self.audio_buffer.append(chunk)
         self.voice_activity_level = chunk.voice_activity
         
-        # Update speaking state based on voice activity (restored thresholds with adaptive gain)
-        if chunk.voice_activity > 0.01:  # User is speaking (restored from 0.001)
+        # More intelligent speaking state detection
+        current_time = time.time()
+        
+        # Update speaking state based on voice activity with better thresholds
+        if chunk.voice_activity > 0.05:  # Strong voice activity indicates active speech
             self.is_user_speaking = True
-            self.last_significant_audio_time = chunk.timestamp
-        elif chunk.voice_activity < 0.005:  # Silence (restored from 0.0001)
+            self.last_significant_audio_time = current_time
+        elif chunk.voice_activity < 0.02:  # Low voice activity indicates silence
             # Check if we've been silent long enough to stop considering user as speaking
-            if time.time() - self.last_significant_audio_time > self.silence_threshold:
+            if current_time - self.last_significant_audio_time > self.silence_threshold:
+                self.is_user_speaking = False
+        else:
+            # Medium voice activity (0.02 - 0.05) - check time since last significant audio
+            if current_time - self.last_significant_audio_time > (self.silence_threshold * 2):
                 self.is_user_speaking = False
         
     def should_transcribe(self) -> bool:
         """Check if it's time to generate a partial transcription"""
-        # Allow transcription during speech, but with a longer interval for active speech
+        current_time = time.time()
+        
+        # Allow transcription during speech, but with a slightly longer interval for active speech
         if self.is_user_speaking:
-            # During active speech, transcribe less frequently to avoid interruptions
-            return time.time() - self.last_transcription_time > (self.transcription_interval * 2)
+            # During active speech, use 1.5x interval to balance responsiveness with efficiency
+            return current_time - self.last_transcription_time > (self.transcription_interval * 1.5)
         else:
             # After silence, transcribe more frequently for responsiveness
-            return time.time() - self.last_transcription_time > self.transcription_interval
+            return current_time - self.last_transcription_time > self.transcription_interval
     
     def should_respond(self) -> bool:
         """Check if it's time to generate a partial response"""
+        current_time = time.time()
+        
         # Only respond during silence to avoid interrupting the user
-        return (time.time() - self.last_response_time > self.response_interval and 
+        return (current_time - self.last_response_time > self.response_interval and 
                 not self.is_user_speaking and
                 len(self.current_transcription.strip()) > 0)
-    
+                
     def should_interrupt_processing(self) -> bool:
         """Check if current processing should be interrupted due to new speech"""
         return self.is_user_speaking and self.is_processing
+        
+    def _detect_audio_clipping(self, audio_data: bytes) -> bool:
+        """Detect if audio is clipped/distorted"""
+        if len(audio_data) < 20:
+            return False
+        
+        # Sample audio data to check for clipping
+        sample_count = 0
+        clipped_count = 0
+        
+        for i in range(0, min(200, len(audio_data) - 1), 2):
+            sample = int.from_bytes(audio_data[i:i+2], byteorder='little', signed=True)
+            sample_count += 1
+            
+            # Check if sample is at maximum values (clipped)
+            if abs(sample) >= 32767:
+                clipped_count += 1
+        
+        # If more than 10% of samples are clipped, consider it clipped
+        clipping_ratio = clipped_count / sample_count if sample_count > 0 else 0
+        return clipping_ratio > 0.1
+        
+    def has_sufficient_audio(self) -> bool:
+        """Check if there's enough audio for transcription using enhanced logic"""
+        if not self.audio_buffer:
+            return False
+            
+        # Get recent audio to check quality and duration
+        recent_audio = self.get_recent_audio(duration_seconds=3.0)  # Check last 3 seconds
+        
+        # Calculate audio duration in seconds
+        audio_duration_seconds = len(recent_audio) / (16000 * 2)  # 16kHz, 2 bytes per sample
+        
+        # Enhanced criteria for sufficient audio:
+        # 1. Must have at least minimum duration
+        if audio_duration_seconds < 1.0:  # At least 1 second
+            return False
+            
+        # 2. Must have reasonable amount of data
+        if len(recent_audio) < 16000:  # At least 16KB (1 second of audio)
+            return False
+            
+        # 3. Check if we have any voice activity in recent chunks
+        recent_chunks = [chunk for chunk in self.audio_buffer if chunk.timestamp > time.time() - 3.0]
+        voice_activity_chunks = [chunk for chunk in recent_chunks if chunk.voice_activity > 0.0]
+        
+        if len(voice_activity_chunks) == 0:
+            return False
+            
+        # 4. For optimal transcription, prefer more audio
+        if audio_duration_seconds >= 2.0:  # Optimal duration
+            return True
+            
+        # 5. Accept shorter duration if we have good voice activity
+        max_voice_activity = max(chunk.voice_activity for chunk in voice_activity_chunks)
+        if audio_duration_seconds >= 1.0 and max_voice_activity > 0.005:
+            return True
+            
+        return False
+        
+    def _normalize_clipped_audio(self, audio_data: bytes) -> bytes:
+        """Attempt to normalize clipped audio by reducing amplitude"""
+        if len(audio_data) < 2:
+            return audio_data
+            
+        # Convert to samples
+        samples = []
+        for i in range(0, len(audio_data) - 1, 2):
+            sample = int.from_bytes(audio_data[i:i+2], byteorder='little', signed=True)
+            samples.append(sample)
+        
+        # Find the maximum amplitude
+        max_amplitude = max(abs(sample) for sample in samples)
+        
+        # If severely clipped, apply more aggressive normalization
+        if max_amplitude >= 32767:
+            # Calculate reduction factor to bring max amplitude to 75% of max range
+            reduction_factor = 0.75 * 32767 / max_amplitude
+            
+            # Apply reduction to all samples
+            normalized_samples = []
+            for sample in samples:
+                normalized_sample = int(sample * reduction_factor)
+                normalized_samples.append(normalized_sample)
+        else:
+            # Light normalization for mild clipping
+            normalized_samples = []
+            for sample in samples:
+                if abs(sample) >= 30000:  # Near clipping threshold
+                    normalized_sample = int(sample * 0.8)
+                else:
+                    normalized_sample = sample
+                normalized_samples.append(normalized_sample)
+        
+        # Convert back to bytes
+        normalized_audio = b''
+        for sample in normalized_samples:
+            # Clamp to valid range
+            clamped = max(-32768, min(32767, sample))
+            normalized_audio += clamped.to_bytes(2, byteorder='little', signed=True)
+        
+        return normalized_audio
     
     async def cancel_current_processing(self):
         """Cancel current processing task"""
@@ -114,23 +227,23 @@ class RealTimeAudioStream:
             self.cancellation_token = None
     
     def get_recent_audio(self, duration_seconds: float = None) -> bytes:
-        """Get recent audio data for transcription"""
+        """Get recent audio data for transcription with improved collection logic"""
         if duration_seconds is None:
             duration_seconds = self.max_transcription_window
             
         cutoff_time = time.time() - duration_seconds
         total_chunks = len(self.audio_buffer)
         
-        # Get all recent chunks (remove voice activity filtering for debugging)
+        # Get all recent chunks within the time window
         all_recent_chunks = [
             chunk for chunk in self.audio_buffer 
             if chunk.timestamp > cutoff_time
         ]
         
-        # Get chunks with voice activity (restored threshold with adaptive gain)
+        # Get chunks with meaningful voice activity
         voice_chunks = [
             chunk for chunk in all_recent_chunks 
-            if chunk.voice_activity > 0.01  # Restored from 0.001
+            if chunk.voice_activity > 0.01
         ]
         
         # Get chunks with any voice activity (even very low)
@@ -150,20 +263,37 @@ class RealTimeAudioStream:
             voice_levels = [f"{chunk.voice_activity:.4f}" for chunk in any_voice_chunks]
             logger.info(f"   - Voice activity levels: {voice_levels}")
         
-        # For debugging low-level audio, use all recent chunks instead of filtering
-        # This will help us understand if the audio data is present but just quiet
+        # Combine audio data
         recent_audio_data = b''.join(chunk.data for chunk in all_recent_chunks)
         voice_filtered_data = b''.join(chunk.data for chunk in voice_chunks)
         
         logger.info(f"   - Combined audio data (all recent): {len(recent_audio_data)} bytes")
         logger.info(f"   - Combined audio data (voice filtered): {len(voice_filtered_data)} bytes")
         
-        # Return all recent audio if voice filtering results in no data
-        if len(voice_filtered_data) == 0 and len(recent_audio_data) > 0:
-            logger.info(f"   - Using all recent audio data due to low voice activity")
+        # Enhanced audio selection logic
+        # 1. If we have good voice activity, use that
+        if len(voice_filtered_data) >= 8000:  # At least 0.5 seconds of good audio
+            logger.info(f"   - Using voice-filtered audio (good quality)")
+            return voice_filtered_data
+        
+        # 2. If we have some voice activity and reasonable total audio, combine
+        if len(voice_filtered_data) > 0 and len(recent_audio_data) >= 16000:
+            logger.info(f"   - Using all recent audio (sufficient duration)")
             return recent_audio_data
         
-        return voice_filtered_data
+        # 3. If we have a lot of total audio, use it even if voice activity is low
+        if len(recent_audio_data) >= 24000:  # At least 1.5 seconds
+            logger.info(f"   - Using all recent audio (long duration compensates for low activity)")
+            return recent_audio_data
+        
+        # 4. Fallback to whatever we have if there's any voice activity
+        if len(recent_audio_data) > 0 and len(any_voice_chunks) > 0:
+            logger.info(f"   - Using all recent audio (fallback with some voice activity)")
+            return recent_audio_data
+        
+        # 5. Last resort - return empty if no usable audio
+        logger.warning(f"   - No usable audio found for transcription")
+        return b''
     
 
     
@@ -247,17 +377,27 @@ class RealTimeAudioProcessor:
     """Real-time audio processor for streaming voice interactions"""
     
     def __init__(self):
+        """Initialize real-time audio processor with enhanced thresholds"""
         self.active_streams: Dict[str, RealTimeAudioStream] = {}
         self.voice_activity_detector = SimpleVoiceActivityDetector()
-        self.context_manager = ContextManager()
+        self.context_manager = ContextManager()  # Restore context manager
+        
+        # Enhanced transcription settings for better quality
+        self.min_transcription_length = 16000  # Increased from 10 to 16KB (1 second at 16kHz)
+        self.min_response_length = 3  # Minimum words for response
+        self.max_concurrent_transcriptions = 5
         self.websocket_manager = None  # Will be set by voice endpoints
         
-        # Processing configuration
-        self.min_transcription_length = 10  # Minimum bytes for transcription
-        self.min_response_length = 5      # Minimum words for response
-        self.max_concurrent_processing = 5
+        # Improved timing configuration
+        self.min_audio_duration = 1.0  # Require at least 1 second of audio
+        self.optimal_audio_duration = 2.0  # Prefer 2 seconds of audio
+        self.max_audio_duration = 5.0  # Maximum 5 seconds to prevent delays
         
-        logger.info("✅ Real-time audio processor initialized")
+        logger.info("✅ Real-time audio processor initialized with enhanced transcription settings")
+        logger.info(f"   - Min transcription length: {self.min_transcription_length} bytes")
+        logger.info(f"   - Min audio duration: {self.min_audio_duration}s")
+        logger.info(f"   - Optimal audio duration: {self.optimal_audio_duration}s")
+        logger.info(f"   - Max audio duration: {self.max_audio_duration}s")
     
     def set_websocket_manager(self, websocket_manager):
         """Set the WebSocket manager for sending messages"""
@@ -276,6 +416,15 @@ class RealTimeAudioProcessor:
         # Initialize context
         await self.context_manager.initialize_context(user_id, business_id, session_id)
         
+        # Create session in voice pipeline for response generation
+        try:
+            from ..api.voice_endpoints import voice_pipeline
+            if voice_pipeline:
+                await voice_pipeline.create_session_with_id(session_id, user_id, business_id)
+                logger.info(f"🔗 Created voice pipeline session {session_id}")
+        except Exception as e:
+            logger.error(f"❌ Failed to create voice pipeline session {session_id}: {e}")
+        
         logger.info(f"🎤 Started real-time session {session_id} for user {user_id}")
         
         # Send session started message
@@ -292,6 +441,15 @@ class RealTimeAudioProcessor:
         if session_id in self.active_streams:
             stream = self.active_streams[session_id]
             del self.active_streams[session_id]
+            
+            # End voice pipeline session
+            try:
+                from ..api.voice_endpoints import voice_pipeline
+                if voice_pipeline:
+                    await voice_pipeline.end_voice_session(session_id)
+                    logger.info(f"🔗 Ended voice pipeline session {session_id}")
+            except Exception as e:
+                logger.error(f"❌ Failed to end voice pipeline session {session_id}: {e}")
             
             logger.info(f"🛑 Stopped real-time session {session_id}")
             
@@ -358,14 +516,33 @@ class RealTimeAudioProcessor:
             })
         
         # Process transcription if needed (during speech or after silence)
-        if stream.should_transcribe():
+        should_transcribe = stream.should_transcribe()
+        has_sufficient_audio = stream.has_sufficient_audio()
+        
+        logger.info(f"🎤 Transcription check for session {session_id}: should_transcribe={should_transcribe}, has_sufficient_audio={has_sufficient_audio}, is_speaking={stream.is_user_speaking}")
+        
+        if should_transcribe and has_sufficient_audio:
             logger.info(f"🎤 Triggering transcription for session {session_id}")
             await self._process_partial_transcription(stream)
+        elif has_sufficient_audio and not stream.is_user_speaking:
+            # Force transcription after silence if we have enough audio
+            logger.info(f"🎤 Forcing transcription after silence for session {session_id}")
+            await self._process_partial_transcription(stream)
         else:
-            logger.debug(f"🎤 Skipping transcription for session {session_id} (not ready yet)")
+            logger.info(f"🎤 Skipping transcription for session {session_id} (not ready yet)")
         
-        # Process response if needed (only when user is not speaking)
-        if stream.should_respond() and len(stream.current_transcription.strip()) > self.min_response_length:
+        # Process response if needed
+        current_time = time.time()
+        transcription_text = stream.current_transcription.strip()
+        
+        # Primary condition: user is not speaking
+        if stream.should_respond() and len(transcription_text) > self.min_response_length:
+            await self._process_partial_response(stream)
+        # Fallback condition: enough text accumulated and not processed recently
+        elif (len(transcription_text) > self.min_response_length * 2 and 
+              current_time - stream.last_response_time > (stream.response_interval * 2) and
+              not stream.is_processing):
+            logger.info(f"🎤 Triggering fallback response for session {session_id} due to accumulated text")
             await self._process_partial_response(stream)
         
         # Cleanup old audio
@@ -395,6 +572,11 @@ class RealTimeAudioProcessor:
             max_sample = max(abs(s) for s in first_samples)
             logger.info(f"   - Max sample in first 10: {max_sample}")
             
+            # Check for clipping
+            clipped_samples = sum(1 for s in first_samples if abs(s) >= 32767)
+            if clipped_samples > 0:
+                logger.warning(f"⚠️ AUDIO CLIPPING DETECTED: {clipped_samples}/{len(first_samples)} samples clipped (may cause transcription issues)")
+            
             # Check if mobile team's adaptive gain is working
             if max_sample > 100:
                 logger.info(f"🎯 ADAPTIVE GAIN WORKING: High amplitude detected ({max_sample})")
@@ -408,13 +590,38 @@ class RealTimeAudioProcessor:
         try:
             logger.info(f"🎤 Starting partial transcription for session {stream.session_id}")
             
-            # Get recent audio
-            recent_audio = stream.get_recent_audio(duration_seconds=2.0)
+            # Update timing to prevent rapid re-triggering
+            stream.last_transcription_time = time.time()
+            
+            # Get recent audio with enhanced collection
+            recent_audio = stream.get_recent_audio(duration_seconds=self.optimal_audio_duration)
             logger.info(f"🎤 Recent audio length: {len(recent_audio)} bytes (min required: {self.min_transcription_length})")
             
+            # Enhanced audio length check
             if len(recent_audio) < self.min_transcription_length:
                 logger.info(f"🎤 Skipping transcription - audio too short: {len(recent_audio)} < {self.min_transcription_length}")
                 return
+                
+            # Check if audio is empty
+            if len(recent_audio) == 0:
+                logger.warning(f"⚠️ No audio data available for transcription in session {stream.session_id}")
+                return
+                
+            # Calculate audio duration for validation
+            audio_duration = len(recent_audio) / (16000 * 2)  # 16kHz, 2 bytes per sample
+            logger.info(f"🎤 Audio duration: {audio_duration:.2f}s (min: {self.min_audio_duration}s)")
+            
+            # Ensure minimum duration
+            if audio_duration < self.min_audio_duration:
+                logger.info(f"🎤 Skipping transcription - audio duration too short: {audio_duration:.2f}s < {self.min_audio_duration}s")
+                return
+            
+            # Check for audio clipping
+            is_clipped = stream._detect_audio_clipping(recent_audio)
+            if is_clipped:
+                logger.warning(f"⚠️ Audio clipping detected for session {stream.session_id} - applying normalization")
+                recent_audio = stream._normalize_clipped_audio(recent_audio)
+                logger.info(f"✅ Applied clipping normalization to audio for session {stream.session_id}")
             
             # Generate audio hash for caching
             audio_hash = hashlib.sha256(recent_audio).hexdigest()[:16]
@@ -440,11 +647,23 @@ class RealTimeAudioProcessor:
                 
                 logger.info(f"🎤 Real-time transcription result: '{transcription[:100]}...'")
                 
-                # Success indicator for mobile team's adaptive gain
-                if len(recent_audio) > 50000:  # Good amount of audio data
-                    logger.info(f"✅ TRANSCRIPTION SUCCESS: Adaptive gain system working well!")
+                # Handle empty transcription with fallback
+                if not transcription or transcription.strip() == "":
+                    logger.warning(f"⚠️ OpenAI Whisper returned empty transcription for {len(recent_audio)} bytes")
+                    
+                    # If we have enough audio but no transcription, it might be non-speech audio
+                    if len(recent_audio) >= 32000:  # At least 2 seconds
+                        logger.info(f"🎤 Large audio chunk with no transcription - likely non-speech audio")
+                        transcription = "I'm listening..."
+                    else:
+                        logger.info(f"🎤 Small audio chunk with no transcription - asking for repeat")
+                        transcription = "I didn't catch that. Could you please repeat?"
                 else:
-                    logger.info(f"✅ TRANSCRIPTION SUCCESS: Audio processed successfully")
+                    # Success indicator for mobile team's adaptive gain
+                    if len(recent_audio) > 50000:  # Good amount of audio data
+                        logger.info(f"✅ TRANSCRIPTION SUCCESS: Adaptive gain system working well!")
+                    else:
+                        logger.info(f"✅ TRANSCRIPTION SUCCESS: Audio processed successfully")
             
             # Detect context switches
             context_switched = self._detect_context_switch(stream.current_transcription, transcription)
@@ -465,7 +684,6 @@ class RealTimeAudioProcessor:
             
             # Update stream
             stream.current_transcription = transcription
-            stream.last_transcription_time = time.time()
             
             # Send to client
             if self.websocket_manager:
@@ -478,6 +696,13 @@ class RealTimeAudioProcessor:
                     "context_switched": context_switched,
                     "timestamp": datetime.now().isoformat()
                 })
+            
+            # Trigger response generation if we have a complete phrase and enough text
+            if (len(transcription.strip()) > self.min_response_length and 
+                any(transcription.strip().endswith(punct) for punct in '.!?') and
+                not stream.is_processing):
+                logger.info(f"🎤 Triggering immediate response for complete phrase: '{transcription.strip()}'")
+                await self._process_partial_response(stream)
                 
         except Exception as e:
             logger.error(f"❌ Error in partial transcription for session {stream.session_id}: {e}")

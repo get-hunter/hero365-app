@@ -3,6 +3,7 @@ Voice agent API endpoints for Hero365 mobile integration.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File
+from websockets.exceptions import ConnectionClosedError
 from fastapi.responses import StreamingResponse
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
@@ -11,6 +12,7 @@ import json
 import logging
 import base64
 from datetime import datetime
+
 
 from ...api.deps import get_current_user, get_business_context
 from ...core.config import settings
@@ -162,6 +164,43 @@ class VoiceWebSocketManager:
         
         logger.info(f"✅ Processing callback registered for session {session_id}")
     
+    async def is_connection_healthy(self, session_id: str) -> bool:
+        """Check if WebSocket connection is healthy"""
+        try:
+            if session_id not in self.active_connections:
+                return False
+                
+            websocket = self.active_connections[session_id]
+            
+            # Check WebSocket state
+            if websocket.client_state.name != "CONNECTED":
+                return False
+                
+            # Send ping to test connection (skip ping for high-frequency checks)
+            try:
+                await asyncio.wait_for(
+                    websocket.send_json({"type": "ping"}),
+                    timeout=2.0
+                )
+                return True
+            except:
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Error checking connection health for {session_id}: {e}")
+            return False
+    
+    async def monitor_connection_health(self, session_id: str):
+        """Monitor connection health and clean up if unhealthy"""
+        try:
+            if not await self.is_connection_healthy(session_id):
+                logger.warning(f"⚠️ Connection unhealthy for session {session_id}, cleaning up")
+                await self.disconnect(session_id)
+                
+        except Exception as e:
+            logger.error(f"❌ Error monitoring connection health for {session_id}: {e}")
+            await self.disconnect(session_id)
+    
     async def disconnect(self, session_id: str):
         """Disconnect a WebSocket client"""
         if session_id in self.active_connections:
@@ -186,14 +225,59 @@ class VoiceWebSocketManager:
             logger.info(f"🔌 WebSocket disconnected for session {session_id}")
     
     async def send_message(self, session_id: str, message: Dict[str, Any]):
-        """Send message to WebSocket client"""
-        if session_id in self.active_connections:
+        """Send message to WebSocket client with improved error handling and connection stability"""
+        try:
+            if session_id not in self.active_connections:
+                logger.warning(f"⚠️ No active connection found for session {session_id}")
+                return False
+                
             websocket = self.active_connections[session_id]
+            
+            # Check if WebSocket is still connected
+            if websocket.client_state.name != "CONNECTED":
+                logger.warning(f"⚠️ WebSocket not connected for session {session_id} (state: {websocket.client_state.name})")
+                await self.disconnect(session_id)
+                return False
+            
+            # Send message with timeout and retry logic
             try:
-                await websocket.send_json(message)
+                await asyncio.wait_for(
+                    websocket.send_json(message),
+                    timeout=5.0  # 5 second timeout
+                )
+                logger.info(f"✅ Message sent to client {session_id}: {message.get('type', 'unknown')}")
+                return True
+                
+            except asyncio.TimeoutError:
+                logger.error(f"❌ Timeout sending message to {session_id}")
+                await self.disconnect(session_id)
+                return False
+                
+            except ConnectionClosedError:
+                logger.warning(f"⚠️ WebSocket connection closed for session {session_id}")
+                await self.disconnect(session_id)
+                return False
+                
+            except RuntimeError as e:
+                if "Cannot call \"send\" once a close message has been sent" in str(e):
+                    logger.warning(f"⚠️ WebSocket already closed for session {session_id}")
+                    await self.disconnect(session_id)
+                    return False
+                else:
+                    logger.error(f"❌ Runtime error sending message to {session_id}: {e}")
+                    return False
+                    
             except Exception as e:
                 logger.error(f"❌ Error sending message to {session_id}: {e}")
-                await self.disconnect(session_id)
+                # Check if it's a connection-related error
+                if "close" in str(e).lower() or "connection" in str(e).lower():
+                    logger.warning(f"⚠️ Connection error detected for session {session_id}, disconnecting")
+                    await self.disconnect(session_id)
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Critical error in send_message for {session_id}: {str(e)}")
+            return False
     
     async def enable_realtime_streaming(self, session_id: str):
         """Enable real-time streaming for a session"""
@@ -443,8 +527,14 @@ class VoiceWebSocketManager:
                 if cancellation_token.is_set():
                     raise asyncio.CancelledError("Processing cancelled before sending response")
                 
+                # Check connection health before sending response
+                if not await self.is_connection_healthy(session_id):
+                    logger.warning(f"⚠️ Connection unhealthy for session {session_id}, skipping response")
+                    audio_buffer_manager.mark_processing_completed(session_id, success=False)
+                    return
+                
                 # Send audio response
-                await self.send_message(session_id, {
+                success = await self.send_message(session_id, {
                     "type": "agent_response",
                     "session_id": session_id,
                     "response": response,
@@ -459,6 +549,11 @@ class VoiceWebSocketManager:
                     "timestamp": datetime.now().isoformat()
                 })
                 
+                if not success:
+                    logger.error(f"❌ Failed to send audio response to session {session_id}")
+                    audio_buffer_manager.mark_processing_completed(session_id, success=False)
+                    return
+                
                 # Mark processing as completed successfully
                 audio_buffer_manager.mark_processing_completed(session_id, success=True)
                 
@@ -467,8 +562,15 @@ class VoiceWebSocketManager:
                     raise asyncio.CancelledError("Processing cancelled during TTS error handling")
                 
                 logger.error(f"❌ TTS conversion error: {tts_error}")
+                
+                # Check connection health before sending fallback response
+                if not await self.is_connection_healthy(session_id):
+                    logger.warning(f"⚠️ Connection unhealthy for session {session_id}, skipping fallback response")
+                    audio_buffer_manager.mark_processing_completed(session_id, success=False)
+                    return
+                
                 # Fallback to text-only response
-                await self.send_message(session_id, {
+                success = await self.send_message(session_id, {
                     "type": "agent_response",
                     "session_id": session_id,
                     "response": response,
@@ -480,6 +582,11 @@ class VoiceWebSocketManager:
                     "tts_error": str(tts_error),
                     "timestamp": datetime.now().isoformat()
                 })
+                
+                if not success:
+                    logger.error(f"❌ Failed to send fallback response to session {session_id}")
+                    audio_buffer_manager.mark_processing_completed(session_id, success=False)
+                    return
                 
                 # Mark processing as completed with partial success
                 audio_buffer_manager.mark_processing_completed(session_id, success=True)
