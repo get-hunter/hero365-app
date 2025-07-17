@@ -419,6 +419,8 @@ import type {
   VoiceAgentsProcessTextInputResponse,
   VoiceAgentsProcessVoiceCommandData,
   VoiceAgentsProcessVoiceCommandResponse,
+  VoiceAgentsGetPerformanceStatsResponse,
+  VoiceAgentsClearVoiceCacheResponse,
   VoiceAgentsGetSessionStatusData,
   VoiceAgentsGetSessionStatusResponse,
   VoiceAgentsEndVoiceSessionData,
@@ -436,6 +438,12 @@ import type {
   VoiceAgentsGetRecentErrorsData,
   VoiceAgentsGetRecentErrorsResponse,
   VoiceAgentsHealthCheckResponse,
+  VoiceAgentsAudioHealthCheckResponse,
+  VoiceAgentsGetSupportedAudioFormatsResponse,
+  VoiceAgentsGetSupportedVoicesResponse,
+  VoiceAgentsGetSupportedLanguagesResponse,
+  VoiceAgentsTestTextToSpeechData,
+  VoiceAgentsTestTextToSpeechResponse,
 } from "./types.gen"
 
 export class ActivitiesService {
@@ -5918,6 +5926,32 @@ export class VoiceService {
   }
 
   /**
+   * Get Performance Stats
+   * Get voice agent performance statistics
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static agentsGetPerformanceStats(): CancelablePromise<VoiceAgentsGetPerformanceStatsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/performance-stats",
+    })
+  }
+
+  /**
+   * Clear Voice Cache
+   * Clear voice agent cache (admin only)
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static agentsClearVoiceCache(): CancelablePromise<VoiceAgentsClearVoiceCacheResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/voice/clear-cache",
+    })
+  }
+
+  /**
    * Get Session Status
    * Get status of a voice session
    * @param data The data for the request.
@@ -6122,6 +6156,83 @@ export class VoiceService {
       url: "/api/v1/voice/health",
     })
   }
+
+  /**
+   * Audio Health Check
+   * Detailed audio processor health check
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static agentsAudioHealthCheck(): CancelablePromise<VoiceAgentsAudioHealthCheckResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/audio/health",
+    })
+  }
+
+  /**
+   * Get Supported Audio Formats
+   * Get supported audio formats
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static agentsGetSupportedAudioFormats(): CancelablePromise<VoiceAgentsGetSupportedAudioFormatsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/audio/formats",
+    })
+  }
+
+  /**
+   * Get Supported Voices
+   * Get supported TTS voices
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static agentsGetSupportedVoices(): CancelablePromise<VoiceAgentsGetSupportedVoicesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/audio/voices",
+    })
+  }
+
+  /**
+   * Get Supported Languages
+   * Get supported languages for Whisper transcription
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static agentsGetSupportedLanguages(): CancelablePromise<VoiceAgentsGetSupportedLanguagesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/audio/languages",
+    })
+  }
+
+  /**
+   * Test Text To Speech
+   * Test text-to-speech conversion
+   * @param data The data for the request.
+   * @param data.text
+   * @param data.voice
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static agentsTestTextToSpeech(
+    data: VoiceAgentsTestTextToSpeechData,
+  ): CancelablePromise<VoiceAgentsTestTextToSpeechResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/voice/audio/test-tts",
+      query: {
+        text: data.text,
+        voice: data.voice,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
 }
 
 export class VoiceAgentsService {
@@ -6188,6 +6299,32 @@ export class VoiceAgentsService {
       errors: {
         422: "Validation Error",
       },
+    })
+  }
+
+  /**
+   * Get Performance Stats
+   * Get voice agent performance statistics
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getPerformanceStats(): CancelablePromise<VoiceAgentsGetPerformanceStatsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/performance-stats",
+    })
+  }
+
+  /**
+   * Clear Voice Cache
+   * Clear voice agent cache (admin only)
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static clearVoiceCache(): CancelablePromise<VoiceAgentsClearVoiceCacheResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/voice/clear-cache",
     })
   }
 
@@ -6394,6 +6531,83 @@ export class VoiceAgentsService {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/voice/health",
+    })
+  }
+
+  /**
+   * Audio Health Check
+   * Detailed audio processor health check
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static audioHealthCheck(): CancelablePromise<VoiceAgentsAudioHealthCheckResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/audio/health",
+    })
+  }
+
+  /**
+   * Get Supported Audio Formats
+   * Get supported audio formats
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getSupportedAudioFormats(): CancelablePromise<VoiceAgentsGetSupportedAudioFormatsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/audio/formats",
+    })
+  }
+
+  /**
+   * Get Supported Voices
+   * Get supported TTS voices
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getSupportedVoices(): CancelablePromise<VoiceAgentsGetSupportedVoicesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/audio/voices",
+    })
+  }
+
+  /**
+   * Get Supported Languages
+   * Get supported languages for Whisper transcription
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getSupportedLanguages(): CancelablePromise<VoiceAgentsGetSupportedLanguagesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/voice/audio/languages",
+    })
+  }
+
+  /**
+   * Test Text To Speech
+   * Test text-to-speech conversion
+   * @param data The data for the request.
+   * @param data.text
+   * @param data.voice
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static testTextToSpeech(
+    data: VoiceAgentsTestTextToSpeechData,
+  ): CancelablePromise<VoiceAgentsTestTextToSpeechResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/voice/audio/test-tts",
+      query: {
+        text: data.text,
+        voice: data.voice,
+      },
+      errors: {
+        422: "Validation Error",
+      },
     })
   }
 }
