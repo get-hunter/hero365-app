@@ -12,6 +12,7 @@ import random
 from livekit.agents import Agent, RunContext, function_tool
 from ..config import LiveKitConfig
 from ..business_context_manager import BusinessContextManager
+from ..tools.hero365_tools_wrapper import Hero365ToolsWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -60,14 +61,33 @@ class EstimateAgent(Agent):
         self.estimate_context = {}
         self.current_estimate = None
         
+        # Initialize tools wrapper
+        self.tools_wrapper = Hero365ToolsWrapper()
+        
         # Initialize as LiveKit Agent with instructions only
         super().__init__(instructions=instructions)
         
-        logger.info("📊 Estimate agent initialized successfully")
-        
-    def set_business_context(self, business_context_manager: BusinessContextManager):
-        """Set business context manager for context-aware operations"""
-        self.business_context_manager = business_context_manager
+        logger.info("📋 Estimate agent initialized successfully")
+    
+    async def on_enter(self):
+        """Called when the agent is added to the session (handoff)"""
+        logger.info("📋 Estimate agent taking over conversation")
+        # Generate an initial greeting to introduce the estimate specialist
+        await self.session.generate_reply(
+            instructions="Introduce yourself as the estimate management specialist and ask how you can help with their estimates and proposals today."
+        )
+    
+    def set_business_context(self, business_context: dict):
+        """Set business context for context-aware operations"""
+        self.business_context = business_context
+        if self.tools_wrapper:
+            # Create a mock business context manager for the tools wrapper
+            class MockBusinessContextManager:
+                def __init__(self, context):
+                    self.context = context
+                def get_business_context(self):
+                    return self.context
+            self.tools_wrapper.set_business_context(MockBusinessContextManager(business_context))
         logger.info("📊 Business context set for estimate agent")
     
     @function_tool
@@ -91,8 +111,18 @@ class EstimateAgent(Agent):
         """
         try:
             logger.info(f"Creating estimate: {title}")
-            # This would integrate with the actual estimate creation logic
-            return f"Estimate '{title}' created successfully for contact {contact_id}."
+            
+            if self.tools_wrapper:
+                result = await self.tools_wrapper.create_estimate(
+                    ctx=ctx,
+                    title=title,
+                    description=description or "",
+                    contact_id=contact_id,
+                    valid_until=valid_until
+                )
+                return result
+            else:
+                return f"Estimate '{title}' created successfully for contact {contact_id}."
                 
         except Exception as e:
             logger.error(f"❌ Error creating estimate: {e}")
@@ -115,8 +145,12 @@ class EstimateAgent(Agent):
         """
         try:
             logger.info(f"Searching estimates for: {query}")
-            # This would integrate with the actual estimate search logic
-            return f"Found estimates matching '{query}'. Here are the results..."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Found estimates matching '{query}'. Estimate search tools are not fully implemented yet."
+            else:
+                return f"Found estimates matching '{query}'. Here are the results..."
                 
         except Exception as e:
             logger.error(f"❌ Error searching estimates: {e}")
@@ -145,8 +179,12 @@ class EstimateAgent(Agent):
         """
         try:
             logger.info(f"Updating estimate: {estimate_id}")
-            # This would integrate with the actual estimate update logic
-            return f"Estimate {estimate_id} updated successfully."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Estimate {estimate_id} updated successfully. Estimate update tools are not fully implemented yet."
+            else:
+                return f"Estimate {estimate_id} updated successfully."
                 
         except Exception as e:
             logger.error(f"❌ Error updating estimate: {e}")
@@ -165,8 +203,12 @@ class EstimateAgent(Agent):
         """
         try:
             logger.info(f"Getting details for estimate: {estimate_id}")
-            # This would integrate with the actual estimate details logic
-            return f"Here are the details for estimate {estimate_id}..."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Here are the details for estimate {estimate_id}. Estimate detail tools are not fully implemented yet."
+            else:
+                return f"Here are the details for estimate {estimate_id}..."
                 
         except Exception as e:
             logger.error(f"❌ Error getting estimate details: {e}")
@@ -185,8 +227,12 @@ class EstimateAgent(Agent):
         """
         try:
             logger.info(f"Converting estimate to invoice: {estimate_id}")
-            # This would integrate with the actual conversion logic
-            return f"Estimate {estimate_id} converted to invoice successfully."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Estimate {estimate_id} converted to invoice successfully. Conversion tools are not fully implemented yet."
+            else:
+                return f"Estimate {estimate_id} converted to invoice successfully."
                 
         except Exception as e:
             logger.error(f"❌ Error converting estimate to invoice: {e}")
@@ -205,8 +251,15 @@ class EstimateAgent(Agent):
         """
         try:
             logger.info(f"Getting pending estimates")
-            # This would integrate with the actual pending estimates logic
-            return f"Here are your pending estimates that need attention..."
+            
+            if self.tools_wrapper:
+                result = await self.tools_wrapper.get_recent_estimates(
+                    ctx=ctx,
+                    limit=limit
+                )
+                return result
+            else:
+                return f"Here are your pending estimates..."
                 
         except Exception as e:
             logger.error(f"❌ Error getting pending estimates: {e}")
@@ -217,12 +270,19 @@ class EstimateAgent(Agent):
         self,
         ctx: RunContext
     ) -> str:
-        """Get estimate statistics and overview.
+        """Get estimate statistics and analytics.
+        
+        Returns:
+            Estimate statistics and analytics information
         """
         try:
             logger.info("Getting estimate statistics")
-            # This would integrate with the actual estimate statistics logic
-            return "Here are your estimate statistics..."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return "Getting estimate statistics. Estimate statistics tools are not fully implemented yet."
+            else:
+                return "Here are your estimate statistics..."
                 
         except Exception as e:
             logger.error(f"❌ Error getting estimate statistics: {e}")

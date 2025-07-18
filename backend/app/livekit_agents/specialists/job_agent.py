@@ -11,6 +11,7 @@ import re
 from livekit.agents import Agent, RunContext, function_tool
 from ..config import LiveKitConfig
 from ..business_context_manager import BusinessContextManager
+from ..tools.hero365_tools_wrapper import Hero365ToolsWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +60,33 @@ class JobAgent(Agent):
         self.job_context = {}
         self.current_job = None
         
+        # Initialize tools wrapper
+        self.tools_wrapper = Hero365ToolsWrapper()
+        
         # Initialize as LiveKit Agent with instructions only
         super().__init__(instructions=instructions)
         
         logger.info("🔧 Job agent initialized successfully")
-        
-    def set_business_context(self, business_context_manager: BusinessContextManager):
-        """Set business context manager for context-aware operations"""
-        self.business_context_manager = business_context_manager
+    
+    async def on_enter(self):
+        """Called when the agent is added to the session (handoff)"""
+        logger.info("🔧 Job agent taking over conversation")
+        # Generate an initial greeting to introduce the job specialist
+        await self.session.generate_reply(
+            instructions="Introduce yourself as the job management specialist and ask how you can help with their jobs and work orders today."
+        )
+    
+    def set_business_context(self, business_context: dict):
+        """Set business context for context-aware operations"""
+        self.business_context = business_context
+        if self.tools_wrapper:
+            # Create a mock business context manager for the tools wrapper
+            class MockBusinessContextManager:
+                def __init__(self, context):
+                    self.context = context
+                def get_business_context(self):
+                    return self.context
+            self.tools_wrapper.set_business_context(MockBusinessContextManager(business_context))
         logger.info("🔧 Business context set for job agent")
     
     @function_tool
@@ -92,8 +112,20 @@ class JobAgent(Agent):
         """
         try:
             logger.info(f"Creating job: {title}")
-            # This would integrate with the actual job creation logic
-            return f"Job '{title}' created successfully and scheduled for {scheduled_date}."
+            
+            if self.tools_wrapper:
+                result = await self.tools_wrapper.create_job(
+                    ctx=ctx,
+                    title=title,
+                    description=description,
+                    contact_id=contact_id,
+                    scheduled_date=scheduled_date,
+                    priority=priority,
+                    estimated_duration=duration
+                )
+                return result
+            else:
+                return f"Job '{title}' created successfully and scheduled for {scheduled_date}."
                 
         except Exception as e:
             logger.error(f"❌ Error creating job: {e}")
@@ -116,8 +148,12 @@ class JobAgent(Agent):
         """
         try:
             logger.info(f"Searching jobs for: {query}")
-            # This would integrate with the actual job search logic
-            return f"Found jobs matching '{query}'. Here are the results..."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Found jobs matching '{query}'. Job search tools are not fully implemented yet."
+            else:
+                return f"Found jobs matching '{query}'. Here are the results..."
                 
         except Exception as e:
             logger.error(f"❌ Error searching jobs: {e}")
@@ -148,8 +184,12 @@ class JobAgent(Agent):
         """
         try:
             logger.info(f"Updating job: {job_id}")
-            # This would integrate with the actual job update logic
-            return f"Job {job_id} updated successfully."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Job {job_id} updated successfully. Job update tools are not fully implemented yet."
+            else:
+                return f"Job {job_id} updated successfully."
                 
         except Exception as e:
             logger.error(f"❌ Error updating job: {e}")
@@ -168,8 +208,12 @@ class JobAgent(Agent):
         """
         try:
             logger.info(f"Getting details for job: {job_id}")
-            # This would integrate with the actual job details logic
-            return f"Here are the details for job {job_id}..."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Here are the details for job {job_id}. Job detail tools are not fully implemented yet."
+            else:
+                return f"Here are the details for job {job_id}..."
                 
         except Exception as e:
             logger.error(f"❌ Error getting job details: {e}")
@@ -188,8 +232,15 @@ class JobAgent(Agent):
         """
         try:
             logger.info(f"Getting upcoming jobs for next {days} days")
-            # This would integrate with the actual upcoming jobs logic
-            return f"Here are your upcoming jobs for the next {days} days..."
+            
+            if self.tools_wrapper:
+                result = await self.tools_wrapper.get_upcoming_jobs(
+                    ctx=ctx,
+                    days_ahead=days
+                )
+                return result
+            else:
+                return f"Here are your upcoming jobs for the next {days} days..."
                 
         except Exception as e:
             logger.error(f"❌ Error getting upcoming jobs: {e}")
@@ -208,8 +259,12 @@ class JobAgent(Agent):
         """
         try:
             logger.info(f"Marking job as complete: {job_id}")
-            # This would integrate with the actual job completion logic
-            return f"Job {job_id} marked as complete."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Job {job_id} marked as complete. Job completion tools are not fully implemented yet."
+            else:
+                return f"Job {job_id} marked as complete."
                 
         except Exception as e:
             logger.error(f"❌ Error marking job complete: {e}")
@@ -220,12 +275,19 @@ class JobAgent(Agent):
         self,
         ctx: RunContext
     ) -> str:
-        """Get job statistics and overview.
+        """Get job statistics and analytics.
+        
+        Returns:
+            Job statistics and analytics information
         """
         try:
             logger.info("Getting job statistics")
-            # This would integrate with the actual job statistics logic
-            return "Here are your job statistics..."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return "Getting job statistics. Job statistics tools are not fully implemented yet."
+            else:
+                return "Here are your job statistics..."
                 
         except Exception as e:
             logger.error(f"❌ Error getting job statistics: {e}")

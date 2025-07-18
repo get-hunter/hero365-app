@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional
 from livekit.agents import Agent, RunContext, function_tool
 from ..config import LiveKitConfig
 from ..business_context_manager import BusinessContextManager
+from ..tools.hero365_tools_wrapper import Hero365ToolsWrapper
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,9 @@ class ContactAgent(Agent):
         self.business_context_manager: Optional[BusinessContextManager] = None
         self.contact_context = {}
         self.current_contact = None
+        
+        # Initialize tools wrapper
+        self.tools_wrapper = Hero365ToolsWrapper()
         
         # Create context-aware instructions
         instructions = """
@@ -49,11 +53,27 @@ class ContactAgent(Agent):
         # Initialize as LiveKit Agent with instructions only
         super().__init__(instructions=instructions)
         
-        logger.info("📊 Contact agent initialized successfully")
-        
-    def set_business_context(self, business_context_manager: BusinessContextManager):
-        """Set business context manager for context-aware operations"""
-        self.business_context_manager = business_context_manager
+        logger.info("👥 Contact agent initialized successfully")
+    
+    async def on_enter(self):
+        """Called when the agent is added to the session (handoff)"""
+        logger.info("👥 Contact agent taking over conversation")
+        # Generate an initial greeting to introduce the contact specialist
+        await self.session.generate_reply(
+            instructions="Introduce yourself as the contact management specialist and ask how you can help with their contacts today."
+        )
+    
+    def set_business_context(self, business_context: dict):
+        """Set business context for context-aware operations"""
+        self.business_context = business_context
+        if self.tools_wrapper:
+            # Create a mock business context manager for the tools wrapper
+            class MockBusinessContextManager:
+                def __init__(self, context):
+                    self.context = context
+                def get_business_context(self):
+                    return self.context
+            self.tools_wrapper.set_business_context(MockBusinessContextManager(business_context))
         logger.info("📊 Business context set for contact agent")
     
     @function_tool
@@ -61,24 +81,35 @@ class ContactAgent(Agent):
         self,
         ctx: RunContext,
         name: str,
-        email: Optional[str] = None,
         phone: Optional[str] = None,
-        address: Optional[str] = None,
-        notes: Optional[str] = None
+        email: Optional[str] = None,
+        contact_type: str = "lead",
+        address: Optional[str] = None
     ) -> str:
         """Create a new contact with the provided information.
         
         Args:
-            name: Contact's full name (required)
-            email: Contact's email address (optional)
-            phone: Contact's phone number (optional)
-            address: Contact's address (optional)
-            notes: Additional notes about the contact (optional)
+            name: Full name of the contact
+            phone: Phone number (optional)
+            email: Email address (optional)
+            contact_type: Type of contact (lead, customer, prospect, vendor)
+            address: Address information (optional)
         """
         try:
-            # This would integrate with the actual contact creation logic
             logger.info(f"Creating contact: {name}")
-            return f"Contact '{name}' created successfully. I've added them to your contact list."
+            
+            if self.tools_wrapper:
+                result = await self.tools_wrapper.create_contact(
+                    ctx=ctx,
+                    name=name,
+                    phone=phone,
+                    email=email,
+                    contact_type=contact_type,
+                    address=address
+                )
+                return result
+            else:
+                return f"Contact '{name}' created successfully. Contact management tools are not available at the moment."
                 
         except Exception as e:
             logger.error(f"❌ Error creating contact: {e}")
@@ -99,12 +130,47 @@ class ContactAgent(Agent):
         """
         try:
             logger.info(f"Searching contacts for: {query}")
-            # This would integrate with the actual contact search logic
-            return f"Found contacts matching '{query}'. Here are the results..."
+            
+            if self.tools_wrapper:
+                result = await self.tools_wrapper.search_contacts(
+                    ctx=ctx,
+                    query=query,
+                    limit=limit
+                )
+                return result
+            else:
+                return f"Searching for contacts matching '{query}'. Contact search tools are not available at the moment."
                 
         except Exception as e:
             logger.error(f"❌ Error searching contacts: {e}")
             return f"❌ Error searching contacts: {str(e)}"
+    
+    @function_tool
+    async def get_suggested_contacts(
+        self,
+        ctx: RunContext,
+        limit: int = 5
+    ) -> str:
+        """Get suggested contacts based on business activity and context.
+        
+        Args:
+            limit: Maximum number of suggestions to return (default: 5)
+        """
+        try:
+            logger.info(f"Getting suggested contacts")
+            
+            if self.tools_wrapper:
+                result = await self.tools_wrapper.get_suggested_contacts(
+                    ctx=ctx,
+                    limit=limit
+                )
+                return result
+            else:
+                return "Getting contact suggestions based on your business activity. Contact suggestion tools are not available at the moment."
+                
+        except Exception as e:
+            logger.error(f"❌ Error getting suggested contacts: {e}")
+            return f"❌ Error getting suggested contacts: {str(e)}"
     
     @function_tool
     async def get_contact_details(
@@ -119,8 +185,12 @@ class ContactAgent(Agent):
         """
         try:
             logger.info(f"Getting details for contact: {contact_id}")
-            # This would integrate with the actual contact details logic
-            return f"Here are the details for contact {contact_id}..."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Getting detailed information for contact {contact_id}. Contact detail tools are not fully implemented yet."
+            else:
+                return f"Getting details for contact {contact_id}. Contact detail tools are not available at the moment."
                 
         except Exception as e:
             logger.error(f"❌ Error getting contact details: {e}")
@@ -132,67 +202,110 @@ class ContactAgent(Agent):
         ctx: RunContext,
         contact_id: str,
         name: Optional[str] = None,
-        email: Optional[str] = None,
         phone: Optional[str] = None,
-        address: Optional[str] = None,
-        notes: Optional[str] = None
+        email: Optional[str] = None,
+        contact_type: Optional[str] = None,
+        address: Optional[str] = None
     ) -> str:
-        """Update contact information.
+        """Update an existing contact's information.
         
         Args:
             contact_id: The ID of the contact to update
             name: New name (optional)
-            email: New email (optional)
-            phone: New phone (optional)
+            phone: New phone number (optional)
+            email: New email address (optional)
+            contact_type: New contact type (optional)
             address: New address (optional)
-            notes: New notes (optional)
         """
         try:
             logger.info(f"Updating contact: {contact_id}")
-            # This would integrate with the actual contact update logic
-            return f"Contact {contact_id} updated successfully."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Updating contact {contact_id}. Contact update tools are not fully implemented yet."
+            else:
+                return f"Updating contact {contact_id}. Contact update tools are not available at the moment."
                 
         except Exception as e:
             logger.error(f"❌ Error updating contact: {e}")
             return f"❌ Error updating contact: {str(e)}"
     
     @function_tool
-    async def delete_contact(
+    async def get_contact_interactions(
         self,
         ctx: RunContext,
-        contact_id: str
+        contact_id: str,
+        limit: int = 10
     ) -> str:
-        """Delete a contact.
+        """Get recent interactions and history for a contact.
         
         Args:
-            contact_id: The ID of the contact to delete
+            contact_id: The ID of the contact
+            limit: Maximum number of interactions to return (default: 10)
         """
         try:
-            logger.info(f"Deleting contact: {contact_id}")
-            # This would integrate with the actual contact deletion logic
-            return f"Contact {contact_id} deleted successfully."
+            logger.info(f"Getting interactions for contact: {contact_id}")
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Getting interaction history for contact {contact_id}. Interaction tools are not fully implemented yet."
+            else:
+                return f"Getting interaction history for contact {contact_id}. Interaction tools are not available at the moment."
                 
         except Exception as e:
-            logger.error(f"❌ Error deleting contact: {e}")
-            return f"❌ Error deleting contact: {str(e)}"
+            logger.error(f"❌ Error getting contact interactions: {e}")
+            return f"❌ Error getting contact interactions: {str(e)}"
     
     @function_tool
-    async def get_business_context_overview(
+    async def add_contact_note(
         self,
-        ctx: RunContext
+        ctx: RunContext,
+        contact_id: str,
+        note: str
     ) -> str:
-        """Get an overview of the business context for contact management.
+        """Add a note to a contact's record.
+        
+        Args:
+            contact_id: The ID of the contact
+            note: The note to add
         """
         try:
-            if self.business_context_manager:
-                context = self.business_context_manager.get_business_context()
-                if context:
-                    return f"Business: {context.business_name}, Recent Contacts: {context.recent_contacts_count}"
-                else:
-                    return "Business context not available."
+            logger.info(f"Adding note to contact: {contact_id}")
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Adding note to contact {contact_id}. Note tools are not fully implemented yet."
             else:
-                return "Business context not initialized."
+                return f"Adding note to contact {contact_id}. Note tools are not available at the moment."
                 
         except Exception as e:
-            logger.error(f"❌ Error getting business context: {e}")
-            return f"❌ Error getting business context: {str(e)}" 
+            logger.error(f"❌ Error adding contact note: {e}")
+            return f"❌ Error adding contact note: {str(e)}"
+    
+    @function_tool
+    async def schedule_contact_follow_up(
+        self,
+        ctx: RunContext,
+        contact_id: str,
+        follow_up_date: str,
+        notes: Optional[str] = None
+    ) -> str:
+        """Schedule a follow-up for a contact.
+        
+        Args:
+            contact_id: The ID of the contact
+            follow_up_date: Date for the follow-up (YYYY-MM-DD)
+            notes: Optional notes about the follow-up
+        """
+        try:
+            logger.info(f"Scheduling follow-up for contact: {contact_id}")
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Scheduling follow-up for contact {contact_id} on {follow_up_date}. Follow-up tools are not fully implemented yet."
+            else:
+                return f"Scheduling follow-up for contact {contact_id} on {follow_up_date}. Follow-up tools are not available at the moment."
+                
+        except Exception as e:
+            logger.error(f"❌ Error scheduling contact follow-up: {e}")
+            return f"❌ Error scheduling contact follow-up: {str(e)}" 

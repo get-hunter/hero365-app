@@ -1,12 +1,12 @@
 """
 Hero365 Voice Agent Worker for LiveKit Integration
-Enhanced with preloaded business context support
+Enhanced with preloaded business context support and intelligent agent routing
 """
 
 import asyncio
 import json
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 from livekit.agents import (
@@ -25,16 +25,21 @@ from .config import LiveKitConfig
 from .context_preloader import ContextPreloader
 from .context_validator import ContextValidator
 from .business_context_manager import BusinessContextManager
+from .hero365_triage_agent import Hero365TriageAgent
+from .specialists.contact_agent import ContactAgent
+from .specialists.job_agent import JobAgent
+from .specialists.estimate_agent import EstimateAgent
+from .specialists.scheduling_agent import SchedulingAgent
 from ..infrastructure.config.dependency_injection import get_container
 
 logger = logging.getLogger(__name__)
 
 
-class Hero365VoiceAgent(Agent):
-    """Main Hero365 Voice Agent with enhanced business context support"""
+class Hero365MainAgent(Agent):
+    """Main Hero365 Voice Agent with intelligent routing to specialist agents"""
     
     def __init__(self, business_context: dict = None, user_context: dict = None):
-        logger.info("🔧 Hero365VoiceAgent.__init__ called")
+        logger.info("🔧 Hero365MainAgent.__init__ called")
         
         # Initialize business context
         self.business_context = business_context or {}
@@ -44,19 +49,39 @@ class Hero365VoiceAgent(Agent):
         if user_context:
             self.business_context.update(user_context)
         
-        logger.info(f"🔧 Agent initialized with business context: {bool(self.business_context)}")
+        logger.info(f"🔧 Main agent initialized with business context: {bool(self.business_context)}")
+        
+        # Initialize specialist agents
+        self.config = LiveKitConfig()
+        self.specialist_agents = self._initialize_specialist_agents()
         
         # Initialize as LiveKit Agent with enhanced instructions
         super().__init__(
-            instructions=self._generate_context_aware_instructions()
+            instructions=self._generate_routing_instructions()
         )
         
-    def _generate_context_aware_instructions(self) -> str:
-        """Generate context-aware instructions based on available business context"""
-        base_instructions = """You are the Hero365 AI Assistant, a specialized voice agent for home service businesses."""
+    def _initialize_specialist_agents(self) -> Dict[str, Agent]:
+        """Initialize all specialist agents"""
+        agents = {
+            'contact': ContactAgent(self.config),
+            'job': JobAgent(self.config),
+            'estimate': EstimateAgent(self.config),
+            'scheduling': SchedulingAgent(self.config)
+        }
+        
+        # Set business context for all specialist agents
+        for agent_name, agent in agents.items():
+            if hasattr(agent, 'set_business_context'):
+                agent.set_business_context(self.business_context)
+            logger.info(f"🔧 Initialized {agent_name} specialist agent")
+            
+        return agents
+        
+    def _generate_routing_instructions(self) -> str:
+        """Generate routing-aware instructions"""
+        base_instructions = """You are the Hero365 AI Assistant, a specialized voice agent for home service businesses with intelligent routing capabilities."""
         
         if self.business_context:
-            # Add business-specific context to instructions
             business_name = self.business_context.get('business_name', 'your business')
             business_type = self.business_context.get('business_type', 'home service business')
             user_name = self.business_context.get('user_name', 'User')
@@ -68,13 +93,24 @@ BUSINESS CONTEXT:
 - This is a {business_type}
 - You have access to current business information and can help with specific tasks
 
+INTELLIGENT ROUTING:
+You can route users to specialist agents for specific tasks:
+- Contact management: "I'll connect you with our contact specialist"
+- Job management: "Let me transfer you to our job specialist"  
+- Estimate management: "I'll connect you with our estimate specialist"
+- Scheduling: "Let me transfer you to our scheduling specialist"
+
 IMPORTANT INSTRUCTIONS:
 1. When users ask about business information, use the get_business_info tool for accurate details
 2. When users ask about their name or user information, use the get_user_info tool
 3. When users ask for business overview or status, use the get_business_status tool
-4. Always use the available tools to get real, current data
-5. Be helpful, professional, and conversational in your responses
-6. Reference the business context naturally in your responses
+4. For contact-related requests, use the route_to_contact_specialist tool
+5. For job-related requests, use the route_to_job_specialist tool
+6. For estimate-related requests, use the route_to_estimate_specialist tool
+7. For scheduling-related requests, use the route_to_scheduling_specialist tool
+8. Always use the available tools to get real, current data
+9. Be helpful, professional, and conversational in your responses
+10. Reference the business context naturally in your responses
 
 You help with:
 - Managing contacts and customer relationships
@@ -82,18 +118,30 @@ You help with:
 - Scheduling jobs and appointments
 - Providing business insights and overviews
 - General business management tasks
+- Routing to appropriate specialists
 
 Always be professional, helpful, and use the available tools to provide accurate information."""
         else:
             context_instructions = """
 
+INTELLIGENT ROUTING:
+You can route users to specialist agents for specific tasks:
+- Contact management: "I'll connect you with our contact specialist"
+- Job management: "Let me transfer you to our job specialist"  
+- Estimate management: "I'll connect you with our estimate specialist"
+- Scheduling: "Let me transfer you to our scheduling specialist"
+
 IMPORTANT INSTRUCTIONS:
 1. When users ask about business information, use the get_business_info tool
 2. When users ask about their name or user information, use the get_user_info tool
 3. When users ask for business overview or status, use the get_business_status tool
-4. Always use the available tools to get real data
-5. Be helpful, professional, and conversational in your responses
-6. If business information is not available, inform the user politely
+4. For contact-related requests, use the route_to_contact_specialist tool
+5. For job-related requests, use the route_to_job_specialist tool
+6. For estimate-related requests, use the route_to_estimate_specialist tool
+7. For scheduling-related requests, use the route_to_scheduling_specialist tool
+8. Always use the available tools to get real data
+9. Be helpful, professional, and conversational in your responses
+10. If business information is not available, inform the user politely
 
 You help with:
 - Managing contacts and customer relationships
@@ -101,6 +149,7 @@ You help with:
 - Scheduling jobs and appointments
 - Providing business insights and overviews
 - General business management tasks
+- Routing to appropriate specialists
 
 Always be professional, helpful, and use the available tools to provide accurate information."""
         
@@ -176,9 +225,53 @@ Always be professional, helpful, and use the available tools to provide accurate
             
         return "\n".join(status) if status else "Business status is not available."
 
+    @function_tool
+    async def route_to_contact_specialist(self) -> tuple:
+        """Route the user to the contact management specialist"""
+        logger.info("🔧 Routing to contact specialist")
+        # Create a fresh contact agent with business context
+        contact_agent = ContactAgent(self.config)
+        if hasattr(contact_agent, 'set_business_context'):
+            contact_agent.set_business_context(self.business_context)
+        return contact_agent, "I'll connect you with our contact specialist who can help you manage your contacts, create new ones, search for existing contacts, and handle all contact-related tasks."
+
+    @function_tool
+    async def route_to_job_specialist(self) -> tuple:
+        """Route the user to the job management specialist"""
+        logger.info("🔧 Routing to job specialist")
+        # Create a fresh job agent with business context
+        job_agent = JobAgent(self.config)
+        if hasattr(job_agent, 'set_business_context'):
+            job_agent.set_business_context(self.business_context)
+        return job_agent, "Let me transfer you to our job specialist who can help you create new jobs, update job status, schedule appointments, track job progress, and manage all your work orders."
+
+    @function_tool
+    async def route_to_estimate_specialist(self) -> tuple:
+        """Route the user to the estimate management specialist"""
+        logger.info("🔧 Routing to estimate specialist")
+        # Create a fresh estimate agent with business context
+        estimate_agent = EstimateAgent(self.config)
+        if hasattr(estimate_agent, 'set_business_context'):
+            estimate_agent.set_business_context(self.business_context)
+        return estimate_agent, "I'll connect you with our estimate specialist who can help you create estimates, manage proposals, convert estimates to invoices, and handle all your quoting needs."
+
+    @function_tool
+    async def route_to_scheduling_specialist(self) -> tuple:
+        """Route the user to the scheduling specialist"""
+        logger.info("🔧 Routing to scheduling specialist")
+        # Create a fresh scheduling agent with business context
+        scheduling_agent = SchedulingAgent(self.config)
+        if hasattr(scheduling_agent, 'set_business_context'):
+            scheduling_agent.set_business_context(self.business_context)
+        return scheduling_agent, "Let me transfer you to our scheduling specialist who can help you check availability, book appointments, manage your calendar, and optimize your schedule."
+
+    def get_specialist_agent(self, agent_type: str) -> Optional[Agent]:
+        """Get a specialist agent by type"""
+        return self.specialist_agents.get(agent_type)
+
 
 async def entrypoint(ctx: JobContext):
-    """Enhanced entrypoint for the Hero365 Voice Agent with comprehensive context validation"""
+    """Enhanced entrypoint for the Hero365 Voice Agent with comprehensive context validation and intelligent routing"""
     try:
         logger.info(f"🚀 Hero365 Voice Agent starting for job: {ctx.job.id}")
         
@@ -344,8 +437,8 @@ async def entrypoint(ctx: JobContext):
         else:
             logger.warning("⚠️ Agent will start without business context - limited functionality available")
         
-        # Initialize the agent with loaded context
-        agent = Hero365VoiceAgent(business_context=business_context, user_context=user_context)
+        # Initialize the main agent with loaded context and specialist agents
+        agent = Hero365MainAgent(business_context=business_context, user_context=user_context)
         
         # Get configuration
         config = LiveKitConfig()
@@ -383,15 +476,15 @@ async def entrypoint(ctx: JobContext):
         )
         
         # Generate context-aware initial greeting
-        greeting_instructions = "Greet the user warmly and introduce yourself as their Hero365 business assistant."
+        greeting_instructions = "Greet the user warmly and introduce yourself as their Hero365 business assistant with intelligent routing capabilities."
         if business_context and business_context.get('business_name'):
-            greeting_instructions += f" Mention that you're here to help with {business_context['business_name']} and ask how you can assist them today."
+            greeting_instructions += f" Mention that you're here to help with {business_context['business_name']} and can connect them with specialist agents for specific tasks. Ask how you can assist them today."
         else:
-            greeting_instructions += " Ask how you can help them with their business today."
+            greeting_instructions += " Mention that you can help with general business tasks and connect them with specialist agents for specific needs. Ask how you can help them with their business today."
         
         await session.generate_reply(instructions=greeting_instructions)
         
-        logger.info("🎤 Hero365 Agent ready to handle voice conversations with comprehensive context validation")
+        logger.info("🎤 Hero365 Main Agent ready to handle voice conversations with intelligent routing to specialist agents")
         
     except Exception as e:
         logger.error(f"❌ Error in entrypoint: {e}")

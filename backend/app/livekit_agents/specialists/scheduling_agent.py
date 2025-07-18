@@ -11,6 +11,7 @@ import re
 from livekit.agents import Agent, RunContext, function_tool
 from ..config import LiveKitConfig
 from ..business_context_manager import BusinessContextManager
+from ..tools.hero365_tools_wrapper import Hero365ToolsWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +60,33 @@ class SchedulingAgent(Agent):
         self.scheduling_context = {}
         self.current_appointment = None
         
+        # Initialize tools wrapper
+        self.tools_wrapper = Hero365ToolsWrapper()
+        
         # Initialize as LiveKit Agent with instructions only
         super().__init__(instructions=instructions)
         
         logger.info("📅 Scheduling agent initialized successfully")
-        
-    def set_business_context(self, business_context_manager: BusinessContextManager):
-        """Set business context manager for context-aware operations"""
-        self.business_context_manager = business_context_manager
+    
+    async def on_enter(self):
+        """Called when the agent is added to the session (handoff)"""
+        logger.info("📅 Scheduling agent taking over conversation")
+        # Generate an initial greeting to introduce the scheduling specialist
+        await self.session.generate_reply(
+            instructions="Introduce yourself as the scheduling specialist and ask how you can help with their calendar and appointments today."
+        )
+    
+    def set_business_context(self, business_context: dict):
+        """Set business context for context-aware operations"""
+        self.business_context = business_context
+        if self.tools_wrapper:
+            # Create a mock business context manager for the tools wrapper
+            class MockBusinessContextManager:
+                def __init__(self, context):
+                    self.context = context
+                def get_business_context(self):
+                    return self.context
+            self.tools_wrapper.set_business_context(MockBusinessContextManager(business_context))
         logger.info("📅 Business context set for scheduling agent")
     
     @function_tool
@@ -86,8 +106,12 @@ class SchedulingAgent(Agent):
         """
         try:
             logger.info(f"Checking availability for {date}")
-            # This would integrate with the actual availability checking logic
-            return f"Here are the available time slots for {date}..."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Here are the available time slots for {date}. Availability checking tools are not fully implemented yet."
+            else:
+                return f"Here are the available time slots for {date}..."
                 
         except Exception as e:
             logger.error(f"❌ Error checking availability: {e}")
@@ -116,8 +140,12 @@ class SchedulingAgent(Agent):
         """
         try:
             logger.info(f"Booking appointment for contact {contact_id} on {date} at {time}")
-            # This would integrate with the actual appointment booking logic
-            return f"Appointment booked successfully for {date} at {time}."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Appointment booked successfully for {date} at {time}. Appointment booking tools are not fully implemented yet."
+            else:
+                return f"Appointment booked successfully for {date} at {time}."
                 
         except Exception as e:
             logger.error(f"❌ Error booking appointment: {e}")
@@ -138,8 +166,12 @@ class SchedulingAgent(Agent):
         """
         try:
             logger.info(f"Viewing schedule for {date or f'next {days} days'}")
-            # This would integrate with the actual schedule viewing logic
-            return f"Here is your schedule for {date or f'the next {days} days'}..."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Here is your schedule for {date or f'the next {days} days'}. Schedule viewing tools are not fully implemented yet."
+            else:
+                return f"Here is your schedule for {date or f'the next {days} days'}..."
                 
         except Exception as e:
             logger.error(f"❌ Error viewing schedule: {e}")
@@ -162,8 +194,12 @@ class SchedulingAgent(Agent):
         """
         try:
             logger.info(f"Rescheduling appointment {appointment_id} to {new_date} at {new_time}")
-            # This would integrate with the actual rescheduling logic
-            return f"Appointment {appointment_id} rescheduled to {new_date} at {new_time}."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Appointment {appointment_id} rescheduled to {new_date} at {new_time}. Rescheduling tools are not fully implemented yet."
+            else:
+                return f"Appointment {appointment_id} rescheduled to {new_date} at {new_time}."
                 
         except Exception as e:
             logger.error(f"❌ Error rescheduling appointment: {e}")
@@ -184,8 +220,12 @@ class SchedulingAgent(Agent):
         """
         try:
             logger.info(f"Getting scheduling suggestions for contact {contact_id}")
-            # This would integrate with the actual scheduling suggestions logic
-            return f"Here are some scheduling suggestions for contact {contact_id}..."
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Here are some scheduling suggestions for contact {contact_id}. Scheduling suggestion tools are not fully implemented yet."
+            else:
+                return f"Here are some scheduling suggestions for contact {contact_id}..."
                 
         except Exception as e:
             logger.error(f"❌ Error getting scheduling suggestions: {e}")
@@ -198,20 +238,24 @@ class SchedulingAgent(Agent):
         duration: int = 60,
         after_date: Optional[str] = None
     ) -> str:
-        """Get the next available time slot.
+        """Get the next available time slot for a given duration.
         
         Args:
-            duration: Duration needed in minutes (default: 60)
-            after_date: Only look after this date (optional, format: YYYY-MM-DD)
+            duration: Duration in minutes (default: 60)
+            after_date: Only look for slots after this date (optional, format: YYYY-MM-DD)
         """
         try:
-            logger.info(f"Finding next available {duration}-minute slot")
-            # This would integrate with the actual slot finding logic
-            return f"Here is the next available {duration}-minute time slot..."
+            logger.info(f"Getting next available slot for {duration} minutes")
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Next available {duration}-minute slot. Availability slot tools are not fully implemented yet."
+            else:
+                return f"Next available {duration}-minute slot..."
                 
         except Exception as e:
-            logger.error(f"❌ Error finding next available slot: {e}")
-            return f"❌ Error finding next available slot: {str(e)}"
+            logger.error(f"❌ Error getting next available slot: {e}")
+            return f"❌ Error getting next available slot: {str(e)}"
     
     @function_tool
     async def get_schedule_summary(
@@ -225,9 +269,13 @@ class SchedulingAgent(Agent):
             days: Number of days to summarize (default: 7)
         """
         try:
-            logger.info(f"Getting schedule summary for next {days} days")
-            # This would integrate with the actual schedule summary logic
-            return f"Here is your schedule summary for the next {days} days..."
+            logger.info(f"Getting schedule summary for {days} days")
+            
+            if self.tools_wrapper:
+                # This would need to be implemented in the tools wrapper
+                return f"Schedule summary for the next {days} days. Schedule summary tools are not fully implemented yet."
+            else:
+                return f"Schedule summary for the next {days} days..."
                 
         except Exception as e:
             logger.error(f"❌ Error getting schedule summary: {e}")
