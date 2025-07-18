@@ -130,6 +130,7 @@ async def entrypoint(ctx: JobContext):
                         
                         if business_ctx:
                             business_context = {
+                                'business_id': business_id,  # Include the business_id
                                 'business_name': business_ctx.business_name,
                                 'business_type': business_ctx.business_type,
                                 'phone': business_ctx.phone,
@@ -163,6 +164,10 @@ async def entrypoint(ctx: JobContext):
                                 'user_permissions': user_ctx.permissions,
                                 'user_preferences': user_ctx.preferences
                             }
+                            
+                            # Also include user_id in business_context for tool access
+                            if business_context:
+                                business_context['user_id'] = user_ctx.user_id
                             
                         logger.info(f"✅ Fallback context loaded successfully")
                     else:
@@ -202,17 +207,29 @@ async def entrypoint(ctx: JobContext):
         # Set up business context manager if available
         if business_context:
             try:
+                logger.info(f"🔧 Setting up business context manager...")
+                logger.info(f"📋 Business context keys: {list(business_context.keys())}")
+                
                 context_manager = BusinessContextManager()
                 container = get_container()
                 user_id = business_context.get('user_id')
                 business_id = business_context.get('business_id')
                 
+                logger.info(f"👤 User ID: {user_id}")
+                logger.info(f"🏢 Business ID: {business_id}")
+                
                 if user_id and business_id:
                     await context_manager.initialize(user_id, business_id, container)
                     agent.set_business_context_manager(context_manager)
                     logger.info("✅ Business context manager set for agent")
+                else:
+                    logger.warning(f"⚠️ Missing user_id or business_id in business context")
+                    logger.warning(f"   user_id: {user_id}")
+                    logger.warning(f"   business_id: {business_id}")
             except Exception as e:
                 logger.warning(f"⚠️ Could not set business context manager: {e}")
+                import traceback
+                logger.warning(f"⚠️ Traceback: {traceback.format_exc()}")
         
         # Get configuration
         config = LiveKitConfig()

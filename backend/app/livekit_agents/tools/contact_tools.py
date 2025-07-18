@@ -5,7 +5,6 @@ Contact Management Tools for Hero365 LiveKit Agents
 import logging
 import uuid
 from typing import Dict, Any, Optional, List
-from livekit.agents import function_tool
 
 from ..context import BusinessContextManager
 
@@ -28,8 +27,30 @@ class ContactTools:
         """Get contact repository from container"""
         if not self.container:
             logger.warning("⚠️ No container available for contact repository")
+            # Try to get container directly from dependency injection
+            try:
+                from app.infrastructure.config.dependency_injection import get_container
+                self.container = get_container()
+                if self.container:
+                    logger.info("✅ Retrieved container from dependency injection")
+                else:
+                    logger.error("❌ Could not get container from dependency injection")
+                    return None
+            except Exception as e:
+                logger.error(f"❌ Error getting container from dependency injection: {e}")
+                return None
+        
+        try:
+            contact_repo = self.container.get_contact_repository()
+            if contact_repo:
+                logger.info("✅ Contact repository retrieved successfully")
+                return contact_repo
+            else:
+                logger.error("❌ Contact repository not found in container")
+                return None
+        except Exception as e:
+            logger.error(f"❌ Error getting contact repository: {e}")
             return None
-        return self.container.get_contact_repository()
     
     def _get_business_id(self) -> Optional[uuid.UUID]:
         """Get business ID from context"""
@@ -40,7 +61,6 @@ class ContactTools:
             return business_id
         return None
 
-    @function_tool
     async def create_contact(
         self,
         name: str,
@@ -130,7 +150,6 @@ class ContactTools:
             logger.error(f"❌ Error creating contact: {e}")
             return f"❌ Error creating contact: {str(e)}"
 
-    @function_tool
     async def search_contacts(self, query: str, limit: int = 10) -> str:
         """Search for contacts with context-aware suggestions.
         
@@ -163,27 +182,22 @@ class ContactTools:
             if contacts:
                 response = f"🔍 Found {len(contacts)} contacts matching '{query}':\n"
                 for i, contact in enumerate(contacts, 1):
-                    phone_display = contact.phone or contact.mobile_phone or "No phone"
-                    email_display = contact.email or "No email"
-                    response += f"{i}. {contact.get_display_name()} - {phone_display} - {email_display}\n"
+                    response += f"{i}. {contact.get_display_name()} - {contact.phone or 'No phone'} - {contact.email or 'No email'}\n"
                 
                 # Add contextual suggestions
                 if self.business_context_manager:
                     suggestions = self.business_context_manager.get_contextual_suggestions()
-                    if suggestions and suggestions.follow_ups:
-                        response += f"\n💡 Related suggestion: {suggestions.follow_ups[0]}"
+                    if suggestions and suggestions.quick_actions:
+                        response += f"\n💡 Related suggestion: {suggestions.quick_actions[0]}"
                 
                 return response
             else:
-                return f"🔍 No contacts found matching '{query}'. Would you like to create a new contact with that name?"
+                return f"🔍 No contacts found matching '{query}'. Would you like to create a new contact?"
                 
         except Exception as e:
             logger.error(f"❌ Error searching contacts: {e}")
             return f"❌ Error searching contacts: {str(e)}"
 
-
-
-    @function_tool
     async def get_contact_info(self, contact_name: str, info_type: str = "all") -> str:
         """Get specific information about a contact by name.
         
@@ -324,7 +338,6 @@ class ContactTools:
             logger.error(f"❌ Error getting contact info: {e}")
             return f"❌ Error getting contact info: {str(e)}"
 
-    @function_tool
     async def get_suggested_contacts(self, limit: int = 5) -> str:
         """Get suggested contacts based on business context and recent activity.
         

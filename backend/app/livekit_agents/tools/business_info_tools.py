@@ -4,7 +4,6 @@ Business Information Tools for Hero365 LiveKit Agents
 
 import logging
 from typing import Dict, Any, Optional
-from livekit.agents import function_tool
 
 from ..context import BusinessContextManager
 
@@ -18,7 +17,6 @@ class BusinessInfoTools:
         self.business_context = business_context
         self.business_context_manager = business_context_manager
     
-    @function_tool
     async def get_business_info(self) -> str:
         """Get current business information including name, type, and contact details"""
         logger.info("🏢 get_business_info tool called")
@@ -40,7 +38,6 @@ class BusinessInfoTools:
             
         return "\n".join(info) if info else "Business information is not available."
 
-    @function_tool
     async def get_user_info(self) -> str:
         """Get current user information"""
         logger.info("👤 get_user_info tool called")
@@ -60,7 +57,6 @@ class BusinessInfoTools:
             
         return "\n".join(info) if info else "User information is not available."
 
-    @function_tool
     async def get_business_status(self) -> str:
         """Get complete business status and activity overview"""
         logger.info("📊 get_business_status tool called")
