@@ -141,7 +141,7 @@ class BusinessContextManager:
         self.last_refresh: Optional[datetime] = None
         self.refresh_interval_minutes = 15
         
-    async def initialize(self, user_id: str, business_id: str, container=None):
+    async def initialize(self, user_id: str, business_id: str, container=None, user_info: dict = None):
         """Initialize business context for the voice agent"""
         try:
             logger.info(f"🏢 Initializing business context for user {user_id}, business {business_id}")
@@ -151,7 +151,7 @@ class BusinessContextManager:
             
             # Load all context components
             await self._load_business_context(business_id)
-            await self._load_user_context(user_id)
+            await self._load_user_context(user_id, user_info)
             await self._load_recent_contacts(business_id)
             await self._load_recent_jobs(business_id)
             await self._load_recent_estimates(business_id)
@@ -238,7 +238,7 @@ class BusinessContextManager:
         except Exception as e:
             logger.error(f"❌ Error updating business context metrics: {e}")
     
-    async def _load_user_context(self, user_id: str):
+    async def _load_user_context(self, user_id: str, user_info: dict = None):
         """Load user information and preferences"""
         try:
             if not self.container:
@@ -247,18 +247,36 @@ class BusinessContextManager:
             # Get user repository (returns None for this project - users managed via Supabase Auth)
             user_repo = self.container.get_user_repository()
             if user_repo is None:
-                # Create a minimal user context since users are managed via Supabase Auth
-                self.user_context = UserContext(
-                    user_id=user_id,
-                    name="User",  # Default name since we don't have user management
-                    email="user@example.com",  # Default email
-                    role="user",
-                    permissions=[],
-                    last_active=datetime.now(),
-                    preferences={},
-                    recent_actions=[]
-                )
-                logger.info(f"👤 Created minimal user context for user {user_id}")
+                # Use actual user info if provided, otherwise create minimal context
+                if user_info:
+                    user_email = user_info.get("email", "user@example.com")
+                    user_metadata = user_info.get("user_metadata", {})
+                    full_name = user_metadata.get("full_name") or user_metadata.get("name") or user_email.split("@")[0]
+                    
+                    self.user_context = UserContext(
+                        user_id=user_id,
+                        name=full_name,
+                        email=user_email,
+                        role="user",
+                        permissions=[],
+                        last_active=datetime.now(),
+                        preferences={},
+                        recent_actions=[]
+                    )
+                    logger.info(f"👤 Created user context from auth info for user {user_id}: {full_name} ({user_email})")
+                else:
+                    # Create a minimal user context since users are managed via Supabase Auth
+                    self.user_context = UserContext(
+                        user_id=user_id,
+                        name="User",  # Default name since we don't have user management
+                        email="user@example.com",  # Default email
+                        role="user",
+                        permissions=[],
+                        last_active=datetime.now(),
+                        preferences={},
+                        recent_actions=[]
+                    )
+                    logger.info(f"👤 Created minimal user context for user {user_id}")
                 return
             
             user = await user_repo.get_by_id(user_id)

@@ -80,7 +80,7 @@ async def start_voice_session(
         # Preload business context
         logger.info(f"🔄 Preloading business context for session {session_id}")
         context_preloader = ContextPreloader()
-        preloaded_context = await context_preloader.preload_context(user_id, business_id)
+        preloaded_context = await context_preloader.preload_context(user_id, business_id, current_user)
         
         # Create comprehensive room metadata with preloaded context
         room_metadata = {
@@ -101,6 +101,11 @@ async def start_voice_session(
                 'background_audio_enabled': request.background_audio_enabled,
                 'max_duration_minutes': request.max_duration_minutes
             },
+            # Include user info for fallback loading
+            'user_info': {
+                'email': current_user.get('email'),
+                'user_metadata': current_user.get('user_metadata', {})
+            },
             # Include preloaded business context
             'preloaded_context': preloaded_context
         }
@@ -117,6 +122,10 @@ async def start_voice_session(
                 'user_id': user_id,
                 'business_id': business_id,
                 'created_at': datetime.utcnow().isoformat(),
+                'user_info': {
+                    'email': current_user.get('email'),
+                    'user_metadata': current_user.get('user_metadata', {})
+                },
                 'error': 'Context serialization failed',
                 'fallback_mode': True
             }

@@ -268,7 +268,9 @@ async def entrypoint(ctx: JobContext):
                         # Initialize business context manager and load context
                         context_manager = BusinessContextManager()
                         container = get_container()
-                        await context_manager.initialize(user_id, business_id, container)
+                        # Extract user info from metadata if available
+                        user_info = room_metadata.get('user_info')
+                        await context_manager.initialize(user_id, business_id, container, user_info)
                         
                         # Convert to agent context format
                         business_ctx = context_manager.get_business_context()

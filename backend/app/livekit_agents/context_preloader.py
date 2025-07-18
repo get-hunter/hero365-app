@@ -40,13 +40,14 @@ class ContextPreloader:
         else:
             return obj
     
-    async def preload_context(self, user_id: str, business_id: str) -> Dict[str, Any]:
+    async def preload_context(self, user_id: str, business_id: str, user_info: dict = None) -> Dict[str, Any]:
         """
         Preload business context for a voice session
         
         Args:
             user_id: The user ID
             business_id: The business ID
+            user_info: Optional user information from authentication
             
         Returns:
             Dict containing serialized business context
@@ -60,7 +61,7 @@ class ContextPreloader:
             
             # Initialize business context manager
             context_manager = BusinessContextManager()
-            await context_manager.initialize(user_id, business_id, self.container)
+            await context_manager.initialize(user_id, business_id, self.container, user_info)
             
             # Get loaded context
             business_context = context_manager.get_business_context()
