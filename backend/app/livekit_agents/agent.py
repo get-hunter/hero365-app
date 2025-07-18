@@ -96,6 +96,7 @@ You have direct access to all Hero365 business tools and can help with:
 - Create new contacts with smart defaults
 - Search for existing contacts
 - Get contact suggestions based on recent activity
+- Get any contact information (phone, email, address, company, etc.)
 - Update contact information
 - Get contact details and interaction history
 - Add notes and schedule follow-ups
@@ -142,9 +143,10 @@ IMPORTANT GUIDELINES:
 2. When users ask about business information, use get_business_info
 3. When users ask about their details, use get_user_info
 4. For business overviews, use get_business_status
-5. Always provide accurate, up-to-date information
-6. Be helpful and efficient in your responses
-7. Use contextual insights to provide better service
+5. When users ask for any contact information, use get_contact_info with the appropriate info_type
+6. Always provide accurate, up-to-date information
+7. Be helpful and efficient in your responses
+8. Use contextual insights to provide better service
 """
         
         # Add business-specific context if available
@@ -216,6 +218,10 @@ BUSINESS METRICS (if available):
     def get_suggested_contacts(self, limit: int = 5):
         """Get suggested contacts based on business context and recent activity"""
         return self.contact_tools.get_suggested_contacts(limit)
+    
+    def get_contact_info(self, contact_name: str, info_type: str = "all"):
+        """Get specific information about a contact by name (phone, email, address, etc.)"""
+        return self.contact_tools.get_contact_info(contact_name, info_type)
     
     # =============================================================================
     # JOB MANAGEMENT TOOLS - Delegate to JobTools
