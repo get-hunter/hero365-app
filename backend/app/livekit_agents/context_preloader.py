@@ -10,7 +10,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from .business_context_manager import BusinessContextManager
+from .context import BusinessContextManager
 from ..infrastructure.config.dependency_injection import get_container
 
 logger = logging.getLogger(__name__)
