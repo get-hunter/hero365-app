@@ -31,18 +31,20 @@ logger = logging.getLogger(__name__)
 class Hero365VoiceAgent(Agent):
     """Main Hero365 Voice Agent with business context awareness"""
     
-    def __init__(self):
+    def __init__(self, business_context: dict = None, user_context: dict = None):
         logger.info("🔧 Hero365VoiceAgent.__init__ called")
         
-        # Initialize business context manager
-        self.business_context_manager = BusinessContextManager()
-        self.business_context: Optional[Dict[str, Any]] = None
-        self.user_id: Optional[str] = None
-        self.business_id: Optional[str] = None
-        self.room = None
+        # Initialize business context
+        self.business_context = business_context or {}
+        self.user_context = user_context or {}
+        
+        # Merge user context into business context for easier access
+        if user_context:
+            self.business_context.update(user_context)
+        
+        logger.info(f"🔧 Agent initialized with business context: {bool(self.business_context)}")
         
         # Initialize as LiveKit Agent with instructions only
-        # Tools will be registered separately to avoid duplicate function issues
         super().__init__(
             instructions="""You are the Hero365 AI Assistant, a specialized voice agent for home service businesses.
 
@@ -64,33 +66,107 @@ You help with:
 Always be professional, helpful, and use the available tools to provide accurate information."""
         )
         
-        logger.info("🔧 Hero365VoiceAgent initialized successfully")
+    @function_tool
+    async def get_business_info(self) -> str:
+        """Get current business information including name, type, and contact details"""
+        logger.info("🔧 get_business_info tool called")
+        
+        if not self.business_context:
+            return "Business information is not available at the moment."
+            
+        info = []
+        if self.business_context.get('business_name'):
+            info.append(f"Business Name: {self.business_context['business_name']}")
+        if self.business_context.get('business_type'):
+            info.append(f"Business Type: {self.business_context['business_type']}")
+        if self.business_context.get('phone'):
+            info.append(f"Phone: {self.business_context['phone']}")
+        if self.business_context.get('email'):
+            info.append(f"Email: {self.business_context['email']}")
+        if self.business_context.get('address'):
+            info.append(f"Address: {self.business_context['address']}")
+            
+        return "\n".join(info) if info else "Business information is not available."
+
+    @function_tool
+    async def get_user_info(self) -> str:
+        """Get current user information"""
+        logger.info("🔧 get_user_info tool called")
+        
+        if not self.business_context:
+            return "User information is not available at the moment."
+            
+        info = []
+        if self.business_context.get('user_name'):
+            info.append(f"Name: {self.business_context['user_name']}")
+        if self.business_context.get('user_email'):
+            info.append(f"Email: {self.business_context['user_email']}")
+        if self.business_context.get('user_role'):
+            info.append(f"Role: {self.business_context['user_role']}")
+        if self.business_context.get('user_id'):
+            info.append(f"User ID: {self.business_context['user_id']}")
+            
+        return "\n".join(info) if info else "User information is not available."
+
+    @function_tool
+    async def get_business_status(self) -> str:
+        """Get complete business status and activity overview"""
+        logger.info("🔧 get_business_status tool called")
+        
+        if not self.business_context:
+            return "Business status is not available at the moment."
+            
+        status = []
+        if self.business_context.get('business_name'):
+            status.append(f"Business: {self.business_context['business_name']}")
+        if self.business_context.get('business_type'):
+            status.append(f"Type: {self.business_context['business_type']}")
+        if self.business_context.get('active_jobs'):
+            status.append(f"Active Jobs: {self.business_context['active_jobs']}")
+        if self.business_context.get('pending_estimates'):
+            status.append(f"Pending Estimates: {self.business_context['pending_estimates']}")
+        if self.business_context.get('total_contacts'):
+            status.append(f"Total Contacts: {self.business_context['total_contacts']}")
+        if self.business_context.get('recent_activities'):
+            status.append(f"Recent Activities: {self.business_context['recent_activities']}")
+            
+        return "\n".join(status) if status else "Business status is not available."
         
     async def on_enter(self, room=None):
         """Initialize agent when entering a room"""
-        try:
-            logger.info(f"🎤 Hero365 Voice Agent entering room: {room.name if room else 'unknown'}")
-            
-            # Store room reference for metadata access
+        logger.info("🔧 Hero365VoiceAgent.on_enter called")
+        
+        if room:
             self.room = room
-            
-            # Extract user and business IDs from room metadata
-            session_info = self._extract_session_info(room)
-            self.user_id = session_info.get('user_id')
-            self.business_id = session_info.get('business_id')
-            
-            logger.info(f"🎯 Agent initialized for user: {self.user_id}, business: {self.business_id}")
-            
-            # Initialize business context if we have the required IDs
-            if self.user_id and self.business_id:
-                await self._initialize_business_context()
-            else:
-                logger.warning("⚠️ Missing user_id or business_id, using defaults")
+            logger.info(f"🔧 Agent entered room: {room.name}")
+        
+        # If we don't have business context yet, try to load it from the room
+        if not self.business_context and room:
+            try:
+                # Extract user_id and business_id from room metadata if available
+                metadata = getattr(room, 'metadata', {}) or {}
+                user_id = metadata.get('user_id')
+                business_id = metadata.get('business_id')
                 
-        except Exception as e:
-            logger.error(f"❌ Error in on_enter: {e}")
-            # Continue with defaults if initialization fails
-            
+                if user_id and business_id:
+                    logger.info(f"🔧 Loading context for user_id: {user_id}, business_id: {business_id}")
+                    
+                    # Initialize business context manager and load context
+                    self.business_context_manager = BusinessContextManager()
+                    await self.business_context_manager.load_business_context(user_id, business_id)
+                    self.business_context = self.business_context_manager.get_context()
+                    
+                    logger.info(f"🔧 Context loaded: {bool(self.business_context)}")
+                else:
+                    logger.warning("🔧 No user_id or business_id found in room metadata")
+                    
+            except Exception as e:
+                logger.error(f"🔧 Error loading business context: {e}")
+        else:
+            logger.info(f"🔧 Using preloaded context: {bool(self.business_context)}")
+        
+        logger.info("🔧 Hero365VoiceAgent.on_enter completed")
+        
     def _extract_session_info(self, room) -> Dict[str, Any]:
         """Extract session information from room metadata"""
         try:
@@ -147,57 +223,13 @@ Always be professional, helpful, and use the available tools to provide accurate
         except Exception as e:
             logger.error(f"❌ Error initializing business context: {e}")
             self.business_context = None
-    
-    @function_tool
-    def get_business_info(self) -> str:
-        """Get current business information including name, type, and contact details"""
-        logger.info("🔧 get_business_info tool called")
-        
-        if not self.business_context:
-            return "Business information is not available at the moment."
-            
-        info = []
-        if self.business_context.get('business_name'):
-            info.append(f"Business Name: {self.business_context['business_name']}")
-        if self.business_context.get('business_type'):
-            info.append(f"Business Type: {self.business_context['business_type']}")
-        if self.business_context.get('phone'):
-            info.append(f"Phone: {self.business_context['phone']}")
-        if self.business_context.get('email'):
-            info.append(f"Email: {self.business_context['email']}")
-        if self.business_context.get('address'):
-            info.append(f"Address: {self.business_context['address']}")
-            
-        return "\n".join(info) if info else "Business information is not available."
-    
-    @function_tool
-    def get_user_info(self) -> str:
-        """Get current user information"""
-        logger.info("🔧 get_user_info tool called")
-        
-        if not self.business_context:
-            return "User information is not available at the moment."
-            
-        user_name = self.business_context.get('user_name', 'User')
-        return f"User Name: {user_name}"
-    
-    @function_tool
-    def get_business_status(self) -> str:
-        """Get complete business status and activity overview"""
-        logger.info("🔧 get_business_status tool called")
-        
-        if not self.business_context:
-            return "Business overview is not available at the moment."
-            
-        overview = []
-        overview.append(f"Business: {self.business_context.get('business_name', 'Unknown')}")
-        overview.append(f"Recent Contacts: {self.business_context.get('recent_contacts_count', 0)}")
-        overview.append(f"Active Jobs: {self.business_context.get('active_jobs', 0)}")
-        overview.append(f"Pending Estimates: {self.business_context.get('pending_estimates', 0)}")
-        overview.append(f"Recent Jobs: {self.business_context.get('recent_jobs_count', 0)}")
-        overview.append(f"Recent Estimates: {self.business_context.get('recent_estimates_count', 0)}")
-        
-        return "\n".join(overview)
+
+
+# Helper function to create agent with preloaded context
+def create_agent_with_context(business_context: dict = None, user_context: dict = None) -> Hero365VoiceAgent:
+    """Create a Hero365VoiceAgent with preloaded business and user context"""
+    logger.info("🔧 Creating agent with preloaded context")
+    return Hero365VoiceAgent(business_context=business_context, user_context=user_context)
 
 
 async def entrypoint(ctx: JobContext):
@@ -213,8 +245,21 @@ async def entrypoint(ctx: JobContext):
         config = LiveKitConfig()
         voice_config = config.get_voice_pipeline_config()
         
-        # Initialize the agent
-        agent = Hero365VoiceAgent()
+        # Check for preloaded context in job metadata
+        business_context = None
+        user_context = None
+        
+        if hasattr(ctx.job, 'metadata') and ctx.job.metadata:
+            try:
+                metadata = json.loads(ctx.job.metadata)
+                business_context = metadata.get('business_context')
+                user_context = metadata.get('user_context')
+                logger.info(f"🔧 Found preloaded context in job metadata: business={bool(business_context)}, user={bool(user_context)}")
+            except Exception as e:
+                logger.warning(f"🔧 Error parsing job metadata: {e}")
+        
+        # Initialize the agent with context if available
+        agent = Hero365VoiceAgent(business_context=business_context, user_context=user_context)
         
         # Create agent session with proper configuration
         session = AgentSession(
