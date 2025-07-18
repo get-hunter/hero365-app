@@ -37,7 +37,7 @@ class ContextLoader:
             
             if business:
                 return BusinessContext(
-                    business_id=business.id,
+                    business_id=str(business.id),  # Convert UUID to string
                     business_name=business.name,
                     business_type=business.business_type.value if business.business_type else "Service",
                     owner_name="Owner",  # We only have owner_id, not owner_name
@@ -153,21 +153,21 @@ class ContextLoader:
             recent_contacts = []
             for contact in contacts:
                 # Get recent interactions
-                recent_jobs = await self._get_recent_jobs_for_contact(contact.id)
-                recent_estimates = await self._get_recent_estimates_for_contact(contact.id)
+                recent_jobs = await self._get_recent_jobs_for_contact(str(contact.id))
+                recent_estimates = await self._get_recent_estimates_for_contact(str(contact.id))
                 
                 # Determine priority based on recent activity
                 priority = self._calculate_contact_priority(contact, recent_jobs, recent_estimates)
                 
                 recent_contacts.append(RecentContact(
-                    id=contact.id,
+                    id=str(contact.id),  # Convert UUID to string
                     name=contact.get_display_name(),
                     phone=contact.phone,
                     email=contact.email,
                     contact_type=contact.contact_type.value if contact.contact_type else "customer",
                     last_interaction=contact.last_modified or contact.created_date,
-                    recent_jobs=[job.id for job in recent_jobs],
-                    recent_estimates=[est.id for est in recent_estimates],
+                    recent_jobs=[str(job.id) for job in recent_jobs],  # Convert UUIDs to strings
+                    recent_estimates=[str(est.id) for est in recent_estimates],  # Convert UUIDs to strings
                     priority=priority
                 ))
             
@@ -191,16 +191,16 @@ class ContextLoader:
             recent_jobs = []
             for job in jobs:
                 # Get contact name
-                contact_name = await self._get_contact_name(job.contact_id)
+                contact_name = await self._get_contact_name(str(job.contact_id))
                 
                 # Convert domain status to model status
                 status = self._convert_job_status(job.status)
                 priority = self._convert_job_priority(job.priority)
                 
                 recent_jobs.append(RecentJob(
-                    id=job.id,
+                    id=str(job.id),  # Convert UUID to string
                     title=job.title,
-                    contact_id=job.contact_id,
+                    contact_id=str(job.contact_id),  # Convert UUID to string
                     contact_name=contact_name,
                     status=status,
                     scheduled_date=job.scheduled_date,
@@ -230,15 +230,15 @@ class ContextLoader:
             recent_estimates = []
             for estimate in estimates:
                 # Get contact name
-                contact_name = await self._get_contact_name(estimate.contact_id)
+                contact_name = await self._get_contact_name(str(estimate.contact_id))
                 
                 # Convert domain status to model status
                 status = self._convert_estimate_status(estimate.status)
                 
                 recent_estimates.append(RecentEstimate(
-                    id=estimate.id,
+                    id=str(estimate.id),  # Convert UUID to string
                     title=estimate.title,
-                    contact_id=estimate.contact_id,
+                    contact_id=str(estimate.contact_id),  # Convert UUID to string
                     contact_name=contact_name,
                     status=status,
                     total_amount=estimate.total_amount,
@@ -277,7 +277,13 @@ class ContextLoader:
             if not self.container:
                 return []
             job_repo = self.container.get_job_repository()
-            return await job_repo.get_by_contact_id(contact_id, limit=5)
+            # Convert string to UUID if needed
+            if isinstance(contact_id, str):
+                import uuid
+                contact_uuid = uuid.UUID(contact_id)
+            else:
+                contact_uuid = contact_id
+            return await job_repo.get_by_contact_id(contact_uuid, limit=5)
         except Exception as e:
             logger.error(f"❌ Error getting recent jobs for contact: {e}")
             return []
@@ -288,7 +294,13 @@ class ContextLoader:
             if not self.container:
                 return []
             estimate_repo = self.container.get_estimate_repository()
-            return await estimate_repo.get_by_contact_id(contact_id, limit=5)
+            # Convert string to UUID if needed
+            if isinstance(contact_id, str):
+                import uuid
+                contact_uuid = uuid.UUID(contact_id)
+            else:
+                contact_uuid = contact_id
+            return await estimate_repo.get_by_contact_id(contact_uuid, limit=5)
         except Exception as e:
             logger.error(f"❌ Error getting recent estimates for contact: {e}")
             return []
@@ -299,7 +311,13 @@ class ContextLoader:
             if not self.container:
                 return "Unknown Contact"
             contact_repo = self.container.get_contact_repository()
-            contact = await contact_repo.get_by_id(contact_id)
+            # Convert string to UUID if needed
+            if isinstance(contact_id, str):
+                import uuid
+                contact_uuid = uuid.UUID(contact_id)
+            else:
+                contact_uuid = contact_id
+            contact = await contact_repo.get_by_id(contact_uuid)
             return contact.get_display_name() if contact else "Unknown Contact"
         except Exception as e:
             logger.error(f"❌ Error getting contact name: {e}")
