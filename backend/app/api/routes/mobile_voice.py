@@ -1,10 +1,11 @@
 """
 Mobile Voice Integration API
-Simplified implementation without complex context management
+Enhanced implementation with context preloading
 """
 
 import logging
 import uuid
+import json
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
@@ -20,10 +21,8 @@ from ...api.schemas.mobile_voice_schemas import (
     MobileDeviceInfo,
     VoiceSessionStatus
 )
-# Context management and metrics are no longer needed for the simplified implementation
-# from ...livekit_agents.context_management import get_context_manager
-# from ...livekit_agents.monitoring.metrics import get_metrics
 from ...livekit_agents.config import LiveKitConfig
+from ...livekit_agents.context_preloader import ContextPreloader
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/mobile/voice", tags=["Mobile Voice Integration"])
@@ -59,12 +58,13 @@ async def start_voice_session(
     business_context: dict = Depends(get_business_context)
 ) -> VoiceSessionResponse:
     """
-    Start a new voice session with LiveKit agents.
+    Start a new voice session with LiveKit agents and preloaded business context.
     
     This endpoint:
-    1. Creates a new LiveKit room
-    2. Generates access tokens for mobile app
-    3. Initializes basic session context
+    1. Preloads business context for the user and business
+    2. Creates a new LiveKit room with enriched metadata
+    3. Generates access tokens for mobile app
+    4. Ensures context is available when the agent starts
     """
     try:
         # Extract user_id and business_id from dependencies
@@ -77,19 +77,62 @@ async def start_voice_session(
         
         logger.info(f"🎙️ Starting voice session {session_id} for user {user_id}")
         
-        # Create LiveKit room
+        # Preload business context
+        logger.info(f"🔄 Preloading business context for session {session_id}")
+        context_preloader = ContextPreloader()
+        preloaded_context = await context_preloader.preload_context(user_id, business_id)
+        
+        # Create comprehensive room metadata with preloaded context
+        room_metadata = {
+            'session_id': session_id,
+            'user_id': user_id,
+            'business_id': business_id,
+            'created_at': datetime.utcnow().isoformat(),
+            'device_info': {
+                'device_name': request.device_info.device_name,
+                'device_model': request.device_info.device_model,
+                'os_version': request.device_info.os_version,
+                'app_version': request.device_info.app_version,
+                'network_type': request.device_info.network_type
+            },
+            'session_config': {
+                'session_type': request.session_type.value,
+                'language': request.language,
+                'background_audio_enabled': request.background_audio_enabled,
+                'max_duration_minutes': request.max_duration_minutes
+            },
+            # Include preloaded business context
+            'preloaded_context': preloaded_context
+        }
+        
+        # Ensure metadata is JSON serializable
+        try:
+            metadata_json = json.dumps(room_metadata, ensure_ascii=False, separators=(',', ':'))
+            logger.info(f"✅ Room metadata serialized successfully ({len(metadata_json)} characters)")
+        except Exception as e:
+            logger.error(f"❌ Error serializing room metadata: {e}")
+            # Fallback to basic metadata without preloaded context
+            room_metadata = {
+                'session_id': session_id,
+                'user_id': user_id,
+                'business_id': business_id,
+                'created_at': datetime.utcnow().isoformat(),
+                'error': 'Context serialization failed',
+                'fallback_mode': True
+            }
+            metadata_json = json.dumps(room_metadata, ensure_ascii=False, separators=(',', ':'))
+            logger.warning(f"⚠️ Using fallback metadata due to serialization error")
+        
+        # Create LiveKit room with enriched metadata
         room_config = api.CreateRoomRequest(
             name=room_name,
             empty_timeout=300,  # 5 minutes
             max_participants=2,  # User + Agent
-            metadata=f'{{"session_id": "{session_id}", "user_id": "{user_id}", "business_id": "{business_id}"}}'
+            metadata=metadata_json
         )
         
         room = await get_livekit_api().room.create_room(room_config)
-        logger.info(f"✅ Created LiveKit room: {room_name}")
-        
-        # Note: With LiveKit Agents 1.0, agents automatically join rooms when participants connect
-        # No manual dispatch is needed - the worker will automatically receive the job
+        logger.info(f"✅ Created LiveKit room: {room_name} with preloaded context")
         
         # Generate access token for mobile app
         token = api.AccessToken(config.LIVEKIT_API_KEY, config.LIVEKIT_API_SECRET)
@@ -106,11 +149,7 @@ async def start_voice_session(
         token.with_ttl(timedelta(hours=24))
         access_token = token.to_jwt()
         
-        # Context management and metrics are handled by the LiveKit agents framework
-        logger.info(f"📊 Session {session_id} context will be managed by LiveKit agents")
-        
-        # Schedule background cleanup only if there's a time limit
-        logger.info(f"🔄 Checking for background cleanup for session {session_id}")
+        # Schedule background cleanup if needed
         if request.max_duration_minutes is not None:
             logger.info(f"🔄 Adding background cleanup task for session {session_id}")
             background_tasks.add_task(
@@ -119,10 +158,8 @@ async def start_voice_session(
                 room_name,
                 request.max_duration_minutes
             )
-        logger.info(f"🔄 Background cleanup check completed for session {session_id}")
         
         # Prepare voice configuration optimized for mobile
-        logger.info(f"⚙️ Preparing voice configuration for session {session_id}")
         voice_config = {
             "audio_settings": {
                 "sample_rate": 16000,
@@ -134,9 +171,9 @@ async def start_voice_session(
             },
             "voice_pipeline": {
                 "stt_language": request.language or "en-US",
-                "tts_voice": "professional_male",  # Optimized for mobile speakers
-                "response_timeout": 10000,  # 10 seconds
-                "silence_timeout": 3000     # 3 seconds
+                "tts_voice": "professional_male",
+                "response_timeout": 10000,
+                "silence_timeout": 3000
             },
             "mobile_optimizations": {
                 "low_bandwidth_mode": request.device_info.network_type == "cellular",
@@ -144,9 +181,8 @@ async def start_voice_session(
                 "background_audio": request.background_audio_enabled
             }
         }
-        logger.info(f"⚙️ Voice configuration prepared for session {session_id}")
         
-        logger.info(f"📝 Creating response for session {session_id}")
+        # Create response with context status
         response = VoiceSessionResponse(
             session_id=session_id,
             room_name=room_name,
@@ -157,7 +193,6 @@ async def start_voice_session(
                 "Contact management",
                 "Job scheduling", 
                 "Estimate creation",
-                "Weather information",
                 "Business analytics",
                 "Universal search"
             ],
@@ -165,8 +200,10 @@ async def start_voice_session(
             status=VoiceSessionStatus.active
         )
         
-        logger.info(f"🚀 Voice session {session_id} started successfully")
-        logger.info(f"📤 Returning response for session {session_id}")
+        # Log successful creation with context status
+        context_status = "✅ with preloaded context" if not preloaded_context.get('error') else "⚠️ with fallback context"
+        logger.info(f"🚀 Voice session {session_id} started successfully {context_status}")
+        
         return response
         
     except Exception as e:
@@ -322,24 +359,19 @@ async def voice_system_health() -> Dict[str, Any]:
 
 
 async def schedule_session_cleanup(session_id: str, room_name: str, max_duration_minutes: int):
-    """Background task to cleanup session after maximum duration."""
-    import asyncio
-    
-    # Wait for max duration
-    await asyncio.sleep(max_duration_minutes * 60)
-    
+    """Schedule cleanup for a voice session after max duration"""
     try:
-        logger.info(f"⏰ Auto-cleanup session {session_id} after {max_duration_minutes} minutes")
+        import asyncio
         
-        # Delete room
-        try:
-            await get_livekit_api().room.delete_room(api.DeleteRoomRequest(room=room_name))
-            logger.info(f"🏠 Auto-deleted LiveKit room: {room_name}")
-        except:
-            pass
-            
+        # Wait for the specified duration
+        await asyncio.sleep(max_duration_minutes * 60)
+        
+        # Close the room
+        await get_livekit_api().room.delete_room(api.DeleteRoomRequest(room=room_name))
+        logger.info(f"🧹 Cleaned up expired voice session {session_id}")
+        
     except Exception as e:
-        logger.error(f"❌ Failed auto-cleanup for session {session_id}: {e}")
+        logger.error(f"❌ Error cleaning up session {session_id}: {e}")
 
 
 @router.get("/agent-capabilities")

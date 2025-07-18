@@ -4203,13 +4203,13 @@ export class MiddlewareHealthService {
 export class MobileVoiceIntegrationService {
   /**
    * Start Voice Session
-   * Start a new voice session with LiveKit agents.
+   * Start a new voice session with LiveKit agents and preloaded business context.
    *
    * This endpoint:
-   * 1. Creates a new LiveKit room
-   * 2. Generates access tokens for mobile app
-   * 3. Initializes agent context
-   * 4. Starts monitoring and metrics
+   * 1. Preloads business context for the user and business
+   * 2. Creates a new LiveKit room with enriched metadata
+   * 3. Generates access tokens for mobile app
+   * 4. Ensures context is available when the agent starts
    * @param data The data for the request.
    * @param data.requestBody
    * @returns VoiceSessionResponse Successful Response

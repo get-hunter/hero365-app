@@ -545,13 +545,17 @@ class BusinessContextManager:
         """Get recent estimates with optional limit"""
         return self.recent_estimates[:limit]
     
-    def get_business_summary(self) -> Optional[BusinessSummary]:
-        """Get business summary"""
-        return self.business_summary
+    def get_recent_payments(self, limit: int = 10) -> List[RecentPayment]:
+        """Get recent payments with optional limit"""
+        return self.recent_payments[:limit]
     
     def get_contextual_suggestions(self) -> Optional[ContextualSuggestions]:
         """Get contextual suggestions"""
         return self.contextual_suggestions
+    
+    def get_business_summary(self) -> Optional[BusinessSummary]:
+        """Get business summary"""
+        return self.business_summary
     
     def find_contact_by_name(self, name: str) -> Optional[RecentContact]:
         """Find contact by name (fuzzy search)"""

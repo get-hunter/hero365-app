@@ -1,6 +1,6 @@
 """
 Hero365 Voice Agent Worker for LiveKit Integration
-Handles voice interactions with business context awareness
+Enhanced with preloaded business context support
 """
 
 import asyncio
@@ -22,6 +22,8 @@ from livekit.plugins import deepgram, openai, cartesia, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from .config import LiveKitConfig
+from .context_preloader import ContextPreloader
+from .context_validator import ContextValidator
 from .business_context_manager import BusinessContextManager
 from ..infrastructure.config.dependency_injection import get_container
 
@@ -29,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class Hero365VoiceAgent(Agent):
-    """Main Hero365 Voice Agent with business context awareness"""
+    """Main Hero365 Voice Agent with enhanced business context support"""
     
     def __init__(self, business_context: dict = None, user_context: dict = None):
         logger.info("🔧 Hero365VoiceAgent.__init__ called")
@@ -44,17 +46,35 @@ class Hero365VoiceAgent(Agent):
         
         logger.info(f"🔧 Agent initialized with business context: {bool(self.business_context)}")
         
-        # Initialize as LiveKit Agent with instructions only
+        # Initialize as LiveKit Agent with enhanced instructions
         super().__init__(
-            instructions="""You are the Hero365 AI Assistant, a specialized voice agent for home service businesses.
+            instructions=self._generate_context_aware_instructions()
+        )
+        
+    def _generate_context_aware_instructions(self) -> str:
+        """Generate context-aware instructions based on available business context"""
+        base_instructions = """You are the Hero365 AI Assistant, a specialized voice agent for home service businesses."""
+        
+        if self.business_context:
+            # Add business-specific context to instructions
+            business_name = self.business_context.get('business_name', 'your business')
+            business_type = self.business_context.get('business_type', 'home service business')
+            user_name = self.business_context.get('user_name', 'User')
+            
+            context_instructions = f"""
+            
+BUSINESS CONTEXT:
+- You are speaking with {user_name} from {business_name}
+- This is a {business_type}
+- You have access to current business information and can help with specific tasks
 
 IMPORTANT INSTRUCTIONS:
-1. When users ask about business information (name, type, contact details), ALWAYS use the get_business_info tool to get accurate information.
-2. When users ask about their name or user information, ALWAYS use the get_user_info tool.
-3. When users ask for business overview or status, use the get_business_status tool.
-4. NEVER make assumptions about business details - always use the tools to get real data.
-5. Be helpful, professional, and conversational in your responses.
-6. If business information is not available, inform the user politely.
+1. When users ask about business information, use the get_business_info tool for accurate details
+2. When users ask about their name or user information, use the get_user_info tool
+3. When users ask for business overview or status, use the get_business_status tool
+4. Always use the available tools to get real, current data
+5. Be helpful, professional, and conversational in your responses
+6. Reference the business context naturally in your responses
 
 You help with:
 - Managing contacts and customer relationships
@@ -64,7 +84,27 @@ You help with:
 - General business management tasks
 
 Always be professional, helpful, and use the available tools to provide accurate information."""
-        )
+        else:
+            context_instructions = """
+
+IMPORTANT INSTRUCTIONS:
+1. When users ask about business information, use the get_business_info tool
+2. When users ask about their name or user information, use the get_user_info tool
+3. When users ask for business overview or status, use the get_business_status tool
+4. Always use the available tools to get real data
+5. Be helpful, professional, and conversational in your responses
+6. If business information is not available, inform the user politely
+
+You help with:
+- Managing contacts and customer relationships
+- Creating and tracking estimates and invoices
+- Scheduling jobs and appointments
+- Providing business insights and overviews
+- General business management tasks
+
+Always be professional, helpful, and use the available tools to provide accurate information."""
+        
+        return base_instructions + context_instructions
         
     @function_tool
     async def get_business_info(self) -> str:
@@ -127,139 +167,187 @@ Always be professional, helpful, and use the available tools to provide accurate
             status.append(f"Pending Estimates: {self.business_context['pending_estimates']}")
         if self.business_context.get('total_contacts'):
             status.append(f"Total Contacts: {self.business_context['total_contacts']}")
-        if self.business_context.get('recent_activities'):
-            status.append(f"Recent Activities: {self.business_context['recent_activities']}")
+        if self.business_context.get('recent_contacts_count'):
+            status.append(f"Recent Contacts: {self.business_context['recent_contacts_count']}")
+        if self.business_context.get('revenue_this_month'):
+            status.append(f"Revenue This Month: ${self.business_context['revenue_this_month']}")
+        if self.business_context.get('jobs_this_week'):
+            status.append(f"Jobs This Week: {self.business_context['jobs_this_week']}")
             
         return "\n".join(status) if status else "Business status is not available."
-        
-    async def on_enter(self, room=None):
-        """Initialize agent when entering a room"""
-        logger.info("🔧 Hero365VoiceAgent.on_enter called")
-        
-        if room:
-            self.room = room
-            logger.info(f"🔧 Agent entered room: {room.name}")
-        
-        # If we don't have business context yet, try to load it from the room
-        if not self.business_context and room:
-            try:
-                # Extract user_id and business_id from room metadata if available
-                metadata = getattr(room, 'metadata', {}) or {}
-                user_id = metadata.get('user_id')
-                business_id = metadata.get('business_id')
-                
-                if user_id and business_id:
-                    logger.info(f"🔧 Loading context for user_id: {user_id}, business_id: {business_id}")
-                    
-                    # Initialize business context manager and load context
-                    self.business_context_manager = BusinessContextManager()
-                    await self.business_context_manager.load_business_context(user_id, business_id)
-                    self.business_context = self.business_context_manager.get_context()
-                    
-                    logger.info(f"🔧 Context loaded: {bool(self.business_context)}")
-                else:
-                    logger.warning("🔧 No user_id or business_id found in room metadata")
-                    
-            except Exception as e:
-                logger.error(f"🔧 Error loading business context: {e}")
-        else:
-            logger.info(f"🔧 Using preloaded context: {bool(self.business_context)}")
-        
-        logger.info("🔧 Hero365VoiceAgent.on_enter completed")
-        
-    def _extract_session_info(self, room) -> Dict[str, Any]:
-        """Extract session information from room metadata"""
-        try:
-            if room and hasattr(room, 'metadata') and room.metadata:
-                # Parse JSON metadata from room
-                metadata = json.loads(room.metadata)
-                logger.info(f"📊 Extracted room metadata: {metadata}")
-                return {
-                    'user_id': metadata.get('user_id'),
-                    'business_id': metadata.get('business_id'),
-                    'session_id': metadata.get('session_id')
-                }
-        except Exception as e:
-            logger.error(f"❌ Error parsing room metadata: {e}")
-            
-        # Return defaults if metadata parsing fails
-        return {
-            'user_id': 'c0760bda-b547-4151-990f-eef1169f90b1',  # Default user ID
-            'business_id': '660e8400-e29b-41d4-a716-446655440000',  # Default business ID
-            'session_id': 'default_session'
-        }
-    
-    async def _initialize_business_context(self):
-        """Initialize business context with user and business data"""
-        try:
-            container = get_container()
-            await self.business_context_manager.initialize(
-                self.user_id, 
-                self.business_id, 
-                container
-            )
-            
-            # Get business context for the agent
-            context = self.business_context_manager.get_business_context()
-            if context:
-                self.business_context = {
-                    'business_name': context.business_name,
-                    'business_type': context.business_type,
-                    'user_name': getattr(context, 'user_name', 'User'),  # Use getattr with default
-                    'phone': context.phone,
-                    'email': context.email,
-                    'address': context.address,
-                    'recent_contacts_count': context.recent_contacts_count,
-                    'recent_jobs_count': context.recent_jobs_count,
-                    'recent_estimates_count': context.recent_estimates_count,
-                    'active_jobs': context.active_jobs,
-                    'pending_estimates': context.pending_estimates,
-                    'last_refresh': context.last_refresh
-                }
-                logger.info(f"✅ Business context loaded: {self.business_context}")
-            else:
-                logger.warning("⚠️ No business context found")
-            
-        except Exception as e:
-            logger.error(f"❌ Error initializing business context: {e}")
-            self.business_context = None
-
-
-# Helper function to create agent with preloaded context
-def create_agent_with_context(business_context: dict = None, user_context: dict = None) -> Hero365VoiceAgent:
-    """Create a Hero365VoiceAgent with preloaded business and user context"""
-    logger.info("🔧 Creating agent with preloaded context")
-    return Hero365VoiceAgent(business_context=business_context, user_context=user_context)
 
 
 async def entrypoint(ctx: JobContext):
-    """Main entrypoint for the Hero365 Voice Agent"""
+    """Enhanced entrypoint for the Hero365 Voice Agent with comprehensive context validation"""
     try:
         logger.info(f"🚀 Hero365 Voice Agent starting for job: {ctx.job.id}")
+        
+        # Initialize context validator
+        validator = ContextValidator()
         
         # Connect to the room first
         await ctx.connect()
         logger.info(f"✅ Connected to room: {ctx.room.name}")
         
-        # Get configuration
-        config = LiveKitConfig()
-        voice_config = config.get_voice_pipeline_config()
-        
-        # Check for preloaded context in job metadata
+        # Extract preloaded context from room metadata
         business_context = None
         user_context = None
         
-        if hasattr(ctx.job, 'metadata') and ctx.job.metadata:
-            try:
-                metadata = json.loads(ctx.job.metadata)
-                business_context = metadata.get('business_context')
-                user_context = metadata.get('user_context')
-                logger.info(f"🔧 Found preloaded context in job metadata: business={bool(business_context)}, user={bool(user_context)}")
-            except Exception as e:
-                logger.warning(f"🔧 Error parsing job metadata: {e}")
+        try:
+            # Parse room metadata for preloaded context
+            if ctx.room.metadata:
+                room_metadata = json.loads(ctx.room.metadata)
+                logger.info(f"📊 Room metadata parsed successfully")
+                
+                # Extract preloaded context
+                preloaded_context = room_metadata.get('preloaded_context')
+                if preloaded_context:
+                    logger.info(f"🔧 Found preloaded context in room metadata")
+                    
+                    # Validate preloaded context
+                    is_valid, errors = validator.validate_preloaded_context(preloaded_context)
+                    if not is_valid:
+                        logger.warning(f"⚠️ Preloaded context validation failed: {errors}")
+                        # Continue anyway, but log the issues
+                        for error in errors:
+                            logger.warning(f"  - {error}")
+                    else:
+                        logger.info(f"✅ Preloaded context validation passed")
+                    
+                    # Deserialize context for agent use
+                    context_preloader = ContextPreloader()
+                    agent_context = context_preloader.deserialize_context(preloaded_context)
+                    
+                    if agent_context:
+                        # Validate agent context
+                        agent_valid, agent_errors = validator.validate_agent_context(agent_context)
+                        if not agent_valid:
+                            logger.warning(f"⚠️ Agent context validation failed: {agent_errors}")
+                            for error in agent_errors:
+                                logger.warning(f"  - {error}")
+                        else:
+                            logger.info(f"✅ Agent context validation passed")
+                        
+                        # Log context status
+                        validator.log_context_status(agent_context, "Preloaded Agent")
+                        
+                        # Generate context report
+                        report = validator.generate_context_report(agent_context)
+                        logger.info(f"📋 Context Report: {report['validation_status']}, {report['completeness']:.1%} complete")
+                        
+                        business_context = agent_context
+                        user_context = {
+                            'user_name': agent_context.get('user_name'),
+                            'user_email': agent_context.get('user_email'),
+                            'user_role': agent_context.get('user_role'),
+                            'user_id': agent_context.get('user_id'),
+                            'user_permissions': agent_context.get('user_permissions', []),
+                            'user_preferences': agent_context.get('user_preferences', {})
+                        }
+                        logger.info(f"✅ Context deserialized successfully for agent")
+                    else:
+                        logger.warning("⚠️ Failed to deserialize preloaded context")
+                else:
+                    logger.warning("⚠️ No preloaded context found in room metadata")
+                    
+        except Exception as e:
+            logger.error(f"❌ Error extracting context from room metadata: {e}")
         
-        # Initialize the agent with context if available
+        # Fallback: Try to extract basic info from metadata and load context
+        if not business_context:
+            logger.info("🔄 Attempting fallback context loading")
+            try:
+                if ctx.room.metadata:
+                    room_metadata = json.loads(ctx.room.metadata)
+                    user_id = room_metadata.get('user_id')
+                    business_id = room_metadata.get('business_id')
+                    
+                    if user_id and business_id:
+                        logger.info(f"🔧 Loading context via fallback for user_id: {user_id}, business_id: {business_id}")
+                        
+                        # Initialize business context manager and load context
+                        context_manager = BusinessContextManager()
+                        container = get_container()
+                        await context_manager.initialize(user_id, business_id, container)
+                        
+                        # Convert to agent context format
+                        business_ctx = context_manager.get_business_context()
+                        user_ctx = context_manager.get_user_context()
+                        
+                        if business_ctx:
+                            business_context = {
+                                'business_name': business_ctx.business_name,
+                                'business_type': business_ctx.business_type,
+                                'phone': business_ctx.phone,
+                                'email': business_ctx.email,
+                                'address': business_ctx.address,
+                                'timezone': business_ctx.timezone,
+                                'active_jobs': business_ctx.active_jobs,
+                                'pending_estimates': business_ctx.pending_estimates,
+                                'recent_contacts_count': business_ctx.recent_contacts_count,
+                                'recent_jobs_count': business_ctx.recent_jobs_count,
+                                'recent_estimates_count': business_ctx.recent_estimates_count,
+                                'last_refresh': business_ctx.last_refresh.isoformat() if business_ctx.last_refresh else None
+                            }
+                            
+                            # Validate fallback context
+                            fallback_valid, fallback_errors = validator.validate_agent_context(business_context)
+                            if not fallback_valid:
+                                logger.warning(f"⚠️ Fallback context validation failed: {fallback_errors}")
+                            else:
+                                logger.info(f"✅ Fallback context validation passed")
+                            
+                            # Log fallback context status
+                            validator.log_context_status(business_context, "Fallback")
+                            
+                        if user_ctx:
+                            user_context = {
+                                'user_name': user_ctx.name,
+                                'user_email': user_ctx.email,
+                                'user_role': user_ctx.role,
+                                'user_id': user_ctx.user_id,
+                                'user_permissions': user_ctx.permissions,
+                                'user_preferences': user_ctx.preferences
+                            }
+                            
+                        logger.info(f"✅ Fallback context loaded successfully")
+                    else:
+                        logger.warning("⚠️ No user_id or business_id found for fallback loading")
+                        
+            except Exception as e:
+                logger.error(f"❌ Error in fallback context loading: {e}")
+        
+        # Final context validation and logging
+        if business_context:
+            # Generate final context report
+            final_report = validator.generate_context_report(business_context)
+            logger.info(f"🎯 Final Context Report:")
+            logger.info(f"  Status: {final_report['validation_status']}")
+            logger.info(f"  Completeness: {final_report['completeness']:.1%}")
+            logger.info(f"  Errors: {len(final_report['errors'])}")
+            logger.info(f"  Warnings: {len(final_report['warnings'])}")
+            
+            # Log business details
+            business_name = business_context.get('business_name', 'Unknown')
+            business_type = business_context.get('business_type', 'Unknown')
+            user_name = business_context.get('user_name', 'Unknown')
+            logger.info(f"🏢 Agent will serve {user_name} from {business_name} ({business_type})")
+            
+            # Log metrics
+            active_jobs = business_context.get('active_jobs', 0)
+            pending_estimates = business_context.get('pending_estimates', 0)
+            total_contacts = business_context.get('total_contacts', 0)
+            logger.info(f"📊 Business Metrics: {active_jobs} active jobs, {pending_estimates} pending estimates, {total_contacts} total contacts")
+            
+        else:
+            logger.warning("⚠️ Agent will start without business context - limited functionality available")
+        
+        # Initialize the agent with loaded context
         agent = Hero365VoiceAgent(business_context=business_context, user_context=user_context)
+        
+        # Get configuration
+        config = LiveKitConfig()
+        voice_config = config.get_voice_pipeline_config()
         
         # Create agent session with proper configuration
         session = AgentSession(
@@ -292,12 +380,16 @@ async def entrypoint(ctx: JobContext):
             agent=agent,
         )
         
-        # Generate initial greeting
-        await session.generate_reply(
-            instructions="Greet the user and introduce yourself as their Hero365 business assistant. Ask how you can help them today."
-        )
+        # Generate context-aware initial greeting
+        greeting_instructions = "Greet the user warmly and introduce yourself as their Hero365 business assistant."
+        if business_context and business_context.get('business_name'):
+            greeting_instructions += f" Mention that you're here to help with {business_context['business_name']} and ask how you can assist them today."
+        else:
+            greeting_instructions += " Ask how you can help them with their business today."
         
-        logger.info("🎤 Hero365 Agent ready to handle voice conversations")
+        await session.generate_reply(instructions=greeting_instructions)
+        
+        logger.info("🎤 Hero365 Agent ready to handle voice conversations with comprehensive context validation")
         
     except Exception as e:
         logger.error(f"❌ Error in entrypoint: {e}")
