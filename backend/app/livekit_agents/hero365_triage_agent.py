@@ -32,25 +32,18 @@ class Hero365TriageAgent(Agent):
         - Use tools when appropriate to provide accurate information
         """
         
-        # Initialize as LiveKit Agent with tools
-        super().__init__(
-            instructions=instructions,
-            tools=[
-                self.get_weather,
-                self.search_places,
-                self.get_directions,
-                self.web_search,
-                self.get_business_overview,
-                self.universal_search,
-            ]
-        )
-        
+        # Initialize business context manager
         self.config = config
         self.request_history = []
         self.user_preferences = {}
         
         # Initialize tools wrapper
         self.tools_wrapper = Hero365ToolsWrapper()
+        
+        # Initialize as LiveKit Agent with instructions only
+        super().__init__(instructions=instructions)
+        
+        logger.info("🎯 Triage agent initialized successfully")
     
     def set_business_context(self, business_context_manager):
         """Set business context manager for context-aware operations"""

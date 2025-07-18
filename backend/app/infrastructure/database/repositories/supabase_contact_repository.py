@@ -620,7 +620,7 @@ class SupabaseContactRepository(ContactRepository):
         address = None
         if data.get("address"):
             try:
-                from ...application.utils.address_utils import AddressUtils
+                from app.application.utils.address_utils import AddressUtils
                 address = AddressUtils.parse_address_from_jsonb(data.get("address"))
             except Exception as e:
                 logger.warning(f"Failed to parse address for contact {data.get('id')}: {str(e)}")

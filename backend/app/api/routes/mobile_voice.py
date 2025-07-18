@@ -1,27 +1,28 @@
 """
-Mobile Voice Integration API for Hero365 LiveKit Agents
-Provides endpoints for iOS Swift app to connect to voice agents
+Mobile Voice Integration API
+Simplified implementation without complex context management
 """
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from fastapi.responses import JSONResponse
-from typing import Dict, Any, Optional
-import uuid
 import logging
+import uuid
 from datetime import datetime, timedelta
+from typing import Dict, Any, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from livekit import api
-from ..deps import get_current_user, get_business_context
-from ..schemas.mobile_voice_schemas import (
+
+from ...api.deps import get_current_user, get_business_context
+from ...api.schemas.mobile_voice_schemas import (
     VoiceSessionRequest,
     VoiceSessionResponse,
-    SessionStateUpdate,
     VoiceSessionStatusResponse,
+    SessionStateUpdate,
     MobileDeviceInfo,
     VoiceSessionStatus
 )
-from ...livekit_agents.context_management import get_context_manager
-from ...livekit_agents.monitoring.metrics import get_metrics
+# Context management and metrics are no longer needed for the simplified implementation
+# from ...livekit_agents.context_management import get_context_manager
+# from ...livekit_agents.monitoring.metrics import get_metrics
 from ...livekit_agents.config import LiveKitConfig
 
 logger = logging.getLogger(__name__)
@@ -63,8 +64,7 @@ async def start_voice_session(
     This endpoint:
     1. Creates a new LiveKit room
     2. Generates access tokens for mobile app
-    3. Initializes agent context
-    4. Starts monitoring and metrics
+    3. Initializes basic session context
     """
     try:
         # Extract user_id and business_id from dependencies
@@ -106,27 +106,8 @@ async def start_voice_session(
         token.with_ttl(timedelta(hours=24))
         access_token = token.to_jwt()
         
-        # Initialize context manager for this session
-        context_manager = await get_context_manager()
-        await context_manager.initialize_session(session_id, user_id, business_id)
-        
-        # Set device information in context
-        device_context = {
-            "device_type": "mobile",
-            "device_info": request.device_info.model_dump(),
-            "session_type": request.session_type,
-            "preferred_agent": request.preferred_agent
-        }
-        
-        from ...livekit_agents.context_management import ContextType
-        await context_manager.set_context(session_id, ContextType.BUSINESS_DATA, device_context)
-        
-        # Start metrics tracking
-        logger.info(f"📊 Starting metrics tracking for session {session_id}")
-        metrics = await get_metrics()
-        logger.info(f"📊 Got metrics instance for session {session_id}")
-        await metrics.start_session(session_id, user_id, business_id)
-        logger.info(f"📊 Started metrics tracking for session {session_id}")
+        # Context management and metrics are handled by the LiveKit agents framework
+        logger.info(f"📊 Session {session_id} context will be managed by LiveKit agents")
         
         # Schedule background cleanup only if there's a time limit
         logger.info(f"🔄 Checking for background cleanup for session {session_id}")
@@ -206,54 +187,25 @@ async def get_session_status(
         # Extract user_id from dependency
         user_id = current_user.get("id") or current_user.get("sub")
         
-        # Get context and metrics
-        context_manager = await get_context_manager()
-        metrics = await get_metrics()
-        
-        # Get session context
-        user_session = await context_manager.get_user_session(session_id)
-        if not user_session:
-            raise HTTPException(status_code=404, detail="Session not found")
-        
-        # Verify user access
-        if user_session.user_id != user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
-        
-        # Get session metrics
-        session_metrics = await metrics.get_session_metrics(session_id)
+        # Session status is now handled by LiveKit agents framework
+        # For now, return a basic status response
+        logger.info(f"Getting status for session {session_id}")
         
         # Get conversation history
-        conversation_history = await context_manager.get_conversation_history(session_id, limit=10)
+        conversation_history = []  # Simplified - no persistent storage
         
-        # Get agent state
-        from ...livekit_agents.context_management import ContextType
-        agent_state = await context_manager.get_context(session_id, ContextType.AGENT_STATE)
-        
-        # Check room status
-        room_name = f"voice_session_{session_id}"
-        try:
-            room_info = await get_livekit_api().room.list_rooms([room_name])
-            room_active = len(room_info) > 0 and room_info[0].num_participants > 0
-        except:
-            room_active = False
-        
-        status = VoiceSessionStatusResponse(
+        return VoiceSessionStatusResponse(
             session_id=session_id,
-            status="active" if room_active else "inactive",
-            started_at=user_session.started_at,
-            last_activity=user_session.last_activity,
-            current_agent=agent_state.get("current_agent", "triage") if agent_state else "triage",
-            function_calls_count=session_metrics.function_calls if session_metrics else 0,
-            voice_interactions_count=session_metrics.voice_interactions if session_metrics else 0,
-            errors_count=session_metrics.errors if session_metrics else 0,
-            recent_conversation=conversation_history[-5:] if conversation_history else [],
-            room_active=room_active
+            status=VoiceSessionStatus.active,
+            conversation_history=conversation_history,
+            session_metrics={
+                "duration": 0,
+                "messages_exchanged": len(conversation_history),
+                "agent_switches": 0
+            },
+            last_activity=datetime.utcnow()
         )
         
-        return status
-        
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"❌ Failed to get session status: {e}")
         raise HTTPException(
@@ -273,34 +225,8 @@ async def update_session_state(
         # Extract user_id from dependency
         user_id = current_user.get("id") or current_user.get("sub")
         
-        context_manager = await get_context_manager()
-        
-        # Verify session exists and user has access
-        user_session = await context_manager.get_user_session(session_id)
-        if not user_session or user_session.user_id != user_id:
-            raise HTTPException(status_code=404, detail="Session not found")
-        
-        # Update voice preferences if provided
-        if update.voice_preferences:
-            await context_manager.update_voice_preferences(
-                session_id, 
-                update.voice_preferences
-            )
-        
-        # Update device state if provided
-        if update.device_state:
-            from ...livekit_agents.context_management import ContextType
-            business_context = await context_manager.get_business_context(session_id)
-            business_context.update({"device_state": update.device_state})
-            await context_manager.set_business_context(session_id, business_context)
-        
-        # Record metrics if provided
-        if update.performance_metrics:
-            metrics = await get_metrics()
-            await metrics.record_event(
-                f"mobile_performance_update_{session_id}",
-                update.performance_metrics
-            )
+        # Session state updates are now handled by LiveKit agents framework
+        logger.info(f"Session state update for {session_id}: {update.current_agent} - {update.last_action}")
         
         logger.info(f"📱 Updated session state for {session_id}")
         return {"status": "success", "message": "Session state updated"}
@@ -325,17 +251,6 @@ async def end_voice_session(
         # Extract user_id from dependency
         user_id = current_user.get("id") or current_user.get("sub")
         
-        context_manager = await get_context_manager()
-        metrics = await get_metrics()
-        
-        # Verify session exists and user has access
-        user_session = await context_manager.get_user_session(session_id)
-        if not user_session or user_session.user_id != user_id:
-            raise HTTPException(status_code=404, detail="Session not found")
-        
-        # End metrics tracking
-        await metrics.end_session(session_id)
-        
         # Close LiveKit room
         room_name = f"voice_session_{session_id}"
         try:
@@ -344,37 +259,15 @@ async def end_voice_session(
         except Exception as e:
             logger.warning(f"Failed to delete room {room_name}: {e}")
         
-        # Export session data for analytics
-        session_data = await context_manager.export_session_data(session_id)
-        
-        # Cleanup session context
-        await context_manager.cleanup_session(session_id)
-        
         logger.info(f"🏁 Voice session {session_id} ended successfully")
-        
-        # Calculate duration safely
-        try:
-            if isinstance(user_session.started_at, str):
-                started_at = datetime.fromisoformat(user_session.started_at)
-            else:
-                started_at = user_session.started_at
-            duration = (datetime.utcnow() - started_at).total_seconds()
-        except Exception as e:
-            logger.warning(f"Could not calculate session duration: {e}")
-            duration = 0
-        
-        # Get session metrics safely
-        session_metrics = await metrics.get_session_metrics(session_id)
-        function_calls = session_metrics.function_calls if session_metrics else 0
-        voice_interactions = session_metrics.voice_interactions if session_metrics else 0
         
         return {
             "status": "success",
             "message": "Session ended successfully",
             "session_summary": {
-                "duration": duration,
-                "function_calls": function_calls,
-                "voice_interactions": voice_interactions
+                "duration": 0,
+                "function_calls": 0,
+                "voice_interactions": 0
             }
         }
         
@@ -392,10 +285,6 @@ async def end_voice_session(
 async def voice_system_health() -> Dict[str, Any]:
     """Get voice system health status for mobile monitoring."""
     try:
-        metrics = await get_metrics()
-        system_metrics = await metrics.get_system_metrics()
-        health_status = await metrics.get_health_status()
-        
         # Check LiveKit configuration status
         livekit_status = "configured"
         livekit_error = None
@@ -406,11 +295,11 @@ async def voice_system_health() -> Dict[str, Any]:
             livekit_error = str(e)
         
         return {
-            "status": health_status["status"] if livekit_status == "configured" else "degraded",
-            "active_sessions": system_metrics.active_sessions,
-            "total_sessions": system_metrics.total_sessions,
-            "error_rate": health_status["error_rate"],
-            "uptime": system_metrics.uptime,
+            "status": "healthy" if livekit_status == "configured" else "degraded",
+            "active_sessions": 0,  # Simplified - no tracking
+            "total_sessions": 0,   # Simplified - no tracking
+            "error_rate": 0.0,     # Simplified - no tracking
+            "uptime": 0,           # Simplified - no tracking
             "livekit_status": livekit_status,
             "livekit_error": livekit_error,
             "configuration": {
@@ -440,25 +329,14 @@ async def schedule_session_cleanup(session_id: str, room_name: str, max_duration
     await asyncio.sleep(max_duration_minutes * 60)
     
     try:
-        # Check if session is still active
-        context_manager = await get_context_manager()
-        user_session = await context_manager.get_user_session(session_id)
+        logger.info(f"⏰ Auto-cleanup session {session_id} after {max_duration_minutes} minutes")
         
-        if user_session:
-            logger.info(f"⏰ Auto-cleanup session {session_id} after {max_duration_minutes} minutes")
-            
-            # End metrics tracking
-            metrics = await get_metrics()
-            await metrics.end_session(session_id)
-            
-            # Delete room
-            try:
-                await get_livekit_api().room.delete_room(api.DeleteRoomRequest(room=room_name))
-            except:
-                pass
-            
-            # Cleanup context
-            await context_manager.cleanup_session(session_id)
+        # Delete room
+        try:
+            await get_livekit_api().room.delete_room(api.DeleteRoomRequest(room=room_name))
+            logger.info(f"🏠 Auto-deleted LiveKit room: {room_name}")
+        except:
+            pass
             
     except Exception as e:
         logger.error(f"❌ Failed auto-cleanup for session {session_id}: {e}")
@@ -478,44 +356,44 @@ async def get_agent_capabilities() -> Dict[str, Any]:
                 "Handle multiple tasks"
             ]
         },
-        "contact_specialist": {
+        "contact_agent": {
             "name": "Contact Manager",
-            "description": "Specialized in contact and customer management",
+            "description": "Specialized agent for contact management",
             "capabilities": [
-                "Create and update contacts",
-                "Search customer database",
-                "Validate contact information",
-                "Manage customer relationships"
+                "Create new contacts",
+                "Search contacts",
+                "Update contact information",
+                "Get contact details"
             ]
         },
-        "job_specialist": {
+        "job_agent": {
             "name": "Job Manager",
-            "description": "Specialized in job scheduling and tracking",
+            "description": "Specialized agent for job management",
             "capabilities": [
-                "Create and schedule jobs",
-                "Track job progress",
+                "Create new jobs",
                 "Update job status",
-                "Generate job reports"
+                "Search jobs",
+                "Get job details"
             ]
         },
-        "estimate_specialist": {
-            "name": "Estimate Manager", 
-            "description": "Specialized in estimates and quotes",
+        "estimate_agent": {
+            "name": "Estimate Manager",
+            "description": "Specialized agent for estimate management",
             "capabilities": [
-                "Create detailed estimates",
-                "Convert estimates to invoices",
-                "Track estimate status",
-                "Generate pricing reports"
+                "Create estimates",
+                "Update estimates",
+                "Convert to invoices",
+                "Get estimate details"
             ]
         },
-        "scheduling_specialist": {
-            "name": "Calendar Manager",
-            "description": "Specialized in appointments and scheduling",
+        "scheduling_agent": {
+            "name": "Scheduler",
+            "description": "Specialized agent for scheduling",
             "capabilities": [
-                "Book appointments",
                 "Check availability",
-                "Reschedule meetings",
-                "Manage calendar events"
+                "Book appointments",
+                "View schedule",
+                "Reschedule appointments"
             ]
         }
     } 

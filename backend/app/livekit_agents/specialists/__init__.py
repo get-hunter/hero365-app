@@ -6,6 +6,8 @@ This package contains specialized agents for different business functions:
 - Job management 
 - Estimate management
 - Scheduling management
+
+All agents follow the simplified LiveKit 1.0 pattern with function_tool decorators.
 """
 
 from .contact_agent import ContactAgent

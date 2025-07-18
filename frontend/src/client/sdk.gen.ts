@@ -290,6 +290,16 @@ import type {
   MiddlewareHealthGetMiddlewareConfigResponse,
   MiddlewareHealthTestAuthenticationRequiredResponse,
   MiddlewareHealthTestBusinessContextRequiredResponse,
+  MobileVoiceIntegrationStartVoiceSessionData,
+  MobileVoiceIntegrationStartVoiceSessionResponse,
+  MobileVoiceIntegrationGetSessionStatusData,
+  MobileVoiceIntegrationGetSessionStatusResponse,
+  MobileVoiceIntegrationUpdateSessionStateData,
+  MobileVoiceIntegrationUpdateSessionStateResponse,
+  MobileVoiceIntegrationEndVoiceSessionData,
+  MobileVoiceIntegrationEndVoiceSessionResponse,
+  MobileVoiceIntegrationVoiceSystemHealthResponse,
+  MobileVoiceIntegrationGetAgentCapabilitiesResponse,
   CreateProductNoSlashData,
   CreateProductNoSlashResponse,
   ListProductsNoSlashData,
@@ -413,37 +423,6 @@ import type {
   UsersUpdateUserBusinessContextResponse,
   UtilsTestEmailData,
   UtilsTestEmailResponse,
-  VoiceAgentsStartVoiceSessionData,
-  VoiceAgentsStartVoiceSessionResponse,
-  VoiceAgentsProcessTextInputData,
-  VoiceAgentsProcessTextInputResponse,
-  VoiceAgentsProcessVoiceCommandData,
-  VoiceAgentsProcessVoiceCommandResponse,
-  VoiceAgentsGetPerformanceStatsResponse,
-  VoiceAgentsClearVoiceCacheResponse,
-  VoiceAgentsGetSessionStatusData,
-  VoiceAgentsGetSessionStatusResponse,
-  VoiceAgentsEndVoiceSessionData,
-  VoiceAgentsEndVoiceSessionResponse,
-  VoiceAgentsGetActiveSessionsResponse,
-  VoiceAgentsGetVoiceSystemStatusResponse,
-  VoiceAgentsUploadAudioData,
-  VoiceAgentsUploadAudioResponse,
-  VoiceAgentsGetVoiceMetricsResponse,
-  VoiceAgentsGetSessionMetricsData,
-  VoiceAgentsGetSessionMetricsResponse,
-  VoiceAgentsGetComprehensiveHealthResponse,
-  VoiceAgentsGetComponentHealthData,
-  VoiceAgentsGetComponentHealthResponse,
-  VoiceAgentsGetRecentErrorsData,
-  VoiceAgentsGetRecentErrorsResponse,
-  VoiceAgentsHealthCheckResponse,
-  VoiceAgentsAudioHealthCheckResponse,
-  VoiceAgentsGetSupportedAudioFormatsResponse,
-  VoiceAgentsGetSupportedVoicesResponse,
-  VoiceAgentsGetSupportedLanguagesResponse,
-  VoiceAgentsTestTextToSpeechData,
-  VoiceAgentsTestTextToSpeechResponse,
 } from "./types.gen"
 
 export class ActivitiesService {
@@ -4221,6 +4200,134 @@ export class MiddlewareHealthService {
   }
 }
 
+export class MobileVoiceIntegrationService {
+  /**
+   * Start Voice Session
+   * Start a new voice session with LiveKit agents.
+   *
+   * This endpoint:
+   * 1. Creates a new LiveKit room
+   * 2. Generates access tokens for mobile app
+   * 3. Initializes agent context
+   * 4. Starts monitoring and metrics
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns VoiceSessionResponse Successful Response
+   * @throws ApiError
+   */
+  public static startVoiceSession(
+    data: MobileVoiceIntegrationStartVoiceSessionData,
+  ): CancelablePromise<MobileVoiceIntegrationStartVoiceSessionResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/mobile/voice/session/start",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Session Status
+   * Get the current status of a voice session.
+   * @param data The data for the request.
+   * @param data.sessionId
+   * @returns VoiceSessionStatusResponse Successful Response
+   * @throws ApiError
+   */
+  public static getSessionStatus(
+    data: MobileVoiceIntegrationGetSessionStatusData,
+  ): CancelablePromise<MobileVoiceIntegrationGetSessionStatusResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/mobile/voice/session/{session_id}/status",
+      path: {
+        session_id: data.sessionId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Session State
+   * Update session state from mobile app.
+   * @param data The data for the request.
+   * @param data.sessionId
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static updateSessionState(
+    data: MobileVoiceIntegrationUpdateSessionStateData,
+  ): CancelablePromise<MobileVoiceIntegrationUpdateSessionStateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/mobile/voice/session/{session_id}/update-state",
+      path: {
+        session_id: data.sessionId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * End Voice Session
+   * End a voice session and cleanup resources.
+   * @param data The data for the request.
+   * @param data.sessionId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static endVoiceSession(
+    data: MobileVoiceIntegrationEndVoiceSessionData,
+  ): CancelablePromise<MobileVoiceIntegrationEndVoiceSessionResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/mobile/voice/session/{session_id}/end",
+      path: {
+        session_id: data.sessionId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Voice System Health
+   * Get voice system health status for mobile monitoring.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static voiceSystemHealth(): CancelablePromise<MobileVoiceIntegrationVoiceSystemHealthResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/mobile/voice/health",
+    })
+  }
+
+  /**
+   * Get Agent Capabilities
+   * Get available agent capabilities for mobile UI.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getAgentCapabilities(): CancelablePromise<MobileVoiceIntegrationGetAgentCapabilitiesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/mobile/voice/agent-capabilities",
+    })
+  }
+}
+
 export class ProductsService {
   /**
    * Create Product
@@ -5850,760 +5957,6 @@ export class UtilsService {
       url: "/api/v1/utils/test-email/",
       query: {
         email_to: data.emailTo,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-}
-
-export class VoiceService {
-  /**
-   * Start Voice Session
-   * Start a new voice session
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns VoiceSessionResponse Successful Response
-   * @throws ApiError
-   */
-  public static agentsStartVoiceSession(
-    data: VoiceAgentsStartVoiceSessionData,
-  ): CancelablePromise<VoiceAgentsStartVoiceSessionResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/start-session",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Process Text Input
-   * Process text input through the voice agent system
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns TextInputResponse Successful Response
-   * @throws ApiError
-   */
-  public static agentsProcessTextInput(
-    data: VoiceAgentsProcessTextInputData,
-  ): CancelablePromise<VoiceAgentsProcessTextInputResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/text-input",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Process Voice Command
-   * Process a voice command
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsProcessVoiceCommand(
-    data: VoiceAgentsProcessVoiceCommandData,
-  ): CancelablePromise<VoiceAgentsProcessVoiceCommandResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/voice-command",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Performance Stats
-   * Get voice agent performance statistics
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsGetPerformanceStats(): CancelablePromise<VoiceAgentsGetPerformanceStatsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/performance-stats",
-    })
-  }
-
-  /**
-   * Clear Voice Cache
-   * Clear voice agent cache (admin only)
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsClearVoiceCache(): CancelablePromise<VoiceAgentsClearVoiceCacheResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/clear-cache",
-    })
-  }
-
-  /**
-   * Get Session Status
-   * Get status of a voice session
-   * @param data The data for the request.
-   * @param data.sessionId
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsGetSessionStatus(
-    data: VoiceAgentsGetSessionStatusData,
-  ): CancelablePromise<VoiceAgentsGetSessionStatusResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/session/{session_id}/status",
-      path: {
-        session_id: data.sessionId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * End Voice Session
-   * End a voice session
-   * @param data The data for the request.
-   * @param data.sessionId
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsEndVoiceSession(
-    data: VoiceAgentsEndVoiceSessionData,
-  ): CancelablePromise<VoiceAgentsEndVoiceSessionResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/session/{session_id}/end",
-      path: {
-        session_id: data.sessionId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Active Sessions
-   * Get all active voice sessions
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsGetActiveSessions(): CancelablePromise<VoiceAgentsGetActiveSessionsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/sessions/active",
-    })
-  }
-
-  /**
-   * Get Voice System Status
-   * Get voice system status
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsGetVoiceSystemStatus(): CancelablePromise<VoiceAgentsGetVoiceSystemStatusResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/system/status",
-    })
-  }
-
-  /**
-   * Upload Audio
-   * Upload audio file for processing
-   * @param data The data for the request.
-   * @param data.sessionId
-   * @param data.formData
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsUploadAudio(
-    data: VoiceAgentsUploadAudioData,
-  ): CancelablePromise<VoiceAgentsUploadAudioResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/upload-audio/{session_id}",
-      path: {
-        session_id: data.sessionId,
-      },
-      formData: data.formData,
-      mediaType: "multipart/form-data",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Voice Metrics
-   * Get voice agent system metrics
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsGetVoiceMetrics(): CancelablePromise<VoiceAgentsGetVoiceMetricsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/metrics",
-    })
-  }
-
-  /**
-   * Get Session Metrics
-   * Get metrics for a specific session
-   * @param data The data for the request.
-   * @param data.sessionId
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsGetSessionMetrics(
-    data: VoiceAgentsGetSessionMetricsData,
-  ): CancelablePromise<VoiceAgentsGetSessionMetricsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/metrics/session/{session_id}",
-      path: {
-        session_id: data.sessionId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Comprehensive Health
-   * Get comprehensive health status of all voice agent components
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsGetComprehensiveHealth(): CancelablePromise<VoiceAgentsGetComprehensiveHealthResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/monitoring/health",
-    })
-  }
-
-  /**
-   * Get Component Health
-   * Get health status of a specific component
-   * @param data The data for the request.
-   * @param data.component
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsGetComponentHealth(
-    data: VoiceAgentsGetComponentHealthData,
-  ): CancelablePromise<VoiceAgentsGetComponentHealthResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/monitoring/health/{component}",
-      path: {
-        component: data.component,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Recent Errors
-   * Get recent errors from the voice system
-   * @param data The data for the request.
-   * @param data.limit
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsGetRecentErrors(
-    data: VoiceAgentsGetRecentErrorsData = {},
-  ): CancelablePromise<VoiceAgentsGetRecentErrorsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/monitoring/errors",
-      query: {
-        limit: data.limit,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Health Check
-   * Health check endpoint
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsHealthCheck(): CancelablePromise<VoiceAgentsHealthCheckResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/health",
-    })
-  }
-
-  /**
-   * Audio Health Check
-   * Detailed audio processor health check
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsAudioHealthCheck(): CancelablePromise<VoiceAgentsAudioHealthCheckResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/audio/health",
-    })
-  }
-
-  /**
-   * Get Supported Audio Formats
-   * Get supported audio formats
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsGetSupportedAudioFormats(): CancelablePromise<VoiceAgentsGetSupportedAudioFormatsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/audio/formats",
-    })
-  }
-
-  /**
-   * Get Supported Voices
-   * Get supported TTS voices
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsGetSupportedVoices(): CancelablePromise<VoiceAgentsGetSupportedVoicesResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/audio/voices",
-    })
-  }
-
-  /**
-   * Get Supported Languages
-   * Get supported languages for Whisper transcription
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsGetSupportedLanguages(): CancelablePromise<VoiceAgentsGetSupportedLanguagesResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/audio/languages",
-    })
-  }
-
-  /**
-   * Test Text To Speech
-   * Test text-to-speech conversion
-   * @param data The data for the request.
-   * @param data.text
-   * @param data.voice
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static agentsTestTextToSpeech(
-    data: VoiceAgentsTestTextToSpeechData,
-  ): CancelablePromise<VoiceAgentsTestTextToSpeechResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/audio/test-tts",
-      query: {
-        text: data.text,
-        voice: data.voice,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-}
-
-export class VoiceAgentsService {
-  /**
-   * Start Voice Session
-   * Start a new voice session
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns VoiceSessionResponse Successful Response
-   * @throws ApiError
-   */
-  public static startVoiceSession(
-    data: VoiceAgentsStartVoiceSessionData,
-  ): CancelablePromise<VoiceAgentsStartVoiceSessionResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/start-session",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Process Text Input
-   * Process text input through the voice agent system
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns TextInputResponse Successful Response
-   * @throws ApiError
-   */
-  public static processTextInput(
-    data: VoiceAgentsProcessTextInputData,
-  ): CancelablePromise<VoiceAgentsProcessTextInputResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/text-input",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Process Voice Command
-   * Process a voice command
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static processVoiceCommand(
-    data: VoiceAgentsProcessVoiceCommandData,
-  ): CancelablePromise<VoiceAgentsProcessVoiceCommandResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/voice-command",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Performance Stats
-   * Get voice agent performance statistics
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getPerformanceStats(): CancelablePromise<VoiceAgentsGetPerformanceStatsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/performance-stats",
-    })
-  }
-
-  /**
-   * Clear Voice Cache
-   * Clear voice agent cache (admin only)
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static clearVoiceCache(): CancelablePromise<VoiceAgentsClearVoiceCacheResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/clear-cache",
-    })
-  }
-
-  /**
-   * Get Session Status
-   * Get status of a voice session
-   * @param data The data for the request.
-   * @param data.sessionId
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getSessionStatus(
-    data: VoiceAgentsGetSessionStatusData,
-  ): CancelablePromise<VoiceAgentsGetSessionStatusResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/session/{session_id}/status",
-      path: {
-        session_id: data.sessionId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * End Voice Session
-   * End a voice session
-   * @param data The data for the request.
-   * @param data.sessionId
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static endVoiceSession(
-    data: VoiceAgentsEndVoiceSessionData,
-  ): CancelablePromise<VoiceAgentsEndVoiceSessionResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/session/{session_id}/end",
-      path: {
-        session_id: data.sessionId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Active Sessions
-   * Get all active voice sessions
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getActiveSessions(): CancelablePromise<VoiceAgentsGetActiveSessionsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/sessions/active",
-    })
-  }
-
-  /**
-   * Get Voice System Status
-   * Get voice system status
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getVoiceSystemStatus(): CancelablePromise<VoiceAgentsGetVoiceSystemStatusResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/system/status",
-    })
-  }
-
-  /**
-   * Upload Audio
-   * Upload audio file for processing
-   * @param data The data for the request.
-   * @param data.sessionId
-   * @param data.formData
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static uploadAudio(
-    data: VoiceAgentsUploadAudioData,
-  ): CancelablePromise<VoiceAgentsUploadAudioResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/upload-audio/{session_id}",
-      path: {
-        session_id: data.sessionId,
-      },
-      formData: data.formData,
-      mediaType: "multipart/form-data",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Voice Metrics
-   * Get voice agent system metrics
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getVoiceMetrics(): CancelablePromise<VoiceAgentsGetVoiceMetricsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/metrics",
-    })
-  }
-
-  /**
-   * Get Session Metrics
-   * Get metrics for a specific session
-   * @param data The data for the request.
-   * @param data.sessionId
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getSessionMetrics(
-    data: VoiceAgentsGetSessionMetricsData,
-  ): CancelablePromise<VoiceAgentsGetSessionMetricsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/metrics/session/{session_id}",
-      path: {
-        session_id: data.sessionId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Comprehensive Health
-   * Get comprehensive health status of all voice agent components
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getComprehensiveHealth(): CancelablePromise<VoiceAgentsGetComprehensiveHealthResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/monitoring/health",
-    })
-  }
-
-  /**
-   * Get Component Health
-   * Get health status of a specific component
-   * @param data The data for the request.
-   * @param data.component
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getComponentHealth(
-    data: VoiceAgentsGetComponentHealthData,
-  ): CancelablePromise<VoiceAgentsGetComponentHealthResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/monitoring/health/{component}",
-      path: {
-        component: data.component,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Recent Errors
-   * Get recent errors from the voice system
-   * @param data The data for the request.
-   * @param data.limit
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getRecentErrors(
-    data: VoiceAgentsGetRecentErrorsData = {},
-  ): CancelablePromise<VoiceAgentsGetRecentErrorsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/monitoring/errors",
-      query: {
-        limit: data.limit,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Health Check
-   * Health check endpoint
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static healthCheck(): CancelablePromise<VoiceAgentsHealthCheckResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/health",
-    })
-  }
-
-  /**
-   * Audio Health Check
-   * Detailed audio processor health check
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static audioHealthCheck(): CancelablePromise<VoiceAgentsAudioHealthCheckResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/audio/health",
-    })
-  }
-
-  /**
-   * Get Supported Audio Formats
-   * Get supported audio formats
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getSupportedAudioFormats(): CancelablePromise<VoiceAgentsGetSupportedAudioFormatsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/audio/formats",
-    })
-  }
-
-  /**
-   * Get Supported Voices
-   * Get supported TTS voices
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getSupportedVoices(): CancelablePromise<VoiceAgentsGetSupportedVoicesResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/audio/voices",
-    })
-  }
-
-  /**
-   * Get Supported Languages
-   * Get supported languages for Whisper transcription
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getSupportedLanguages(): CancelablePromise<VoiceAgentsGetSupportedLanguagesResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/voice/audio/languages",
-    })
-  }
-
-  /**
-   * Test Text To Speech
-   * Test text-to-speech conversion
-   * @param data The data for the request.
-   * @param data.text
-   * @param data.voice
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static testTextToSpeech(
-    data: VoiceAgentsTestTextToSpeechData,
-  ): CancelablePromise<VoiceAgentsTestTextToSpeechResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/voice/audio/test-tts",
-      query: {
-        text: data.text,
-        voice: data.voice,
       },
       errors: {
         422: "Validation Error",

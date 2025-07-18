@@ -1007,10 +1007,6 @@ export type Body_products_reserve_stock = {
   notes?: string | null
 }
 
-export type Body_Voice_Agents_upload_audio = {
-  audio_file: Blob | File
-}
-
 /**
  * Schema for bulk operation responses.
  */
@@ -2495,6 +2491,38 @@ export type ContactUpdateRequest = {
 }
 
 /**
+ * Single conversation entry
+ */
+export type ConversationEntry = {
+  /**
+   * Message timestamp
+   */
+  timestamp: string
+  /**
+   * 'user' or 'agent'
+   */
+  participant_type: string
+  /**
+   * Message content
+   */
+  content: string
+  /**
+   * Agent name if participant is agent
+   */
+  agent_name?: string | null
+  /**
+   * Speech recognition confidence
+   */
+  confidence?: number | null
+  /**
+   * Additional metadata
+   */
+  metadata?: {
+    [key: string]: unknown
+  } | null
+}
+
+/**
  * Request to create calendar event.
  */
 export type CreateCalendarEventRequest = {
@@ -2982,6 +3010,36 @@ export type DashboardActivitiesResponse = {
    * Completion rate percentage
    */
   completion_rate: number
+}
+
+/**
+ * Current device state
+ */
+export type DeviceState = {
+  /**
+   * Whether app is in foreground
+   */
+  is_foreground?: boolean
+  /**
+   * Whether device is locked
+   */
+  is_locked?: boolean
+  /**
+   * Current network type
+   */
+  network_type?: NetworkType
+  /**
+   * Current battery level
+   */
+  battery_level?: number | null
+  /**
+   * Whether device is charging
+   */
+  is_charging?: boolean
+  /**
+   * Device volume level
+   */
+  volume_level?: number | null
 }
 
 /**
@@ -4139,6 +4197,53 @@ export type MiddlewareTestResponse = {
 }
 
 /**
+ * Mobile device information
+ */
+export type MobileDeviceInfo = {
+  /**
+   * Device name (e.g., 'John's iPhone')
+   */
+  device_name?: string | null
+  /**
+   * Device model (e.g., 'iPhone 15 Pro')
+   */
+  device_model: string
+  /**
+   * Operating system version
+   */
+  os_version: string
+  /**
+   * Hero365 app version
+   */
+  app_version: string
+  /**
+   * Network connection type
+   */
+  network_type?: NetworkType
+  /**
+   * Battery level (0.0 to 1.0)
+   */
+  battery_level?: number | null
+  /**
+   * Whether device is in low power mode
+   */
+  is_low_power_mode?: boolean
+  /**
+   * Screen brightness (0.0 to 1.0)
+   */
+  screen_brightness?: number | null
+  /**
+   * Available storage in GB
+   */
+  available_storage_gb?: number | null
+}
+
+/**
+ * Network connection types
+ */
+export type NetworkType = "wifi" | "cellular" | "unknown"
+
+/**
  * Schema for next estimate number response.
  */
 export type NextEstimateNumberSchema = {
@@ -4337,6 +4442,40 @@ export type PaymentTermsSchema = {
   early_discount_percentage?: number | null
   early_discount_days?: number | null
   late_fee_percentage?: number | null
+}
+
+/**
+ * Performance metrics from mobile app
+ */
+export type PerformanceMetrics = {
+  /**
+   * Audio latency in milliseconds
+   */
+  audio_latency_ms?: number | null
+  /**
+   * Network latency in milliseconds
+   */
+  network_latency_ms?: number | null
+  /**
+   * Packet loss rate
+   */
+  packet_loss_rate?: number | null
+  /**
+   * Network jitter in milliseconds
+   */
+  jitter_ms?: number | null
+  /**
+   * CPU usage percentage
+   */
+  cpu_usage_percent?: number | null
+  /**
+   * Memory usage in MB
+   */
+  memory_usage_mb?: number | null
+  /**
+   * Battery drain rate per hour
+   */
+  battery_drain_rate?: number | null
 }
 
 export type PhoneSignInRequest = {
@@ -5562,6 +5701,38 @@ export type SendOTPRequest = {
 }
 
 /**
+ * Update session state from mobile app
+ */
+export type SessionStateUpdate = {
+  /**
+   * Current device state
+   */
+  device_state?: DeviceState | null
+  /**
+   * Updated voice preferences
+   */
+  voice_preferences?: VoicePreferences | null
+  /**
+   * Performance metrics
+   */
+  performance_metrics?: PerformanceMetrics | null
+  /**
+   * User feedback about the session
+   */
+  user_feedback?: string | null
+}
+
+/**
+ * Voice session types
+ */
+export type SessionType =
+  | "general"
+  | "contact_management"
+  | "job_scheduling"
+  | "estimate_creation"
+  | "emergency"
+
+/**
  * Request to set user working hours.
  */
 export type SetUserWorkingHoursRequest = {
@@ -5814,17 +5985,6 @@ export type TeamAvailabilitySummary = {
   coverage_gaps?: Array<{
     [key: string]: unknown
   }>
-}
-
-export type TextInputRequest = {
-  message: string
-  session_id: string
-}
-
-export type TextInputResponse = {
-  response: string
-  session_id: string
-  current_agent?: string | null
 }
 
 /**
@@ -6475,33 +6635,167 @@ export type ValidationError = {
   type: string
 }
 
-export type VoiceCommandRequest = {
-  command: string
-  session_id: string
-  context?: {
-    [key: string]: unknown
-  } | null
+/**
+ * Voice interaction preferences
+ */
+export type VoicePreferences = {
+  /**
+   * TTS voice speed
+   */
+  voice_speed?: number
+  /**
+   * TTS voice pitch
+   */
+  voice_pitch?: number
+  /**
+   * Enable noise cancellation
+   */
+  noise_cancellation?: boolean
+  /**
+   * Enable echo cancellation
+   */
+  echo_cancellation?: boolean
+  /**
+   * Enable automatic gain control
+   */
+  auto_gain_control?: boolean
+  /**
+   * Silence timeout in milliseconds
+   */
+  silence_timeout_ms?: number
+  /**
+   * Response timeout in milliseconds
+   */
+  response_timeout_ms?: number
 }
 
+/**
+ * Request to start a voice session
+ */
 export type VoiceSessionRequest = {
-  session_metadata?: {
-    [key: string]: unknown
-  } | null
-  location?: {
-    [key: string]: unknown
-  } | null
-  device_info?: {
+  device_info: MobileDeviceInfo
+  /**
+   * Type of voice session
+   */
+  session_type?: SessionType
+  /**
+   * Preferred agent to start with
+   */
+  preferred_agent?: string | null
+  /**
+   * Preferred language for voice interaction
+   */
+  language?: string | null
+  /**
+   * Whether background audio is enabled
+   */
+  background_audio_enabled?: boolean
+  /**
+   * Maximum session duration in minutes (0 means unlimited)
+   */
+  max_duration_minutes?: number | null
+  /**
+   * User voice preferences
+   */
+  user_preferences?: {
     [key: string]: unknown
   } | null
 }
 
+/**
+ * Response when starting a voice session
+ */
 export type VoiceSessionResponse = {
+  /**
+   * Unique session identifier
+   */
   session_id: string
-  status: string
-  message: string
-  user_context: {
+  /**
+   * LiveKit room name
+   */
+  room_name: string
+  /**
+   * LiveKit access token for mobile app
+   */
+  access_token: string
+  /**
+   * LiveKit server URL
+   */
+  livekit_url: string
+  /**
+   * Voice pipeline configuration
+   */
+  voice_config: {
     [key: string]: unknown
   }
+  /**
+   * Available agent capabilities
+   */
+  agent_capabilities: Array<string>
+  /**
+   * Session expiration time
+   */
+  session_expires_at: string
+  /**
+   * Current session status
+   */
+  status: VoiceSessionStatus
+}
+
+/**
+ * Voice session status
+ */
+export type VoiceSessionStatus =
+  | "active"
+  | "inactive"
+  | "connecting"
+  | "disconnected"
+  | "error"
+
+/**
+ * Voice session status response
+ */
+export type VoiceSessionStatusResponse = {
+  /**
+   * Session identifier
+   */
+  session_id: string
+  /**
+   * Current session status
+   */
+  status: VoiceSessionStatus
+  /**
+   * Session start time
+   */
+  started_at: string
+  /**
+   * Last activity timestamp
+   */
+  last_activity: string
+  /**
+   * Currently active agent
+   */
+  current_agent: string
+  /**
+   * Number of function calls made
+   */
+  function_calls_count: number
+  /**
+   * Number of voice interactions
+   */
+  voice_interactions_count: number
+  /**
+   * Number of errors encountered
+   */
+  errors_count: number
+  /**
+   * Recent conversation entries
+   */
+  recent_conversation: Array<ConversationEntry>
+  /**
+   * Whether LiveKit room is active
+   */
+  room_active: boolean
 }
 
 /**
@@ -7957,6 +8251,45 @@ export type MiddlewareHealthTestBusinessContextRequiredResponse = {
   [key: string]: unknown
 }
 
+export type MobileVoiceIntegrationStartVoiceSessionData = {
+  requestBody: VoiceSessionRequest
+}
+
+export type MobileVoiceIntegrationStartVoiceSessionResponse =
+  VoiceSessionResponse
+
+export type MobileVoiceIntegrationGetSessionStatusData = {
+  sessionId: string
+}
+
+export type MobileVoiceIntegrationGetSessionStatusResponse =
+  VoiceSessionStatusResponse
+
+export type MobileVoiceIntegrationUpdateSessionStateData = {
+  requestBody: SessionStateUpdate
+  sessionId: string
+}
+
+export type MobileVoiceIntegrationUpdateSessionStateResponse = {
+  [key: string]: unknown
+}
+
+export type MobileVoiceIntegrationEndVoiceSessionData = {
+  sessionId: string
+}
+
+export type MobileVoiceIntegrationEndVoiceSessionResponse = {
+  [key: string]: unknown
+}
+
+export type MobileVoiceIntegrationVoiceSystemHealthResponse = {
+  [key: string]: unknown
+}
+
+export type MobileVoiceIntegrationGetAgentCapabilitiesResponse = {
+  [key: string]: unknown
+}
+
 export type CreateProductNoSlashData = {
   requestBody: CreateProductSchema
 }
@@ -8608,87 +8941,3 @@ export type UtilsTestEmailData = {
 }
 
 export type UtilsTestEmailResponse = Message
-
-export type VoiceAgentsStartVoiceSessionData = {
-  requestBody: VoiceSessionRequest
-}
-
-export type VoiceAgentsStartVoiceSessionResponse = VoiceSessionResponse
-
-export type VoiceAgentsProcessTextInputData = {
-  requestBody: TextInputRequest
-}
-
-export type VoiceAgentsProcessTextInputResponse = TextInputResponse
-
-export type VoiceAgentsProcessVoiceCommandData = {
-  requestBody: VoiceCommandRequest
-}
-
-export type VoiceAgentsProcessVoiceCommandResponse = unknown
-
-export type VoiceAgentsGetPerformanceStatsResponse = unknown
-
-export type VoiceAgentsClearVoiceCacheResponse = unknown
-
-export type VoiceAgentsGetSessionStatusData = {
-  sessionId: string
-}
-
-export type VoiceAgentsGetSessionStatusResponse = unknown
-
-export type VoiceAgentsEndVoiceSessionData = {
-  sessionId: string
-}
-
-export type VoiceAgentsEndVoiceSessionResponse = unknown
-
-export type VoiceAgentsGetActiveSessionsResponse = unknown
-
-export type VoiceAgentsGetVoiceSystemStatusResponse = unknown
-
-export type VoiceAgentsUploadAudioData = {
-  formData: Body_Voice_Agents_upload_audio
-  sessionId: string
-}
-
-export type VoiceAgentsUploadAudioResponse = unknown
-
-export type VoiceAgentsGetVoiceMetricsResponse = unknown
-
-export type VoiceAgentsGetSessionMetricsData = {
-  sessionId: string
-}
-
-export type VoiceAgentsGetSessionMetricsResponse = unknown
-
-export type VoiceAgentsGetComprehensiveHealthResponse = unknown
-
-export type VoiceAgentsGetComponentHealthData = {
-  component: string
-}
-
-export type VoiceAgentsGetComponentHealthResponse = unknown
-
-export type VoiceAgentsGetRecentErrorsData = {
-  limit?: number
-}
-
-export type VoiceAgentsGetRecentErrorsResponse = unknown
-
-export type VoiceAgentsHealthCheckResponse = unknown
-
-export type VoiceAgentsAudioHealthCheckResponse = unknown
-
-export type VoiceAgentsGetSupportedAudioFormatsResponse = unknown
-
-export type VoiceAgentsGetSupportedVoicesResponse = unknown
-
-export type VoiceAgentsGetSupportedLanguagesResponse = unknown
-
-export type VoiceAgentsTestTextToSpeechData = {
-  text: string
-  voice?: string
-}
-
-export type VoiceAgentsTestTextToSpeechResponse = unknown

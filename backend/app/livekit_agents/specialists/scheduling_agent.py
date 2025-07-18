@@ -53,26 +53,16 @@ class SchedulingAgent(Agent):
         5. Service type and notes (optional)
         """
         
-        # Initialize as LiveKit Agent with tools
-        super().__init__(
-            instructions=instructions,
-            tools=[
-                self.check_availability,
-                self.book_appointment,
-                self.view_schedule,
-                self.reschedule_appointment,
-                self.get_scheduling_suggestions,
-                self.get_next_available_slot,
-                self.get_schedule_summary,
-            ]
-        )
-        
+        # Initialize business context manager
         self.config = config
         self.business_context_manager: Optional[BusinessContextManager] = None
-        
-        # Scheduling-specific configuration
         self.scheduling_context = {}
         self.current_appointment = None
+        
+        # Initialize as LiveKit Agent with instructions only
+        super().__init__(instructions=instructions)
+        
+        logger.info("📅 Scheduling agent initialized successfully")
         
     def set_business_context(self, business_context_manager: BusinessContextManager):
         """Set business context manager for context-aware operations"""
@@ -80,215 +70,165 @@ class SchedulingAgent(Agent):
         logger.info("📅 Business context set for scheduling agent")
     
     @function_tool
-    async def check_availability(self,
-                               ctx: RunContext,
-                               date: str,
-                               start_time: Optional[str] = None,
-                               duration: int = 60) -> str:
-        """Check availability for a specific date and time"""
+    async def check_availability(
+        self,
+        ctx: RunContext,
+        date: str,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None
+    ) -> str:
+        """Check availability for a specific date and time range.
+        
+        Args:
+            date: Date to check (format: YYYY-MM-DD)
+            start_time: Start time to check (optional, format: HH:MM)
+            end_time: End time to check (optional, format: HH:MM)
+        """
         try:
-            logger.info(f"Checking availability for {date} at {start_time}")
-            
-            # Mock availability check (would integrate with real system)
-            if start_time:
-                return f"✅ {date} at {start_time} for {duration} minutes is available!"
-            else:
-                # Return available time slots for the day
-                available_slots = [
-                    "9:00 AM - 10:00 AM",
-                    "11:00 AM - 12:00 PM",
-                    "2:00 PM - 3:00 PM",
-                    "4:00 PM - 5:00 PM"
-                ]
+            logger.info(f"Checking availability for {date}")
+            # This would integrate with the actual availability checking logic
+            return f"Here are the available time slots for {date}..."
                 
-                slots_text = "\n".join([f"• {slot}" for slot in available_slots])
-                return f"📅 Available time slots for {date}:\n{slots_text}"
-            
         except Exception as e:
-            logger.error(f"Error checking availability: {e}")
-            return f"❌ I encountered an error while checking availability: {str(e)}"
+            logger.error(f"❌ Error checking availability: {e}")
+            return f"❌ Error checking availability: {str(e)}"
     
     @function_tool
-    async def book_appointment(self,
-                             ctx: RunContext,
-                             contact_id: str,
-                             date: str,
-                             time: str,
-                             duration: int = 60,
-                             service_type: Optional[str] = None,
-                             notes: Optional[str] = None) -> str:
-        """Book an appointment with the specified details"""
+    async def book_appointment(
+        self,
+        ctx: RunContext,
+        contact_id: str,
+        date: str,
+        time: str,
+        duration: Optional[int] = 60,
+        service_type: Optional[str] = None,
+        notes: Optional[str] = None
+    ) -> str:
+        """Book an appointment with the provided information.
+        
+        Args:
+            contact_id: ID of the contact for the appointment (required)
+            date: Appointment date (required, format: YYYY-MM-DD)
+            time: Appointment time (required, format: HH:MM)
+            duration: Duration in minutes (optional, default: 60)
+            service_type: Type of service (optional)
+            notes: Additional notes (optional)
+        """
         try:
-            logger.info(f"Booking appointment for {date} at {time}")
-            
-            # Mock appointment booking (would integrate with real system)
-            appointment_id = f"apt_{uuid.uuid4().hex[:8]}"
-            
-            response = f"✅ Appointment booked successfully for {date} at {time}! Appointment ID: {appointment_id}"
-            
-            if service_type:
-                response += f"\n🔧 Service: {service_type}"
-            
-            if duration != 60:
-                response += f"\n⏱️ Duration: {duration} minutes"
-            
-            # Add contextual suggestions
-            if self.business_context_manager:
-                suggestions = self._get_context_suggestions()
-                if suggestions:
-                    response += f"\n💡 Suggested next steps: {suggestions[0]}"
-            
-            return response
-            
+            logger.info(f"Booking appointment for contact {contact_id} on {date} at {time}")
+            # This would integrate with the actual appointment booking logic
+            return f"Appointment booked successfully for {date} at {time}."
+                
         except Exception as e:
-            logger.error(f"Error booking appointment: {e}")
-            return f"❌ I encountered an error while booking the appointment: {str(e)}"
+            logger.error(f"❌ Error booking appointment: {e}")
+            return f"❌ Error booking appointment: {str(e)}"
     
     @function_tool
-    async def view_schedule(self, ctx: RunContext, date: Optional[str] = None, view_type: str = "day") -> str:
-        """View schedule for a specific date or period"""
+    async def view_schedule(
+        self,
+        ctx: RunContext,
+        date: Optional[str] = None,
+        days: int = 1
+    ) -> str:
+        """View schedule for a specific date or date range.
+        
+        Args:
+            date: Specific date to view (optional, format: YYYY-MM-DD)
+            days: Number of days to view (default: 1)
+        """
         try:
-            if not date:
-                date = datetime.now().strftime("%Y-%m-%d")
-            
-            logger.info(f"Viewing schedule for {date}")
-            
-            # Mock schedule view (would integrate with real system)
-            appointments = [
-                {"time": "10:00 AM", "service": "Plumbing Repair", "customer": "John Smith"},
-                {"time": "2:00 PM", "service": "HVAC Maintenance", "customer": "Sarah Johnson"}
-            ]
-            
-            if not appointments:
-                return f"📅 No appointments scheduled for {date}"
-            
-            schedule_text = "\n".join([
-                f"• {apt['time']} - {apt['service']} - {apt['customer']}"
-                for apt in appointments
-            ])
-            
-            return f"📅 Schedule for {date}:\n{schedule_text}"
-            
+            logger.info(f"Viewing schedule for {date or f'next {days} days'}")
+            # This would integrate with the actual schedule viewing logic
+            return f"Here is your schedule for {date or f'the next {days} days'}..."
+                
         except Exception as e:
-            logger.error(f"Error viewing schedule: {e}")
-            return f"❌ I encountered an error while viewing the schedule: {str(e)}"
+            logger.error(f"❌ Error viewing schedule: {e}")
+            return f"❌ Error viewing schedule: {str(e)}"
     
     @function_tool
-    async def reschedule_appointment(self,
-                                   ctx: RunContext,
-                                   appointment_id: str,
-                                   new_date: str,
-                                   new_time: str) -> str:
-        """Reschedule an existing appointment"""
+    async def reschedule_appointment(
+        self,
+        ctx: RunContext,
+        appointment_id: str,
+        new_date: str,
+        new_time: str
+    ) -> str:
+        """Reschedule an existing appointment.
+        
+        Args:
+            appointment_id: The ID of the appointment to reschedule
+            new_date: New date (format: YYYY-MM-DD)
+            new_time: New time (format: HH:MM)
+        """
         try:
             logger.info(f"Rescheduling appointment {appointment_id} to {new_date} at {new_time}")
-            
-            # Mock rescheduling (would integrate with real system)
-            return f"✅ Appointment {appointment_id} rescheduled to {new_date} at {new_time} successfully!"
-            
+            # This would integrate with the actual rescheduling logic
+            return f"Appointment {appointment_id} rescheduled to {new_date} at {new_time}."
+                
         except Exception as e:
-            logger.error(f"Error rescheduling appointment: {e}")
-            return f"❌ I encountered an error while rescheduling the appointment: {str(e)}"
+            logger.error(f"❌ Error rescheduling appointment: {e}")
+            return f"❌ Error rescheduling appointment: {str(e)}"
     
     @function_tool
-    async def get_scheduling_suggestions(self, ctx: RunContext, service_type: Optional[str] = None) -> str:
-        """Get scheduling suggestions based on business context"""
-        try:
-            logger.info("Getting scheduling suggestions")
-            
-            suggestions = []
-            
-            # Mock suggestions based on business context
-            if self.business_context_manager:
-                business_context = self.business_context_manager.get_business_context()
-                if business_context:
-                    suggestions.extend([
-                        "Book follow-up appointments for recent jobs",
-                        "Schedule maintenance calls for existing customers",
-                        "Fill gaps in tomorrow's schedule"
-                    ])
-            
-            # Default suggestions
-            if not suggestions:
-                suggestions = [
-                    "Consider scheduling morning appointments for better traffic",
-                    "Book buffer time between appointments",
-                    "Schedule follow-up calls after completed jobs"
-                ]
-            
-            suggestions_text = "\n".join([f"• {suggestion}" for suggestion in suggestions])
-            
-            return f"💡 Scheduling suggestions:\n{suggestions_text}"
-            
-        except Exception as e:
-            logger.error(f"Error getting scheduling suggestions: {e}")
-            return f"❌ I encountered an error while getting scheduling suggestions: {str(e)}"
-    
-    @function_tool
-    async def get_next_available_slot(self,
-                                    ctx: RunContext,
-                                    duration: int = 60,
-                                    service_type: Optional[str] = None) -> str:
-        """Get the next available time slot"""
-        try:
-            logger.info(f"Finding next available slot for {duration} minutes")
-            
-            # Mock next available slot (would integrate with real system)
-            next_slot = {
-                "date": "2025-07-19",
-                "time": "10:00 AM",
-                "duration": duration
-            }
-            
-            response = f"📅 Next available slot: {next_slot['date']} at {next_slot['time']} for {duration} minutes"
-            
-            if service_type:
-                response += f"\n🔧 Service type: {service_type}"
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"Error getting next available slot: {e}")
-            return f"❌ I encountered an error while finding the next available slot: {str(e)}"
-    
-    @function_tool
-    async def get_schedule_summary(self, ctx: RunContext, period: str = "week") -> str:
-        """Get a summary of the schedule for a specific period"""
-        try:
-            logger.info(f"Getting schedule summary for {period}")
-            
-            # Mock schedule summary (would integrate with real system)
-            summary = {
-                "total_appointments": 12,
-                "confirmed_appointments": 10,
-                "pending_appointments": 2,
-                "free_slots": 8,
-                "busiest_day": "Thursday"
-            }
-            
-            response = f"📊 Schedule Summary ({period}):\n"
-            response += f"• Total appointments: {summary['total_appointments']}\n"
-            response += f"• Confirmed: {summary['confirmed_appointments']}\n"
-            response += f"• Pending: {summary['pending_appointments']}\n"
-            response += f"• Free slots: {summary['free_slots']}\n"
-            response += f"• Busiest day: {summary['busiest_day']}"
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"Error getting schedule summary: {e}")
-            return f"❌ I encountered an error while getting the schedule summary: {str(e)}"
-    
-    def _get_context_suggestions(self) -> List[str]:
-        """Get contextual suggestions based on business context"""
-        suggestions = []
+    async def get_scheduling_suggestions(
+        self,
+        ctx: RunContext,
+        contact_id: str,
+        service_type: Optional[str] = None
+    ) -> str:
+        """Get scheduling suggestions for a contact.
         
-        if self.business_context_manager:
-            business_context = self.business_context_manager.get_business_context()
-            if business_context:
-                # Add contextual suggestions based on business state
-                suggestions.append("Send appointment confirmation to customer")
-                suggestions.append("Prepare materials for the scheduled service")
-                suggestions.append("Set up travel route for the day")
+        Args:
+            contact_id: ID of the contact
+            service_type: Type of service (optional)
+        """
+        try:
+            logger.info(f"Getting scheduling suggestions for contact {contact_id}")
+            # This would integrate with the actual scheduling suggestions logic
+            return f"Here are some scheduling suggestions for contact {contact_id}..."
+                
+        except Exception as e:
+            logger.error(f"❌ Error getting scheduling suggestions: {e}")
+            return f"❌ Error getting scheduling suggestions: {str(e)}"
+    
+    @function_tool
+    async def get_next_available_slot(
+        self,
+        ctx: RunContext,
+        duration: int = 60,
+        after_date: Optional[str] = None
+    ) -> str:
+        """Get the next available time slot.
         
-        return suggestions 
+        Args:
+            duration: Duration needed in minutes (default: 60)
+            after_date: Only look after this date (optional, format: YYYY-MM-DD)
+        """
+        try:
+            logger.info(f"Finding next available {duration}-minute slot")
+            # This would integrate with the actual slot finding logic
+            return f"Here is the next available {duration}-minute time slot..."
+                
+        except Exception as e:
+            logger.error(f"❌ Error finding next available slot: {e}")
+            return f"❌ Error finding next available slot: {str(e)}"
+    
+    @function_tool
+    async def get_schedule_summary(
+        self,
+        ctx: RunContext,
+        days: int = 7
+    ) -> str:
+        """Get a summary of the schedule for the specified number of days.
+        
+        Args:
+            days: Number of days to summarize (default: 7)
+        """
+        try:
+            logger.info(f"Getting schedule summary for next {days} days")
+            # This would integrate with the actual schedule summary logic
+            return f"Here is your schedule summary for the next {days} days..."
+                
+        except Exception as e:
+            logger.error(f"❌ Error getting schedule summary: {e}")
+            return f"❌ Error getting schedule summary: {str(e)}" 

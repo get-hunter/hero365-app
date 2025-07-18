@@ -61,7 +61,7 @@ class LiveKitConfig:
     DEFAULT_VOICE_SPEED: float = 1.0
     DEFAULT_VOICE_LANGUAGE: str = "en"
     DEFAULT_TTS_MODEL: str = "sonic-2"
-    DEFAULT_STT_MODEL: str = "nova-3"
+    DEFAULT_STT_MODEL: str = "nova-2"  # Changed from nova-3 to support keywords
     DEFAULT_LLM_MODEL: str = "gpt-4o-mini"
     DEFAULT_LLM_TEMPERATURE: float = 0.7
     DEFAULT_LLM_MAX_TOKENS: int = 500

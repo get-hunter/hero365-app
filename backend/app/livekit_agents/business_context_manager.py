@@ -29,9 +29,19 @@ class BusinessContext:
     current_time: datetime = None
     timezone: str = "UTC"
     
+    # Context counts and metrics
+    recent_contacts_count: int = 0
+    recent_jobs_count: int = 0
+    recent_estimates_count: int = 0
+    active_jobs: int = 0
+    pending_estimates: int = 0
+    last_refresh: Optional[datetime] = None
+    
     def __post_init__(self):
         if self.current_time is None:
             self.current_time = datetime.now()
+        if self.last_refresh is None:
+            self.last_refresh = datetime.now()
 
 @dataclass
 class UserContext:
@@ -149,6 +159,9 @@ class BusinessContextManager:
             await self._load_business_summary(business_id)
             await self._generate_contextual_suggestions()
             
+            # Update business context with calculated metrics
+            await self._update_business_context_metrics()
+            
             self.last_refresh = datetime.now()
             logger.info(f"✅ Business context initialized successfully")
             
@@ -180,13 +193,20 @@ class BusinessContextManager:
                 self.business_context = BusinessContext(
                     business_id=business.id,
                     business_name=business.name,
-                    business_type=business.business_type or "Service",
-                    owner_name=business.owner_name or "Owner",
-                    phone=business.phone,
-                    email=business.email,
-                    address=business.address.full_address if business.address else None,
+                    business_type=business.business_type.value if business.business_type else "Service",
+                    owner_name="Owner",  # We only have owner_id, not owner_name
+                    phone=business.phone_number,
+                    email=business.business_email,
+                    address=business.business_address,
                     current_time=datetime.now(),
-                    timezone=business.timezone or "UTC"
+                    timezone=business.timezone or "UTC",
+                    # Initialize metrics - will be updated after loading all data
+                    recent_contacts_count=0,
+                    recent_jobs_count=0,
+                    recent_estimates_count=0,
+                    active_jobs=0,
+                    pending_estimates=0,
+                    last_refresh=datetime.now()
                 )
                 logger.info(f"📋 Loaded business context: {business.name}")
             else:
@@ -195,14 +215,52 @@ class BusinessContextManager:
         except Exception as e:
             logger.error(f"❌ Error loading business context: {e}")
     
+    async def _update_business_context_metrics(self):
+        """Update business context with calculated metrics"""
+        if not self.business_context:
+            return
+        
+        try:
+            # Update counts based on loaded data
+            self.business_context.recent_contacts_count = len(self.recent_contacts)
+            self.business_context.recent_jobs_count = len(self.recent_jobs)
+            self.business_context.recent_estimates_count = len(self.recent_estimates)
+            
+            # Calculate active jobs and pending estimates
+            self.business_context.active_jobs = len([job for job in self.recent_jobs if job.status in ["in_progress", "scheduled"]])
+            self.business_context.pending_estimates = len([est for est in self.recent_estimates if est.status == "draft"])
+            
+            # Update last refresh time
+            self.business_context.last_refresh = datetime.now()
+            
+            logger.info(f"📊 Updated business context metrics: {self.business_context.active_jobs} active jobs, {self.business_context.pending_estimates} pending estimates")
+            
+        except Exception as e:
+            logger.error(f"❌ Error updating business context metrics: {e}")
+    
     async def _load_user_context(self, user_id: str):
         """Load user information and preferences"""
         try:
             if not self.container:
                 return
                 
-            # Get user repository
+            # Get user repository (returns None for this project - users managed via Supabase Auth)
             user_repo = self.container.get_user_repository()
+            if user_repo is None:
+                # Create a minimal user context since users are managed via Supabase Auth
+                self.user_context = UserContext(
+                    user_id=user_id,
+                    name="User",  # Default name since we don't have user management
+                    email="user@example.com",  # Default email
+                    role="user",
+                    permissions=[],
+                    last_active=datetime.now(),
+                    preferences={},
+                    recent_actions=[]
+                )
+                logger.info(f"👤 Created minimal user context for user {user_id}")
+                return
+            
             user = await user_repo.get_by_id(user_id)
             
             if user:
@@ -244,11 +302,11 @@ class BusinessContextManager:
                 
                 self.recent_contacts.append(RecentContact(
                     id=contact.id,
-                    name=contact.full_name,
+                    name=contact.get_display_name(),
                     phone=contact.phone,
                     email=contact.email,
                     contact_type=contact.contact_type.value if contact.contact_type else "customer",
-                    last_interaction=contact.updated_at or contact.created_at,
+                    last_interaction=contact.last_modified or contact.created_date,
                     recent_jobs=[job.id for job in recent_jobs],
                     recent_estimates=[est.id for est in recent_estimates],
                     priority=priority
@@ -420,7 +478,7 @@ class BusinessContextManager:
             if not self.container:
                 return []
             job_repo = self.container.get_job_repository()
-            return await job_repo.get_by_contact(contact_id, limit=5)
+            return await job_repo.get_by_contact_id(contact_id, limit=5)
         except Exception as e:
             logger.error(f"❌ Error getting recent jobs for contact: {e}")
             return []
@@ -431,7 +489,7 @@ class BusinessContextManager:
             if not self.container:
                 return []
             estimate_repo = self.container.get_estimate_repository()
-            return await estimate_repo.get_by_contact(contact_id, limit=5)
+            return await estimate_repo.get_by_contact_id(contact_id, limit=5)
         except Exception as e:
             logger.error(f"❌ Error getting recent estimates for contact: {e}")
             return []
@@ -443,7 +501,7 @@ class BusinessContextManager:
                 return "Unknown Contact"
             contact_repo = self.container.get_contact_repository()
             contact = await contact_repo.get_by_id(contact_id)
-            return contact.full_name if contact else "Unknown Contact"
+            return contact.get_display_name() if contact else "Unknown Contact"
         except Exception as e:
             logger.error(f"❌ Error getting contact name: {e}")
             return "Unknown Contact"
@@ -456,7 +514,7 @@ class BusinessContextManager:
                 return ContextPriority.HIGH
             
             # Medium priority if contacted recently
-            if contact.updated_at and contact.updated_at > datetime.now() - timedelta(days=30):
+            if contact.last_modified and contact.last_modified > datetime.now() - timedelta(days=30):
                 return ContextPriority.MEDIUM
             
             return ContextPriority.LOW

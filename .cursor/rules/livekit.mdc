@@ -2,4 +2,7 @@
 alwaysApply: true
 ---
 
-Always check the livekit agents framework github repository and docs to get the current version: https://github.com/livekit/agents https://docs.livekit.io/agents/
+Always check the livekit agents framework github repository and docs:
+- https://docs.livekit.io/llms.txt
+- https://github.com/livekit/agents
+- https://docs.livekit.io/agents/
