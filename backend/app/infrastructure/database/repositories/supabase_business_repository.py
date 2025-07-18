@@ -13,7 +13,7 @@ import json
 from supabase import Client
 
 from app.domain.repositories.business_repository import BusinessRepository
-from app.domain.entities.business import Business, CompanySize, ReferralSource
+from app.domain.entities.business import Business, CompanySize, ReferralSource, BusinessType
 from app.domain.entities.business_membership import BusinessMembership
 from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DuplicateEntityError, DatabaseError
@@ -283,7 +283,8 @@ class SupabaseBusinessRepository(BusinessRepository):
             "subscription_tier": business.subscription_tier,
             "enabled_features": business.enabled_features or [],  # Send as list for JSONB
             "created_date": business.created_date.isoformat() if business.created_date else None,
-            "last_modified": business.last_modified.isoformat() if business.last_modified else None
+            "last_modified": business.last_modified.isoformat() if business.last_modified else None,
+            "business_type": business.business_type.value if business.business_type else None
         }
     
     def _dict_to_business(self, data: dict) -> Business:
@@ -331,5 +332,6 @@ class SupabaseBusinessRepository(BusinessRepository):
             subscription_tier=data.get("subscription_tier"),
             enabled_features=safe_json_parse(data.get("enabled_features"), []),
             created_date=datetime.fromisoformat(data["created_date"]) if data.get("created_date") else None,
-            last_modified=datetime.fromisoformat(data["last_modified"]) if data.get("last_modified") else None
+            last_modified=datetime.fromisoformat(data["last_modified"]) if data.get("last_modified") else None,
+            business_type=BusinessType(data["business_type"]) if data.get("business_type") else BusinessType.OTHER
         ) 

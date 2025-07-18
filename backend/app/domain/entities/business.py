@@ -22,6 +22,26 @@ class CompanySize(Enum):
     ENTERPRISE = "enterprise"
 
 
+class BusinessType(Enum):
+    """Enumeration for business types."""
+    CONTRACTOR = "contractor"
+    CONSULTING = "consulting"
+    SERVICES = "services"
+    RETAIL = "retail"
+    MANUFACTURING = "manufacturing"
+    TECHNOLOGY = "technology"
+    HEALTHCARE = "healthcare"
+    EDUCATION = "education"
+    CONSTRUCTION = "construction"
+    PLUMBING = "plumbing"
+    ELECTRICAL = "electrical"
+    HVAC = "hvac"
+    LANDSCAPING = "landscaping"
+    CLEANING = "cleaning"
+    HANDYMAN = "handyman"
+    OTHER = "other"
+
+
 class ReferralSource(Enum):
     """Enumeration for referral sources."""
     TIKTOK = "tiktok"
@@ -49,6 +69,7 @@ class Business:
     id: uuid.UUID
     name: str
     industry: str
+    business_type: BusinessType
     company_size: CompanySize
     owner_id: str
     
@@ -205,4 +226,4 @@ class Business:
     
     def __repr__(self) -> str:
         return (f"Business(id={self.id}, name='{self.name}', industry='{self.industry}', "
-                f"owner_id='{self.owner_id}', is_active={self.is_active})") 
+                f"business_type='{self.business_type}', owner_id='{self.owner_id}', is_active={self.is_active})") 

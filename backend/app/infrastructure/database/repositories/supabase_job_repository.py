@@ -95,6 +95,24 @@ class SupabaseJobRepository(JobRepository):
         except Exception as e:
             raise DomainValidationError(f"Failed to get jobs by business: {str(e)}")
     
+    async def get_recent_by_business(self, business_id: uuid.UUID, days: int = 30, limit: int = 10) -> List[Job]:
+        """Get recent jobs by business ID within the specified number of days."""
+        try:
+            cutoff_date = datetime.now() - timedelta(days=days)
+            
+            result = (self.client.table("jobs")
+                     .select("*")
+                     .eq("business_id", str(business_id))
+                     .gte("created_date", cutoff_date.isoformat())
+                     .order("created_date", desc=True)
+                     .range(0, limit - 1)
+                     .execute())
+            
+            return [self._dict_to_job(job_data) for job_data in result.data]
+        
+        except Exception as e:
+            raise DomainValidationError(f"Failed to get recent jobs by business: {str(e)}")
+    
     async def get_by_contact_id(self, contact_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[Job]:
         """Get jobs by contact ID with pagination."""
         try:

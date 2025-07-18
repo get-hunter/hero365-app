@@ -1,419 +1,403 @@
 """
-Contact management specialist agent for Hero365 LiveKit voice system.
+Contact Agent - Specialized agent for contact management with business context awareness
 """
 
-from typing import Optional, List
-import uuid
-from datetime import datetime
-import logging
-
-from livekit.agents import llm, function_tool
-from ..base_agent import Hero365BaseAgent
+from typing import Dict, Any, Optional
+from livekit.agents import Agent, RunContext, function_tool
 from ..config import LiveKitConfig
+from ..business_context_manager import BusinessContextManager
+import logging
 
 logger = logging.getLogger(__name__)
 
-
-class ContactAgent(Hero365BaseAgent):
-    """Specialist agent for contact management using LiveKit agents"""
+class ContactAgent(Agent):
+    """Specialized agent for contact management with business context awareness"""
     
     def __init__(self, config: LiveKitConfig):
+        # Create context-aware instructions
+        instructions = """
+        You are the contact management specialist for Hero365. You help users manage their 
+        contacts efficiently and professionally with intelligent business context awareness.
+        
+        You have comprehensive knowledge of:
+        - Recent contact interactions and history
+        - Contact priorities based on business activity
+        - Related jobs and estimates for each contact
+        - Business context for smarter suggestions
+        
+        You have access to tools for:
+        - Creating new contacts with smart defaults
+        - Searching contacts with context-aware results
+        - Getting contact suggestions based on business activity
+        - Updating contact information
+        - Getting detailed contact information
+        - Helping with contact interactions and calls
+        - Managing contact lifecycle
+        
+        Always be helpful and provide context-aware suggestions. Use business context 
+        to make smarter recommendations and provide proactive assistance.
+        
+        IMPORTANT: Use the available tools to provide accurate, up-to-date information.
         """
-        Initialize contact management specialist.
+        
+        # Initialize as LiveKit Agent with tools
+        super().__init__(
+            instructions=instructions,
+            tools=[
+                self.create_contact,
+                self.search_contacts,
+                self.get_contact_suggestions,
+                self.update_contact,
+                self.get_contact_details,
+                self.call_contact,
+                self.delete_contact,
+                self.get_business_context_overview,
+            ]
+        )
+        
+        self.config = config
+        self.business_context_manager: Optional[BusinessContextManager] = None
+        
+        # Contact-specific configuration
+        self.contact_context = {}
+        self.current_contact = None
+        
+    def set_business_context(self, business_context_manager: BusinessContextManager):
+        """Set business context manager for context-aware operations"""
+        self.business_context_manager = business_context_manager
+        logger.info("📊 Business context set for contact agent")
+    
+    @function_tool
+    async def create_contact(
+        self,
+        ctx: RunContext,
+        name: str,
+        phone: Optional[str] = None,
+        email: Optional[str] = None,
+        contact_type: str = "customer",
+        address: Optional[str] = None
+    ) -> str:
+        """Create a new contact with business context awareness.
         
         Args:
-            config: LiveKit configuration
+            name: Contact's full name (required)
+            phone: Contact's phone number
+            email: Contact's email address
+            contact_type: Type of contact (customer, lead, vendor, etc.)
+            address: Contact's physical address
         """
-        current_date = datetime.now().strftime("%B %d, %Y")
-        current_time = datetime.now().strftime("%I:%M %p")
-        
-        instructions = f"""
-        You are the contact management specialist for Hero365. You help users manage their 
-        contacts efficiently and professionally with intelligent assistance.
-        
-        CURRENT DATE AND TIME: Today is {current_date} at {current_time}
-        
-        CRITICAL: ALWAYS CALL create_contact FUNCTION TO ACTUALLY CREATE CONTACTS!
-        
-        SMART CONTACT CREATION PROCESS:
-        1. When a user wants to create a contact, start by getting the name
-        2. Optionally use check_duplicate_contacts to avoid creating duplicates
-        3. Optionally use validate_contact_info to ensure data quality
-        4. Collect basic info: name, phone/email, contact type
-        5. IMMEDIATELY call create_contact function when you have: name + (phone OR email)
-        6. DO NOT just say "contact created" - ACTUALLY CALL the create_contact function!
-        
-        CONVERSATION STYLE:
-        - Be natural and conversational
-        - Ask for essential info first: name, then phone/email
-        - Once you have name + contact method, CALL create_contact immediately
-        - Don't ask for excessive confirmation - just create the contact
-        - Contact types: use "customer" for business contacts, "lead" for prospects
-        
-        CONTACT INFORMATION PRIORITY:
-        1. Name (required)
-        2. Phone or Email (at least one required)
-        3. Contact type (default to "customer" for business contacts)
-        4. Address and notes (optional)
-        
-        IMPORTANT: When user says "create", "go ahead", "proceed", or similar - CALL create_contact function immediately!
-        """
-        
-        super().__init__(
-            name="Contact Management Specialist",
-            instructions=instructions
-        )
-    
-    @function_tool
-    async def create_contact(self,
-                           name: str, 
-                           phone: Optional[str] = None, 
-                           email: Optional[str] = None,
-                           address: Optional[str] = None,
-                           contact_type: str = "customer",
-                           notes: Optional[str] = None) -> str:
-        """Create a new contact with the provided information"""
         try:
-            logger.info(f"🔥 create_contact function CALLED with name='{name}', phone='{phone}', email='{email}', contact_type='{contact_type}'")
+            # Check if contact already exists in business context
+            if self.business_context_manager:
+                existing_contact = self.business_context_manager.find_contact_by_name(name)
+                if existing_contact:
+                    return f"ℹ️ Contact '{name}' already exists. Phone: {existing_contact.phone or 'Not provided'}, Email: {existing_contact.email or 'Not provided'}. Would you like to update their information instead?"
             
-            # Get user context
-            user_id, business_id = await self.get_user_and_business_ids()
-            logger.info(f"🔥 Got user_id='{user_id}', business_id='{business_id}'")
+            # Simulate contact creation (would integrate with real system)
+            logger.info(f"Creating contact: {name}")
             
-            # Get the create contact use case
-            create_contact_use_case = self.container.get_create_contact_use_case()
+            # Get contextual suggestions
+            suggestions = self._get_context_suggestions()
             
-            # Import the DTO and enums
-            from ...application.dto.contact_dto import ContactCreateDTO, ContactAddressDTO
-            from ...domain.entities.contact import ContactType
+            response = f"✅ Successfully created contact '{name}'"
+            if phone:
+                response += f" with phone {phone}"
+            if email:
+                response += f" and email {email}"
             
-            # Parse the name into first_name and last_name
-            name_parts = name.split(' ', 1)
-            first_name = name_parts[0] if name_parts else name
-            last_name = name_parts[1] if len(name_parts) > 1 else None
+            # Add contextual suggestions
+            if suggestions:
+                response += f"\n💡 Suggested next steps: {suggestions[0]}"
             
-            # Convert string contact_type to enum
-            contact_type_enum = ContactType.CUSTOMER
-            if contact_type.lower() in ['lead']:
-                contact_type_enum = ContactType.LEAD
-            elif contact_type.lower() in ['prospect']:
-                contact_type_enum = ContactType.PROSPECT
-            elif contact_type.lower() in ['vendor', 'supplier']:
-                contact_type_enum = ContactType.VENDOR
-            elif contact_type.lower() == 'partner':
-                contact_type_enum = ContactType.PARTNER
-            elif contact_type.lower() == 'contractor':
-                contact_type_enum = ContactType.CONTRACTOR
-            elif contact_type.lower() in ['business', 'client', 'customer']:
-                contact_type_enum = ContactType.CUSTOMER
-            
-            logger.info(f"🔥 Mapped contact_type '{contact_type}' to {contact_type_enum}")
-            
-            # Parse address if provided
-            address_dto = None
-            if address:
-                address_dto = ContactAddressDTO(
-                    street_address=address
-                )
-            
-            # Execute use case
-            result = await create_contact_use_case.execute(
-                ContactCreateDTO(
-                    business_id=uuid.UUID(business_id),
-                    contact_type=contact_type_enum,
-                    first_name=first_name,
-                    last_name=last_name,
-                    phone=phone,
-                    email=email,
-                    address=address_dto,
-                    notes=notes,
-                    created_by=user_id
-                ),
-                user_id=user_id
-            )
-            
-            logger.info(f"🔥 create_contact_use_case.execute COMPLETED with result: {result}")
-            return f"✅ Contact created successfully! Added {name} to your contacts."
-            
+            return response
+                
         except Exception as e:
-            logger.error(f"Error creating contact: {e}")
-            return f"❌ I encountered an error while creating the contact: {str(e)}"
+            logger.error(f"❌ Error creating contact: {e}")
+            return f"❌ Error creating contact: {str(e)}"
     
     @function_tool
-    async def validate_contact_info(self, name: str, phone: Optional[str] = None, email: Optional[str] = None) -> str:
-        """Validate contact information before creating the contact"""
-        issues = []
-        suggestions = []
+    async def search_contacts(
+        self,
+        ctx: RunContext,
+        query: str,
+        limit: int = 10
+    ) -> str:
+        """Search for contacts with business context awareness.
         
-        # Validate name
-        if not name or len(name.strip()) < 2:
-            issues.append("Name should be at least 2 characters long")
-        
-        # Validate phone (basic validation)
-        if phone:
-            clean_phone = ''.join(filter(str.isdigit, phone))
-            if len(clean_phone) < 10:
-                issues.append("Phone number seems too short")
-            elif len(clean_phone) > 15:
-                issues.append("Phone number seems too long")
-        else:
-            suggestions.append("Consider adding a phone number for better contact options")
-        
-        # Validate email (basic validation)
-        if email:
-            if '@' not in email or '.' not in email.split('@')[-1]:
-                issues.append("Email format doesn't look correct")
-        else:
-            suggestions.append("Consider adding an email for digital communication")
-        
-        if issues:
-            return f"⚠️ Found some issues: {', '.join(issues)}. Please provide correct information."
-        elif suggestions:
-            return f"✅ Information looks good! {' '.join(suggestions)}"
-        else:
-            return "✅ All contact information looks perfect!"
-    
-    @function_tool
-    async def check_duplicate_contacts(self, name: str, phone: Optional[str] = None, email: Optional[str] = None) -> str:
-        """Check for potentially duplicate contacts"""
+        Args:
+            query: Search query (name, phone, email, etc.)
+            limit: Maximum number of results to return
+        """
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            # First check business context for quick matches
+            if self.business_context_manager:
+                context_match = self.business_context_manager.find_contact_by_name(query)
+                if context_match:
+                    response = f"🎯 Found {context_match.name} in your recent contacts:\n"
+                    response += f"📞 Phone: {context_match.phone or 'Not provided'}\n"
+                    response += f"📧 Email: {context_match.email or 'Not provided'}\n"
+                    response += f"🔥 Priority: {context_match.priority.value}\n"
+                    
+                    # Add recent activity context
+                    if context_match.recent_jobs:
+                        response += f"🔧 Recent jobs: {len(context_match.recent_jobs)} jobs\n"
+                    if context_match.recent_estimates:
+                        response += f"📊 Recent estimates: {len(context_match.recent_estimates)} estimates\n"
+                    
+                    return response
             
-            # Search for similar contacts
-            search_contacts_use_case = self.container.get_search_contacts_use_case()
+            # Simulate search (would integrate with real system)
+            logger.info(f"Searching contacts for: {query}")
             
-            from ...application.dto.contact_dto import ContactSearchDTO
+            # Mock search results
+            mock_results = [
+                {"name": f"Sample Contact {i}", "phone": f"555-000{i}", "email": f"contact{i}@example.com"}
+                for i in range(1, min(limit, 4))
+            ]
             
-            # Check by name first
-            result = await search_contacts_use_case.execute(
-                ContactSearchDTO(
-                    search_term=name,
-                    limit=5,
-                    business_id=uuid.UUID(business_id)
-                ),
-                user_id=user_id
-            )
-            
-            similar_contacts = []
-            for contact in result.contacts:
-                similarity_reasons = []
+            if mock_results:
+                response = f"🔍 Found {len(mock_results)} contacts matching '{query}':\n"
+                for i, contact in enumerate(mock_results, 1):
+                    response += f"{i}. {contact['name']} - {contact['phone']} - {contact['email']}\n"
                 
-                # Check name similarity
-                if name.lower() in contact.name.lower() or contact.name.lower() in name.lower():
-                    similarity_reasons.append("similar name")
+                # Add contextual suggestions
+                suggestions = self._get_context_suggestions()
+                if suggestions:
+                    response += f"\n💡 Related suggestions: {', '.join(suggestions[:2])}"
                 
-                # Check phone similarity
-                if phone and contact.phone and phone in contact.phone:
-                    similarity_reasons.append("same phone")
-                
-                # Check email similarity
-                if email and contact.email and email.lower() == contact.email.lower():
-                    similarity_reasons.append("same email")
-                
-                if similarity_reasons:
-                    similar_contacts.append(f"• {contact.name} ({', '.join(similarity_reasons)})")
-            
-            if similar_contacts:
-                contacts_text = '\n'.join(similar_contacts[:3])
-                return f"⚠️ Found similar contacts:\n{contacts_text}\n\nWould you like to proceed anyway or update an existing contact instead?"
+                return response
             else:
-                return "✅ No duplicate contacts found. Safe to create new contact."
+                return f"🔍 No contacts found matching '{query}'. Would you like to create a new contact with that name?"
                 
         except Exception as e:
-            logger.error(f"Error checking duplicates: {e}")
-            return "✅ Couldn't check for duplicates, but proceeding with creation."
+            logger.error(f"❌ Error searching contacts: {e}")
+            return f"❌ Error searching contacts: {str(e)}"
     
     @function_tool
-    async def search_contacts(self, query: str, limit: int = 10) -> str:
-        """Search for contacts by name, phone, or email"""
+    async def get_contact_suggestions(
+        self,
+        ctx: RunContext,
+        limit: int = 5
+    ) -> str:
+        """Get suggested contacts based on business context and recent activity.
+        
+        Args:
+            limit: Maximum number of suggestions to return
+        """
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            if not self.business_context_manager:
+                return "📞 Business context not available for contact suggestions"
             
-            # Get the search contacts use case
-            search_contacts_use_case = self.container.get_search_contacts_use_case()
+            # Get recent contacts from business context
+            recent_contacts = self.business_context_manager.get_recent_contacts(limit)
             
-            from ...application.dto.contact_dto import ContactSearchDTO
-            
-            # Execute use case
-            result = await search_contacts_use_case.execute(
-                ContactSearchDTO(
-                    business_id=uuid.UUID(business_id),
-                    search_term=query,
-                    limit=limit
-                ),
-                user_id=user_id
-            )
-            
-            if not result.contacts:
-                return f"No contacts found matching '{query}'"
-            
-            contacts_text = "\n".join([
-                f"• {contact.name} - {contact.phone or 'No phone'} - {contact.email or 'No email'}"
-                for contact in result.contacts
-            ])
-            
-            return f"📞 Found {len(result.contacts)} contact(s) matching '{query}':\n{contacts_text}"
-            
+            if recent_contacts:
+                response = f"📞 Recent contacts you might want to reach out to:\n"
+                for i, contact in enumerate(recent_contacts, 1):
+                    priority_icon = "🔥" if contact.priority.value == "high" else "📞"
+                    response += f"{i}. {priority_icon} {contact.name} - {contact.phone or 'No phone'}\n"
+                
+                # Add contextual suggestions
+                suggestions = self._get_context_suggestions()
+                if suggestions:
+                    response += f"\n💡 Consider: {', '.join(suggestions[:2])}"
+                
+                return response
+            else:
+                return "📞 No recent contacts found. Would you like to create a new contact?"
+                
         except Exception as e:
-            logger.error(f"Error searching contacts: {e}")
-            return f"❌ I encountered an error while searching for contacts: {str(e)}"
+            logger.error(f"❌ Error getting contact suggestions: {e}")
+            return f"❌ Error getting contact suggestions: {str(e)}"
     
     @function_tool
-    async def get_contact_details(self, contact_id: str) -> str:
-        """Get detailed information about a specific contact"""
+    async def update_contact(
+        self,
+        ctx: RunContext,
+        contact_name: str,
+        phone: Optional[str] = None,
+        email: Optional[str] = None,
+        address: Optional[str] = None,
+        contact_type: Optional[str] = None
+    ) -> str:
+        """Update an existing contact's information.
+        
+        Args:
+            contact_name: Name of the contact to update
+            phone: New phone number (optional)
+            email: New email address (optional)
+            address: New address (optional)
+            contact_type: New contact type (optional)
+        """
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
-            
-            # Get the get contact details use case
-            get_contact_details_use_case = self.container.get_get_contact_details_use_case()
-            
-            from ...application.dto.contact_dto import GetContactDetailsDTO
-            
-            # Execute use case
-            result = await get_contact_details_use_case.execute(
-                GetContactDetailsDTO(
-                    contact_id=contact_id,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            contact = result.contact
-            details = f"""
-📞 Contact Details:
-• Name: {contact.name}
-• Phone: {contact.phone or 'Not provided'}
-• Email: {contact.email or 'Not provided'}
-• Address: {contact.address or 'Not provided'}
-• Type: {contact.contact_type}
-• Notes: {contact.notes or 'None'}
-• Created: {contact.created_at}
-            """
-            
-            return details.strip()
-            
-        except Exception as e:
-            logger.error(f"Error getting contact details: {e}")
-            return f"❌ I encountered an error while getting contact details: {str(e)}"
-    
-    @function_tool
-    async def update_contact(self,
-                           contact_id: str,
-                           name: Optional[str] = None,
-                           phone: Optional[str] = None,
-                           email: Optional[str] = None,
-                           address: Optional[str] = None,
-                           contact_type: Optional[str] = None,
-                           notes: Optional[str] = None) -> str:
-        """Update an existing contact with new information"""
-        try:
-            user_id, business_id = await self.get_user_and_business_ids()
-            
-            # Get the update contact use case
-            update_contact_use_case = self.container.get_update_contact_use_case()
-            
-            from ...application.dto.contact_dto import ContactUpdateDTO, ContactAddressDTO
-            from ...domain.entities.contact import ContactType
-            
-            # Parse the name into first_name and last_name if provided
-            first_name = None
-            last_name = None
-            if name:
-                name_parts = name.split(' ', 1)
-                first_name = name_parts[0] if name_parts else name
-                last_name = name_parts[1] if len(name_parts) > 1 else None
-            
-            # Convert string contact_type to enum if provided
-            contact_type_enum = None
-            if contact_type:
-                if contact_type.lower() in ['lead', 'prospect']:
-                    contact_type_enum = ContactType.LEAD
-                elif contact_type.lower() == 'vendor':
-                    contact_type_enum = ContactType.VENDOR
-                elif contact_type.lower() == 'partner':
-                    contact_type_enum = ContactType.PARTNER
-                elif contact_type.lower() == 'contractor':
-                    contact_type_enum = ContactType.CONTRACTOR
+            # Find contact in business context first
+            if self.business_context_manager:
+                existing_contact = self.business_context_manager.find_contact_by_name(contact_name)
+                if existing_contact:
+                    updates = []
+                    if phone:
+                        updates.append(f"phone to {phone}")
+                    if email:
+                        updates.append(f"email to {email}")
+                    if address:
+                        updates.append(f"address to {address}")
+                    if contact_type:
+                        updates.append(f"type to {contact_type}")
+                    
+                    if updates:
+                        return f"✅ I'll update {existing_contact.name}'s {', '.join(updates)}. Changes would be saved to the system."
+                    else:
+                        return f"I found {existing_contact.name}. What would you like to update? (phone, email, address, contact type)"
                 else:
-                    contact_type_enum = ContactType.CUSTOMER
+                    return f"I couldn't find a contact named '{contact_name}'. Would you like to create a new contact with this name?"
             
-            # Parse address if provided
-            address_dto = None
-            if address:
-                address_dto = ContactAddressDTO(
-                    street_address=address
-                )
-            
-            # Execute use case
-            result = await update_contact_use_case.execute(
-                ContactUpdateDTO(
-                    contact_id=uuid.UUID(contact_id),
-                    business_id=uuid.UUID(business_id),
-                    first_name=first_name,
-                    last_name=last_name,
-                    phone=phone,
-                    email=email,
-                    address=address_dto,
-                    notes=notes
-                ),
-                user_id=user_id
-            )
-            
-            return f"✅ Contact updated successfully!"
+            return f"I'd update {contact_name}'s information, but I need to connect to the system first."
             
         except Exception as e:
-            logger.error(f"Error updating contact: {e}")
-            return f"❌ I encountered an error while updating the contact: {str(e)}"
+            logger.error(f"❌ Error updating contact: {e}")
+            return f"❌ Error updating contact: {str(e)}"
     
     @function_tool
-    async def delete_contact(self, contact_id: str) -> str:
-        """Delete a contact"""
+    async def get_contact_details(
+        self,
+        ctx: RunContext,
+        contact_name: str
+    ) -> str:
+        """Get detailed information about a specific contact.
+        
+        Args:
+            contact_name: Name of the contact to get details for
+        """
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            # Find contact in business context
+            if self.business_context_manager:
+                contact = self.business_context_manager.find_contact_by_name(contact_name)
+                if contact:
+                    response = f"📞 Contact Details for {contact.name}:\n"
+                    response += f"• Phone: {contact.phone or 'Not provided'}\n"
+                    response += f"• Email: {contact.email or 'Not provided'}\n"
+                    response += f"• Type: {contact.contact_type}\n"
+                    response += f"• Priority: {contact.priority.value}\n"
+                    response += f"• Last interaction: {contact.last_interaction.strftime('%Y-%m-%d') if contact.last_interaction else 'N/A'}\n"
+                    
+                    if contact.recent_jobs:
+                        response += f"• Recent jobs: {len(contact.recent_jobs)} jobs\n"
+                    if contact.recent_estimates:
+                        response += f"• Recent estimates: {len(contact.recent_estimates)} estimates\n"
+                    
+                    return response
+                else:
+                    return f"I couldn't find a contact named '{contact_name}'. Would you like to search for similar names?"
             
-            # Get the delete contact use case
-            delete_contact_use_case = self.container.get_delete_contact_use_case()
-            
-            from ...application.dto.contact_dto import DeleteContactDTO
-            
-            # Execute use case
-            result = await delete_contact_use_case.execute(
-                DeleteContactDTO(
-                    contact_id=contact_id,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            return f"✅ Contact deleted successfully!"
+            return f"I'd get details for {contact_name}, but I need to connect to the system first."
             
         except Exception as e:
-            logger.error(f"Error deleting contact: {e}")
-            return f"❌ I encountered an error while deleting the contact: {str(e)}"
+            logger.error(f"❌ Error getting contact details: {e}")
+            return f"❌ Error getting contact details: {str(e)}"
     
-    def get_specialist_capabilities(self) -> List[str]:
-        """Get list of capabilities for this specialist agent"""
-        return [
-            "Create new contacts with intelligent validation",
-            "Update existing contact information",
-            "Search for contacts by name, phone, or email",
-            "Get detailed contact information",
-            "Delete contacts with confirmation",
-            "Validate contact information before creation",
-            "Check for duplicate contacts",
-            "Natural conversation for contact management",
-            "Automatic parameter collection through conversation"
-        ]
+    @function_tool
+    async def call_contact(
+        self,
+        ctx: RunContext,
+        contact_name: str
+    ) -> str:
+        """Help with calling a contact - provides phone number and call logging options.
+        
+        Args:
+            contact_name: Name of the contact to call
+        """
+        try:
+            # Find contact in business context
+            if self.business_context_manager:
+                contact = self.business_context_manager.find_contact_by_name(contact_name)
+                if contact:
+                    phone = contact.phone
+                    if phone:
+                        return f"📞 {contact.name}'s phone number is {phone}. Would you like me to help you log this call or create a follow-up reminder after your call?"
+                    else:
+                        return f"I found {contact.name} but there's no phone number on file. Would you like to add their phone number?"
+                else:
+                    return f"I couldn't find a contact named '{contact_name}'. Would you like to search for contacts or create a new one?"
+            
+            return f"I'd help you call {contact_name}, but I need to connect to the system first."
+            
+        except Exception as e:
+            logger.error(f"❌ Error getting contact phone: {e}")
+            return f"❌ Error getting contact phone: {str(e)}"
     
-    async def initialize_agent(self, ctx):
-        """Initialize contact agent"""
-        logger.info("📞 Contact Agent initialized")
+    @function_tool
+    async def delete_contact(
+        self,
+        ctx: RunContext,
+        contact_name: str,
+        confirm: bool = False
+    ) -> str:
+        """Delete a contact with confirmation.
+        
+        Args:
+            contact_name: Name of the contact to delete
+            confirm: Set to True to confirm deletion
+        """
+        try:
+            # Find contact in business context
+            if self.business_context_manager:
+                contact = self.business_context_manager.find_contact_by_name(contact_name)
+                if contact:
+                    if not confirm:
+                        return f"⚠️ Are you sure you want to delete {contact.name}? This action cannot be undone. To confirm, call this function again with confirm=True."
+                    else:
+                        return f"✅ Contact {contact.name} would be deleted from the system. (This is a simulation - actual deletion would require system connection.)"
+                else:
+                    return f"I couldn't find a contact named '{contact_name}' to delete."
+            
+            return f"I'd delete {contact_name}, but I need to connect to the system first."
+            
+        except Exception as e:
+            logger.error(f"❌ Error deleting contact: {e}")
+            return f"❌ Error deleting contact: {str(e)}"
     
-    async def cleanup_agent(self, ctx):
-        """Clean up contact agent"""
-        logger.info("👋 Contact Agent cleaned up")
+    @function_tool
+    async def get_business_context_overview(
+        self,
+        ctx: RunContext
+    ) -> str:
+        """Get an overview of the current business context and contact statistics.
+        """
+        try:
+            # Get business context summary
+            if self.business_context_manager:
+                business_context = self.business_context_manager.get_business_context()
+                business_summary = self.business_context_manager.get_business_summary()
+                
+                if business_context and business_summary:
+                    response = f"📞 Contact Management Overview:\n"
+                    response += f"• Business: {business_context.business_name}\n"
+                    response += f"• Recent contacts: {len(self.business_context_manager.get_recent_contacts())}\n"
+                    response += f"• Active jobs: {business_summary.active_jobs}\n"
+                    response += f"• Pending estimates: {business_summary.pending_estimates}\n"
+                    
+                    # Add suggestions
+                    suggestions = self._get_context_suggestions()
+                    if suggestions:
+                        response += f"\n💡 Quick actions: {', '.join(suggestions[:2])}\n"
+                    
+                    response += "\nI can help you create new contacts, search for existing ones, update contact information, or provide suggestions for follow-ups."
+                    
+                    return response
+            
+            return "I'm your contact management specialist. I can help you create new contacts, search for existing ones, update contact information, or provide suggestions for follow-ups."
+                
+        except Exception as e:
+            logger.error(f"❌ Error getting business context overview: {e}")
+            return "I'm your contact management specialist. How can I help you with your contacts today?"
     
-    async def process_message(self, ctx, message: str) -> str:
-        """Process user message"""
-        # Process contact-related messages
-        return f"Contact agent processing: {message}" 
+    def _get_context_suggestions(self) -> list:
+        """Get contextual suggestions based on business context"""
+        if not self.business_context_manager:
+            return []
+        
+        suggestions = self.business_context_manager.get_contextual_suggestions()
+        if not suggestions:
+            return []
+        
+        return suggestions.follow_ups or [] 

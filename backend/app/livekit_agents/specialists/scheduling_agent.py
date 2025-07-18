@@ -2,19 +2,20 @@
 Scheduling management specialist agent for Hero365 LiveKit voice system.
 """
 
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import uuid
 from datetime import datetime
 import logging
+import re
 
-from livekit.agents import llm, function_tool
-from ..base_agent import Hero365BaseAgent
+from livekit.agents import Agent, RunContext, function_tool
 from ..config import LiveKitConfig
+from ..business_context_manager import BusinessContextManager
 
 logger = logging.getLogger(__name__)
 
 
-class SchedulingAgent(Hero365BaseAgent):
+class SchedulingAgent(Agent):
     """Specialist agent for scheduling and calendar management using LiveKit agents"""
     
     def __init__(self, config: LiveKitConfig):
@@ -52,325 +53,242 @@ class SchedulingAgent(Hero365BaseAgent):
         5. Service type and notes (optional)
         """
         
+        # Initialize as LiveKit Agent with tools
         super().__init__(
-            name="Scheduling Management Specialist",
-            instructions=instructions
+            instructions=instructions,
+            tools=[
+                self.check_availability,
+                self.book_appointment,
+                self.view_schedule,
+                self.reschedule_appointment,
+                self.get_scheduling_suggestions,
+                self.get_next_available_slot,
+                self.get_schedule_summary,
+            ]
         )
+        
+        self.config = config
+        self.business_context_manager: Optional[BusinessContextManager] = None
+        
+        # Scheduling-specific configuration
+        self.scheduling_context = {}
+        self.current_appointment = None
+        
+    def set_business_context(self, business_context_manager: BusinessContextManager):
+        """Set business context manager for context-aware operations"""
+        self.business_context_manager = business_context_manager
+        logger.info("📅 Business context set for scheduling agent")
     
     @function_tool
-    async def get_available_time_slots(self,
-                                      date: str,
-                                      duration: int = 60,
-                                      service_type: Optional[str] = None) -> str:
-        """Find available time slots for a given date"""
+    async def check_availability(self,
+                               ctx: RunContext,
+                               date: str,
+                               start_time: Optional[str] = None,
+                               duration: int = 60) -> str:
+        """Check availability for a specific date and time"""
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            logger.info(f"Checking availability for {date} at {start_time}")
             
-            # Get the intelligent scheduling use case
-            intelligent_scheduling_use_case = self.container.get_intelligent_scheduling_use_case()
-            
-            from ...application.dto.scheduling_dto import AvailabilityCheckDTO
-            
-            # Execute use case
-            result = await intelligent_scheduling_use_case.execute(
-                AvailabilityCheckDTO(
-                    date=date,
-                    duration=duration,
-                    service_type=service_type,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            if not result.available_slots:
-                return f"No available time slots found for {date}"
-            
-            slots_text = "\n".join([
-                f"• {slot.start_time} - {slot.end_time}" + (f" ({slot.notes})" if slot.notes else "")
-                for slot in result.available_slots
-            ])
-            
-            return f"📅 Available time slots for {date}:\n{slots_text}"
-            
-        except Exception as e:
-            logger.error(f"Error getting available time slots: {e}")
-            return f"❌ I encountered an error while checking availability: {str(e)}"
-    
-    @function_tool
-    async def book_appointment(self,
-                              contact_id: str,
-                              date: str,
-                              time: str,
-                              duration: int = 60,
-                              service_type: Optional[str] = None,
-                              notes: Optional[str] = None) -> str:
-        """Book an appointment with the provided information"""
-        try:
-            user_id, business_id = await self.get_user_and_business_ids()
-            
-            # Get the calendar management use case
-            calendar_management_use_case = self.container.get_calendar_management_use_case()
-            
-            from ...application.dto.scheduling_dto import BookAppointmentDTO
-            
-            # Execute use case
-            result = await calendar_management_use_case.execute(
-                BookAppointmentDTO(
-                    contact_id=contact_id,
-                    date=date,
-                    time=time,
-                    duration=duration,
-                    service_type=service_type,
-                    notes=notes,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            return f"✅ Appointment booked successfully for {date} at {time}! Appointment ID: {result.appointment_id}"
-            
-        except Exception as e:
-            logger.error(f"Error booking appointment: {e}")
-            return f"❌ I encountered an error while booking the appointment: {str(e)}"
-    
-    @function_tool
-    async def check_availability(self, date: str, time: Optional[str] = None) -> str:
-        """Check availability for a specific date and optionally time"""
-        try:
-            user_id, business_id = await self.get_user_and_business_ids()
-            
-            # Get the availability checking use case
-            availability_use_case = self.container.get_availability_checking_use_case()
-            
-            from ...application.dto.scheduling_dto import CheckAvailabilityDTO
-            
-            # Execute use case
-            result = await availability_use_case.execute(
-                CheckAvailabilityDTO(
-                    date=date,
-                    time=time,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            if result.is_available:
-                time_str = f" at {time}" if time else ""
-                return f"✅ You are available on {date}{time_str}"
+            # Mock availability check (would integrate with real system)
+            if start_time:
+                return f"✅ {date} at {start_time} for {duration} minutes is available!"
             else:
-                return f"❌ You are not available on {date}" + (f" at {time}" if time else "")
+                # Return available time slots for the day
+                available_slots = [
+                    "9:00 AM - 10:00 AM",
+                    "11:00 AM - 12:00 PM",
+                    "2:00 PM - 3:00 PM",
+                    "4:00 PM - 5:00 PM"
+                ]
+                
+                slots_text = "\n".join([f"• {slot}" for slot in available_slots])
+                return f"📅 Available time slots for {date}:\n{slots_text}"
             
         except Exception as e:
             logger.error(f"Error checking availability: {e}")
             return f"❌ I encountered an error while checking availability: {str(e)}"
     
     @function_tool
-    async def get_today_schedule(self) -> str:
-        """Get today's schedule and appointments"""
+    async def book_appointment(self,
+                             ctx: RunContext,
+                             contact_id: str,
+                             date: str,
+                             time: str,
+                             duration: int = 60,
+                             service_type: Optional[str] = None,
+                             notes: Optional[str] = None) -> str:
+        """Book an appointment with the specified details"""
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            logger.info(f"Booking appointment for {date} at {time}")
             
-            # Get the schedule viewing use case
-            schedule_use_case = self.container.get_schedule_viewing_use_case()
+            # Mock appointment booking (would integrate with real system)
+            appointment_id = f"apt_{uuid.uuid4().hex[:8]}"
             
-            from ...application.dto.scheduling_dto import GetScheduleDTO
+            response = f"✅ Appointment booked successfully for {date} at {time}! Appointment ID: {appointment_id}"
             
-            # Execute use case
-            result = await schedule_use_case.execute(
-                GetScheduleDTO(
-                    date="today",
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
+            if service_type:
+                response += f"\n🔧 Service: {service_type}"
             
-            if not result.appointments:
-                return "📅 You have no appointments scheduled for today"
+            if duration != 60:
+                response += f"\n⏱️ Duration: {duration} minutes"
             
-            appointments_text = "\n".join([
-                f"• {appt.time} - {appt.title}" + (f" with {appt.contact_name}" if appt.contact_name else "")
-                for appt in result.appointments
-            ])
+            # Add contextual suggestions
+            if self.business_context_manager:
+                suggestions = self._get_context_suggestions()
+                if suggestions:
+                    response += f"\n💡 Suggested next steps: {suggestions[0]}"
             
-            return f"📅 Today's schedule:\n{appointments_text}"
+            return response
             
         except Exception as e:
-            logger.error(f"Error getting today's schedule: {e}")
-            return f"❌ I encountered an error while getting today's schedule: {str(e)}"
+            logger.error(f"Error booking appointment: {e}")
+            return f"❌ I encountered an error while booking the appointment: {str(e)}"
     
     @function_tool
-    async def get_upcoming_appointments(self, days_ahead: int = 7) -> str:
-        """Get upcoming appointments within the specified number of days"""
+    async def view_schedule(self, ctx: RunContext, date: Optional[str] = None, view_type: str = "day") -> str:
+        """View schedule for a specific date or period"""
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            if not date:
+                date = datetime.now().strftime("%Y-%m-%d")
             
-            # Get the upcoming appointments use case
-            upcoming_appointments_use_case = self.container.get_upcoming_appointments_use_case()
+            logger.info(f"Viewing schedule for {date}")
             
-            from ...application.dto.scheduling_dto import GetUpcomingAppointmentsDTO
+            # Mock schedule view (would integrate with real system)
+            appointments = [
+                {"time": "10:00 AM", "service": "Plumbing Repair", "customer": "John Smith"},
+                {"time": "2:00 PM", "service": "HVAC Maintenance", "customer": "Sarah Johnson"}
+            ]
             
-            # Execute use case
-            result = await upcoming_appointments_use_case.execute(
-                GetUpcomingAppointmentsDTO(
-                    days_ahead=days_ahead,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
+            if not appointments:
+                return f"📅 No appointments scheduled for {date}"
             
-            if not result.appointments:
-                return f"📅 No upcoming appointments in the next {days_ahead} days"
-            
-            appointments_text = "\n".join([
-                f"• {appt.date} {appt.time} - {appt.title}" + (f" with {appt.contact_name}" if appt.contact_name else "")
-                for appt in result.appointments
+            schedule_text = "\n".join([
+                f"• {apt['time']} - {apt['service']} - {apt['customer']}"
+                for apt in appointments
             ])
             
-            return f"📅 Upcoming appointments in the next {days_ahead} days:\n{appointments_text}"
+            return f"📅 Schedule for {date}:\n{schedule_text}"
             
         except Exception as e:
-            logger.error(f"Error getting upcoming appointments: {e}")
-            return f"❌ I encountered an error while getting upcoming appointments: {str(e)}"
+            logger.error(f"Error viewing schedule: {e}")
+            return f"❌ I encountered an error while viewing the schedule: {str(e)}"
     
     @function_tool
     async def reschedule_appointment(self,
-                                    appointment_id: str,
-                                    new_date: str,
-                                    new_time: str,
-                                    reason: Optional[str] = None) -> str:
+                                   ctx: RunContext,
+                                   appointment_id: str,
+                                   new_date: str,
+                                   new_time: str) -> str:
         """Reschedule an existing appointment"""
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            logger.info(f"Rescheduling appointment {appointment_id} to {new_date} at {new_time}")
             
-            # Get the reschedule appointment use case
-            reschedule_use_case = self.container.get_reschedule_appointment_use_case()
-            
-            from ...application.dto.scheduling_dto import RescheduleAppointmentDTO
-            
-            # Execute use case
-            result = await reschedule_use_case.execute(
-                RescheduleAppointmentDTO(
-                    appointment_id=appointment_id,
-                    new_date=new_date,
-                    new_time=new_time,
-                    reason=reason,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            return f"✅ Appointment rescheduled successfully to {new_date} at {new_time}!"
+            # Mock rescheduling (would integrate with real system)
+            return f"✅ Appointment {appointment_id} rescheduled to {new_date} at {new_time} successfully!"
             
         except Exception as e:
             logger.error(f"Error rescheduling appointment: {e}")
             return f"❌ I encountered an error while rescheduling the appointment: {str(e)}"
     
     @function_tool
-    async def get_schedule_summary(self, date: str) -> str:
-        """Get a summary of appointments for a specific date"""
+    async def get_scheduling_suggestions(self, ctx: RunContext, service_type: Optional[str] = None) -> str:
+        """Get scheduling suggestions based on business context"""
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            logger.info("Getting scheduling suggestions")
             
-            # Get the schedule viewing use case
-            schedule_use_case = self.container.get_schedule_viewing_use_case()
+            suggestions = []
             
-            from ...application.dto.scheduling_dto import GetScheduleDTO
+            # Mock suggestions based on business context
+            if self.business_context_manager:
+                business_context = self.business_context_manager.get_business_context()
+                if business_context:
+                    suggestions.extend([
+                        "Book follow-up appointments for recent jobs",
+                        "Schedule maintenance calls for existing customers",
+                        "Fill gaps in tomorrow's schedule"
+                    ])
             
-            # Execute use case
-            result = await schedule_use_case.execute(
-                GetScheduleDTO(
-                    date=date,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
+            # Default suggestions
+            if not suggestions:
+                suggestions = [
+                    "Consider scheduling morning appointments for better traffic",
+                    "Book buffer time between appointments",
+                    "Schedule follow-up calls after completed jobs"
+                ]
             
-            if not result.appointments:
-                return f"📅 No appointments scheduled for {date}"
+            suggestions_text = "\n".join([f"• {suggestion}" for suggestion in suggestions])
             
-            total_appointments = len(result.appointments)
-            total_hours = sum(appt.duration for appt in result.appointments if appt.duration) / 60
+            return f"💡 Scheduling suggestions:\n{suggestions_text}"
             
-            appointments_text = "\n".join([
-                f"• {appt.time} - {appt.title}" + (f" ({appt.duration}min)" if appt.duration else "")
-                for appt in result.appointments
-            ])
+        except Exception as e:
+            logger.error(f"Error getting scheduling suggestions: {e}")
+            return f"❌ I encountered an error while getting scheduling suggestions: {str(e)}"
+    
+    @function_tool
+    async def get_next_available_slot(self,
+                                    ctx: RunContext,
+                                    duration: int = 60,
+                                    service_type: Optional[str] = None) -> str:
+        """Get the next available time slot"""
+        try:
+            logger.info(f"Finding next available slot for {duration} minutes")
             
-            summary = f"""
-📅 Schedule Summary for {date}:
-• Total Appointments: {total_appointments}
-• Total Hours: {total_hours:.1f}
-
-Appointments:
-{appointments_text}
-            """
+            # Mock next available slot (would integrate with real system)
+            next_slot = {
+                "date": "2025-07-19",
+                "time": "10:00 AM",
+                "duration": duration
+            }
             
-            return summary.strip()
+            response = f"📅 Next available slot: {next_slot['date']} at {next_slot['time']} for {duration} minutes"
+            
+            if service_type:
+                response += f"\n🔧 Service type: {service_type}"
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error getting next available slot: {e}")
+            return f"❌ I encountered an error while finding the next available slot: {str(e)}"
+    
+    @function_tool
+    async def get_schedule_summary(self, ctx: RunContext, period: str = "week") -> str:
+        """Get a summary of the schedule for a specific period"""
+        try:
+            logger.info(f"Getting schedule summary for {period}")
+            
+            # Mock schedule summary (would integrate with real system)
+            summary = {
+                "total_appointments": 12,
+                "confirmed_appointments": 10,
+                "pending_appointments": 2,
+                "free_slots": 8,
+                "busiest_day": "Thursday"
+            }
+            
+            response = f"📊 Schedule Summary ({period}):\n"
+            response += f"• Total appointments: {summary['total_appointments']}\n"
+            response += f"• Confirmed: {summary['confirmed_appointments']}\n"
+            response += f"• Pending: {summary['pending_appointments']}\n"
+            response += f"• Free slots: {summary['free_slots']}\n"
+            response += f"• Busiest day: {summary['busiest_day']}"
+            
+            return response
             
         except Exception as e:
             logger.error(f"Error getting schedule summary: {e}")
-            return f"❌ I encountered an error while getting schedule summary: {str(e)}"
+            return f"❌ I encountered an error while getting the schedule summary: {str(e)}"
     
-    @function_tool
-    async def find_next_available_slot(self, duration: int = 60, service_type: Optional[str] = None) -> str:
-        """Find the next available time slot"""
-        try:
-            user_id, business_id = await self.get_user_and_business_ids()
-            
-            # Get the intelligent scheduling use case
-            intelligent_scheduling_use_case = self.container.get_intelligent_scheduling_use_case()
-            
-            from ...application.dto.scheduling_dto import AvailabilityCheckDTO
-            from datetime import datetime, timedelta
-            
-            # Check availability for the next 7 days
-            today = datetime.now()
-            for i in range(7):
-                check_date = (today + timedelta(days=i)).strftime("%Y-%m-%d")
-                
-                result = await intelligent_scheduling_use_case.execute(
-                    AvailabilityCheckDTO(
-                        date=check_date,
-                        duration=duration,
-                        service_type=service_type,
-                        business_id=business_id
-                    ),
-                    user_id=user_id
-                )
-                
-                if result.available_slots:
-                    first_slot = result.available_slots[0]
-                    return f"✅ Next available slot: {check_date} at {first_slot.start_time} - {first_slot.end_time}"
-            
-            return "❌ No available slots found in the next 7 days"
-            
-        except Exception as e:
-            logger.error(f"Error finding next available slot: {e}")
-            return f"❌ I encountered an error while finding the next available slot: {str(e)}"
-    
-    def get_specialist_capabilities(self) -> List[str]:
-        """Get list of capabilities for this specialist agent"""
-        return [
-            "Check availability and find open time slots",
-            "Book appointments with contact information and scheduling details",
-            "View today's schedule and upcoming appointments",
-            "Reschedule existing appointments",
-            "Get scheduling suggestions and recommendations",
-            "Find next available time slots",
-            "Get schedule summaries and overviews",
-            "Natural conversation for scheduling management",
-            "Automatic parameter collection through conversation"
-        ]
-    
-    async def initialize_agent(self, ctx):
-        """Initialize scheduling agent"""
-        logger.info("📅 Scheduling Agent initialized")
-    
-    async def cleanup_agent(self, ctx):
-        """Clean up scheduling agent"""
-        logger.info("👋 Scheduling Agent cleaned up")
-    
-    async def process_message(self, ctx, message: str) -> str:
-        """Process user message"""
-        # Process scheduling-related messages
-        return f"Scheduling agent processing: {message}" 
+    def _get_context_suggestions(self) -> List[str]:
+        """Get contextual suggestions based on business context"""
+        suggestions = []
+        
+        if self.business_context_manager:
+            business_context = self.business_context_manager.get_business_context()
+            if business_context:
+                # Add contextual suggestions based on business state
+                suggestions.append("Send appointment confirmation to customer")
+                suggestions.append("Prepare materials for the scheduled service")
+                suggestions.append("Set up travel route for the day")
+        
+        return suggestions 

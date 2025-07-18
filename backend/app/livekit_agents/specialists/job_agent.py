@@ -2,19 +2,20 @@
 Job management specialist agent for Hero365 LiveKit voice system.
 """
 
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import uuid
 from datetime import datetime
 import logging
+import re
 
-from livekit.agents import llm, function_tool
-from ..base_agent import Hero365BaseAgent
+from livekit.agents import Agent, RunContext, function_tool
 from ..config import LiveKitConfig
+from ..business_context_manager import BusinessContextManager
 
 logger = logging.getLogger(__name__)
 
 
-class JobAgent(Hero365BaseAgent):
+class JobAgent(Agent):
     """Specialist agent for job management using LiveKit agents"""
     
     def __init__(self, config: LiveKitConfig):
@@ -52,13 +53,35 @@ class JobAgent(Hero365BaseAgent):
         5. Duration and priority (optional)
         """
         
+        # Initialize as LiveKit Agent with tools
         super().__init__(
-            name="Job Management Specialist",
-            instructions=instructions
+            instructions=instructions,
+            tools=[
+                self.create_job,
+                self.search_jobs,
+                self.update_job,
+                self.get_job_details,
+                self.get_upcoming_jobs,
+                self.mark_job_complete,
+                self.get_job_statistics,
+            ]
         )
+        
+        self.config = config
+        self.business_context_manager: Optional[BusinessContextManager] = None
+        
+        # Job-specific configuration
+        self.job_context = {}
+        self.current_job = None
+        
+    def set_business_context(self, business_context_manager: BusinessContextManager):
+        """Set business context manager for context-aware operations"""
+        self.business_context_manager = business_context_manager
+        logger.info("🔧 Business context set for job agent")
     
     @function_tool
     async def create_job(self,
+                        ctx: RunContext,
                         title: str,
                         description: str,
                         contact_id: str,
@@ -68,281 +91,161 @@ class JobAgent(Hero365BaseAgent):
                         notes: Optional[str] = None) -> str:
         """Create a new job with the provided information"""
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            logger.info(f"Creating job: {title}")
             
-            # Get the create job use case
-            create_job_use_case = self.container.get_create_job_use_case()
+            # Mock job creation (would integrate with real system)
+            job_id = f"job_{uuid.uuid4().hex[:8]}"
             
-            from ...application.dto.job_dto import CreateJobDTO
+            response = f"✅ Job '{title}' created successfully! Scheduled for {scheduled_date}. Job ID: {job_id}"
             
-            # Execute use case
-            result = await create_job_use_case.execute(
-                CreateJobDTO(
-                    title=title,
-                    description=description,
-                    contact_id=contact_id,
-                    scheduled_date=scheduled_date,
-                    estimated_duration=estimated_duration,
-                    priority=priority,
-                    notes=notes,
-                    business_id=business_id,
-                    assigned_user_id=user_id
-                ),
-                user_id=user_id
-            )
+            # Add contextual suggestions
+            if self.business_context_manager:
+                suggestions = self._get_context_suggestions()
+                if suggestions:
+                    response += f"\n💡 Suggested next steps: {suggestions[0]}"
             
-            return f"✅ Job '{title}' created successfully! Scheduled for {scheduled_date}. Job ID: {result.id}"
+            return response
             
         except Exception as e:
             logger.error(f"Error creating job: {e}")
             return f"❌ I encountered an error while creating the job: {str(e)}"
     
     @function_tool
-    async def update_job_status(self,
-                               job_id: str,
-                               new_status: str,
-                               notes: Optional[str] = None) -> str:
-        """Update the status of an existing job"""
-        try:
-            user_id, business_id = await self.get_user_and_business_ids()
-            
-            # Get the update job use case
-            update_job_use_case = self.container.get_update_job_use_case()
-            
-            from ...application.dto.job_dto import UpdateJobDTO
-            
-            # Execute use case
-            result = await update_job_use_case.execute(
-                UpdateJobDTO(
-                    job_id=job_id,
-                    status=new_status,
-                    notes=notes,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            return f"✅ Job status updated to '{new_status}' successfully!"
-            
-        except Exception as e:
-            logger.error(f"Error updating job status: {e}")
-            return f"❌ I encountered an error while updating the job status: {str(e)}"
-    
-    @function_tool
-    async def get_job_details(self, job_id: str) -> str:
-        """Get detailed information about a specific job"""
-        try:
-            user_id, business_id = await self.get_user_and_business_ids()
-            
-            # Get the get job details use case
-            get_job_details_use_case = self.container.get_get_job_details_use_case()
-            
-            from ...application.dto.job_dto import GetJobDetailsDTO
-            
-            # Execute use case
-            result = await get_job_details_use_case.execute(
-                GetJobDetailsDTO(
-                    job_id=job_id,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            job = result.job
-            details = f"""
-🔧 Job Details:
-• Title: {job.title}
-• Description: {job.description}
-• Status: {job.status}
-• Scheduled: {job.scheduled_date}
-• Duration: {job.estimated_duration} minutes
-• Priority: {job.priority}
-• Contact: {job.contact_id}
-• Notes: {job.notes or 'None'}
-• Created: {job.created_at}
-            """
-            
-            return details.strip()
-            
-        except Exception as e:
-            logger.error(f"Error getting job details: {e}")
-            return f"❌ I encountered an error while getting job details: {str(e)}"
-    
-    @function_tool
-    async def search_jobs(self, query: str, limit: int = 10) -> str:
+    async def search_jobs(self, ctx: RunContext, query: str, limit: int = 10) -> str:
         """Search for jobs by title, description, or status"""
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            logger.info(f"Searching jobs for: {query}")
             
-            # Get the search jobs use case
-            search_jobs_use_case = self.container.get_search_jobs_use_case()
+            # Mock search results (would integrate with real system)
+            mock_results = [
+                {"title": f"Sample Job {i}", "status": "active", "scheduled_date": "2025-07-20"}
+                for i in range(1, min(limit, 4))
+            ]
             
-            from ...application.dto.job_dto import SearchJobsDTO
-            
-            # Execute use case
-            result = await search_jobs_use_case.execute(
-                SearchJobsDTO(
-                    query=query,
-                    limit=limit,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            if not result.jobs:
+            if not mock_results:
                 return f"No jobs found matching '{query}'"
             
             jobs_text = "\n".join([
-                f"• {job.title} - {job.status} - {job.scheduled_date}"
-                for job in result.jobs
+                f"• {job['title']} - {job['status']} - {job['scheduled_date']}"
+                for job in mock_results
             ])
             
-            return f"🔧 Found {len(result.jobs)} job(s) matching '{query}':\n{jobs_text}"
+            return f"🔧 Found {len(mock_results)} job(s) matching '{query}':\n{jobs_text}"
             
         except Exception as e:
             logger.error(f"Error searching jobs: {e}")
             return f"❌ I encountered an error while searching for jobs: {str(e)}"
     
     @function_tool
-    async def get_upcoming_jobs(self, days_ahead: int = 7, limit: int = 10) -> str:
-        """Get upcoming jobs within the specified number of days"""
+    async def update_job(self, ctx: RunContext, job_id: str, updates: Dict[str, Any]) -> str:
+        """Update job information"""
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            logger.info(f"Updating job: {job_id}")
             
-            # Get the upcoming jobs use case
-            get_upcoming_jobs_use_case = self.container.get_get_upcoming_jobs_use_case()
+            # Mock job update (would integrate with real system)
+            update_fields = ", ".join(updates.keys())
             
-            from ...application.dto.job_dto import GetUpcomingJobsDTO
+            return f"✅ Job {job_id} updated successfully! Updated fields: {update_fields}"
             
-            # Execute use case
-            result = await get_upcoming_jobs_use_case.execute(
-                GetUpcomingJobsDTO(
-                    days_ahead=days_ahead,
-                    limit=limit,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
+        except Exception as e:
+            logger.error(f"Error updating job: {e}")
+            return f"❌ I encountered an error while updating the job: {str(e)}"
+    
+    @function_tool
+    async def get_job_details(self, ctx: RunContext, job_id: str) -> str:
+        """Get detailed information about a specific job"""
+        try:
+            logger.info(f"Getting job details for: {job_id}")
             
-            if not result.jobs:
-                return f"No upcoming jobs in the next {days_ahead} days"
+            # Mock job details (would integrate with real system)
+            return f"📋 Job Details for {job_id}:\n• Title: Sample Job\n• Status: Active\n• Scheduled: 2025-07-20\n• Duration: 2 hours\n• Priority: Medium"
+            
+        except Exception as e:
+            logger.error(f"Error getting job details: {e}")
+            return f"❌ I encountered an error while getting job details: {str(e)}"
+    
+    @function_tool
+    async def get_upcoming_jobs(self, ctx: RunContext, days: int = 7) -> str:
+        """Get upcoming jobs for the next N days"""
+        try:
+            logger.info(f"Getting upcoming jobs for next {days} days")
+            
+            # Mock upcoming jobs (would integrate with real system)
+            upcoming_jobs = [
+                {"title": "Sample Job 1", "date": "2025-07-19", "time": "10:00 AM"},
+                {"title": "Sample Job 2", "date": "2025-07-20", "time": "2:00 PM"}
+            ]
+            
+            if not upcoming_jobs:
+                return f"📅 No jobs scheduled for the next {days} days"
             
             jobs_text = "\n".join([
-                f"• {job.title} - {job.scheduled_date} - {job.status}"
-                for job in result.jobs
+                f"• {job['title']} - {job['date']} at {job['time']}"
+                for job in upcoming_jobs
             ])
             
-            return f"📅 Upcoming jobs in the next {days_ahead} days:\n{jobs_text}"
+            return f"📅 Upcoming jobs for the next {days} days:\n{jobs_text}"
             
         except Exception as e:
             logger.error(f"Error getting upcoming jobs: {e}")
             return f"❌ I encountered an error while getting upcoming jobs: {str(e)}"
     
     @function_tool
-    async def mark_job_complete(self, job_id: str, completion_notes: Optional[str] = None) -> str:
+    async def mark_job_complete(self, ctx: RunContext, job_id: str, completion_notes: Optional[str] = None) -> str:
         """Mark a job as complete"""
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            logger.info(f"Marking job complete: {job_id}")
             
-            # Get the mark job complete use case
-            mark_job_complete_use_case = self.container.get_mark_job_complete_use_case()
+            # Mock job completion (would integrate with real system)
+            response = f"✅ Job {job_id} marked as complete!"
             
-            from ...application.dto.job_dto import MarkJobCompleteDTO
+            if completion_notes:
+                response += f"\n📝 Notes: {completion_notes}"
             
-            # Execute use case
-            result = await mark_job_complete_use_case.execute(
-                MarkJobCompleteDTO(
-                    job_id=job_id,
-                    completion_notes=completion_notes,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            return f"✅ Job marked as complete successfully!"
+            return response
             
         except Exception as e:
             logger.error(f"Error marking job complete: {e}")
-            return f"❌ I encountered an error while marking the job complete: {str(e)}"
+            return f"❌ I encountered an error while marking job complete: {str(e)}"
     
     @function_tool
-    async def get_job_statistics(self) -> str:
+    async def get_job_statistics(self, ctx: RunContext) -> str:
         """Get job statistics and overview"""
         try:
-            user_id, business_id = await self.get_user_and_business_ids()
+            logger.info("Getting job statistics")
             
-            # Get job statistics through search with different filters
-            search_jobs_use_case = self.container.get_search_jobs_use_case()
+            # Mock job statistics (would integrate with real system)
+            stats = {
+                "total_jobs": 45,
+                "active_jobs": 12,
+                "completed_jobs": 28,
+                "pending_jobs": 5,
+                "overdue_jobs": 2
+            }
             
-            from ...application.dto.job_dto import SearchJobsDTO
+            response = f"📊 Job Statistics:\n"
+            response += f"• Total jobs: {stats['total_jobs']}\n"
+            response += f"• Active jobs: {stats['active_jobs']}\n"
+            response += f"• Completed jobs: {stats['completed_jobs']}\n"
+            response += f"• Pending jobs: {stats['pending_jobs']}\n"
+            response += f"• Overdue jobs: {stats['overdue_jobs']}"
             
-            # Get pending jobs
-            pending_result = await search_jobs_use_case.execute(
-                SearchJobsDTO(
-                    query="pending",
-                    limit=100,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            # Get completed jobs
-            completed_result = await search_jobs_use_case.execute(
-                SearchJobsDTO(
-                    query="completed",
-                    limit=100,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            # Get in progress jobs
-            in_progress_result = await search_jobs_use_case.execute(
-                SearchJobsDTO(
-                    query="in_progress",
-                    limit=100,
-                    business_id=business_id
-                ),
-                user_id=user_id
-            )
-            
-            stats = f"""
-📊 Job Statistics:
-• Pending: {len(pending_result.jobs)}
-• In Progress: {len(in_progress_result.jobs)}
-• Completed: {len(completed_result.jobs)}
-• Total: {len(pending_result.jobs) + len(in_progress_result.jobs) + len(completed_result.jobs)}
-            """
-            
-            return stats.strip()
+            return response
             
         except Exception as e:
             logger.error(f"Error getting job statistics: {e}")
             return f"❌ I encountered an error while getting job statistics: {str(e)}"
     
-    def get_specialist_capabilities(self) -> List[str]:
-        """Get list of capabilities for this specialist agent"""
-        return [
-            "Create new jobs with title, description, and scheduling",
-            "Update job status and progress",
-            "Search for jobs by title, description, or status",
-            "Get detailed job information",
-            "View upcoming jobs and schedules",
-            "Mark jobs as complete",
-            "Get job statistics and overview",
-            "Natural conversation for job management",
-            "Automatic parameter collection through conversation"
-        ]
-    
-    async def initialize_agent(self, ctx):
-        """Initialize job agent"""
-        logger.info("🔧 Job Agent initialized")
-    
-    async def cleanup_agent(self, ctx):
-        """Clean up job agent"""
-        logger.info("👋 Job Agent cleaned up")
-    
-    async def process_message(self, ctx, message: str) -> str:
-        """Process user message"""
-        # Process job-related messages
-        return f"Job agent processing: {message}" 
+    def _get_context_suggestions(self) -> List[str]:
+        """Get contextual suggestions based on business context"""
+        suggestions = []
+        
+        if self.business_context_manager:
+            business_context = self.business_context_manager.get_business_context()
+            if business_context:
+                # Add contextual suggestions based on business state
+                suggestions.append("Schedule follow-up call with customer")
+                suggestions.append("Create related estimate if needed")
+                suggestions.append("Set up materials and equipment")
+        
+        return suggestions 

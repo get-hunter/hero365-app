@@ -693,6 +693,10 @@ class DependencyContainer:
     def get_contact_repository(self) -> ContactRepository:
         """Get contact repository."""
         return self.get_repository('contact_repository')
+    
+    def get_user_repository(self) -> Optional[Any]:
+        """Get user repository (not implemented - users managed via Supabase Auth)."""
+        return None
 
     def get_create_contact_use_case(self) -> CreateContactUseCase:
         """Get create contact use case."""
@@ -792,7 +796,7 @@ class DependencyContainer:
     def get_calendar_management_use_case(self) -> CalendarManagementUseCase:
         """Get calendar management use case."""
         return self.get_use_case('calendar_management')
-    
+
     def get_project_repository(self) -> ProjectRepository:
         """Get project repository."""
         return self.get_repository('project_repository')

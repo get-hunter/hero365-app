@@ -105,6 +105,22 @@ class SupabaseContactRepository(ContactRepository):
         except Exception as e:
             raise DatabaseError(f"Failed to get contacts by business ID: {str(e)}")
     
+    async def get_recent_by_business(self, business_id: uuid.UUID, days: int = 30, limit: int = 10) -> List[Contact]:
+        """Get recent contacts by business ID within the specified number of days."""
+        try:
+            cutoff_date = datetime.now() - timedelta(days=days)
+            
+            response = self.client.table(self.table_name).select("*").eq(
+                "business_id", str(business_id)
+            ).gte("created_date", cutoff_date.isoformat()).range(
+                0, limit - 1
+            ).order("created_date", desc=True).execute()
+            
+            return [self._dict_to_contact(contact_data) for contact_data in response.data]
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to get recent contacts by business ID: {str(e)}")
+    
     async def get_by_business_id_with_users(self, business_id: uuid.UUID, user_detail_level: UserDetailLevel = UserDetailLevel.BASIC, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
         """Get contacts by business ID with user data included."""
         try:

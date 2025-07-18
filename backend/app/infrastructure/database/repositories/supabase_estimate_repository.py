@@ -7,7 +7,7 @@ Repository implementation using Supabase client SDK for estimate management oper
 import uuid
 import logging
 from typing import Optional, List, Dict, Any, Tuple
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from decimal import Decimal
 import json
 
@@ -122,37 +122,30 @@ class SupabaseEstimateRepository(EstimateRepository):
     async def get_by_business_id(self, business_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[Estimate]:
         """Get estimates by business ID with pagination."""
         try:
-            # Fetch estimates
             response = self.client.table(self.table_name).select("*").eq(
                 "business_id", str(business_id)
             ).range(skip, skip + limit - 1).order("created_date", desc=True).execute()
             
-            # Fetch line items for all estimates in one query
-            estimate_ids = [estimate["id"] for estimate in response.data]
-            line_items_response = []
-            if estimate_ids:
-                line_items_response = self.client.table("estimate_line_items").select("*").in_(
-                    "estimate_id", estimate_ids
-                ).order("sort_order").execute()
-            
-            # Group line items by estimate_id
-            line_items_by_estimate = {}
-            for item in line_items_response.data:
-                estimate_id = item["estimate_id"]
-                if estimate_id not in line_items_by_estimate:
-                    line_items_by_estimate[estimate_id] = []
-                line_items_by_estimate[estimate_id].append(item)
-            
-            # Convert to entities with line items
-            estimates = []
-            for estimate_data in response.data:
-                estimate_data["_line_items"] = line_items_by_estimate.get(estimate_data["id"], [])
-                estimates.append(self._dict_to_estimate(estimate_data))
-            
-            return estimates
+            return [self._dict_to_estimate(estimate_data) for estimate_data in response.data]
             
         except Exception as e:
             raise DatabaseError(f"Failed to get estimates by business: {str(e)}")
+    
+    async def get_recent_by_business(self, business_id: uuid.UUID, days: int = 30, limit: int = 10) -> List[Estimate]:
+        """Get recent estimates by business ID within the specified number of days."""
+        try:
+            cutoff_date = datetime.now() - timedelta(days=days)
+            
+            response = self.client.table(self.table_name).select("*").eq(
+                "business_id", str(business_id)
+            ).gte("created_date", cutoff_date.isoformat()).range(
+                0, limit - 1
+            ).order("created_date", desc=True).execute()
+            
+            return [self._dict_to_estimate(estimate_data) for estimate_data in response.data]
+            
+        except Exception as e:
+            raise DatabaseError(f"Failed to get recent estimates by business: {str(e)}")
     
     async def get_by_contact_id(self, contact_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[Estimate]:
         """Get estimates by contact ID with pagination."""
