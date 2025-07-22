@@ -6,51 +6,42 @@ import logging
 import uuid
 from typing import Dict, Any, Optional, List
 
-from ..context import BusinessContextManager
-
 logger = logging.getLogger(__name__)
 
 
 class ContactTools:
     """Contact management tools for the Hero365 agent"""
     
-    def __init__(self, business_context: Dict[str, Any], business_context_manager: Optional[BusinessContextManager] = None):
+    def __init__(self, business_context: Dict[str, Any], business_context_manager: Optional[Any] = None):
         self.business_context = business_context
         self.business_context_manager = business_context_manager
-        self.container = None
+        self._container = None
+        self._contact_repo = None
         
-        # Try to get container from business context manager
-        if business_context_manager:
-            self.container = business_context_manager._container
-    
-    def _get_contact_repository(self):
-        """Get contact repository from container"""
-        if not self.container:
-            logger.warning("⚠️ No container available for contact repository")
-            # Try to get container directly from dependency injection
+    def _get_container(self):
+        """Get dependency injection container"""
+        if not self._container:
             try:
                 from app.infrastructure.config.dependency_injection import get_container
-                self.container = get_container()
-                if self.container:
-                    logger.info("✅ Retrieved container from dependency injection")
-                else:
-                    logger.error("❌ Could not get container from dependency injection")
-                    return None
+                self._container = get_container()
+                logger.info("✅ Retrieved container for ContactTools")
             except Exception as e:
-                logger.error(f"❌ Error getting container from dependency injection: {e}")
+                logger.error(f"❌ Error getting container: {e}")
                 return None
-        
-        try:
-            contact_repo = self.container.get_contact_repository()
-            if contact_repo:
-                logger.info("✅ Contact repository retrieved successfully")
-                return contact_repo
-            else:
-                logger.error("❌ Contact repository not found in container")
-                return None
-        except Exception as e:
-            logger.error(f"❌ Error getting contact repository: {e}")
-            return None
+        return self._container
+    
+    def _get_contact_repository(self):
+        """Get contact repository with caching"""
+        if not self._contact_repo:
+            container = self._get_container()
+            if container:
+                try:
+                    self._contact_repo = container.get_contact_repository()
+                    logger.info("✅ Contact repository retrieved successfully")
+                except Exception as e:
+                    logger.error(f"❌ Error getting contact repository: {e}")
+                    return None
+        return self._contact_repo
     
     def _get_business_id(self) -> Optional[uuid.UUID]:
         """Get business ID from context"""
@@ -109,40 +100,39 @@ class ContactTools:
             
             # Import contact entity and enums
             from app.domain.entities.contact import Contact, ContactType
-            from app.application.use_cases.contact.create_contact_use_case import CreateContactUseCase
-            from app.application.dto.contact_dto import ContactCreateDTO
+            from app.domain.value_objects.address import Address
             
-            # Create contact DTO
-            contact_dto = ContactCreateDTO(
+            # Convert string contact_type to enum
+            try:
+                contact_type_enum = ContactType(contact_type.lower())
+            except ValueError:
+                contact_type_enum = ContactType.LEAD
+            
+            # Create address object if provided
+            address_obj = None
+            if address:
+                address_obj = Address(street_address=address, city="", state="", postal_code="", country="US")
+            
+            # Create new contact
+            new_contact = Contact(
                 business_id=business_id,
-                contact_type=ContactType(contact_type.upper()),
                 first_name=first_name,
                 last_name=last_name,
                 email=email,
                 phone=phone,
-                notes=f"Created via voice agent. Address: {address}" if address else "Created via voice agent"
+                contact_type=contact_type_enum,
+                address=address_obj,
+                notes=f"Created via voice agent on {logger.name}"
             )
             
-            # Get use case from container
-            create_use_case = self.container.get(CreateContactUseCase)
-            if not create_use_case:
-                return "❌ Contact creation use case not available"
+            # Save to repository
+            created_contact = await contact_repo.create(new_contact)
             
-            # Execute use case
-            result = await create_use_case.execute(contact_dto, user_id="voice_agent")
-            
-            response = f"✅ Successfully created contact '{name}'"
+            response = f"✅ Successfully created contact: {created_contact.get_display_name()}"
             if phone:
-                response += f" with phone {phone}"
+                response += f" ({phone})"
             if email:
-                response += f" and email {email}"
-            response += f" as a {contact_type}."
-            
-            # Add contextual suggestions
-            if self.business_context_manager:
-                suggestions = self.business_context_manager.get_contextual_suggestions()
-                if suggestions and suggestions.follow_ups:
-                    response += f"\n💡 Suggested next step: {suggestions.follow_ups[0]}"
+                response += f" - {email}"
             
             return response
                 
@@ -151,7 +141,7 @@ class ContactTools:
             return f"❌ Error creating contact: {str(e)}"
 
     async def search_contacts(self, query: str, limit: int = 10) -> str:
-        """Search for contacts with context-aware suggestions.
+        """Search for contacts with direct repository access.
         
         Args:
             query: Search query (name, phone, email, etc.)
@@ -170,12 +160,6 @@ class ContactTools:
             if not contact_repo:
                 return "❌ Contact repository not available"
             
-            # First check business context for quick matches
-            if self.business_context_manager:
-                context_match = self.business_context_manager.find_contact_by_name(query)
-                if context_match:
-                    return f"🎯 Found in recent contacts: {context_match.name} - {context_match.phone or 'No phone'} - {context_match.email or 'No email'}"
-            
             # Search in database
             contacts = await contact_repo.search_contacts(business_id, query, limit=limit)
             
@@ -183,13 +167,6 @@ class ContactTools:
                 response = f"🔍 Found {len(contacts)} contacts matching '{query}':\n"
                 for i, contact in enumerate(contacts, 1):
                     response += f"{i}. {contact.get_display_name()} - {contact.phone or 'No phone'} - {contact.email or 'No email'}\n"
-                
-                # Add contextual suggestions
-                if self.business_context_manager:
-                    suggestions = self.business_context_manager.get_contextual_suggestions()
-                    if suggestions and suggestions.quick_actions:
-                        response += f"\n💡 Related suggestion: {suggestions.quick_actions[0]}"
-                
                 return response
             else:
                 return f"🔍 No contacts found matching '{query}'. Would you like to create a new contact?"
@@ -197,6 +174,41 @@ class ContactTools:
         except Exception as e:
             logger.error(f"❌ Error searching contacts: {e}")
             return f"❌ Error searching contacts: {str(e)}"
+
+    async def get_suggested_contacts(self, limit: int = 5) -> str:
+        """Get recent contacts directly from repository.
+        
+        Args:
+            limit: Maximum number of suggestions to return
+        """
+        try:
+            logger.info("💡 Getting recent contacts")
+            
+            # Get business ID
+            business_id = self._get_business_id()
+            if not business_id:
+                return "❌ Business context not available"
+            
+            # Get contact repository
+            contact_repo = self._get_contact_repository()
+            if not contact_repo:
+                return "❌ Contact repository not available"
+            
+            # Get recent contacts from repository
+            recent_contacts = await contact_repo.get_recent_by_business(business_id, limit=limit)
+            
+            if recent_contacts:
+                response = f"📞 Recent contacts you might want to reach out to:\n"
+                for i, contact in enumerate(recent_contacts, 1):
+                    priority_icon = "🔥" if contact.priority and contact.priority.value == "high" else "📞"
+                    response += f"{i}. {priority_icon} {contact.get_display_name()} - {contact.phone or 'No phone'}\n"
+                return response
+            else:
+                return "📞 No recent contacts found. Would you like to create a new contact?"
+                
+        except Exception as e:
+            logger.error(f"❌ Error getting contact suggestions: {e}")
+            return f"❌ Error getting contact suggestions: {str(e)}"
 
     async def get_contact_info(self, contact_name: str, info_type: str = "all") -> str:
         """Get specific information about a contact by name.
@@ -209,10 +221,6 @@ class ContactTools:
                 - "address" or "location" - Get physical address
                 - "company" or "work" - Get company information
                 - "notes" or "comments" - Get contact notes
-                - "value" or "worth" - Get estimated value
-                - "type" or "status" - Get contact type and status
-                - "last contacted" - Get last contact date
-                - "tags" - Get contact tags
                 - "all" (default) - Get complete contact information
         """
         try:
@@ -285,27 +293,6 @@ class ContactTools:
                 else:
                     return f"❌ No notes on file for {contact_name_display}."
             
-            elif info_type in ["value", "worth", "estimated"]:
-                if contact.estimated_value:
-                    return f"💰 {contact_name_display}'s estimated value: ${contact.estimated_value} {contact.currency}"
-                else:
-                    return f"❌ No estimated value on file for {contact_name_display}."
-            
-            elif info_type in ["type", "category", "status"]:
-                return f"🏷️ {contact_name_display} is a {contact.get_type_display()} with {contact.get_priority_display()} priority and {contact.get_status_display()} status."
-            
-            elif info_type in ["last contacted", "last contact", "recent"]:
-                if contact.last_contacted:
-                    return f"📅 {contact_name_display} was last contacted on {contact.last_contacted.strftime('%B %d, %Y')}"
-                else:
-                    return f"❌ No contact history on file for {contact_name_display}."
-            
-            elif info_type in ["tags", "tag"]:
-                if contact.tags:
-                    return f"🏷️ Tags for {contact_name_display}: {', '.join(contact.tags)}"
-                else:
-                    return f"❌ No tags on file for {contact_name_display}."
-            
             # Default: return comprehensive information
             else:
                 response = f"""
@@ -317,57 +304,22 @@ class ContactTools:
 🏢 Company: {contact.company_name or 'Not provided'}
 💼 Job Title: {contact.job_title or 'Not provided'}
 🏷️ Type: {contact.get_type_display()}
-⭐ Priority: {contact.get_priority_display()}
-📊 Status: {contact.get_status_display()}
-💰 Estimated Value: ${contact.estimated_value or 0} {contact.currency}
+⭐ Priority: {contact.get_priority_display() if hasattr(contact, 'get_priority_display') else 'Not set'}
+📊 Status: {contact.get_status_display() if hasattr(contact, 'get_status_display') else 'Active'}
 📝 Notes: {contact.notes or 'No notes'}
 """
                 
                 if contact.address:
                     response += f"📍 Address: {contact.address.street_address}, {contact.address.city}, {contact.address.state} {contact.address.postal_code}\n"
                 
-                if contact.tags:
+                if hasattr(contact, 'tags') and contact.tags:
                     response += f"🏷️ Tags: {', '.join(contact.tags)}\n"
                 
-                if contact.last_contacted:
+                if hasattr(contact, 'last_contacted') and contact.last_contacted:
                     response += f"📅 Last Contacted: {contact.last_contacted.strftime('%B %d, %Y')}\n"
                 
                 return response.strip()
                 
         except Exception as e:
             logger.error(f"❌ Error getting contact info: {e}")
-            return f"❌ Error getting contact info: {str(e)}"
-
-    async def get_suggested_contacts(self, limit: int = 5) -> str:
-        """Get suggested contacts based on business context and recent activity.
-        
-        Args:
-            limit: Maximum number of suggestions to return
-        """
-        try:
-            logger.info("💡 Getting suggested contacts")
-            
-            if not self.business_context_manager:
-                return "📞 Business context not available for contact suggestions"
-            
-            # Get recent contacts from business context
-            recent_contacts = self.business_context_manager.get_recent_contacts(limit)
-            
-            if recent_contacts:
-                response = f"📞 Recent contacts you might want to reach out to:\n"
-                for i, contact in enumerate(recent_contacts, 1):
-                    priority_icon = "🔥" if contact.priority.value == "high" else "📞"
-                    response += f"{i}. {priority_icon} {contact.name} - {contact.phone or 'No phone'}\n"
-                
-                # Add contextual suggestions
-                suggestions = self.business_context_manager.get_contextual_suggestions()
-                if suggestions and suggestions.follow_ups:
-                    response += f"\n💡 Consider: {', '.join(suggestions.follow_ups[:2])}"
-                
-                return response
-            else:
-                return "📞 No recent contacts found. Would you like to create a new contact?"
-                
-        except Exception as e:
-            logger.error(f"❌ Error getting contact suggestions: {e}")
-            return f"❌ Error getting contact suggestions: {str(e)}" 
+            return f"❌ Error getting contact info: {str(e)}" 

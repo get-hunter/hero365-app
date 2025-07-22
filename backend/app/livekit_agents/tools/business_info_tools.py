@@ -3,9 +3,8 @@ Business Information Tools for Hero365 LiveKit Agents
 """
 
 import logging
+import uuid
 from typing import Dict, Any, Optional
-
-from ..context import BusinessContextManager
 
 logger = logging.getLogger(__name__)
 
@@ -13,10 +12,32 @@ logger = logging.getLogger(__name__)
 class BusinessInfoTools:
     """Business information tools for the Hero365 agent"""
     
-    def __init__(self, business_context: Dict[str, Any], business_context_manager: Optional[BusinessContextManager] = None):
+    def __init__(self, business_context: Dict[str, Any], business_context_manager: Optional[Any] = None):
         self.business_context = business_context
         self.business_context_manager = business_context_manager
+        self._container = None
+        
+    def _get_container(self):
+        """Get dependency injection container"""
+        if not self._container:
+            try:
+                from app.infrastructure.config.dependency_injection import get_container
+                self._container = get_container()
+                logger.info("✅ Retrieved container for BusinessInfoTools")
+            except Exception as e:
+                logger.error(f"❌ Error getting container: {e}")
+                return None
+        return self._container
     
+    def _get_business_id(self) -> Optional[uuid.UUID]:
+        """Get business ID from context"""
+        business_id = self.business_context.get('business_id')
+        if business_id:
+            if isinstance(business_id, str):
+                return uuid.UUID(business_id)
+            return business_id
+        return None
+
     async def get_business_info(self) -> str:
         """Get current business information including name, type, and contact details"""
         logger.info("🏢 get_business_info tool called")
@@ -52,8 +73,6 @@ class BusinessInfoTools:
             info.append(f"Email: {self.business_context['user_email']}")
         if self.business_context.get('user_role'):
             info.append(f"Role: {self.business_context['user_role']}")
-        if self.business_context.get('user_id'):
-            info.append(f"User ID: {self.business_context['user_id']}")
             
         return "\n".join(info) if info else "User information is not available."
 
