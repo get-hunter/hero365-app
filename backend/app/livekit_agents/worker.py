@@ -267,11 +267,11 @@ async def entrypoint(ctx: JobContext):
         )
         
         # Generate context-aware initial greeting
-        greeting_instructions = "Greet the user warmly and introduce yourself as their Hero365 business assistant."
+        greeting_instructions = "Greet the user warmly as their Hero365 business assistant. Be conversational and natural - you're speaking to them, not typing. Introduce yourself briefly and mention you're here to help manage their business."
         if business_context and business_context.get('business_name'):
-            greeting_instructions += f" Mention that you're here to help with {business_context['business_name']} and can assist with contacts, jobs, estimates, and business insights. Ask how you can help them today."
+            greeting_instructions += f" Mention you have access to {business_context['business_name']}'s information and can help with contacts, jobs, estimates, and business insights. Ask how you can help them today in a natural, conversational way."
         else:
-            greeting_instructions += " Mention that you can help with contacts, jobs, estimates, and business management. Ask how you can help them with their business today."
+            greeting_instructions += " Explain you can help with contacts, jobs, estimates, and business management. Ask what they'd like to work on today."
         
         await session.generate_reply(instructions=greeting_instructions)
         
