@@ -10,6 +10,17 @@ from ..context import BusinessContextManager
 
 logger = logging.getLogger(__name__)
 
+# SerpAPI for web search
+try:
+    from serpapi import GoogleSearch
+    SERPAPI_AVAILABLE = True
+except ImportError:
+    SERPAPI_AVAILABLE = False
+    logger.warning("SerpAPI not available. Web search will use fallback responses.")
+
+# Configuration
+from ..config import LiveKitConfig
+
 
 class IntelligenceTools:
     """Business intelligence tools for the Hero365 agent"""
@@ -219,27 +230,30 @@ class IntelligenceTools:
             if self.business_context_manager:
                 business_summary = self.business_context_manager.get_business_summary()
                 if business_summary:
-                    context_summary = f"📊 Current snapshot: {business_summary.active_jobs} active jobs, {business_summary.pending_estimates} pending estimates\n\n"
+                    context_summary = f"Current snapshot: {business_summary.active_jobs} active jobs, {business_summary.pending_estimates} pending estimates. "
             
             # Simulate analytics data (replace with actual API call)
-            response = context_summary + f"📊 Business Analytics for {period}:\n"
-            response += f"• Total Jobs: 15\n"
-            response += f"• Completed Jobs: 10\n"
-            response += f"• Total Revenue: $25,000.00\n"
-            response += f"• Pending Estimates: 5\n"
-            response += f"• Overdue Invoices: 2\n"
+            response = context_summary + f"Business analytics for {period}: "
+            analytics_parts = []
+            analytics_parts.append("total jobs fifteen")
+            analytics_parts.append("completed jobs ten") 
+            analytics_parts.append("total revenue twenty five thousand dollars")
+            analytics_parts.append("pending estimates five")
+            analytics_parts.append("overdue invoices two")
+            
+            response += ", ".join(analytics_parts)
             
             # Add contextual suggestions
             if self.business_context_manager:
                 suggestions = self.business_context_manager.get_contextual_suggestions()
                 if suggestions and suggestions.urgent_items:
-                    response += f"\n🔥 Urgent attention needed: {suggestions.urgent_items[0]}"
+                    response += f". Urgent attention needed: {suggestions.urgent_items[0]}"
             
             return response
                 
         except Exception as e:
             logger.error(f"❌ Error getting analytics: {e}")
-            return f"❌ Error getting analytics: {str(e)}"
+            return f"Error getting analytics: {str(e)}"
 
     @function_tool
     async def get_contextual_insights(self) -> str:
@@ -248,105 +262,148 @@ class IntelligenceTools:
             logger.info("🔍 Getting contextual insights")
             
             if not self.business_context_manager:
-                return "🔍 Business context not available for insights"
+                return "Business context not available for insights"
             
             business_summary = self.business_context_manager.get_business_summary()
             suggestions = self.business_context_manager.get_contextual_suggestions()
             
             if not business_summary:
-                return "🔍 No business data available for insights"
+                return "No business data available for insights"
             
-            response = f"🔍 Business Insights:\n"
-            response += f"📊 Overview: {business_summary.active_jobs} active jobs, {business_summary.pending_estimates} pending estimates\n"
-            response += f"📅 This week: {business_summary.jobs_this_week} jobs scheduled\n"
+            response = f"Business insights: "
+            insight_parts = []
+            insight_parts.append(f"overview shows {business_summary.active_jobs} active jobs and {business_summary.pending_estimates} pending estimates")
+            insight_parts.append(f"this week you have {business_summary.jobs_this_week} jobs scheduled")
             
             if suggestions:
                 if suggestions.urgent_items:
-                    response += f"\n🔥 Urgent items:\n"
+                    urgent_list = []
                     for item in suggestions.urgent_items[:3]:
-                        response += f"• {item}\n"
+                        urgent_list.append(item)
+                    insight_parts.append(f"urgent items include {', '.join(urgent_list)}")
                 
                 if suggestions.quick_actions:
-                    response += f"\n⚡ Quick actions:\n"
+                    action_list = []
                     for action in suggestions.quick_actions[:3]:
-                        response += f"• {action}\n"
+                        action_list.append(action)
+                    insight_parts.append(f"quick actions you can take are {', '.join(action_list)}")
                 
                 if suggestions.opportunities:
-                    response += f"\n💡 Opportunities:\n"
+                    opp_list = []
                     for opportunity in suggestions.opportunities[:3]:
-                        response += f"• {opportunity}\n"
+                        opp_list.append(opportunity)
+                    insight_parts.append(f"opportunities available are {', '.join(opp_list)}")
             
+            response += ". ".join(insight_parts)
             return response
             
         except Exception as e:
             logger.error(f"❌ Error getting contextual insights: {e}")
-            return f"❌ Error getting contextual insights: {str(e)}"
+            return f"Error getting contextual insights: {str(e)}"
 
     @function_tool
     async def web_search(self, query: str, num_results: int = 5) -> str:
-        """Perform web search with business context awareness.
+        """Perform real web search using SerpAPI with business context awareness.
         
         Args:
             query: Search query
-            num_results: Number of results to return
+            num_results: Number of results to return (max 10)
         """
         try:
             logger.info(f"🌐 Web search for: {query}")
             
-            # Simulate web search (replace with actual API call)
-            response = f"I found information about {query}. Here are the key details from my search results."
+            if not SERPAPI_AVAILABLE or not LiveKitConfig.SERPAPI_KEY:
+                logger.warning("SerpAPI not available or API key missing")
+                return f"I searched the web for {query} but I'm having trouble accessing search results right now. The information might include recent updates, industry news, or current market trends related to your query."
             
-            # Add context-aware suggestions for business-related searches
-            if any(word in query.lower() for word in ["contractor", "service", "repair", "installation"]):
+            # Perform actual web search using SerpAPI
+            search_params = {
+                "q": query,
+                "api_key": LiveKitConfig.SERPAPI_KEY,
+                "num": min(num_results, 10),  # Limit to 10 results max
+                "hl": "en",
+                "gl": "us"
+            }
+            
+            search = GoogleSearch(search_params)
+            results = search.get_dict()
+            
+            if "error" in results:
+                logger.error(f"SerpAPI error: {results['error']}")
+                return f"I searched for {query} but encountered an issue with the search service. Please try again in a moment."
+            
+            organic_results = results.get("organic_results", [])
+            
+            if not organic_results:
+                return f"I searched the web for {query} but didn't find specific results. You might want to try different search terms."
+            
+            # Format results for voice in a natural, conversational way
+            response_parts = []
+            response_parts.append(f"I found information about {query}")
+            
+            # Add top results in a voice-friendly format
+            for i, result in enumerate(organic_results[:3], 1):
+                title = result.get("title", "")
+                snippet = result.get("snippet", "")
+                
+                if snippet:
+                    # Clean up snippet for better voice readability
+                    clean_snippet = snippet.replace("...", "").strip()
+                    if clean_snippet:
+                        if i == 1:
+                            response_parts.append(f"According to {title}, {clean_snippet}")
+                        else:
+                            response_parts.append(f"Also, {clean_snippet}")
+            
+            # Add business context awareness
+            business_keywords = ["contractor", "service", "repair", "installation", "home", "business", "plumbing", "electrical", "HVAC"]
+            if any(keyword in query.lower() for keyword in business_keywords):
                 if self.business_context_manager:
                     suggestions = self.business_context_manager.get_contextual_suggestions()
                     if suggestions and suggestions.quick_actions:
-                        response += f"\n💡 Related to your business: {suggestions.quick_actions[0]}"
+                        response_parts.append(f"This might be relevant for {suggestions.quick_actions[0]}")
+            
+            response = ". ".join(response_parts)
+            
+            # Ensure response is not too long for voice
+            if len(response) > 500:
+                # Truncate but maintain natural speech flow
+                response = response[:450] + "... and more details are available if you need them"
             
             return response
                 
         except Exception as e:
-            logger.error(f"❌ Error searching web: {e}")
-            return f"❌ Error searching web: {str(e)}"
+            logger.error(f"❌ Error in web search: {e}")
+            return f"I tried to search for {query} but encountered an issue. Please let me know if you'd like me to try again."
 
     @function_tool
     async def get_business_recommendations(self) -> str:
-        """Get AI-powered business recommendations based on current context."""
+        """Get AI-powered business recommendations based on current context"""
         try:
-            logger.info("🤖 Getting business recommendations")
+            logger.info("💡 Getting business recommendations")
             
             if not self.business_context_manager:
-                return "🤖 Business context not available for recommendations"
+                return "Business context not available for recommendations"
             
             business_summary = self.business_context_manager.get_business_summary()
-            suggestions = self.business_context_manager.get_contextual_suggestions()
-            
             if not business_summary:
-                return "🤖 No business data available for recommendations"
+                return "No business data available for recommendations"
             
-            response = f"🤖 AI Business Recommendations:\n"
+            recommendations = []
             
-            # Performance recommendations
-            if business_summary.active_jobs > 10:
-                response += f"📈 High job volume detected. Consider hiring additional staff or optimizing scheduling.\n"
-            
+            # Basic recommendations based on business state
             if business_summary.pending_estimates > 5:
-                response += f"📊 Multiple pending estimates. Focus on follow-up calls to convert them.\n"
+                recommendations.append("consider following up on your pending estimates to improve conversion rates")
             
-            # Efficiency recommendations
-            if suggestions and suggestions.urgent_items:
-                response += f"\n🔥 Priority actions:\n"
-                for item in suggestions.urgent_items[:2]:
-                    response += f"• {item}\n"
+            if business_summary.active_jobs > 10:
+                recommendations.append("with your current workload, you might want to consider hiring additional help")
             
-            # Growth opportunities
-            if suggestions and suggestions.opportunities:
-                response += f"\n💡 Growth opportunities:\n"
-                for opportunity in suggestions.opportunities[:2]:
-                    response += f"• {opportunity}\n"
+            if not recommendations:
+                recommendations.append("your business metrics look good, keep up the great work")
             
+            response = f"Based on your current business status, I recommend you {', and '.join(recommendations)}"
             return response
             
         except Exception as e:
-            logger.error(f"❌ Error getting business recommendations: {e}")
-            return f"❌ Error getting business recommendations: {str(e)}" 
+            logger.error(f"❌ Error getting recommendations: {e}")
+            return f"Error getting business recommendations: {str(e)}" 

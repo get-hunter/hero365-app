@@ -6,6 +6,7 @@ Handles loading of business context data from various sources
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 import logging
+from datetime import timezone
 
 from ..models import (
     BusinessContext, UserContext, RecentContact, RecentJob, 
@@ -217,41 +218,106 @@ class ContextLoader:
             logger.error(f"❌ Error loading recent jobs: {e}")
             return []
     
-    async def load_recent_estimates(self, business_id: str, limit: int = 15) -> List[RecentEstimate]:
+    async def load_recent_estimates(self, business_id: str, limit: int = 10) -> List[RecentEstimate]:
         """Load recent estimates"""
         try:
+            logger.info(f"📊 Loading recent estimates for business_id: {business_id} (limit: {limit})")
+            
             if not self.container:
+                logger.warning("⚠️ No container available for recent estimates loading")
                 return []
-                
+            
             # Get estimate repository
             estimate_repo = self.container.get_estimate_repository()
-            estimates = await estimate_repo.get_recent_by_business(business_id, limit)
+            logger.info(f"🔍 Debug - Got estimate repository: {type(estimate_repo).__name__ if estimate_repo else None}")
             
+            # Convert string business_id to UUID
+            import uuid
+            try:
+                business_uuid = uuid.UUID(business_id)
+                logger.info(f"🔍 Debug - Converted business_id to UUID: {business_uuid}")
+            except ValueError as e:
+                logger.error(f"❌ Invalid business_id format: {business_id} - {e}")
+                return []
+            
+            # Get recent estimates from repository with debugging
+            logger.info(f"🔍 Debug - Calling estimate_repo.get_recent_by_business with UUID: {business_uuid}")
+            
+            recent_estimates_entities = await estimate_repo.get_recent_by_business(business_uuid, limit=limit)
+            logger.info(f"🔍 Debug - Repository returned {len(recent_estimates_entities) if recent_estimates_entities else 0} estimate entities")
+            
+            if recent_estimates_entities:
+                logger.info(f"✅ Found {len(recent_estimates_entities)} estimates from repository")
+                for i, est in enumerate(recent_estimates_entities):
+                    logger.info(f"  Estimate {i+1}: {est.title} - Status: {est.status.value if hasattr(est, 'status') else 'No status'} - Created: {est.created_date if hasattr(est, 'created_date') else 'No date'}")
+            else:
+                logger.warning(f"⚠️ No estimates returned from repository for business_id: {business_uuid}")
+                
+                # Additional debugging - try to get ALL estimates to see if there are any at all
+                try:
+                    logger.info("🔍 Debug - Checking for ANY estimates in the database...")
+                    all_estimates = await estimate_repo.get_by_business_id(business_uuid, limit=100)
+                    logger.info(f"🔍 Debug - get_by_business_id returned {len(all_estimates) if all_estimates else 0} estimates")
+                    
+                    if all_estimates:
+                        logger.info("🔍 Debug - Some estimates found with get_by_business_id, showing first few:")
+                        for i, est in enumerate(all_estimates[:3]):
+                            logger.info(f"    Estimate {i+1}: {est.title} - Status: {est.status.value if hasattr(est, 'status') else 'No status'}")
+                            logger.info(f"                    Created: {est.created_date if hasattr(est, 'created_date') else 'No date'}")
+                            logger.info(f"                    Business ID: {est.business_id if hasattr(est, 'business_id') else 'No business_id'}")
+                    else:
+                        logger.warning("🔍 Debug - NO estimates found with get_by_business_id either!")
+                        logger.warning(f"🔍 Debug - This suggests the business_id {business_uuid} doesn't match any estimates in the database")
+                
+                except Exception as debug_e:
+                    logger.error(f"🔍 Debug query failed: {debug_e}")
+                
+                return []
+            
+            # Convert entities to RecentEstimate models
             recent_estimates = []
-            for estimate in estimates:
-                # Get contact name
-                contact_name = await self._get_contact_name(str(estimate.contact_id))
-                
-                # Convert domain status to model status
-                status = self._convert_estimate_status(estimate.status)
-                
-                recent_estimates.append(RecentEstimate(
-                    id=str(estimate.id),  # Convert UUID to string
-                    title=estimate.title,
-                    contact_id=str(estimate.contact_id),  # Convert UUID to string
-                    contact_name=contact_name,
-                    status=status,
-                    total_amount=estimate.total_amount,
-                    created_date=estimate.created_at,
-                    valid_until=estimate.valid_until_date,
-                    line_items_count=len(estimate.line_items) if estimate.line_items else 0
-                ))
+            for estimate_entity in recent_estimates_entities:
+                try:
+                    # Resolve contact name
+                    contact_name = "Unknown Contact"
+                    if hasattr(estimate_entity, 'client_name') and estimate_entity.client_name:
+                        contact_name = estimate_entity.client_name
+                    elif hasattr(estimate_entity, 'contact_id') and estimate_entity.contact_id:
+                        # Try to get contact name from repository
+                        try:
+                            contact_repo = self.container.get_contact_repository()
+                            if contact_repo:
+                                contact = await contact_repo.get_by_id(estimate_entity.contact_id)
+                                if contact:
+                                    contact_name = contact.get_display_name()
+                        except Exception:
+                            pass  # Fallback to Unknown Contact
+                    
+                    # Create RecentEstimate model from entity with correct field mapping
+                    recent_estimate = RecentEstimate(
+                        id=str(estimate_entity.id),  # Correct field name
+                        title=estimate_entity.title,
+                        contact_id=str(estimate_entity.contact_id) if estimate_entity.contact_id else "",
+                        contact_name=contact_name,
+                        status=self._convert_estimate_status(estimate_entity.status),  # Use conversion method
+                        total_amount=float(estimate_entity.get_total_amount()) if hasattr(estimate_entity, 'get_total_amount') else None,  # Correct field name
+                        created_date=estimate_entity.created_date if hasattr(estimate_entity, 'created_date') else datetime.now(timezone.utc),
+                        valid_until=estimate_entity.valid_until_date if hasattr(estimate_entity, 'valid_until_date') else None,
+                        line_items_count=len(estimate_entity.line_items) if hasattr(estimate_entity, 'line_items') and estimate_entity.line_items else 0
+                    )
+                    recent_estimates.append(recent_estimate)
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ Error converting estimate entity to RecentEstimate: {e}")
+                    logger.warning(f"    Estimate entity: {estimate_entity}")
             
             logger.info(f"📊 Loaded {len(recent_estimates)} recent estimates")
             return recent_estimates
             
         except Exception as e:
             logger.error(f"❌ Error loading recent estimates: {e}")
+            import traceback
+            logger.error(f"❌ Full traceback: {traceback.format_exc()}")
             return []
     
     async def load_recent_payments(self, business_id: str, limit: int = 10) -> List[RecentPayment]:
@@ -383,6 +449,8 @@ class ContextLoader:
             "approved": EstimateStatus.APPROVED,
             "rejected": EstimateStatus.REJECTED,
             "expired": EstimateStatus.EXPIRED,
+            "converted": EstimateStatus.CONVERTED,
+            "cancelled": EstimateStatus.CANCELLED,
         }
         
         return status_map.get(domain_status.value if hasattr(domain_status, 'value') else str(domain_status), EstimateStatus.DRAFT) 

@@ -21,6 +21,13 @@ from .tools import (
 logger = logging.getLogger(__name__)
 
 
+def log_tool_call(tool_name: str, result: str):
+    """Helper function to log tool calls to console"""
+    print(f"\n🔧 TOOL CALL: {tool_name}")
+    print(f"📋 Result: {result[:200]}..." if len(result) > 200 else f"📋 Result: {result}")
+    logger.info(f"Tool {tool_name}: {result[:100]}...")
+
+
 class Hero365Agent(Agent):
     """
     Hero365 Voice Agent - A powerful AI assistant for home service businesses.
@@ -125,6 +132,7 @@ JOB MANAGEMENT:
 
 ESTIMATE MANAGEMENT:
 - Review pending and recent estimates
+- Get all pending estimates regardless of age
 - Update estimate statuses
 - Convert approved estimates to invoices
 - Track estimate follow-ups and opportunities
@@ -144,6 +152,8 @@ RESPONSE APPROACH:
 6. If you can't help with something specific, suggest the closest thing you can do
 7. Keep responses concise but complete - people are listening, not reading
 8. Use natural speech patterns with appropriate pauses indicated by punctuation
+9. When users ask for "pending estimates", use get_pending_estimates to get ALL pending estimates regardless of age
+10. When users ask for "recent estimates", use get_recent_estimates which shows estimates from the last 30 days
 
 CONTEXT AWARENESS:
 - Remember this is a voice conversation - format responses for speaking
@@ -201,17 +211,23 @@ BUSINESS METRICS (if available):
     @function_tool
     async def get_business_info(self):
         """Get current business information including name, type, and contact details"""
-        return await self.business_info_tools.get_business_info()
+        result = await self.business_info_tools.get_business_info()
+        log_tool_call("get_business_info", result)
+        return result
     
     @function_tool
     async def get_user_info(self):
         """Get current user information"""
-        return await self.business_info_tools.get_user_info()
+        result = await self.business_info_tools.get_user_info()
+        log_tool_call("get_user_info", result)
+        return result
     
     @function_tool
     async def get_business_status(self):
         """Get complete business status and activity overview"""
-        return await self.business_info_tools.get_business_status()
+        result = await self.business_info_tools.get_business_status()
+        log_tool_call("get_business_status", result)
+        return result
     
     # =============================================================================
     # CONTACT MANAGEMENT TOOLS - Delegate to ContactTools
@@ -221,22 +237,30 @@ BUSINESS METRICS (if available):
     async def create_contact(self, name: str, phone: str = None, email: str = None, 
                       contact_type: str = "lead", address: str = None):
         """Create a new contact with context-aware assistance"""
-        return await self.contact_tools.create_contact(name, phone, email, contact_type, address)
+        result = await self.contact_tools.create_contact(name, phone, email, contact_type, address)
+        log_tool_call("create_contact", result)
+        return result
     
     @function_tool
     async def search_contacts(self, query: str, limit: int = 10):
         """Search for contacts with context-aware suggestions"""
-        return await self.contact_tools.search_contacts(query, limit)
+        result = await self.contact_tools.search_contacts(query, limit)
+        log_tool_call("search_contacts", result)
+        return result
     
     @function_tool
     async def get_suggested_contacts(self, limit: int = 5):
         """Get suggested contacts based on business context and recent activity"""
-        return await self.contact_tools.get_suggested_contacts(limit)
+        result = await self.contact_tools.get_suggested_contacts(limit)
+        log_tool_call("get_suggested_contacts", result)
+        return result
     
     @function_tool
     async def get_contact_info(self, contact_name: str, info_type: str = "all"):
         """Get specific information about a contact by name (phone, email, address, etc.)"""
-        return await self.contact_tools.get_contact_info(contact_name, info_type)
+        result = await self.contact_tools.get_contact_info(contact_name, info_type)
+        log_tool_call("get_contact_info", result)
+        return result
     
     # =============================================================================
     # JOB MANAGEMENT TOOLS - Delegate to JobTools
@@ -247,28 +271,38 @@ BUSINESS METRICS (if available):
                   scheduled_date: str = None, priority: str = "medium", 
                   estimated_duration: int = None):
         """Create a new job with context-aware assistance"""
-        return await self.job_tools.create_job(title, description, contact_id, 
+        result = await self.job_tools.create_job(title, description, contact_id, 
                                        scheduled_date, priority, estimated_duration)
+        log_tool_call("create_job", result)
+        return result
     
     @function_tool
     async def get_upcoming_jobs(self, days_ahead: int = 7):
         """Get upcoming jobs for the next specified number of days"""
-        return await self.job_tools.get_upcoming_jobs(days_ahead)
+        result = await self.job_tools.get_upcoming_jobs(days_ahead)
+        log_tool_call("get_upcoming_jobs", result)
+        return result
     
     @function_tool
     async def update_job_status(self, job_id: str, status: str):
         """Update the status of a specific job"""
-        return await self.job_tools.update_job_status(job_id, status)
+        result = await self.job_tools.update_job_status(job_id, status)
+        log_tool_call("update_job_status", result)
+        return result
     
     @function_tool
     async def get_suggested_jobs(self, limit: int = 5):
         """Get suggested jobs based on business context and recent activity"""
-        return await self.job_tools.get_suggested_jobs(limit)
+        result = await self.job_tools.get_suggested_jobs(limit)
+        log_tool_call("get_suggested_jobs", result)
+        return result
     
     @function_tool
     async def search_jobs(self, query: str, limit: int = 10):
         """Search for jobs with context-aware suggestions"""
-        return await self.job_tools.search_jobs(query, limit)
+        result = await self.job_tools.search_jobs(query, limit)
+        log_tool_call("search_jobs", result)
+        return result
     
     # =============================================================================
     # ESTIMATE MANAGEMENT TOOLS - Delegate to EstimateTools
@@ -278,33 +312,52 @@ BUSINESS METRICS (if available):
     async def create_estimate(self, title: str, description: str, contact_id: str = None,
                        total_amount: float = None, valid_until: str = None):
         """Create a new estimate with context-aware assistance"""
-        return await self.estimate_tools.create_estimate(title, description, contact_id, 
+        result = await self.estimate_tools.create_estimate(title, description, contact_id, 
                                                   total_amount, valid_until)
+        log_tool_call("create_estimate", result)
+        return result
     
     @function_tool
     async def get_recent_estimates(self, limit: int = 10):
         """Get recent estimates for the business"""
-        return await self.estimate_tools.get_recent_estimates(limit)
+        result = await self.estimate_tools.get_recent_estimates(limit)
+        log_tool_call("get_recent_estimates", result)
+        return result
+    
+    @function_tool
+    async def get_pending_estimates(self, limit: int = 10):
+        """Get all pending estimates regardless of age"""
+        result = await self.estimate_tools.get_pending_estimates(limit)
+        log_tool_call("get_pending_estimates", result)
+        return result
     
     @function_tool
     async def get_suggested_estimates(self, limit: int = 5):
         """Get suggested estimates based on business context and recent activity"""
-        return await self.estimate_tools.get_suggested_estimates(limit)
+        result = await self.estimate_tools.get_suggested_estimates(limit)
+        log_tool_call("get_suggested_estimates", result)
+        return result
     
     @function_tool
     async def search_estimates(self, query: str, limit: int = 10):
         """Search for estimates with context-aware suggestions"""
-        return await self.estimate_tools.search_estimates(query, limit)
+        result = await self.estimate_tools.search_estimates(query, limit)
+        log_tool_call("search_estimates", result)
+        return result
     
     @function_tool
     async def update_estimate_status(self, estimate_id: str, status: str):
         """Update the status of a specific estimate"""
-        return await self.estimate_tools.update_estimate_status(estimate_id, status)
+        result = await self.estimate_tools.update_estimate_status(estimate_id, status)
+        log_tool_call("update_estimate_status", result)
+        return result
     
     @function_tool
     async def convert_estimate_to_invoice(self, estimate_id: str):
         """Convert an approved estimate to an invoice"""
-        return await self.estimate_tools.convert_estimate_to_invoice(estimate_id)
+        result = await self.estimate_tools.convert_estimate_to_invoice(estimate_id)
+        log_tool_call("convert_estimate_to_invoice", result)
+        return result
     
     # =============================================================================
     # BUSINESS INTELLIGENCE TOOLS - Delegate to IntelligenceTools
@@ -313,42 +366,58 @@ BUSINESS METRICS (if available):
     @function_tool
     async def get_weather(self, location: str = None):
         """Get weather information for business planning"""
-        return await self.intelligence_tools.get_weather(location)
+        result = await self.intelligence_tools.get_weather(location)
+        log_tool_call("get_weather", result)
+        return result
     
     @function_tool
     async def search_places(self, query: str, location: str = None, radius: int = 5000):
         """Search for nearby places, suppliers, and services"""
-        return await self.intelligence_tools.search_places(query, location, radius)
+        result = await self.intelligence_tools.search_places(query, location, radius)
+        log_tool_call("search_places", result)
+        return result
     
     @function_tool
     async def get_directions(self, destination: str, origin: str = None, mode: str = "driving"):
         """Get directions to job sites and customer locations"""
-        return await self.intelligence_tools.get_directions(destination, origin, mode)
+        result = await self.intelligence_tools.get_directions(destination, origin, mode)
+        log_tool_call("get_directions", result)
+        return result
     
     @function_tool
     async def universal_search(self, query: str, limit: int = 10):
         """Universal search across all business data"""
-        return await self.intelligence_tools.universal_search(query, limit)
+        result = await self.intelligence_tools.universal_search(query, limit)
+        log_tool_call("universal_search", result)
+        return result
     
     @function_tool
     async def get_business_analytics(self, period: str = "month"):
         """Get business analytics and performance insights"""
-        return await self.intelligence_tools.get_business_analytics(period)
+        result = await self.intelligence_tools.get_business_analytics(period)
+        log_tool_call("get_business_analytics", result)
+        return result
     
     @function_tool
     async def get_contextual_insights(self):
         """Get contextual business insights based on current data"""
-        return await self.intelligence_tools.get_contextual_insights()
+        result = await self.intelligence_tools.get_contextual_insights()
+        log_tool_call("get_contextual_insights", result)
+        return result
     
     @function_tool
     async def web_search(self, query: str, num_results: int = 5):
         """Perform web search with business context awareness"""
-        return await self.intelligence_tools.web_search(query, num_results)
+        result = await self.intelligence_tools.web_search(query, num_results)
+        log_tool_call("web_search", result)
+        return result
     
     @function_tool
     async def get_business_recommendations(self):
         """Get AI-powered business recommendations based on current context"""
-        return await self.intelligence_tools.get_business_recommendations()
+        result = await self.intelligence_tools.get_business_recommendations()
+        log_tool_call("get_business_recommendations", result)
+        return result
     
     @function_tool
     async def get_available_tools(self):
@@ -372,6 +441,7 @@ Job Management:
 Estimate Management:
 - create_estimate(title, description, contact_id, total_amount, valid_until)
 - get_recent_estimates(limit)
+- get_pending_estimates(limit)
 - get_suggested_estimates(limit)
 - search_estimates(query, limit)
 - update_estimate_status(estimate_id, status)

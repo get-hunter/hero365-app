@@ -29,12 +29,51 @@ from ..infrastructure.config.dependency_injection import get_container
 logger = logging.getLogger(__name__)
 
 
+class ConsoleResponseLogger:
+    """Helper class to log agent responses to console"""
+    
+    def __init__(self):
+        self.response_count = 0
+    
+    def log_agent_response(self, response_text: str, source: str = "Agent"):
+        """Log agent response with formatting for console visibility"""
+        self.response_count += 1
+        
+        print("\n" + "="*60)
+        print(f"🤖 AGENT RESPONSE #{self.response_count} ({source})")
+        print(f"⏰ {datetime.now().strftime('%H:%M:%S')}")
+        print("="*60)
+        print(f"{response_text}")
+        print("="*60 + "\n")
+        
+        logger.info(f"Agent Response #{self.response_count}: {response_text[:100]}...")
+    
+    def log_user_input(self, user_text: str):
+        """Log user input for context"""
+        print(f"\n👤 USER: {user_text}")
+        logger.info(f"User Input: {user_text}")
+    
+    def log_tool_call(self, tool_name: str, result: str):
+        """Log tool calls and their results"""
+        print(f"\n🔧 TOOL CALL: {tool_name}")
+        print(f"📋 Result: {result[:200]}..." if len(result) > 200 else f"📋 Result: {result}")
+        logger.info(f"Tool {tool_name}: {result[:100]}...")
+
+
+# Global console logger instance
+console_logger = ConsoleResponseLogger()
+
+
 async def entrypoint(ctx: JobContext):
     """
     Enhanced entrypoint for the simplified Hero365 Voice Agent
     """
     try:
         logger.info(f"🚀 Hero365 Voice Agent starting for job: {ctx.job.id}")
+        print(f"\n🚀 HERO365 VOICE AGENT STARTING")
+        print(f"📱 Room: {ctx.room.name if ctx.room else 'Unknown'}")
+        print(f"🆔 Job ID: {ctx.job.id}")
+        print(f"⏰ Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
         # Initialize context validator
         validator = ContextValidator()
@@ -42,6 +81,7 @@ async def entrypoint(ctx: JobContext):
         # Connect to the room first
         await ctx.connect()
         logger.info(f"✅ Connected to room: {ctx.room.name}")
+        print(f"✅ Connected to room: {ctx.room.name}")
         
         # Extract and validate business context
         business_context = None
@@ -57,6 +97,7 @@ async def entrypoint(ctx: JobContext):
                 preloaded_context = room_metadata.get('preloaded_context')
                 if preloaded_context:
                     logger.info(f"🔧 Found preloaded context in room metadata")
+                    print(f"🔧 Found preloaded business context")
                     
                     # Validate preloaded context
                     is_valid, errors = validator.validate_preloaded_context(preloaded_context)
@@ -66,6 +107,7 @@ async def entrypoint(ctx: JobContext):
                             logger.warning(f"  - {error}")
                     else:
                         logger.info(f"✅ Preloaded context validation passed")
+                        print(f"✅ Business context validated")
                     
                     # Deserialize context for agent use
                     context_preloader = ContextPreloader()
@@ -87,6 +129,7 @@ async def entrypoint(ctx: JobContext):
                         # Generate context report
                         report = validator.generate_context_report(agent_context)
                         logger.info(f"📋 Context Report: {report['validation_status']}, {report['completeness']:.1%} complete")
+                        print(f"📋 Context: {report['validation_status']} ({report['completeness']:.1%} complete)")
                         
                         business_context = agent_context
                         user_context = {
@@ -109,6 +152,7 @@ async def entrypoint(ctx: JobContext):
         # Fallback: Try to extract basic info from metadata and load context
         if not business_context:
             logger.info("🔄 Attempting fallback context loading")
+            print("🔄 Loading business context...")
             try:
                 if ctx.room.metadata:
                     room_metadata = json.loads(ctx.room.metadata)
@@ -118,10 +162,16 @@ async def entrypoint(ctx: JobContext):
                     if user_id and business_id:
                         logger.info(f"🔧 Loading context via fallback for user_id: {user_id}, business_id: {business_id}")
                         
+                        # Debug: Log the exact values we're using
+                        logger.info(f"🔍 Debug - user_id type: {type(user_id)}, value: '{user_id}'")
+                        logger.info(f"🔍 Debug - business_id type: {type(business_id)}, value: '{business_id}'")
+                        
                         # Initialize business context manager and load context
                         context_manager = BusinessContextManager()
                         container = get_container()
                         user_info = room_metadata.get('user_info')
+                        logger.info(f"🔍 Debug - user_info: {user_info}")
+                        
                         await context_manager.initialize(user_id, business_id, container, user_info)
                         
                         # Convert to agent context format
@@ -191,15 +241,18 @@ async def entrypoint(ctx: JobContext):
             business_type = business_context.get('business_type', 'Unknown')
             user_name = business_context.get('user_name', 'Unknown')
             logger.info(f"🏢 Agent will serve {user_name} from {business_name} ({business_type})")
+            print(f"🏢 Serving: {user_name} from {business_name} ({business_type})")
             
             # Log metrics
             active_jobs = business_context.get('active_jobs', 0)
             pending_estimates = business_context.get('pending_estimates', 0)
             total_contacts = business_context.get('total_contacts', 0)
             logger.info(f"📊 Business Metrics: {active_jobs} active jobs, {pending_estimates} pending estimates, {total_contacts} total contacts")
+            print(f"📊 Metrics: {active_jobs} jobs, {pending_estimates} estimates, {total_contacts} contacts")
             
         else:
             logger.warning("⚠️ Agent will start without business context - limited functionality available")
+            print("⚠️ Starting without business context - limited functionality")
         
         # Initialize the single powerful agent
         agent = Hero365Agent(business_context=business_context, user_context=user_context)
@@ -260,6 +313,20 @@ async def entrypoint(ctx: JobContext):
             turn_detection=MultilingualModel(),
         )
         
+        # Hook into session events for console logging
+        @session.on("user_speech_committed")
+        def on_user_speech(ev):
+            """Log user speech to console"""
+            if hasattr(ev, 'alternatives') and ev.alternatives:
+                user_text = ev.alternatives[0].text
+                console_logger.log_user_input(user_text)
+        
+        @session.on("agent_speech_committed") 
+        def on_agent_speech(ev):
+            """Log agent speech to console"""
+            if hasattr(ev, 'message') and ev.message:
+                console_logger.log_agent_response(ev.message, "Speech")
+        
         # Start the session
         await session.start(
             room=ctx.room,
@@ -273,21 +340,33 @@ async def entrypoint(ctx: JobContext):
         else:
             greeting_instructions += " Explain you can help with contacts, jobs, estimates, and business management. Ask what they'd like to work on today."
         
-        await session.generate_reply(instructions=greeting_instructions)
+        print(f"\n🎤 Generating initial greeting...")
+        initial_response = await session.generate_reply(instructions=greeting_instructions)
+        
+        # Log the initial greeting
+        if initial_response and hasattr(initial_response, 'text'):
+            console_logger.log_agent_response(initial_response.text, "Initial Greeting")
         
         logger.info("🎤 Hero365 Agent ready - single powerful agent with all capabilities")
+        print(f"🎤 AGENT READY - Listening for user input...")
+        print(f"💡 All responses will be displayed in this console")
         
     except Exception as e:
         logger.error(f"❌ Error in entrypoint: {e}")
+        print(f"❌ ERROR: {e}")
         raise
 
 
 if __name__ == "__main__":
-    # Configure logging
+    # Configure logging with enhanced formatting
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
+    
+    print("🚀 Starting Hero365 Voice Agent Worker...")
+    print("📺 All agent responses will be displayed in this console")
+    print("=" * 60)
     
     # Run the agent
     cli.run_app(

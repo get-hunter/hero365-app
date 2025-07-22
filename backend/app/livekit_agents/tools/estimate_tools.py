@@ -155,30 +155,58 @@ class EstimateTools:
             return f"Error creating estimate: {str(e)}"
 
     @function_tool
-    async def get_recent_estimates(self, limit: int = 10) -> str:
+    async def get_recent_estimates(self, limit: int = 10, days: int = 30) -> str:
         """Get recent estimates with direct repository access.
         
         Args:
             limit: Maximum number of estimates to return
+            days: Number of days to look back (default 30, use 365 for all estimates)
         """
         try:
-            logger.info(f"📋 Getting recent estimates (limit: {limit})")
+            logger.info(f"📋 Getting recent estimates (limit: {limit}, days: {days})")
+            
+            # Debug: Log business context
+            logger.info(f"🔍 Debug - Business context keys: {list(self.business_context.keys())}")
+            logger.info(f"🔍 Debug - Business context: {self.business_context}")
             
             # Get business ID
             business_id = self._get_business_id()
+            logger.info(f"🔍 Debug - Business ID: {business_id} (type: {type(business_id)})")
+            
             if not business_id:
-                return "Business context not available"
+                logger.error("❌ No business_id found in context")
+                return "Business context not available - no business ID found"
             
             # Get estimate repository
             estimate_repo = self._get_estimate_repository()
             if not estimate_repo:
+                logger.error("❌ Estimate repository not available")
                 return "Estimate repository not available"
             
+            logger.info(f"🔍 Debug - Calling estimate_repo.get_recent_by_business with business_id={business_id}, limit={limit}, days={days}")
+            
             # Get recent estimates from repository
-            recent_estimates = await estimate_repo.get_recent_by_business(business_id, limit=limit)
+            if days >= 365:
+                # Get all estimates regardless of age
+                recent_estimates = await estimate_repo.get_by_business_id(business_id, limit=limit)
+                logger.info(f"🔍 Debug - Using get_by_business_id (all estimates)")
+            else:
+                # Get estimates from specific time period
+                recent_estimates = await estimate_repo.get_recent_by_business(business_id, days=days, limit=limit)
+                logger.info(f"🔍 Debug - Using get_recent_by_business (last {days} days)")
+            
+            logger.info(f"🔍 Debug - Repository returned {len(recent_estimates) if recent_estimates else 0} estimates")
             
             if recent_estimates:
-                response = f"Here are your {len(recent_estimates)} most recent estimates: "
+                logger.info(f"✅ Found {len(recent_estimates)} estimates")
+                for i, est in enumerate(recent_estimates):
+                    logger.info(f"  Estimate {i+1}: {est.title} - Status: {est.status.value if hasattr(est, 'status') else 'No status'}")
+                
+                response = f"Here are your {len(recent_estimates)} most recent estimates"
+                if days < 365:
+                    response += f" from the last {days} days"
+                response += ": "
+                
                 estimate_list = []
                 for i, estimate in enumerate(recent_estimates, 1):
                     # Get contact name
@@ -194,19 +222,105 @@ class EstimateTools:
                                 logger.warning(f"⚠️ Could not get contact name: {e}")
                     
                     estimate_info = f"{i}. {estimate.title}, status {estimate.status.value}"
-                    if estimate.total_amount:
-                        estimate_info += f" for ${estimate.total_amount:,.2f}"
+                    if hasattr(estimate, 'get_total_amount'):
+                        total = estimate.get_total_amount()
+                        if total and total > 0:
+                            estimate_info += f" for ${float(total):,.2f}"
                     estimate_info += f", for {contact_name}"
                     estimate_list.append(estimate_info)
                 
                 response += ". ".join(estimate_list)
                 return response
             else:
-                return "No recent estimates found. Would you like to create a new estimate?"
+                logger.warning(f"⚠️ No estimates found in repository (last {days} days)")
+                
+                if days == 30:
+                    # If no estimates in last 30 days, check if there are any older ones
+                    try:
+                        logger.info("🔍 Debug - Checking for older estimates...")
+                        all_estimates = await estimate_repo.get_by_business_id(business_id, limit=5)
+                        logger.info(f"🔍 Debug - Found {len(all_estimates) if all_estimates else 0} total estimates")
+                        
+                        if all_estimates:
+                            response = f"No estimates found in the last {days} days, but you have {len(all_estimates)} total estimates. Would you like me to show all your estimates?"
+                            return response
+                    except Exception as debug_e:
+                        logger.error(f"🔍 Debug query failed: {debug_e}")
+                
+                return f"No estimates found in the last {days} days. Would you like to create a new estimate?"
                 
         except Exception as e:
             logger.error(f"❌ Error getting recent estimates: {e}")
+            import traceback
+            logger.error(f"❌ Full traceback: {traceback.format_exc()}")
             return f"Error getting recent estimates: {str(e)}"
+
+    @function_tool
+    async def get_pending_estimates(self, limit: int = 10) -> str:
+        """Get all pending estimates regardless of age.
+        
+        Args:
+            limit: Maximum number of estimates to return
+        """
+        try:
+            logger.info(f"📋 Getting pending estimates (limit: {limit})")
+            
+            # Get business ID
+            business_id = self._get_business_id()
+            if not business_id:
+                return "Business context not available"
+            
+            # Get estimate repository
+            estimate_repo = self._get_estimate_repository()
+            if not estimate_repo:
+                return "Estimate repository not available"
+            
+            # Get all estimates and filter for pending ones
+            all_estimates = await estimate_repo.get_by_business_id(business_id, limit=limit * 2)  # Get extra in case many are not pending
+            
+            # Filter for pending estimates
+            pending_estimates = []
+            for estimate in all_estimates:
+                if hasattr(estimate, 'status') and estimate.status.value in ['draft', 'pending', 'sent', 'viewed']:
+                    pending_estimates.append(estimate)
+                    if len(pending_estimates) >= limit:
+                        break
+            
+            logger.info(f"🔍 Found {len(pending_estimates)} pending estimates out of {len(all_estimates)} total")
+            
+            if pending_estimates:
+                response = f"Here are your {len(pending_estimates)} pending estimates: "
+                estimate_list = []
+                
+                for i, estimate in enumerate(pending_estimates, 1):
+                    # Get contact name
+                    contact_name = "Unknown Contact"
+                    if estimate.contact_id:
+                        contact_repo = self._get_contact_repository()
+                        if contact_repo:
+                            try:
+                                contact = await contact_repo.get_by_id(estimate.contact_id)
+                                if contact:
+                                    contact_name = contact.get_display_name()
+                            except Exception as e:
+                                logger.warning(f"⚠️ Could not get contact name: {e}")
+                    
+                    estimate_info = f"{i}. {estimate.title}, status {estimate.status.value}"
+                    if hasattr(estimate, 'get_total_amount'):
+                        total = estimate.get_total_amount()
+                        if total and total > 0:
+                            estimate_info += f" for ${float(total):,.2f}"
+                    estimate_info += f", for {contact_name}"
+                    estimate_list.append(estimate_info)
+                
+                response += ". ".join(estimate_list)
+                return response
+            else:
+                return "No pending estimates found. All your estimates may be completed or you may need to create new ones."
+                
+        except Exception as e:
+            logger.error(f"❌ Error getting pending estimates: {e}")
+            return f"Error getting pending estimates: {str(e)}"
 
     @function_tool
     async def get_suggested_estimates(self, limit: int = 5) -> str:
@@ -249,8 +363,10 @@ class EstimateTools:
                                 logger.warning(f"⚠️ Could not get contact name: {e}")
                     
                     estimate_info = f"{i}. {estimate.title} for {contact_name}"
-                    if estimate.total_amount:
-                        estimate_info += f" worth ${estimate.total_amount:,.2f}"
+                    if hasattr(estimate, 'get_total_amount'):
+                        total = estimate.get_total_amount()
+                        if total and total > 0:
+                            estimate_info += f" worth ${float(total):,.2f}"
                     estimate_list.append(estimate_info)
                 
                 response += ". ".join(estimate_list)
@@ -315,8 +431,10 @@ class EstimateTools:
                                 logger.warning(f"⚠️ Could not get contact name: {e}")
                     
                     estimate_info = f"{i}. {estimate.title}, status {estimate.status.value}"
-                    if estimate.total_amount:
-                        estimate_info += f" for ${estimate.total_amount:,.2f}"
+                    if hasattr(estimate, 'get_total_amount'):
+                        total = estimate.get_total_amount()
+                        if total and total > 0:
+                            estimate_info += f" for ${float(total):,.2f}"
                     estimate_info += f", for {contact_name}"
                     estimate_list.append(estimate_info)
                 

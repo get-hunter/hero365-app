@@ -16,6 +16,8 @@ class EstimateStatus(str, Enum):
     APPROVED = "approved"
     REJECTED = "rejected"
     EXPIRED = "expired"
+    CONVERTED = "converted"
+    CANCELLED = "cancelled"
 
 
 class RecentEstimate(BaseModel):
