@@ -68,28 +68,28 @@ class Hero365Agent(Agent):
     def _initialize_tools(self):
         """Initialize all tool classes with context"""
         self.business_info_tools = BusinessInfoTools(
-            self.business_context, 
-            self.business_context_manager
+            session_context=self.business_context, 
+            context_intelligence=self.business_context_manager
         )
         
         self.contact_tools = ContactTools(
-            self.business_context, 
-            self.business_context_manager
+            session_context=self.business_context, 
+            context_intelligence=self.business_context_manager
         )
         
         self.job_tools = JobTools(
-            self.business_context, 
-            self.business_context_manager
+            session_context=self.business_context, 
+            context_intelligence=self.business_context_manager
         )
         
         self.estimate_tools = EstimateTools(
-            self.business_context, 
-            self.business_context_manager
+            session_context=self.business_context, 
+            context_intelligence=self.business_context_manager
         )
         
         self.intelligence_tools = IntelligenceTools(
-            self.business_context, 
-            self.business_context_manager
+            session_context=self.business_context, 
+            context_intelligence=self.business_context_manager
         )
     
     def _generate_comprehensive_instructions(self) -> str:
@@ -196,11 +196,11 @@ BUSINESS METRICS (if available):
         self.business_context_manager = manager
         
         # Update all tool classes with the new context manager
-        self.business_info_tools.business_context_manager = manager
-        self.contact_tools.business_context_manager = manager
-        self.job_tools.business_context_manager = manager
-        self.estimate_tools.business_context_manager = manager
-        self.intelligence_tools.business_context_manager = manager
+        self.business_info_tools.context_intelligence = manager
+        self.contact_tools.context_intelligence = manager
+        self.job_tools.context_intelligence = manager
+        self.estimate_tools.context_intelligence = manager
+        self.intelligence_tools.context_intelligence = manager
         
         logger.info("📊 Business context manager set for Hero365Agent and all tools")
     

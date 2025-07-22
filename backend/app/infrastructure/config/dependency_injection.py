@@ -496,11 +496,7 @@ class DependencyContainer:
         
         # Estimate use cases
         self._use_cases['create_estimate'] = CreateEstimateUseCase(
-            estimate_repository=self.get_repository('estimate_repository'),
-            estimate_template_repository=self.get_repository('estimate_template_repository'),
-            contact_repository=self.get_repository('contact_repository'),
-            project_repository=self.get_repository('project_repository'),
-            job_repository=self.get_repository('job_repository')
+            estimate_repository=self.get_repository('estimate_repository')
         )
         
         self._use_cases['get_estimate'] = GetEstimateUseCase(

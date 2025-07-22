@@ -2,6 +2,7 @@
 List Estimates Use Case
 
 Handles listing estimates with filtering, pagination, and business logic validation.
+Updated to use simplified repository interface and Pydantic filters.
 """
 
 import uuid
@@ -13,7 +14,7 @@ from app.domain.entities.estimate import Estimate
 from app.domain.enums import EstimateStatus
 from app.domain.repositories.estimate_repository import EstimateRepository
 from app.domain.exceptions.domain_exceptions import BusinessRuleViolationError
-from app.application.dto.estimate_dto import EstimateDTO, EstimateListFilters
+from app.application.dto.estimate_dto import EstimateDTO, EstimateFilters
 from app.application.exceptions.application_exceptions import (
     ApplicationError, ValidationError as AppValidationError
 )
@@ -30,7 +31,7 @@ class ListEstimatesUseCase:
         self, 
         business_id: uuid.UUID,
         user_id: str,
-        filters: EstimateListFilters,
+        filters: EstimateFilters,
         skip: int = 0,
         limit: int = 100
     ) -> Dict[str, Any]:
@@ -44,27 +45,17 @@ class ListEstimatesUseCase:
             # Validate pagination parameters
             self._validate_pagination_params(skip, limit)
             
-            # Build filters dictionary for repository
-            filter_dict = {}
-            if filters.status:
-                filter_dict["status"] = filters.status
-            if filters.contact_id:
-                filter_dict["contact_id"] = filters.contact_id
-            if filters.project_id:
-                filter_dict["project_id"] = filters.project_id
-            if filters.job_id:
-                filter_dict["job_id"] = filters.job_id
-            if filters.date_from:
-                filter_dict["date_from"] = filters.date_from
-            if filters.date_to:
-                filter_dict["date_to"] = filters.date_to
+            # Convert Pydantic filters to dictionary
+            filter_dict = filters.to_query_dict() if filters else {}
             
-            # Get estimates with filters (returns both estimates and total count)
-            estimates, total_count = await self.estimate_repository.list_with_pagination(
+            # Get estimates with filters using simplified repository interface
+            estimates, total_count = await self.estimate_repository.list_with_filters(
                 business_id=business_id,
+                filters=filter_dict,
+                sort_by=filters.sort_by if filters else "created_date",
+                sort_desc=filters.sort_desc if filters else True,
                 skip=skip,
-                limit=limit,
-                filters=filter_dict if filter_dict else None
+                limit=limit
             )
             
             # Convert to DTOs
@@ -81,7 +72,8 @@ class ListEstimatesUseCase:
                 "skip": skip,
                 "limit": limit,
                 "has_next": has_next,
-                "has_previous": has_previous
+                "has_previous": has_previous,
+                "filters_applied": filters.has_filters() if filters else False
             }
             
             logger.info(f"Successfully listed {len(estimate_dtos)} estimates (total: {total_count})")
@@ -94,6 +86,81 @@ class ListEstimatesUseCase:
         except Exception as e:
             logger.error(f"Unexpected error listing estimates: {e}")
             raise ApplicationError(f"Failed to list estimates: {str(e)}")
+    
+    async def execute_with_common_filters(
+        self,
+        business_id: uuid.UUID,
+        user_id: str,
+        filter_type: str,
+        skip: int = 0,
+        limit: int = 100,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Execute with common filter patterns for convenience.
+        
+        Args:
+            business_id: Business ID
+            user_id: User ID
+            filter_type: Type of filter ('recent', 'pending', 'draft', 'expired', 'expiring_soon')
+            skip: Pagination skip
+            limit: Pagination limit
+            **kwargs: Additional parameters (e.g., days for recent/expiring_soon)
+        """
+        try:
+            from app.domain.repositories.estimate_repository import CommonEstimateQueries
+            
+            # Build query based on filter type
+            if filter_type == "recent":
+                days = kwargs.get("days", 30)
+                query_builder = CommonEstimateQueries.recent_estimates(days)
+            elif filter_type == "pending":
+                query_builder = CommonEstimateQueries.pending_estimates()
+            elif filter_type == "draft":
+                query_builder = CommonEstimateQueries.draft_estimates()
+            elif filter_type == "expired":
+                query_builder = CommonEstimateQueries.expired_estimates()
+            elif filter_type == "expiring_soon":
+                days = kwargs.get("days", 7)
+                query_builder = CommonEstimateQueries.expiring_soon_estimates(days)
+            else:
+                raise AppValidationError(f"Invalid filter type: {filter_type}")
+            
+            # Apply pagination
+            query_builder.paginate(skip, limit)
+            
+            # Execute query
+            estimates, total_count = await self.estimate_repository.execute_query(
+                business_id, query_builder
+            )
+            
+            # Convert to DTOs
+            estimate_dtos = [EstimateDTO.from_entity(estimate) for estimate in estimates]
+            
+            # Calculate pagination info
+            has_next = skip + len(estimates) < total_count
+            has_previous = skip > 0
+            
+            result = {
+                "estimates": estimate_dtos,
+                "total_count": total_count,
+                "page_count": len(estimate_dtos),
+                "skip": skip,
+                "limit": limit,
+                "has_next": has_next,
+                "has_previous": has_previous,
+                "filter_type": filter_type,
+                "filter_params": kwargs
+            }
+            
+            logger.info(f"Successfully listed {len(estimate_dtos)} {filter_type} estimates")
+            return result
+            
+        except AppValidationError:
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error listing {filter_type} estimates: {e}")
+            raise ApplicationError(f"Failed to list {filter_type} estimates: {str(e)}")
     
     async def _validate_permissions(self, business_id: uuid.UUID, user_id: str) -> None:
         """Validate user has permission to list estimates in this business."""

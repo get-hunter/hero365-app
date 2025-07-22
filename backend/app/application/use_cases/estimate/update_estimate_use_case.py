@@ -19,7 +19,7 @@ from app.domain.repositories.job_repository import JobRepository
 from app.domain.exceptions.domain_exceptions import (
     DomainValidationError, BusinessRuleViolationError, EntityNotFoundError
 )
-from app.application.dto.estimate_dto import UpdateEstimateDTO, EstimateDTO
+from app.application.dto.estimate_dto import EstimateUpdateDTO, EstimateDTO
 from app.application.exceptions.application_exceptions import (
     ApplicationError, ValidationError as AppValidationError
 )
@@ -44,7 +44,7 @@ class UpdateEstimateUseCase:
     async def execute(
         self, 
         estimate_id: uuid.UUID,
-        request: UpdateEstimateDTO, 
+        request: EstimateUpdateDTO, 
         user_id: str, 
         business_id: uuid.UUID
     ) -> EstimateDTO:
@@ -176,7 +176,7 @@ class UpdateEstimateUseCase:
         
         return job
     
-    def _update_estimate_fields(self, estimate: Estimate, request: UpdateEstimateDTO) -> None:
+    def _update_estimate_fields(self, estimate: Estimate, request: EstimateUpdateDTO) -> None:
         """Update estimate fields from the request."""
         # Update basic fields
         if request.title is not None:

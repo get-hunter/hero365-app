@@ -29,8 +29,7 @@ from ...application.use_cases.estimate.search_estimates_use_case import SearchEs
 from ...application.use_cases.estimate.convert_estimate_to_invoice_use_case import ConvertEstimateToInvoiceUseCase
 from ...application.use_cases.estimate.get_next_estimate_number_use_case import GetNextEstimateNumberUseCase
 from ...application.dto.estimate_dto import (
-    CreateEstimateDTO, UpdateEstimateDTO, EstimateLineItemDTO, EstimateDTO,
-    EstimateListFilters, EstimateSearchCriteria
+    EstimateCreateDTO, EstimateUpdateDTO, EstimateDTO, EstimateFilters
 )
 from ...application.exceptions.application_exceptions import (
     ValidationError, NotFoundError, PermissionDeniedError, BusinessRuleViolationError
@@ -69,26 +68,11 @@ async def create_estimate(
     logger.info(f"🔧 EstimateAPI: Request data: {request}")
     
     try:
-        # Convert line items
-        line_items = []
-        if request.line_items:
-            for item in request.line_items:
-                line_items.append(EstimateLineItemDTO(
-                    description=item.description,
-                    quantity=item.quantity,
-                    unit_price=item.unit_price,
-                    unit=item.unit,
-                    category=item.category,
-                    notes=item.notes
-                ))
-        
-        # Create DTO
-        create_dto = CreateEstimateDTO(
+        # Create DTO 
+        create_dto = EstimateCreateDTO(
             contact_id=request.contact_id,
             title=request.title,
             description=request.description,
-            document_type=request.document_type,
-            line_items=[item.__dict__ for item in line_items],
             currency=request.currency,
             tax_rate=float(request.tax_rate),
             tax_type=request.tax_type,
@@ -154,7 +138,7 @@ async def create_estimate_from_template(
     
     try:
         # Create DTO with template reference
-        create_dto = CreateEstimateDTO(
+        create_dto = EstimateCreateDTO(
             business_id=business_id,
             title=request.title,
             description=request.description,
@@ -287,7 +271,7 @@ async def update_estimate(
                 })
         
         # Create update DTO
-        update_dto = UpdateEstimateDTO(
+        update_dto = EstimateUpdateDTO(
             title=request.title,
             description=request.description,
             contact_id=request.contact_id,
@@ -384,8 +368,8 @@ async def list_estimates(
     
     try:
         # Create filters DTO
-        filters = EstimateListFilters(
-            status=estimate_status.value if estimate_status else None,
+        filters = EstimateFilters(
+            status=estimate_status if estimate_status else None,
             contact_id=contact_id,
             project_id=project_id,
             job_id=job_id
@@ -436,14 +420,14 @@ async def search_estimates(
     
     try:
         # Create search criteria DTO
-        search_criteria = EstimateSearchCriteria(
-            search_text=request.query,
-            statuses=request.status_filters,
-            contact_ids=[request.contact_id] if request.contact_id else None,
-            project_ids=[request.project_id] if request.project_id else None,
-            job_ids=[request.job_id] if request.job_id else None,
-            min_amount=request.amount_min,
-            max_amount=request.amount_max,
+        search_filters = EstimateFilters(
+            search_term=request.query,
+            status_list=request.status_filters,
+            contact_id=request.contact_id,
+            project_id=request.project_id,
+            job_id=request.job_id,
+            min_value=request.amount_min,
+            max_value=request.amount_max,
             date_from=request.date_from,
             date_to=request.date_to
         )
@@ -451,7 +435,7 @@ async def search_estimates(
         result = await use_case.execute(
             business_id=business_id,
             user_id=current_user["sub"],
-            search_criteria=search_criteria,
+            search_criteria=search_filters,
             skip=request.skip,
             limit=request.limit
         )
@@ -545,6 +529,23 @@ def _estimate_dto_to_response(estimate) -> EstimateResponseSchema:
     # Implementation
     pass  # Will be replaced with proper implementation
 
+def _convert_terms_to_schema(terms) -> dict:
+    """Convert EstimateTerms domain object to EstimateTermsSchema format."""
+    if not terms:
+        return None
+    
+    return {
+        "payment_terms": terms.payment_terms or "",
+        "validity_period": getattr(terms, 'validity_days', 30),
+        "work_schedule": getattr(terms, 'work_schedule', ""),
+        "materials_policy": getattr(terms, 'materials_policy', ""),
+        "change_order_policy": getattr(terms, 'change_order_policy', ""),
+        "warranty_terms": terms.warranty_period or "",
+        "cancellation_policy": getattr(terms, 'cancellation_policy', ""),
+        "acceptance_criteria": getattr(terms, 'acceptance_criteria', ""),
+        "additional_terms": getattr(terms, 'additional_terms', [])
+    }
+
 def _estimate_dto_to_response_from_dto(estimate_dto: EstimateDTO) -> EstimateResponseSchema:
     """Convert estimate DTO to response schema."""
     return EstimateResponseSchema(
@@ -558,7 +559,7 @@ def _estimate_dto_to_response_from_dto(estimate_dto: EstimateDTO) -> EstimateRes
         client_name=estimate_dto.client_name,
         client_email=estimate_dto.client_email,
         client_phone=estimate_dto.client_phone,
-        client_address=estimate_dto.client_address,
+        client_address=estimate_dto.client_address.model_dump() if estimate_dto.client_address else None,
         title=estimate_dto.title,
         description=estimate_dto.description,
         po_number=estimate_dto.po_number,
@@ -568,7 +569,7 @@ def _estimate_dto_to_response_from_dto(estimate_dto: EstimateDTO) -> EstimateRes
         tax_type=estimate_dto.tax_type,
         overall_discount_type=estimate_dto.overall_discount_type,
         overall_discount_value=estimate_dto.overall_discount_value,
-        terms=estimate_dto.terms,
+        terms=_convert_terms_to_schema(estimate_dto.terms) if estimate_dto.terms else None,
         advance_payment=estimate_dto.advance_payment,
         template_id=estimate_dto.template_id,
         template_data=estimate_dto.template_data or {},
@@ -584,16 +585,16 @@ def _estimate_dto_to_response_from_dto(estimate_dto: EstimateDTO) -> EstimateRes
         last_modified=estimate_dto.last_modified,
         sent_date=estimate_dto.sent_date,
         viewed_date=estimate_dto.viewed_date,
-        accepted_date=estimate_dto.responded_date,  # Map responded_date to accepted_date
+        accepted_date=estimate_dto.responded_date,
         financial_summary={
-            "subtotal": float(estimate_dto.subtotal) if estimate_dto.subtotal else 0.0,
-            "tax_amount": float(estimate_dto.tax_amount) if estimate_dto.tax_amount else 0.0,
-            "discount_amount": float(estimate_dto.discount_amount) if estimate_dto.discount_amount else 0.0,
+            "subtotal": float(estimate_dto.total_amount) if estimate_dto.total_amount else 0.0,
+            "tax_amount": 0.0,  # Will be calculated properly later
+            "discount_amount": 0.0,  # Will be calculated properly later
             "total_amount": float(estimate_dto.total_amount) if estimate_dto.total_amount else 0.0,
         },
         status_info={
-            "is_expired": estimate_dto.is_expired if estimate_dto.is_expired is not None else False,
-            "days_until_expiry": estimate_dto.days_until_expiry if estimate_dto.days_until_expiry is not None else 0,
-            "can_be_converted": estimate_dto.status in ["approved"],
+            "is_expired": False,  # Will be calculated properly when needed
+            "days_until_expiry": 0,  # Will be calculated properly when needed
+            "can_be_converted": estimate_dto.status == "approved",
         }
     ) 

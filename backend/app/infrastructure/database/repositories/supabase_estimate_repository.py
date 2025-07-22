@@ -456,8 +456,6 @@ class SupabaseEstimateRepository(EstimateRepository):
         except Exception as e:
             raise DatabaseError(f"Failed to count estimates by contact: {str(e)}")
     
-
-    
     async def exists(self, estimate_id: uuid.UUID) -> bool:
         """Check if an estimate exists."""
         try:
@@ -716,6 +714,8 @@ class SupabaseEstimateRepository(EstimateRepository):
                 return value
             except (ValueError, TypeError):
                 return None
+
+# Removed safe_enum_parse - Pydantic BeforeValidator handles string-to-enum conversion automatically
         
         # Parse line items from separate table data
         line_items_data = data.get("_line_items", [])
@@ -826,44 +826,302 @@ class SupabaseEstimateRepository(EstimateRepository):
             except Exception as e:
                 logger.warning(f"Failed to parse client address: {e}")
         
-        return Estimate(
-            id=uuid.UUID(data["id"]),
-            business_id=uuid.UUID(data["business_id"]),
-            estimate_number=data.get("estimate_number"),
-            document_type=DocumentType(data.get("document_type", "estimate")),
-            status=EstimateStatus(data.get("status", "draft")),
-            status_history=status_history,
-            contact_id=safe_uuid_parse(data.get("contact_id")),
-            client_name=data.get("client_name"),
-            client_email=data.get("client_email"),
-            client_phone=data.get("client_phone"),
-            client_address=client_address,
-            title=data.get("title", ""),
-            description=data.get("description"),
-            po_number=data.get("po_number"),
-            line_items=line_items,
-            currency=CurrencyCode(data.get("currency", "USD")),
-            tax_rate=Decimal(str(data.get("tax_rate", "0"))),
-            tax_type=TaxType(data.get("tax_type", "percentage")),
-            overall_discount_type=DiscountType(data.get("overall_discount_type", "none")),
-            overall_discount_value=Decimal(str(data.get("overall_discount_value", "0"))),
-            advance_payment=advance_payment,
-            terms=terms,
-            template_id=safe_uuid_parse(data.get("template_id")),
-            template_data=safe_json_parse(data.get("template_data", {})),
-            email_history=email_history,
-            project_id=safe_uuid_parse(data.get("project_id")),
-            job_id=safe_uuid_parse(data.get("job_id")),
-            converted_to_invoice_id=safe_uuid_parse(data.get("converted_to_invoice_id")),
-            conversion_date=safe_datetime_parse(data.get("conversion_date")),
-            tags=safe_json_parse(data.get("tags", [])),
-            custom_fields=safe_json_parse(data.get("custom_fields", {})),
-            internal_notes=data.get("internal_notes"),
-            issue_date=safe_date_parse(data.get("issue_date")),
-            created_by=data.get("created_by"),
-            created_date=safe_datetime_parse(data["created_date"]) or datetime.now(),
-            last_modified=safe_datetime_parse(data["last_modified"]) or datetime.now(),
-            sent_date=safe_datetime_parse(data.get("sent_date")),
-            viewed_date=safe_datetime_parse(data.get("viewed_date")),
-            responded_date=safe_datetime_parse(data.get("responded_date"))
+        # Use model_validate to ensure all Pydantic validation is triggered
+        estimate_data = {
+            "id": uuid.UUID(data["id"]),
+            "business_id": uuid.UUID(data["business_id"]),
+            "estimate_number": data.get("estimate_number"),
+            "document_type": data.get("document_type", "estimate"),
+            "status": data.get("status", "draft"),
+            "status_history": status_history,
+            "contact_id": safe_uuid_parse(data.get("contact_id")),
+            "client_name": data.get("client_name"),
+            "client_email": data.get("client_email"),
+            "client_phone": data.get("client_phone"),
+            "client_address": client_address,
+            "title": data.get("title", ""),
+            "description": data.get("description"),
+            "po_number": data.get("po_number"),
+            "line_items": line_items,
+            "currency": data.get("currency", "USD"),
+            "tax_rate": Decimal(str(data.get("tax_rate", "0"))),
+            "tax_type": data.get("tax_type", "percentage"),
+            "overall_discount_type": data.get("overall_discount_type", "none"),
+            "overall_discount_value": Decimal(str(data.get("overall_discount_value", "0"))),
+            "advance_payment": advance_payment,
+            "terms": terms,
+            "template_id": safe_uuid_parse(data.get("template_id")),
+            "template_data": safe_json_parse(data.get("template_data", {})),
+            "email_history": email_history,
+            "project_id": safe_uuid_parse(data.get("project_id")),
+            "job_id": safe_uuid_parse(data.get("job_id")),
+            "converted_to_invoice_id": safe_uuid_parse(data.get("converted_to_invoice_id")),
+            "conversion_date": safe_datetime_parse(data.get("conversion_date")),
+            "tags": safe_json_parse(data.get("tags", [])),
+            "custom_fields": safe_json_parse(data.get("custom_fields", {})),
+            "internal_notes": data.get("internal_notes"),
+            "issue_date": safe_date_parse(data.get("issue_date")),
+            "created_by": data.get("created_by"),
+            "created_date": safe_datetime_parse(data["created_date"]) or datetime.now(),
+            "last_modified": safe_datetime_parse(data["last_modified"]) or datetime.now(),
+            "sent_date": safe_datetime_parse(data.get("sent_date")),
+            "viewed_date": safe_datetime_parse(data.get("viewed_date")),
+            "responded_date": safe_datetime_parse(data.get("responded_date"))
+        }
+        
+        return Estimate.model_validate(estimate_data) 
+
+    async def list_with_filters(self, business_id: uuid.UUID, filters: Dict[str, Any], 
+                              sort_by: str = "created_date", sort_desc: bool = True,
+                              skip: int = 0, limit: int = 100) -> Tuple[List[Estimate], int]:
+        """List estimates with flexible filtering."""
+        logger.info(f"list_with_filters() called for business: {business_id}, filters: {filters}")
+        
+        try:
+            # Start with base query
+            query = self.client.table(self.table_name).select("*").eq("business_id", str(business_id))
+            
+            # Apply filters
+            for field, value in filters.items():
+                if value is None:
+                    continue
+                    
+                if field == "status":
+                    query = query.eq("status", value)
+                elif field == "status_list":
+                    if value:
+                        status_values = [s.value if hasattr(s, 'value') else str(s) for s in value]
+                        query = query.in_("status", status_values)
+                elif field == "contact_id":
+                    query = query.eq("contact_id", str(value))
+                elif field == "project_id":
+                    query = query.eq("project_id", str(value))
+                elif field == "job_id":
+                    query = query.eq("job_id", str(value))
+                elif field == "template_id":
+                    query = query.eq("template_id", str(value))
+                elif field == "date_from":
+                    query = query.gte("created_date", value.isoformat())
+                elif field == "date_to":
+                    query = query.lte("created_date", value.isoformat())
+                elif field == "min_value":
+                    # This would need a calculated field for total_amount
+                    pass
+                elif field == "max_value":
+                    # This would need a calculated field for total_amount
+                    pass
+                elif field == "currency":
+                    query = query.eq("currency", value)
+                elif field == "client_name_contains":
+                    query = query.ilike("client_name", f"%{value}%")
+                elif field == "client_email":
+                    query = query.eq("client_email", value)
+                elif field == "title_contains":
+                    query = query.ilike("title", f"%{value}%")
+                elif field == "description_contains":
+                    query = query.ilike("description", f"%{value}%")
+                elif field == "estimate_number_contains":
+                    query = query.ilike("estimate_number", f"%{value}%")
+                elif field == "search_term":
+                    # Full text search across multiple fields
+                    query = query.or_(f"title.ilike.%{value}%,description.ilike.%{value}%,client_name.ilike.%{value}%,estimate_number.ilike.%{value}%")
+                elif field == "tags":
+                    if value:
+                        # Search for any tag in the list
+                        for tag in value:
+                            query = query.contains("tags", [tag])
+            
+            # Apply sorting
+            sort_column = sort_by
+            if sort_column == "client_display_name":
+                sort_column = "client_name"
+            elif sort_column == "total_amount":
+                # For now, sort by created_date if total_amount is requested since it's calculated
+                sort_column = "created_date"
+            
+            if sort_desc:
+                query = query.order(sort_column, desc=True)
+            else:
+                query = query.order(sort_column)
+            
+            # Get total count first (without pagination)
+            count_query = self.client.table(self.table_name).select("id", count="exact").eq("business_id", str(business_id))
+            
+            # Apply same filters to count query
+            for field, value in filters.items():
+                if value is None:
+                    continue
+                    
+                if field == "status":
+                    count_query = count_query.eq("status", value)
+                elif field == "status_list":
+                    if value:
+                        count_query = count_query.in_("status", value)
+                elif field == "contact_id":
+                    count_query = count_query.eq("contact_id", str(value))
+                elif field == "project_id":
+                    count_query = count_query.eq("project_id", str(value))
+                elif field == "job_id":
+                    count_query = count_query.eq("job_id", str(value))
+                elif field == "template_id":
+                    count_query = count_query.eq("template_id", str(value))
+                elif field == "date_from":
+                    count_query = count_query.gte("created_date", value.isoformat())
+                elif field == "date_to":
+                    count_query = count_query.lte("created_date", value.isoformat())
+                elif field == "currency":
+                    count_query = count_query.eq("currency", value)
+                elif field == "client_name_contains":
+                    count_query = count_query.ilike("client_name", f"%{value}%")
+                elif field == "client_email":
+                    count_query = count_query.eq("client_email", value)
+                elif field == "title_contains":
+                    count_query = count_query.ilike("title", f"%{value}%")
+                elif field == "description_contains":
+                    count_query = count_query.ilike("description", f"%{value}%")
+                elif field == "estimate_number_contains":
+                    count_query = count_query.ilike("estimate_number", f"%{value}%")
+                elif field == "search_term":
+                    count_query = count_query.or_(f"title.ilike.%{value}%,description.ilike.%{value}%,client_name.ilike.%{value}%,estimate_number.ilike.%{value}%")
+                elif field == "tags":
+                    if value:
+                        for tag in value:
+                            count_query = count_query.contains("tags", [tag])
+            
+            # Execute count query
+            count_response = count_query.execute()
+            total_count = count_response.count if count_response.count is not None else 0
+            
+            # Apply pagination to main query
+            query = query.range(skip, skip + limit - 1)
+            
+            # Execute main query
+            response = query.execute()
+            
+            if not response.data:
+                logger.info(f"No estimates found for business: {business_id}")
+                return [], total_count
+            
+            # Fetch line items for all estimates in one query
+            estimate_ids = [item["id"] for item in response.data]
+            line_items_by_estimate = {}
+            
+            if estimate_ids:
+                try:
+                    line_items_response = self.client.table("estimate_line_items").select("*").in_(
+                        "estimate_id", estimate_ids
+                    ).order("estimate_id, sort_order").execute()
+                    
+                    # Group line items by estimate_id
+                    for item in line_items_response.data:
+                        estimate_id = item["estimate_id"]
+                        if estimate_id not in line_items_by_estimate:
+                            line_items_by_estimate[estimate_id] = []
+                        line_items_by_estimate[estimate_id].append(item)
+                        
+                except Exception as e:
+                    logger.warning(f"Failed to fetch line items: {e}")
+                    line_items_by_estimate = {}
+            
+            # Convert to domain entities
+            estimates = []
+            for data in response.data:
+                try:
+                    # Add line items to estimate data
+                    data["_line_items"] = line_items_by_estimate.get(data["id"], [])
+                    estimate = self._dict_to_estimate(data)
+                    estimates.append(estimate)
+                except Exception as e:
+                    logger.error(f"Failed to convert estimate data to entity: {e}, data: {data}")
+                    continue
+            
+            logger.info(f"Retrieved {len(estimates)} estimates with filters (total: {total_count})")
+            return estimates, total_count
+            
+        except Exception as e:
+            logger.error(f"Error retrieving estimates with filters: {e}")
+            raise DatabaseError(f"Failed to retrieve estimates: {str(e)}")
+    
+    async def count_with_filters(self, business_id: uuid.UUID, filters: Dict[str, Any]) -> int:
+        """Count estimates with flexible filtering."""
+        logger.info(f"count_with_filters() called for business: {business_id}, filters: {filters}")
+        
+        try:
+            # Start with base query
+            query = self.client.table(self.table_name).select("id", count="exact").eq("business_id", str(business_id))
+            
+            # Apply the same filters as list_with_filters
+            for field, value in filters.items():
+                if value is None:
+                    continue
+                    
+                if field == "status":
+                    query = query.eq("status", value)
+                elif field == "status_list":
+                    if value:
+                        # Convert EstimateStatus enum objects to string values
+                        status_values = [s.value if hasattr(s, 'value') else str(s) for s in value]
+                        query = query.in_("status", status_values)
+                elif field == "contact_id":
+                    query = query.eq("contact_id", str(value))
+                elif field == "project_id":
+                    query = query.eq("project_id", str(value))
+                elif field == "job_id":
+                    query = query.eq("job_id", str(value))
+                elif field == "template_id":
+                    query = query.eq("template_id", str(value))
+                elif field == "date_from":
+                    query = query.gte("created_date", value.isoformat())
+                elif field == "date_to":
+                    query = query.lte("created_date", value.isoformat())
+                elif field == "currency":
+                    query = query.eq("currency", value)
+                elif field == "client_name_contains":
+                    query = query.ilike("client_name", f"%{value}%")
+                elif field == "client_email":
+                    query = query.eq("client_email", value)
+                elif field == "title_contains":
+                    query = query.ilike("title", f"%{value}%")
+                elif field == "description_contains":
+                    query = query.ilike("description", f"%{value}%")
+                elif field == "estimate_number_contains":
+                    query = query.ilike("estimate_number", f"%{value}%")
+                elif field == "search_term":
+                    # Full text search across multiple fields
+                    query = query.or_(f"title.ilike.%{value}%,description.ilike.%{value}%,client_name.ilike.%{value}%,estimate_number.ilike.%{value}%")
+                elif field == "tags":
+                    if value:
+                        # Search for any tag in the list
+                        for tag in value:
+                            query = query.contains("tags", [tag])
+            
+            # Execute count query
+            response = query.execute()
+            count = response.count if response.count is not None else 0
+            
+            logger.info(f"Count with filters: {count}")
+            return count
+            
+        except Exception as e:
+            logger.error(f"Error counting estimates with filters: {e}")
+            raise DatabaseError(f"Failed to count estimates: {str(e)}") 
+
+    def query(self):
+        """Return EstimateQueryBuilder for fluent query building."""
+        from app.domain.repositories.estimate_repository import EstimateQueryBuilder
+        return EstimateQueryBuilder()
+    
+    async def execute_query(self, business_id: uuid.UUID, query_builder) -> Tuple[List[Estimate], int]:
+        """Execute a query built by EstimateQueryBuilder."""
+        filters = query_builder.build_filters()
+        sort_by, sort_desc = query_builder.build_sort()
+        skip, limit = query_builder.build_pagination()
+        
+        return await self.list_with_filters(
+            business_id=business_id,
+            filters=filters,
+            sort_by=sort_by,
+            sort_desc=sort_desc,
+            skip=skip,
+            limit=limit
         ) 

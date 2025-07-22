@@ -11,7 +11,7 @@ from typing import List, Dict, Any
 from app.domain.entities.estimate import Estimate
 from app.domain.repositories.estimate_repository import EstimateRepository
 from app.domain.exceptions.domain_exceptions import BusinessRuleViolationError
-from app.application.dto.estimate_dto import EstimateDTO, EstimateSearchCriteria
+from app.application.dto.estimate_dto import EstimateDTO, EstimateFilters
 from app.application.exceptions.application_exceptions import (
     ApplicationError, ValidationError as AppValidationError
 )
@@ -28,7 +28,7 @@ class SearchEstimatesUseCase:
         self, 
         business_id: uuid.UUID,
         user_id: str,
-        search_criteria: EstimateSearchCriteria,
+        search_criteria: EstimateFilters,
         skip: int = 0,
         limit: int = 100
     ) -> Dict[str, Any]:
@@ -105,7 +105,7 @@ class SearchEstimatesUseCase:
         if limit > 1000:
             raise AppValidationError("Limit parameter cannot exceed 1000")
     
-    def _validate_search_criteria(self, criteria: EstimateSearchCriteria) -> None:
+    def _validate_search_criteria(self, criteria: EstimateFilters) -> None:
         """Validate search criteria."""
         # Validate text search parameters
         if criteria.search_text and len(criteria.search_text.strip()) < 2:

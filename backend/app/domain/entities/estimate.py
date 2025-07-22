@@ -7,10 +7,10 @@ financial calculations, status management, and client communication tracking.
 
 import uuid
 import logging
-from dataclasses import dataclass, field
+from typing import Optional, List, Dict, Any, Union, Annotated
 from datetime import datetime, date, timezone, timedelta
-from typing import Optional, List, Dict, Any
 from decimal import Decimal, ROUND_HALF_UP
+from pydantic import BaseModel, Field, validator, model_validator, UUID4, BeforeValidator
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
 from ..enums import (
@@ -23,40 +23,88 @@ from ..value_objects.address import Address
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class EstimateLineItem:
+# Custom Pydantic validators for automatic string-to-enum conversion
+def validate_estimate_status(v) -> EstimateStatus:
+    """Convert string to EstimateStatus enum."""
+    if isinstance(v, str):
+        logger.debug(f"Converting status string '{v}' to EstimateStatus enum")
+        return EstimateStatus(v)
+    logger.debug(f"Status value is already an enum: {type(v)}")
+    return v
+
+def validate_currency_code(v) -> CurrencyCode:
+    """Convert string to CurrencyCode enum."""
+    if isinstance(v, str):
+        return CurrencyCode(v)
+    return v
+
+def validate_document_type(v) -> DocumentType:
+    """Convert string to DocumentType enum."""
+    if isinstance(v, str):
+        return DocumentType(v)
+    return v
+
+def validate_tax_type(v) -> TaxType:
+    """Convert string to TaxType enum."""
+    if isinstance(v, str):
+        return TaxType(v)
+    return v
+
+def validate_discount_type(v) -> DiscountType:
+    """Convert string to DiscountType enum."""
+    if isinstance(v, str):
+        return DiscountType(v)
+    return v
+
+def validate_advance_payment_type(v) -> AdvancePaymentType:
+    """Convert string to AdvancePaymentType enum."""
+    if isinstance(v, str):
+        return AdvancePaymentType(v)
+    return v
+
+def validate_email_status(v) -> EmailStatus:
+    """Convert string to EmailStatus enum."""
+    if isinstance(v, str):
+        return EmailStatus(v)
+    return v
+
+# Define validated enum field types
+EstimateStatusField = Annotated[EstimateStatus, BeforeValidator(validate_estimate_status)]
+CurrencyField = Annotated[CurrencyCode, BeforeValidator(validate_currency_code)]
+DocumentTypeField = Annotated[DocumentType, BeforeValidator(validate_document_type)]
+TaxTypeField = Annotated[TaxType, BeforeValidator(validate_tax_type)]
+DiscountTypeField = Annotated[DiscountType, BeforeValidator(validate_discount_type)]
+AdvancePaymentTypeField = Annotated[AdvancePaymentType, BeforeValidator(validate_advance_payment_type)]
+EmailStatusField = Annotated[EmailStatus, BeforeValidator(validate_email_status)]
+
+
+class EstimateLineItem(BaseModel):
     """Value object for estimate line items."""
-    id: uuid.UUID = field(default_factory=uuid.uuid4)
-    description: str = ""
-    quantity: Decimal = Decimal("1")
-    unit_price: Decimal = Decimal("0")
-    unit: Optional[str] = None
-    category: Optional[str] = None
-    discount_type: DiscountType = DiscountType.NONE
-    discount_value: Decimal = Decimal("0")
-    tax_rate: Decimal = Decimal("0")
-    notes: Optional[str] = None
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    description: str = Field(..., min_length=1, description="Line item description")
+    quantity: Decimal = Field(default=Decimal("1"), gt=0, description="Item quantity")
+    unit_price: Decimal = Field(default=Decimal("0"), ge=0, description="Unit price")
+    unit: Optional[str] = Field(None, max_length=50, description="Unit of measurement")
+    category: Optional[str] = Field(None, max_length=100, description="Item category")
+    discount_type: DiscountTypeField = Field(default=DiscountType.NONE)
+    discount_value: Decimal = Field(default=Decimal("0"), ge=0, description="Discount value")
+    tax_rate: Decimal = Field(default=Decimal("0"), ge=0, description="Tax rate percentage")
+    notes: Optional[str] = Field(None, max_length=500, description="Line item notes")
     
-    def __post_init__(self):
-        """Validate line item data."""
-        if not self.description or not self.description.strip():
-            raise DomainValidationError("Line item description is required")
-        
-        if self.quantity <= 0:
-            raise DomainValidationError("Quantity must be positive")
-        
-        if self.unit_price < 0:
-            raise DomainValidationError("Unit price cannot be negative")
-        
-        if self.discount_value < 0:
-            raise DomainValidationError("Discount value cannot be negative")
-        
-        if self.tax_rate < 0:
-            raise DomainValidationError("Tax rate cannot be negative")
-        
-        # Validate discount based on type
-        if self.discount_type == DiscountType.PERCENTAGE and self.discount_value > 100:
-            raise DomainValidationError("Percentage discount cannot exceed 100%")
+    @validator('discount_value')
+    def validate_discount_value(cls, v, values):
+        """Validate discount value based on discount type."""
+        discount_type = values.get('discount_type')
+        if discount_type == DiscountType.PERCENTAGE and v > 100:
+            raise ValueError("Percentage discount cannot exceed 100%")
+        return v
+    
+    @validator('description')
+    def validate_description(cls, v):
+        """Validate description is not empty."""
+        if not v or not v.strip():
+            raise ValueError("Line item description is required")
+        return v.strip()
     
     def get_subtotal(self) -> Decimal:
         """Calculate line item subtotal before discount."""
@@ -83,33 +131,37 @@ class EstimateLineItem:
         """Calculate final line item total including tax."""
         return self.get_total_after_discount() + self.get_tax_amount()
 
+    model_config = {
+        "use_enum_values": True,
+        "json_encoders": {
+            Decimal: lambda v: float(v),
+            UUID4: lambda v: str(v)
+        }
+    }
 
-@dataclass
-class AdvancePayment:
+
+class AdvancePayment(BaseModel):
     """Value object for advance payment requirements."""
-    required: bool = False
-    type: AdvancePaymentType = AdvancePaymentType.NONE
-    value: Decimal = Decimal("0")
-    due_date: Optional[date] = None
-    collected_amount: Decimal = Decimal("0")
-    collected_date: Optional[datetime] = None
-    collection_method: Optional[str] = None
-    reference: Optional[str] = None
-    notes: Optional[str] = None
+    required: bool = Field(default=False)
+    type: AdvancePaymentTypeField = Field(default=AdvancePaymentType.NONE)
+    value: Decimal = Field(default=Decimal("0"), ge=0, description="Advance payment value")
+    due_date: Optional[date] = Field(None, description="Payment due date")
+    collected_amount: Decimal = Field(default=Decimal("0"), ge=0, description="Amount collected")
+    collected_date: Optional[datetime] = Field(None, description="Collection date")
+    collection_method: Optional[str] = Field(None, max_length=100, description="Collection method")
+    reference: Optional[str] = Field(None, max_length=200, description="Payment reference")
+    notes: Optional[str] = Field(None, max_length=500, description="Payment notes")
     
-    def __post_init__(self):
-        """Validate advance payment data."""
+    @model_validator(mode='after')
+    def validate_advance_payment(self):
+        """Validate advance payment consistency."""
         if self.required and self.type == AdvancePaymentType.NONE:
-            raise DomainValidationError("Advance payment type required when advance payment is required")
-        
-        if self.value < 0:
-            raise DomainValidationError("Advance payment value cannot be negative")
-        
-        if self.collected_amount < 0:
-            raise DomainValidationError("Collected amount cannot be negative")
+            raise ValueError("Advance payment type required when advance payment is required")
         
         if self.type == AdvancePaymentType.PERCENTAGE and self.value > 100:
-            raise DomainValidationError("Percentage advance payment cannot exceed 100%")
+            raise ValueError("Percentage advance payment cannot exceed 100%")
+            
+        return self
     
     def get_required_amount(self, estimate_total: Decimal) -> Decimal:
         """Calculate required advance payment amount."""
@@ -129,20 +181,23 @@ class AdvancePayment:
         """Check if advance payment is fully collected."""
         return self.get_remaining_amount(estimate_total) == Decimal("0")
 
+    model_config = {
+        "use_enum_values": True,
+        "json_encoders": {
+            Decimal: lambda v: float(v),
+            date: lambda v: v.isoformat() if v else None,
+            datetime: lambda v: v.isoformat() if v else None
+        }
+    }
 
-@dataclass
-class EstimateTerms:
+
+class EstimateTerms(BaseModel):
     """Value object for estimate terms and conditions."""
-    payment_terms: Optional[str] = None
-    validity_days: int = 30
-    warranty_period: Optional[str] = None
-    terms_and_conditions: Optional[str] = None
-    notes: Optional[str] = None
-    
-    def __post_init__(self):
-        """Validate terms."""
-        if self.validity_days <= 0:
-            raise DomainValidationError("Validity days must be positive")
+    payment_terms: Optional[str] = Field(None, max_length=500, description="Payment terms")
+    validity_days: int = Field(default=30, gt=0, description="Validity period in days")
+    warranty_period: Optional[str] = Field(None, max_length=200, description="Warranty period")
+    terms_and_conditions: Optional[str] = Field(None, max_length=2000, description="Terms and conditions")
+    notes: Optional[str] = Field(None, max_length=1000, description="Additional notes")
     
     def get_expiry_date(self, issue_date: date) -> date:
         """Calculate estimate expiry date."""
@@ -153,36 +208,49 @@ class EstimateTerms:
         return date.today() > self.get_expiry_date(issue_date)
 
 
-@dataclass
-class EmailTracking:
+class EmailTracking(BaseModel):
     """Value object for email delivery tracking."""
-    id: uuid.UUID = field(default_factory=uuid.uuid4)
-    sent_date: Optional[datetime] = None
-    delivered_date: Optional[datetime] = None
-    opened_date: Optional[datetime] = None
-    clicked_date: Optional[datetime] = None
-    status: EmailStatus = EmailStatus.PENDING
-    recipient_email: Optional[str] = None
-    subject: Optional[str] = None
-    message_id: Optional[str] = None
-    error_message: Optional[str] = None
-    tracking_data: Dict[str, Any] = field(default_factory=dict)
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    sent_date: Optional[datetime] = Field(None, description="Email sent timestamp")
+    delivered_date: Optional[datetime] = Field(None, description="Email delivered timestamp")
+    opened_date: Optional[datetime] = Field(None, description="Email opened timestamp")
+    clicked_date: Optional[datetime] = Field(None, description="Email clicked timestamp")
+    status: EmailStatusField = Field(default=EmailStatus.PENDING)
+    recipient_email: Optional[str] = Field(None, description="Recipient email address")
+    subject: Optional[str] = Field(None, max_length=200, description="Email subject")
+    message_id: Optional[str] = Field(None, max_length=100, description="Message ID")
+    error_message: Optional[str] = Field(None, max_length=500, description="Error message")
+    tracking_data: Dict[str, Any] = Field(default_factory=dict, description="Additional tracking data")
+
+    model_config = {
+        "use_enum_values": True,
+        "json_encoders": {
+            UUID4: lambda v: str(v),
+            datetime: lambda v: v.isoformat() if v else None
+        }
+    }
 
 
-@dataclass
-class StatusHistoryEntry:
+class StatusHistoryEntry(BaseModel):
     """Value object for status history tracking."""
-    id: uuid.UUID = field(default_factory=uuid.uuid4)
-    from_status: Optional[EstimateStatus] = None
-    to_status: EstimateStatus = EstimateStatus.DRAFT
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    changed_by: Optional[str] = None
-    reason: Optional[str] = None
-    notes: Optional[str] = None
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    from_status: Optional[EstimateStatusField] = Field(None, description="Previous status")
+    to_status: EstimateStatusField = Field(default=EstimateStatus.DRAFT, description="New status")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    changed_by: Optional[str] = Field(None, max_length=100, description="User who changed status")
+    reason: Optional[str] = Field(None, max_length=500, description="Reason for change")
+    notes: Optional[str] = Field(None, max_length=1000, description="Additional notes")
+
+    model_config = {
+        "use_enum_values": True,
+        "json_encoders": {
+            UUID4: lambda v: str(v),
+            datetime: lambda v: v.isoformat() if v else None
+        }
+    }
 
 
-@dataclass
-class Estimate:
+class Estimate(BaseModel):
     """
     Estimate domain entity representing a price quote for potential work.
     
@@ -191,115 +259,102 @@ class Estimate:
     """
     
     # Core identification
-    id: uuid.UUID = field(default_factory=uuid.uuid4)
-    business_id: uuid.UUID = field(default_factory=uuid.uuid4)
-    estimate_number: Optional[str] = None
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    business_id: UUID4 = Field(..., description="Business ID")
+    estimate_number: Optional[str] = Field(None, max_length=50, description="Estimate number")
     
     # Document classification
-    document_type: DocumentType = DocumentType.ESTIMATE
+    document_type: DocumentTypeField = Field(default=DocumentType.ESTIMATE)
     
     # Status and lifecycle
-    status: EstimateStatus = EstimateStatus.DRAFT
-    status_history: List[StatusHistoryEntry] = field(default_factory=list)
+    status: EstimateStatusField = Field(default=EstimateStatus.DRAFT)
+    status_history: List[StatusHistoryEntry] = Field(default_factory=list)
     
     # Client information
-    contact_id: Optional[uuid.UUID] = None
-    client_name: Optional[str] = None
-    client_email: Optional[str] = None
-    client_phone: Optional[str] = None
-    client_address: Optional[Address] = None
+    contact_id: Optional[UUID4] = Field(None, description="Contact ID")
+    client_name: Optional[str] = Field(None, max_length=200, description="Client name")
+    client_email: Optional[str] = Field(None, max_length=254, description="Client email")
+    client_phone: Optional[str] = Field(None, max_length=20, description="Client phone")
+    client_address: Optional[Address] = Field(None, description="Client address")
     
     # Core content
-    title: str = ""
-    description: Optional[str] = None
-    po_number: Optional[str] = None
+    title: str = Field(..., min_length=1, max_length=300, description="Estimate title")
+    description: Optional[str] = Field(None, max_length=2000, description="Estimate description")
+    po_number: Optional[str] = Field(None, max_length=100, description="Purchase order number")
     
     # Line items and pricing
-    line_items: List[EstimateLineItem] = field(default_factory=list)
-    currency: CurrencyCode = CurrencyCode.USD
-    tax_rate: Decimal = field(default=Decimal('0'))
-    tax_type: TaxType = TaxType.PERCENTAGE
-    overall_discount_type: DiscountType = DiscountType.NONE
-    overall_discount_value: Decimal = field(default=Decimal('0'))
+    line_items: List[EstimateLineItem] = Field(default_factory=list)
+    currency: CurrencyField = Field(default=CurrencyCode.USD)
+    tax_rate: Decimal = Field(default=Decimal('0'), ge=0, description="Tax rate percentage")
+    tax_type: TaxTypeField = Field(default=TaxType.PERCENTAGE)
+    overall_discount_type: DiscountTypeField = Field(default=DiscountType.NONE)
+    overall_discount_value: Decimal = Field(default=Decimal('0'), ge=0, description="Overall discount value")
     
     # Terms and conditions
-    terms: Optional[EstimateTerms] = None
-    advance_payment: Optional[AdvancePayment] = None
+    terms: Optional[EstimateTerms] = Field(default_factory=EstimateTerms)
+    advance_payment: Optional[AdvancePayment] = Field(default_factory=AdvancePayment)
     
     # Project relationships
-    project_id: Optional[uuid.UUID] = None
-    job_id: Optional[uuid.UUID] = None
+    project_id: Optional[UUID4] = Field(None, description="Project ID")
+    job_id: Optional[UUID4] = Field(None, description="Job ID")
     
     # Template information
-    template_id: Optional[uuid.UUID] = None
-    template_data: Dict[str, Any] = field(default_factory=dict)
+    template_id: Optional[UUID4] = Field(None, description="Template ID")
+    template_data: Dict[str, Any] = Field(default_factory=dict)
     
     # Time tracking
-    issue_date: Optional[date] = None
-    valid_until_date: Optional[date] = None
-    conversion_date: Optional[datetime] = None
+    issue_date: Optional[date] = Field(None, description="Issue date")
+    valid_until_date: Optional[date] = Field(None, description="Valid until date")
+    conversion_date: Optional[datetime] = Field(None, description="Conversion date")
     
     # Communication tracking
-    email_history: List[EmailTracking] = field(default_factory=list)
+    email_history: List[EmailTracking] = Field(default_factory=list)
     
     # Conversion tracking
-    converted_to_invoice_id: Optional[uuid.UUID] = None
+    converted_to_invoice_id: Optional[UUID4] = Field(None, description="Converted invoice ID")
     
     # Metadata
-    tags: List[str] = field(default_factory=list)
-    custom_fields: Dict[str, Any] = field(default_factory=dict)
-    internal_notes: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    custom_fields: Dict[str, Any] = Field(default_factory=dict)
+    internal_notes: Optional[str] = Field(None, max_length=2000, description="Internal notes")
     
     # Audit fields
-    created_by: Optional[str] = None
-    created_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    last_modified: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    sent_date: Optional[datetime] = None
-    viewed_date: Optional[datetime] = None
-    responded_date: Optional[datetime] = None
+    created_by: Optional[str] = Field(None, max_length=100, description="Created by user")
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_modified: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    sent_date: Optional[datetime] = Field(None, description="Sent date")
+    viewed_date: Optional[datetime] = Field(None, description="Viewed date")
+    responded_date: Optional[datetime] = Field(None, description="Responded date")
+
+    @validator('overall_discount_value')
+    def validate_overall_discount(cls, v, values):
+        """Validate overall discount based on type."""
+        discount_type = values.get('overall_discount_type')
+        if discount_type == DiscountType.PERCENTAGE and v > 100:
+            raise ValueError("Percentage discount cannot exceed 100%")
+        return v
     
-    def __post_init__(self):
-        """Initialize and validate estimate."""
-        if not self.title or not self.title.strip():
-            raise DomainValidationError("Estimate title is required")
-        
-        if not self.business_id:
-            raise DomainValidationError("Business ID is required")
-        
+    @validator('title')
+    def validate_title(cls, v):
+        """Validate title is not empty."""
+        if not v or not v.strip():
+            raise ValueError("Estimate title is required")
+        return v.strip()
+    
+    @model_validator(mode='after')
+    def validate_estimate(self):
+        """Validate estimate business rules."""
         # Set issue_date to created_date if not provided
-        if not self.issue_date:
+        if not self.issue_date and self.created_date:
             self.issue_date = self.created_date.date()
         
         # Generate estimate number if not provided
         if not self.estimate_number:
-            self.estimate_number = self._generate_estimate_number()
+            today = date.today()
+            self.estimate_number = f"EST-{today.strftime('%Y-%m-%d')}-{str(self.id)[:8].upper()}"
         
-        # Initialize status history if empty
-        if not self.status_history:
-            self.add_status_history_entry(None, self.status, self.created_by, "Initial status")
-        
-        self._validate_business_rules()
-    
-    def _generate_estimate_number(self) -> str:
-        """Generate estimate number."""
-        today = date.today()
-        return f"EST-{today.strftime('%Y-%m-%d')}-{str(self.id)[:8].upper()}"
-    
-    def _validate_business_rules(self) -> None:
-        """Validate core business rules."""
-        # Validate financial values
-        if self.tax_rate < 0:
-            raise DomainValidationError("Tax rate cannot be negative")
-        
-        if self.overall_discount_value < 0:
-            raise DomainValidationError("Overall discount value cannot be negative")
-        
-        if self.overall_discount_type == DiscountType.PERCENTAGE and self.overall_discount_value > 100:
-            raise DomainValidationError("Percentage discount cannot exceed 100%")
-        
-        # Client and line item validation is enforced in send_estimate() method
-        # This allows loading legacy data without validation errors
-    
+        return self
+
     # Financial calculation methods
     def get_line_items_subtotal(self) -> Decimal:
         """Calculate total of all line items subtotals."""
@@ -343,10 +398,14 @@ class Estimate:
     
     def get_advance_payment_amount(self) -> Decimal:
         """Calculate required advance payment amount."""
+        if not self.advance_payment:
+            return Decimal("0")
         return self.advance_payment.get_required_amount(self.get_total_amount())
     
     def get_balance_due(self) -> Decimal:
         """Calculate balance due after advance payment."""
+        if not self.advance_payment:
+            return self.get_total_amount()
         return self.get_total_amount() - self.advance_payment.collected_amount
     
     def round_currency(self, amount: Decimal) -> Decimal:
@@ -381,6 +440,9 @@ class Estimate:
         """Check if estimate is expired."""
         if self.status in [EstimateStatus.APPROVED, EstimateStatus.REJECTED, 
                           EstimateStatus.CANCELLED, EstimateStatus.CONVERTED]:
+            return False
+        
+        if not self.terms:
             return False
         
         return self.terms.is_expired(self.created_date.date())
@@ -498,7 +560,7 @@ class Estimate:
     def remove_line_item(self, line_item_id: uuid.UUID) -> bool:
         """Remove a line item from the estimate."""
         for i, item in enumerate(self.line_items):
-            if item.id == line_item_id:
+            if str(item.id) == str(line_item_id):
                 del self.line_items[i]
                 self.last_modified = datetime.now(timezone.utc)
                 return True
@@ -507,10 +569,16 @@ class Estimate:
     def update_line_item(self, line_item_id: uuid.UUID, **updates) -> bool:
         """Update a line item."""
         for item in self.line_items:
-            if item.id == line_item_id:
-                for key, value in updates.items():
-                    if hasattr(item, key):
-                        setattr(item, key, value)
+            if str(item.id) == str(line_item_id):
+                # Create updated item with new data
+                updated_data = item.dict()
+                updated_data.update(updates)
+                updated_item = EstimateLineItem(**updated_data)
+                
+                # Replace in list
+                item_index = self.line_items.index(item)
+                self.line_items[item_index] = updated_item
+                
                 self.last_modified = datetime.now(timezone.utc)
                 return True
         return False
@@ -536,7 +604,7 @@ class Estimate:
                             **tracking_data) -> bool:
         """Update email tracking status."""
         for tracking in self.email_history:
-            if tracking.id == tracking_id:
+            if str(tracking.id) == str(tracking_id):
                 tracking.status = status
                 if status == EmailStatus.DELIVERED:
                     tracking.delivered_date = datetime.now(timezone.utc)
@@ -573,7 +641,7 @@ class Estimate:
         """Get a custom field value."""
         return self.custom_fields.get(field_name, default)
     
-    # Display methods
+    # Display methods - now clean and simple since enums are guaranteed
     def get_status_display(self) -> str:
         """Get human-readable status."""
         return self.status.get_display()
@@ -581,6 +649,10 @@ class Estimate:
     def get_currency_display(self) -> str:
         """Get human-readable currency."""
         return self.currency.get_display()
+    
+    def get_document_type_display(self) -> str:
+        """Get human-readable document type."""
+        return self.document_type.get_display()
     
     def get_client_display_name(self) -> str:
         """Get client display name."""
@@ -597,84 +669,23 @@ class Estimate:
                           EstimateStatus.CANCELLED, EstimateStatus.CONVERTED]:
             return None
         
+        if not self.terms:
+            return None
+        
         expiry_date = self.terms.get_expiry_date(self.created_date.date())
         days = (expiry_date - date.today()).days
         return max(0, days)
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert estimate to dictionary representation."""
-        return {
-            "id": str(self.id),
-            "business_id": str(self.business_id),
-            "estimate_number": self.estimate_number,
-            "document_type": self.document_type.value,
-            "document_type_display": self.document_type.get_display(),
-            "status": self.status.value,
+        # Use Pydantic's built-in serialization with custom handling
+        base_dict = self.dict()
+        
+        # Add computed fields
+        base_dict.update({
             "status_display": self.get_status_display(),
-            "client_id": str(self.contact_id) if self.contact_id else None,
-            "client_name": self.client_name,
-            "client_email": self.client_email,
-            "client_phone": self.client_phone,
-            "client_address": self.client_address.to_dict() if self.client_address else None,
-            "title": self.title,
-            "description": self.description,
-            "po_number": self.po_number,
-            "line_items": [
-                {
-                    "id": str(item.id),
-                    "description": item.description,
-                    "quantity": float(item.quantity),
-                    "unit_price": float(item.unit_price),
-                    "unit": item.unit,
-                    "category": item.category,
-                    "discount_type": item.discount_type.value,
-                    "discount_value": float(item.discount_value),
-                    "tax_rate": float(item.tax_rate),
-                    "subtotal": float(item.get_subtotal()),
-                    "discount_amount": float(item.get_discount_amount()),
-                    "total": float(item.get_total()),
-                    "notes": item.notes
-                }
-                for item in self.line_items
-            ],
-            "currency": self.currency.value,
-            "tax_rate": float(self.tax_rate),
-            "tax_type": self.tax_type.value,
-            "overall_discount_type": self.overall_discount_type.value,
-            "overall_discount_value": float(self.overall_discount_value),
-            "advance_payment": {
-                "required": self.advance_payment.required,
-                "type": self.advance_payment.type.value,
-                "value": float(self.advance_payment.value),
-                "due_date": self.advance_payment.due_date.isoformat() if self.advance_payment.due_date else None,
-                "collected_amount": float(self.advance_payment.collected_amount),
-                "required_amount": float(self.get_advance_payment_amount()),
-                "remaining_amount": float(self.advance_payment.get_remaining_amount(self.get_total_amount()))
-            },
-            "terms": {
-                "payment_terms": self.terms.payment_terms,
-                "validity_days": self.terms.validity_days,
-                "warranty_period": self.terms.warranty_period,
-                "terms_and_conditions": self.terms.terms_and_conditions,
-                "notes": self.terms.notes,
-                "expiry_date": self.terms.get_expiry_date(self.created_date.date()).isoformat()
-            },
-            "template_id": str(self.template_id) if self.template_id else None,
-            "project_id": str(self.project_id) if self.project_id else None,
-            "job_id": str(self.job_id) if self.job_id else None,
-            "contact_id": str(self.contact_id) if self.contact_id else None,
-            "converted_to_invoice_id": str(self.converted_to_invoice_id) if self.converted_to_invoice_id else None,
-            "conversion_date": self.conversion_date.isoformat() if self.conversion_date else None,
-            "tags": self.tags,
-            "custom_fields": self.custom_fields,
-            "internal_notes": self.internal_notes,
-            "created_by": self.created_by,
-            "created_date": self.created_date.isoformat(),
-            "last_modified": self.last_modified.isoformat(),
-            "sent_date": self.sent_date.isoformat() if self.sent_date else None,
-            "viewed_date": self.viewed_date.isoformat() if self.viewed_date else None,
-            "responded_date": self.responded_date.isoformat() if self.responded_date else None,
-            # Calculated fields
+            "currency_display": self.get_currency_display(),
+            "client_display_name": self.get_client_display_name(),
             "line_items_subtotal": float(self.get_line_items_subtotal()),
             "total_discount": float(self.get_line_items_discount_total() + self.get_overall_discount_amount()),
             "tax_amount": float(self.get_tax_amount()),
@@ -683,7 +694,20 @@ class Estimate:
             "is_expired": self.is_expired(),
             "days_until_expiry": self.days_until_expiry(),
             "total_display": self.get_total_display()
-        }
+        })
+        
+        # Handle advance payment calculations
+        if self.advance_payment:
+            base_dict["advance_payment"].update({
+                "required_amount": float(self.get_advance_payment_amount()),
+                "remaining_amount": float(self.advance_payment.get_remaining_amount(self.get_total_amount()))
+            })
+        
+        # Handle terms expiry
+        if self.terms:
+            base_dict["terms"]["expiry_date"] = self.terms.get_expiry_date(self.created_date.date()).isoformat()
+        
+        return base_dict
     
     def __str__(self) -> str:
         return f"Estimate({self.estimate_number} - {self.get_client_display_name()} - {self.get_status_display()})"
@@ -691,4 +715,35 @@ class Estimate:
     def __repr__(self) -> str:
         return (f"Estimate(id={self.id}, number={self.estimate_number}, "
                 f"client={self.client_name}, status={self.status}, "
-                f"total={self.get_total_amount()})") 
+                f"total={self.get_total_amount()})")
+
+    model_config = {
+        "use_enum_values": True,
+        "validate_by_name": True,
+        "validate_assignment": True,
+        "json_encoders": {
+            UUID4: lambda v: str(v),
+            uuid.UUID: lambda v: str(v),
+            Decimal: lambda v: float(v),
+            datetime: lambda v: v.isoformat() if v else None,
+            date: lambda v: v.isoformat() if v else None
+        },
+        "json_schema_extra": {
+            "example": {
+                "title": "Kitchen Renovation Estimate",
+                "description": "Complete kitchen renovation including cabinets, countertops, and appliances",
+                "client_name": "John Doe",
+                "client_email": "john@example.com",
+                "line_items": [
+                    {
+                        "description": "Kitchen Cabinets",
+                        "quantity": 1,
+                        "unit_price": 5000.00,
+                        "unit": "set"
+                    }
+                ],
+                "currency": "USD",
+                "status": "draft"
+            }
+        }
+    } 

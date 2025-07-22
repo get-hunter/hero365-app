@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 class ContactTools:
     """Contact management tools for the Hero365 agent"""
     
-    def __init__(self, business_context: Dict[str, Any], business_context_manager: Optional[Any] = None):
-        self.business_context = business_context
-        self.business_context_manager = business_context_manager
+    def __init__(self, session_context: Dict[str, Any], context_intelligence: Optional[Any] = None):
+        self.session_context = session_context
+        self.context_intelligence = context_intelligence
         self._container = None
         self._contact_repo = None
         
@@ -45,7 +45,7 @@ class ContactTools:
     
     def _get_business_id(self) -> Optional[uuid.UUID]:
         """Get business ID from context"""
-        business_id = self.business_context.get('business_id')
+        business_id = self.session_context.get('business_id')
         if business_id:
             if isinstance(business_id, str):
                 return uuid.UUID(business_id)

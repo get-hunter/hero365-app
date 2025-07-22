@@ -25,9 +25,9 @@ from ..config import LiveKitConfig
 class IntelligenceTools:
     """Business intelligence tools for the Hero365 agent"""
     
-    def __init__(self, business_context: Dict[str, Any], business_context_manager: Optional[BusinessContextManager] = None):
-        self.business_context = business_context
-        self.business_context_manager = business_context_manager
+    def __init__(self, session_context: Dict[str, Any], context_intelligence: Optional[Any] = None):
+        self.session_context = session_context
+        self.context_intelligence = context_intelligence
     
     @function_tool
     async def get_weather(self, location: Optional[str] = None) -> str:
@@ -38,8 +38,8 @@ class IntelligenceTools:
         """
         try:
             # Use business location as default if available
-            if not location and self.business_context_manager:
-                business_context = self.business_context_manager.get_business_context()
+            if not location and self.context_intelligence:
+                business_context = self.context_intelligence.get_business_context()
                 if business_context and business_context.address:
                     location = business_context.address
             
@@ -49,8 +49,8 @@ class IntelligenceTools:
             response = f"Current weather in {location or 'your area'}: 72°F, partly cloudy with light winds."
             
             # Add context-aware suggestions for outdoor jobs
-            if self.business_context_manager:
-                upcoming_jobs = self.business_context_manager.get_recent_jobs(5)
+            if self.context_intelligence:
+                upcoming_jobs = self.context_intelligence.get_recent_jobs(5)
                 outdoor_jobs = [j for j in upcoming_jobs if any(word in j.title.lower() for word in ["exterior", "outdoor", "roof", "siding", "landscape"])]
                 
                 if outdoor_jobs:
@@ -78,8 +78,8 @@ class IntelligenceTools:
         """
         try:
             # Use business location as default if available
-            if not location and self.business_context_manager:
-                business_context = self.business_context_manager.get_business_context()
+            if not location and self.context_intelligence:
+                business_context = self.context_intelligence.get_business_context()
                 if business_context and business_context.address:
                     location = business_context.address
             
@@ -90,8 +90,8 @@ class IntelligenceTools:
             
             # Add context-aware suggestions
             if "supply" in query.lower() or "hardware" in query.lower():
-                if self.business_context_manager:
-                    suggestions = self.business_context_manager.get_contextual_suggestions()
+                if self.context_intelligence:
+                    suggestions = self.context_intelligence.get_contextual_suggestions()
                     if suggestions and suggestions.quick_actions:
                         response += f"\n💡 For current jobs: {suggestions.quick_actions[0]}"
             
@@ -117,8 +117,8 @@ class IntelligenceTools:
         """
         try:
             # Use business location as default origin if available
-            if not origin and self.business_context_manager:
-                business_context = self.business_context_manager.get_business_context()
+            if not origin and self.context_intelligence:
+                business_context = self.context_intelligence.get_business_context()
                 if business_context and business_context.address:
                     origin = business_context.address
             
@@ -128,9 +128,9 @@ class IntelligenceTools:
             response = f"Directions from {origin or 'your location'} to {destination}: Take the main route, approximately 15 minutes by {mode}."
             
             # Add context-aware job suggestions
-            if self.business_context_manager:
+            if self.context_intelligence:
                 # Check if destination matches any job locations
-                recent_jobs = self.business_context_manager.get_recent_jobs(10)
+                recent_jobs = self.context_intelligence.get_recent_jobs(10)
                 matching_jobs = [j for j in recent_jobs if j.location and destination.lower() in j.location.lower()]
                 
                 if matching_jobs:
@@ -155,16 +155,16 @@ class IntelligenceTools:
             
             # Check business context for quick matches
             context_results = []
-            if self.business_context_manager:
-                contact_match = self.business_context_manager.find_contact_by_name(query)
+            if self.context_intelligence:
+                contact_match = self.context_intelligence.find_contact_by_name(query)
                 if contact_match:
                     context_results.append(f"📞 Recent contact: {contact_match.name}")
                 
-                job_match = self.business_context_manager.find_job_by_title(query)
+                job_match = self.context_intelligence.find_job_by_title(query)
                 if job_match:
                     context_results.append(f"🔧 Recent job: {job_match.title}")
                 
-                estimate_match = self.business_context_manager.find_estimate_by_title(query)
+                estimate_match = self.context_intelligence.find_estimate_by_title(query)
                 if estimate_match:
                     context_results.append(f"📊 Recent estimate: {estimate_match.title}")
             
@@ -227,8 +227,8 @@ class IntelligenceTools:
             
             # Add business context summary
             context_summary = ""
-            if self.business_context_manager:
-                business_summary = self.business_context_manager.get_business_summary()
+            if self.context_intelligence:
+                business_summary = self.context_intelligence.get_business_summary()
                 if business_summary:
                     context_summary = f"Current snapshot: {business_summary.active_jobs} active jobs, {business_summary.pending_estimates} pending estimates. "
             
@@ -244,8 +244,8 @@ class IntelligenceTools:
             response += ", ".join(analytics_parts)
             
             # Add contextual suggestions
-            if self.business_context_manager:
-                suggestions = self.business_context_manager.get_contextual_suggestions()
+            if self.context_intelligence:
+                suggestions = self.context_intelligence.get_contextual_suggestions()
                 if suggestions and suggestions.urgent_items:
                     response += f". Urgent attention needed: {suggestions.urgent_items[0]}"
             
@@ -261,11 +261,11 @@ class IntelligenceTools:
         try:
             logger.info("🔍 Getting contextual insights")
             
-            if not self.business_context_manager:
+            if not self.context_intelligence:
                 return "Business context not available for insights"
             
-            business_summary = self.business_context_manager.get_business_summary()
-            suggestions = self.business_context_manager.get_contextual_suggestions()
+            business_summary = self.context_intelligence.get_business_summary()
+            suggestions = self.context_intelligence.get_contextual_suggestions()
             
             if not business_summary:
                 return "No business data available for insights"
@@ -358,8 +358,8 @@ class IntelligenceTools:
             # Add business context awareness
             business_keywords = ["contractor", "service", "repair", "installation", "home", "business", "plumbing", "electrical", "HVAC"]
             if any(keyword in query.lower() for keyword in business_keywords):
-                if self.business_context_manager:
-                    suggestions = self.business_context_manager.get_contextual_suggestions()
+                if self.context_intelligence:
+                    suggestions = self.context_intelligence.get_contextual_suggestions()
                     if suggestions and suggestions.quick_actions:
                         response_parts.append(f"This might be relevant for {suggestions.quick_actions[0]}")
             
@@ -382,10 +382,10 @@ class IntelligenceTools:
         try:
             logger.info("💡 Getting business recommendations")
             
-            if not self.business_context_manager:
+            if not self.context_intelligence:
                 return "Business context not available for recommendations"
             
-            business_summary = self.business_context_manager.get_business_summary()
+            business_summary = self.context_intelligence.get_business_summary()
             if not business_summary:
                 return "No business data available for recommendations"
             

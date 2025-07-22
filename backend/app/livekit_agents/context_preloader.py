@@ -22,23 +22,67 @@ class ContextPreloader:
     def __init__(self):
         self.container = None
         
-    def _make_json_serializable(self, obj: Any) -> Any:
-        """Convert any object to JSON-serializable format"""
-        if isinstance(obj, UUID):
+    def _serialize_pydantic_context(self, obj: Any, _seen=None) -> Any:
+        """Serialize objects using Pydantic's built-in methods - best practice for Pydantic models"""
+        if _seen is None:
+            _seen = set()
+            
+        # Prevent circular references
+        obj_id = id(obj)
+        if obj_id in _seen:
+            return "<circular reference>"
+        
+        # Handle Pydantic models first (v2 and v1)
+        if hasattr(obj, 'model_dump') and callable(getattr(obj, 'model_dump')):
+            # Pydantic v2 - preferred method
+            _seen.add(obj_id)
+            try:
+                return obj.model_dump(mode='json')
+            except Exception as e:
+                logger.warning(f"Failed to serialize Pydantic v2 model: {e}")
+                return str(obj)
+            finally:
+                _seen.remove(obj_id)
+        elif hasattr(obj, 'dict') and callable(getattr(obj, 'dict')):
+            # Pydantic v1 or models with dict() method
+            _seen.add(obj_id)
+            try:
+                return self._serialize_pydantic_context(obj.dict(), _seen)
+            except Exception as e:
+                logger.warning(f"Failed to serialize Pydantic v1 model: {e}")
+                return str(obj)
+            finally:
+                _seen.remove(obj_id)
+        
+        # Handle basic Python types
+        elif isinstance(obj, UUID):
             return str(obj)
         elif isinstance(obj, Decimal):
             return float(obj)
         elif isinstance(obj, datetime):
             return obj.isoformat()
         elif isinstance(obj, (list, tuple)):
-            return [self._make_json_serializable(item) for item in obj]
+            _seen.add(obj_id)
+            try:
+                return [self._serialize_pydantic_context(item, _seen) for item in obj]
+            finally:
+                _seen.remove(obj_id)
         elif isinstance(obj, dict):
-            return {key: self._make_json_serializable(value) for key, value in obj.items()}
-        elif hasattr(obj, '__dict__'):
-            # For objects with attributes, try to serialize their dict representation
-            return {key: self._make_json_serializable(value) for key, value in obj.__dict__.items()}
-        else:
+            _seen.add(obj_id)
+            try:
+                return {key: self._serialize_pydantic_context(value, _seen) for key, value in obj.items()}
+            finally:
+                _seen.remove(obj_id)
+        elif obj is None:
+            return None
+        elif isinstance(obj, (str, int, float, bool)):
             return obj
+        else:
+            # For any other object, convert to string safely
+            try:
+                return str(obj)
+            except Exception:
+                return "<unserializable object>"
     
     async def preload_context(self, user_id: str, business_id: str, user_info: dict = None) -> Dict[str, Any]:
         """
@@ -85,8 +129,8 @@ class ContextPreloader:
                 'context_version': '1.0'
             }
             
-            # Ensure everything is JSON-serializable
-            serialized_context = self._make_json_serializable(serialized_context)
+            # Ensure everything is JSON-serializable using Pydantic's built-in methods
+            serialized_context = self._serialize_pydantic_context(serialized_context)
             
             logger.info(f"✅ Context preloaded successfully for user {user_id}")
             return serialized_context
@@ -101,7 +145,7 @@ class ContextPreloader:
                 'error': str(e),
                 'context_version': '1.0'
             }
-            return self._make_json_serializable(minimal_context)
+            return self._serialize_pydantic_context(minimal_context)
     
     def _serialize_business_context(self, business_context) -> Dict[str, Any]:
         """Serialize business context for metadata"""

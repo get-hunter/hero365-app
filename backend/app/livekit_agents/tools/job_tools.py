@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 class JobTools:
     """Job management tools for the Hero365 agent"""
     
-    def __init__(self, business_context: Dict[str, Any], business_context_manager: Optional[BusinessContextManager] = None):
-        self.business_context = business_context
-        self.business_context_manager = business_context_manager
+    def __init__(self, session_context: Dict[str, Any], context_intelligence: Optional[Any] = None):
+        self.session_context = session_context
+        self.context_intelligence = context_intelligence
     
     @function_tool
     async def create_job(
@@ -42,8 +42,8 @@ class JobTools:
             logger.info(f"🔧 Creating job: {title}")
             
             # If no contact_id provided, try to find from title/description
-            if not contact_id and self.business_context_manager:
-                recent_contacts = self.business_context_manager.get_recent_contacts(10)
+            if not contact_id and self.context_intelligence:
+                recent_contacts = self.context_intelligence.get_recent_contacts(10)
                 for contact in recent_contacts:
                     if contact.name.lower() in title.lower() or contact.name.lower() in description.lower():
                         contact_id = contact.id
@@ -57,8 +57,8 @@ class JobTools:
                 response += f" with {priority} priority"
             
             # Add contextual suggestions
-            if self.business_context_manager:
-                suggestions = self.business_context_manager.get_contextual_suggestions()
+            if self.context_intelligence:
+                suggestions = self.context_intelligence.get_contextual_suggestions()
                 if suggestions and suggestions.quick_actions:
                     response += f"\n💡 Next step: {suggestions.quick_actions[0]}"
             
@@ -80,8 +80,8 @@ class JobTools:
             
             # Get context overview if available
             context_response = ""
-            if self.business_context_manager:
-                business_summary = self.business_context_manager.get_business_summary()
+            if self.context_intelligence:
+                business_summary = self.context_intelligence.get_business_summary()
                 if business_summary:
                     context_response = f"📊 Overview: {business_summary.active_jobs} active jobs, {business_summary.upcoming_appointments} upcoming appointments\n\n"
             
@@ -98,8 +98,8 @@ class JobTools:
                     response += f"{i}. {priority_icon} {job['title']} - {job['scheduled_date']}\n"
                 
                 # Add contextual suggestions
-                if self.business_context_manager:
-                    suggestions = self.business_context_manager.get_contextual_suggestions()
+                if self.context_intelligence:
+                    suggestions = self.context_intelligence.get_contextual_suggestions()
                     if suggestions and suggestions.quick_actions:
                         response += f"\n💡 Consider: {', '.join(suggestions.quick_actions[:2])}"
                 
@@ -146,11 +146,11 @@ class JobTools:
         try:
             logger.info("💡 Getting suggested jobs")
             
-            if not self.business_context_manager:
+            if not self.context_intelligence:
                 return "🔧 Business context not available for job suggestions"
             
             # Get recent jobs from business context
-            recent_jobs = self.business_context_manager.get_recent_jobs(limit)
+            recent_jobs = self.context_intelligence.get_recent_jobs(limit)
             
             if recent_jobs:
                 response = f"🔧 Recent jobs that might need attention:\n"
@@ -159,7 +159,7 @@ class JobTools:
                     response += f"{i}. {priority_icon} {job.title} - {job.status.value} - {job.contact_name}\n"
                 
                 # Add contextual suggestions
-                suggestions = self.business_context_manager.get_contextual_suggestions()
+                suggestions = self.context_intelligence.get_contextual_suggestions()
                 if suggestions and suggestions.quick_actions:
                     response += f"\n💡 Quick actions: {', '.join(suggestions.quick_actions[:2])}"
                 
@@ -183,8 +183,8 @@ class JobTools:
             logger.info(f"🔍 Searching jobs for: {query}")
             
             # First check business context for quick matches
-            if self.business_context_manager:
-                context_match = self.business_context_manager.find_job_by_title(query)
+            if self.context_intelligence:
+                context_match = self.context_intelligence.find_job_by_title(query)
                 if context_match:
                     return f"🎯 Found in recent jobs: {context_match.title} - {context_match.status.value} - {context_match.contact_name}"
             
@@ -200,8 +200,8 @@ class JobTools:
                     response += f"{i}. {job['title']} - {job['status']} - {job['contact_name']}\n"
                 
                 # Add contextual suggestions
-                if self.business_context_manager:
-                    suggestions = self.business_context_manager.get_contextual_suggestions()
+                if self.context_intelligence:
+                    suggestions = self.context_intelligence.get_contextual_suggestions()
                     if suggestions and suggestions.quick_actions:
                         response += f"\n💡 Related suggestion: {suggestions.quick_actions[0]}"
                 

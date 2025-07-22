@@ -249,7 +249,15 @@ class ContextLoader:
             if recent_estimates_entities:
                 logger.info(f"✅ Found {len(recent_estimates_entities)} estimates from repository")
                 for i, est in enumerate(recent_estimates_entities):
-                    logger.info(f"  Estimate {i+1}: {est.title} - Status: {est.status.value if hasattr(est, 'status') else 'No status'} - Created: {est.created_date if hasattr(est, 'created_date') else 'No date'}")
+                    # Handle status whether it's an enum or string
+                    status_display = 'No status'
+                    if hasattr(est, 'status') and est.status:
+                        if hasattr(est.status, 'value'):
+                            status_display = est.status.value
+                        else:
+                            status_display = str(est.status)
+                    
+                    logger.info(f"  Estimate {i+1}: {est.title} - Status: {status_display} - Created: {est.created_date if hasattr(est, 'created_date') else 'No date'}")
             else:
                 logger.warning(f"⚠️ No estimates returned from repository for business_id: {business_uuid}")
                 

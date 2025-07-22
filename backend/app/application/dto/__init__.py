@@ -67,8 +67,12 @@ from .project_dto import (
 )
 from .estimate_dto import (
     EstimateDTO,
-    CreateEstimateDTO,
-    EstimateLineItemDTO,
+    EstimateCreateDTO,
+    EstimateUpdateDTO,
+    EstimateFilters,
+    EstimateTemplateListFilters,
+    EstimateTemplateResponseDTO,
+    EstimateTemplateListResponseDTO,
 )
 from .invoice_dto import (
     InvoiceDTO,
@@ -145,8 +149,12 @@ __all__ = [
     "ProjectTemplateCreateDTO",
     # Estimate DTOs
     "EstimateDTO",
-    "CreateEstimateDTO",
-    "EstimateLineItemDTO",
+    "EstimateCreateDTO",
+    "EstimateUpdateDTO", 
+    "EstimateFilters",
+    "EstimateTemplateListFilters",
+    "EstimateTemplateResponseDTO",
+    "EstimateTemplateListResponseDTO",
     # Invoice DTOs
     "InvoiceDTO",
     "CreateInvoiceDTO",
