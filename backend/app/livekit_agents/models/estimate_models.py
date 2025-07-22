@@ -36,7 +36,7 @@ class RecentEstimate(BaseModel):
         json_encoders = {
             datetime: lambda dt: dt.isoformat()
         }
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": "est_123",
                 "title": "Kitchen Renovation Estimate",

@@ -26,6 +26,11 @@ def validate_estimate_status(v) -> EstimateStatus:
     """Convert string to EstimateStatus enum."""
     if isinstance(v, str):
         logger.debug(f"Converting status string '{v}' to EstimateStatus enum")
+        # Use the parse_from_string method for better string handling
+        parsed_status = EstimateStatus.parse_from_string(v)
+        if parsed_status:
+            return parsed_status
+        # Fallback to direct enum constructor for backward compatibility
         return EstimateStatus(v)
     logger.debug(f"Status value is already an enum: {type(v)}")
     return v

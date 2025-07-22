@@ -22,7 +22,7 @@ class UserContext(BaseModel):
         json_encoders = {
             datetime: lambda dt: dt.isoformat()
         }
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "user_id": "user_123",
                 "name": "John Smith",

@@ -31,7 +31,7 @@ class BusinessContext(BaseModel):
         json_encoders = {
             datetime: lambda dt: dt.isoformat()
         }
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "business_id": "bus_123",
                 "business_name": "Smith Plumbing",
@@ -58,7 +58,7 @@ class BusinessSummary(BaseModel):
     upcoming_appointments: int = Field(..., ge=0, description="Number of upcoming appointments")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "total_contacts": 150,
                 "active_jobs": 8,

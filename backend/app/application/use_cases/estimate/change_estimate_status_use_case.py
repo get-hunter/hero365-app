@@ -55,6 +55,15 @@ class ChangeEstimateStatusUseCase:
             ApplicationError: If update fails
         """
         try:
+            # Ensure new_status is an EstimateStatus enum
+            if isinstance(new_status, str):
+                parsed_status = EstimateStatus.parse_from_string(new_status)
+                if not parsed_status:
+                    raise AppValidationError(f"Invalid status '{new_status}'. Valid options are: draft, sent, viewed, approved, rejected, cancelled, converted, expired")
+                new_status = parsed_status
+            elif not isinstance(new_status, EstimateStatus):
+                raise AppValidationError(f"new_status must be EstimateStatus enum or string, got {type(new_status)}")
+            
             logger.info(f"Changing estimate {estimate_id} status to {new_status.value}")
             
             # Retrieve and validate the estimate

@@ -12,7 +12,7 @@ from datetime import datetime, date
 from decimal import Decimal
 
 from app.domain.entities.estimate import Estimate
-from app.domain.entities.estimate.enums import EstimateStatus
+from app.domain.entities.estimate_enums.enums import EstimateStatus
 from app.domain.shared.enums import CurrencyCode
 from app.domain.repositories.estimate_repository import EstimateRepository, CommonEstimateQueries
 from app.application.dto.estimate_dto import (

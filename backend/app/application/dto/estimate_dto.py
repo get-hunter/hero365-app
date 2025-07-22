@@ -19,6 +19,11 @@ from app.domain.shared.enums import CurrencyCode, DiscountType, TaxType
 def validate_estimate_status(v) -> EstimateStatus:
     """Convert string to EstimateStatus enum."""
     if isinstance(v, str):
+        # Use the parse_from_string method for better string handling
+        parsed_status = EstimateStatus.parse_from_string(v)
+        if parsed_status:
+            return parsed_status
+        # Fallback to direct enum constructor for backward compatibility
         return EstimateStatus(v)
     return v
 

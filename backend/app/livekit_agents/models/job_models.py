@@ -42,7 +42,7 @@ class RecentJob(BaseModel):
         json_encoders = {
             datetime: lambda dt: dt.isoformat()
         }
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": "job_123",
                 "title": "Kitchen Sink Repair",

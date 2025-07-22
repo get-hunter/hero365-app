@@ -43,7 +43,7 @@ class RecentPayment(BaseModel):
         json_encoders = {
             datetime: lambda dt: dt.isoformat()
         }
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": "pay_123",
                 "invoice_id": "inv_456",

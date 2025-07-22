@@ -31,7 +31,7 @@ class RecentContact(BaseModel):
         json_encoders = {
             datetime: lambda dt: dt.isoformat()
         }
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": "contact_123",
                 "name": "Jane Doe",

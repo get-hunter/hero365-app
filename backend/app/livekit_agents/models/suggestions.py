@@ -26,7 +26,7 @@ class ContextualSuggestions(BaseModel):
     )
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "quick_actions": [
                     "Schedule 3 unscheduled jobs",
