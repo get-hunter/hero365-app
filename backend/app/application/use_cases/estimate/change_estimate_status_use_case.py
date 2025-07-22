@@ -342,6 +342,13 @@ class ChangeEstimateStatusUseCase:
         """Validate that the status transition is allowed."""
         current_status = estimate.status
         
+        # Defensive check: ensure current_status is an enum
+        if isinstance(current_status, str):
+            logger.warning(f"Status is still a string: {current_status}, converting to enum")
+            current_status = EstimateStatus.parse_from_string(current_status) or EstimateStatus.DRAFT
+            # Update the estimate's status to the proper enum
+            estimate.status = current_status
+        
         # Define allowed transitions
         allowed_transitions = {
             EstimateStatus.DRAFT: [EstimateStatus.SENT, EstimateStatus.CANCELLED],

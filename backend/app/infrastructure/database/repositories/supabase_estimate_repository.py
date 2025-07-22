@@ -712,8 +712,6 @@ class SupabaseEstimateRepository(EstimateRepository):
                 return value
             except (ValueError, TypeError):
                 return None
-
-# Removed safe_enum_parse - Pydantic BeforeValidator handles string-to-enum conversion automatically
         
         # Parse line items from separate table data
         line_items_data = data.get("_line_items", [])
@@ -792,10 +790,16 @@ class SupabaseEstimateRepository(EstimateRepository):
                 # Use safe_uuid_parse for status history ID and generate fallback if needed
                 status_id = safe_uuid_parse(status_data.get("id")) or uuid.uuid4()
                 
+                # Convert status strings to enums properly
+                from_status_str = status_data.get("from_status")
+                from_status = EstimateStatus.parse_from_string(from_status_str) if from_status_str else None
+                to_status_str = status_data.get("to_status", "draft")
+                to_status = EstimateStatus.parse_from_string(to_status_str) or EstimateStatus.DRAFT
+                
                 status_entry = StatusHistoryEntry(
                     id=status_id,
-                    from_status=EstimateStatus(status_data["from_status"]) if status_data.get("from_status") else None,
-                    to_status=EstimateStatus(status_data["to_status"]),
+                    from_status=from_status,
+                    to_status=to_status,
                     timestamp=safe_datetime_parse(status_data["timestamp"]),
                     changed_by=status_data.get("changed_by"),
                     reason=status_data.get("reason"),
@@ -825,12 +829,16 @@ class SupabaseEstimateRepository(EstimateRepository):
                 logger.warning(f"Failed to parse client address: {e}")
         
         # Use model_validate to ensure all Pydantic validation is triggered
+        # Explicitly convert status string to enum to prevent conversion issues
+        status_str = data.get("status", "draft")
+        status_enum = EstimateStatus.parse_from_string(status_str) or EstimateStatus.DRAFT
+        
         estimate_data = {
             "id": uuid.UUID(data["id"]),
             "business_id": uuid.UUID(data["business_id"]),
             "estimate_number": data.get("estimate_number"),
             "document_type": data.get("document_type", "estimate"),
-            "status": data.get("status", "draft"),
+            "status": status_enum,
             "status_history": status_history,
             "contact_id": safe_uuid_parse(data.get("contact_id")),
             "client_name": data.get("client_name"),
