@@ -40,7 +40,8 @@ from ...infrastructure.config.dependency_injection import (
     get_delete_estimate_use_case, get_list_estimates_use_case, get_search_estimates_use_case,
     get_convert_estimate_to_invoice_use_case, get_get_next_estimate_number_use_case
 )
-from ...domain.enums import EstimateStatus, CurrencyCode
+from ...domain.entities.estimate_enums.enums import EstimateStatus
+from ...domain.shared.enums import CurrencyCode
 
 # Configure logging
 logger = logging.getLogger(__name__)

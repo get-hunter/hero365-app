@@ -10,7 +10,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 from app.domain.entities.invoice import Invoice
-from app.domain.enums import InvoiceStatus
+from app.domain.entities.invoice_enums.enums import InvoiceStatus
 from app.domain.repositories.invoice_repository import InvoiceRepository
 from app.domain.exceptions.domain_exceptions import BusinessRuleViolationError
 from app.application.dto.invoice_dto import InvoiceDTO, InvoiceListFilters

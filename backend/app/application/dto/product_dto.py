@@ -10,7 +10,8 @@ from datetime import datetime, date
 from decimal import Decimal
 from dataclasses import dataclass
 
-from app.domain.enums import ProductType, ProductStatus, PricingModel, UnitOfMeasure, CostingMethod
+from app.domain.entities.product_enums.enums import ProductType, ProductStatus, CostingMethod
+from app.domain.shared.enums import PricingModel, UnitOfMeasure
 from app.domain.value_objects.address import Address
 
 

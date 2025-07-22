@@ -15,7 +15,7 @@ from pydantic.types import StringConstraints
 from typing_extensions import Annotated
 
 from ...utils import format_datetime_utc
-from ...domain.enums import ProjectType, ProjectStatus, ProjectPriority
+from ...domain.entities.project_enums.enums import ProjectType, ProjectStatus, ProjectPriority
 from ..converters import EnumConverter, SupabaseConverter
 from .contact_schemas import ContactAddressSchema
 

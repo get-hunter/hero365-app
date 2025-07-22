@@ -9,7 +9,7 @@ import logging
 from typing import Optional
 
 from app.domain.entities.estimate import Estimate
-from app.domain.enums import EstimateStatus
+from app.domain.entities.estimate_enums.enums import EstimateStatus
 from app.domain.repositories.estimate_repository import EstimateRepository
 from app.domain.exceptions.domain_exceptions import BusinessRuleViolationError, DomainValidationError
 from app.application.dto.estimate_dto import EstimateDTO

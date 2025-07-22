@@ -23,7 +23,7 @@ from app.domain.repositories.purchase_order_repository import PurchaseOrderRepos
 from app.domain.repositories.supplier_repository import SupplierRepository
 from app.domain.repositories.product_repository import ProductRepository
 from app.domain.entities.purchase_order import PurchaseOrder, PurchaseOrderLineItem
-from app.domain.enums import PurchaseOrderStatus
+from app.domain.entities.product_enums.enums import PurchaseOrderStatus
 from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, BusinessRuleViolationError
 )

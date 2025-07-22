@@ -12,7 +12,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from ..entities.project import Project, ProjectTemplate
-from ..enums import ProjectType, ProjectStatus, ProjectPriority
+from ..entities.project_enums.enums import ProjectType, ProjectStatus, ProjectPriority
 
 
 class ProjectRepository(ABC):

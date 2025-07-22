@@ -12,7 +12,8 @@ import uuid
 from datetime import datetime
 
 from ..entities.product import Product
-from ..enums import ProductType, ProductStatus, PricingModel
+from ..entities.product_enums.enums import ProductType, ProductStatus
+from ..shared.enums import PricingModel
 
 
 class ProductRepository(ABC):

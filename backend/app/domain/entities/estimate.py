@@ -13,10 +13,8 @@ from decimal import Decimal, ROUND_HALF_UP
 from pydantic import BaseModel, Field, validator, model_validator, UUID4, BeforeValidator
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
-from ..enums import (
-    EstimateStatus, CurrencyCode, TaxType, DiscountType, 
-    AdvancePaymentType, EmailStatus, TemplateType, DocumentType
-)
+from .estimate_enums.enums import EstimateStatus, DocumentType, EmailStatus
+from ..shared.enums import CurrencyCode, TaxType, DiscountType, AdvancePaymentType, TemplateType
 from ..value_objects.address import Address
 
 # Configure logging

@@ -16,7 +16,7 @@ from supabase import Client
 
 from app.domain.repositories.project_repository import ProjectRepository, ProjectTemplateRepository
 from app.domain.entities.project import Project, ProjectTemplate
-from app.domain.enums import ProjectType, ProjectStatus, ProjectPriority
+from app.domain.entities.project_enums.enums import ProjectType, ProjectStatus, ProjectPriority
 from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DuplicateEntityError, DatabaseError, DomainValidationError
 )

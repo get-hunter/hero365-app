@@ -13,7 +13,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
-from ..enums import ProjectType, ProjectStatus, ProjectPriority
+from .project_enums.enums import ProjectType, ProjectStatus, ProjectPriority
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
 from ..value_objects.address import Address
 

@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from enum import Enum
-from ..enums import JobType, JobStatus, JobPriority, JobSource
+from .job_enums.enums import JobType, JobStatus, JobPriority, JobSource
 from decimal import Decimal
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError

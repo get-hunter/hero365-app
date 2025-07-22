@@ -18,10 +18,8 @@ from app.domain.entities.estimate import (
     Estimate, EstimateLineItem, AdvancePayment, EstimateTerms, 
     EmailTracking, StatusHistoryEntry
 )
-from app.domain.enums import (
-    EstimateStatus, CurrencyCode, TaxType, DiscountType, 
-    AdvancePaymentType, EmailStatus, TemplateType, DocumentType
-)
+from app.domain.entities.estimate_enums.enums import EstimateStatus, DocumentType, EmailStatus
+from app.domain.shared.enums import CurrencyCode, TaxType, DiscountType, AdvancePaymentType, TemplateType
 from app.domain.value_objects.address import Address
 from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DuplicateEntityError, DatabaseError, DomainValidationError

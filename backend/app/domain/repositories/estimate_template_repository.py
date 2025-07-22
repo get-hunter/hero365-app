@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any
 
 from ..entities.estimate_template import EstimateTemplate
-from ..enums import TemplateType
+from ..shared.enums import TemplateType
 
 
 class EstimateTemplateRepository(ABC):

@@ -11,7 +11,7 @@ from supabase import Client
 
 from app.domain.repositories.estimate_template_repository import EstimateTemplateRepository
 from app.domain.entities.estimate_template import EstimateTemplate
-from app.domain.enums import TemplateType
+from app.domain.shared.enums import TemplateType
 from app.domain.exceptions.domain_exceptions import EntityNotFoundError, DuplicateEntityError, DatabaseError
 
 logger = logging.getLogger(__name__)

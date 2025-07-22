@@ -10,7 +10,7 @@ import uuid
 from ...exceptions.application_exceptions import (
     NotFoundError, BusinessRuleViolationError
 )
-from app.domain.enums import ProjectStatus
+from app.domain.entities.project_enums.enums import ProjectStatus
 from app.domain.repositories.project_repository import ProjectRepository
 from .project_helper_service import ProjectHelperService
 

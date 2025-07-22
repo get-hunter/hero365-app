@@ -11,7 +11,8 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, validator, UUID4, BeforeValidator
 
 from app.domain.entities.estimate import Estimate
-from app.domain.enums import EstimateStatus, CurrencyCode, DiscountType, TaxType, DocumentType
+from app.domain.entities.estimate_enums.enums import EstimateStatus, DocumentType
+from app.domain.shared.enums import CurrencyCode, DiscountType, TaxType
 
 
 # Validated enum field types for DTOs (same as domain entity)

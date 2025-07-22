@@ -10,7 +10,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, Field
-from ...domain.enums import ProjectType, ProjectStatus, ProjectPriority
+from ...domain.entities.project_enums.enums import ProjectType, ProjectStatus, ProjectPriority
 from .contact_dto import ContactAddressDTO
 
 

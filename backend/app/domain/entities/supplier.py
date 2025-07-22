@@ -13,7 +13,8 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, validator, computed_field
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
-from ..enums import SupplierStatus, CurrencyCode
+from .product_enums.enums import SupplierStatus
+from ..shared.enums import CurrencyCode
 from ..value_objects.address import Address
 
 # Configure logging

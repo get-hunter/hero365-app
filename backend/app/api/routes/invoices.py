@@ -40,7 +40,8 @@ from ...infrastructure.config.dependency_injection import (
     get_delete_invoice_use_case, get_list_invoices_use_case, get_search_invoices_use_case,
     get_process_payment_use_case, get_get_next_invoice_number_use_case
 )
-from ...domain.enums import InvoiceStatus, PaymentMethod, CurrencyCode
+from ...domain.entities.invoice_enums.enums import InvoiceStatus
+from ...domain.shared.enums import PaymentMethod, CurrencyCode
 from ..schemas.activity_schemas import MessageResponse
 
 # Configure logging

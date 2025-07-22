@@ -10,7 +10,8 @@ from typing import Optional
 from datetime import datetime
 
 from app.domain.entities.invoice import Invoice, InvoiceLineItem
-from app.domain.enums import InvoiceStatus, CurrencyCode, TaxType, DiscountType
+from app.domain.entities.invoice_enums.enums import InvoiceStatus
+from app.domain.shared.enums import CurrencyCode, TaxType, DiscountType
 from app.domain.repositories.invoice_repository import InvoiceRepository
 from app.domain.exceptions.domain_exceptions import (
     DomainValidationError, BusinessRuleViolationError, EntityNotFoundError

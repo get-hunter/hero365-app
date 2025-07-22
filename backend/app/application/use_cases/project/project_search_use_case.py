@@ -10,7 +10,7 @@ from typing import List
 
 from ...dto.project_dto import ProjectListDTO, ProjectSearchDTO
 from app.domain.repositories.project_repository import ProjectRepository
-from app.domain.enums import ProjectStatus, ProjectType, ProjectPriority
+from app.domain.entities.project_enums.enums import ProjectStatus, ProjectType, ProjectPriority
 from .project_helper_service import ProjectHelperService
 
 

@@ -208,7 +208,7 @@ class GetEstimateUseCase:
     ) -> None:
         """Validate client access to estimate."""
         # Check if estimate is in a viewable state
-        from app.domain.enums import EstimateStatus
+        from app.domain.entities.estimate_enums.enums import EstimateStatus
         
         viewable_statuses = [
             EstimateStatus.SENT,
@@ -261,7 +261,7 @@ class GetEstimateUseCase:
     async def _mark_estimate_viewed(self, estimate: Estimate) -> None:
         """Mark estimate as viewed by client."""
         try:
-            from app.domain.enums import EstimateStatus
+            from app.domain.entities.estimate_enums.enums import EstimateStatus
             
             if estimate.status == EstimateStatus.SENT:
                 estimate.mark_as_viewed("client")

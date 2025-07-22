@@ -48,7 +48,7 @@ from ...infrastructure.config.dependency_injection import (
     get_job_search_use_case, get_job_analytics_use_case, get_job_scheduling_use_case,
     get_job_bulk_operations_use_case
 )
-from ...domain.enums import JobType, JobStatus, JobPriority, JobSource
+from ...domain.entities.job_enums.enums import JobType, JobStatus, JobPriority, JobSource
 
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])

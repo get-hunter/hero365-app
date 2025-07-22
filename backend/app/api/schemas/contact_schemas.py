@@ -11,8 +11,8 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict, field_validator, fi
 from enum import Enum
 
 from ...utils import format_datetime_utc
-# Import centralized enums
-from ...domain.enums import (
+# Import contact enums
+from ...domain.entities.contact_enums.enums import (
     ContactType, ContactStatus, ContactPriority, ContactSource,
     RelationshipStatus, LifecycleStage
 )

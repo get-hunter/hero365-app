@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime
 
 from ..entities.supplier import Supplier
-from ..enums import SupplierStatus
+from ..entities.product_enums.enums import SupplierStatus
 
 
 class SupplierRepository(ABC):

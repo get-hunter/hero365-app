@@ -12,7 +12,9 @@ from decimal import Decimal
 
 from app.domain.entities.estimate import Estimate
 from app.domain.entities.invoice import Invoice, InvoiceLineItem, Payment, PaymentTerms
-from app.domain.enums import EstimateStatus, InvoiceStatus, PaymentMethod, PaymentStatus
+from app.domain.entities.estimate_enums.enums import EstimateStatus
+from app.domain.entities.invoice_enums.enums import InvoiceStatus, PaymentStatus
+from app.domain.shared.enums import PaymentMethod
 from app.domain.repositories.estimate_repository import EstimateRepository
 from app.domain.repositories.invoice_repository import InvoiceRepository
 from app.domain.exceptions.domain_exceptions import (

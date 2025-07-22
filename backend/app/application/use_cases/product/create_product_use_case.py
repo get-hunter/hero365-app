@@ -173,7 +173,7 @@ class CreateProductUseCase:
             
             # Apply unit of measure default if not explicitly set
             if product.unit_of_measure.value == "each" and defaults.default_unit_of_measure:
-                from app.domain.enums import UnitOfMeasure
+                from app.domain.shared.enums import UnitOfMeasure
                 try:
                     product.unit_of_measure = UnitOfMeasure(defaults.default_unit_of_measure)
                 except ValueError:

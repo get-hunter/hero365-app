@@ -12,7 +12,8 @@ from datetime import datetime
 from decimal import Decimal
 
 from ..entities.estimate import Estimate
-from ..enums import EstimateStatus, CurrencyCode
+from ..entities.estimate_enums.enums import EstimateStatus
+from ..shared.enums import CurrencyCode
 
 
 class EstimateQueryBuilder:

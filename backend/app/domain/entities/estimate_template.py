@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 
 from ..exceptions.domain_exceptions import DomainValidationError
-from ..enums import TemplateType, CurrencyCode
+from ..shared.enums import TemplateType, CurrencyCode
 
 
 @dataclass

@@ -13,7 +13,7 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, validator, computed_field
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
-from ..enums import TaxType, CurrencyCode
+from ..shared.enums import TaxType, CurrencyCode
 
 # Configure logging
 logger = logging.getLogger(__name__)

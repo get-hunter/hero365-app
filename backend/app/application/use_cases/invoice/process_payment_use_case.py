@@ -11,7 +11,8 @@ from datetime import datetime
 from decimal import Decimal
 
 from app.domain.entities.invoice import Invoice, Payment
-from app.domain.enums import InvoiceStatus, PaymentStatus, PaymentMethod
+from app.domain.entities.invoice_enums.enums import InvoiceStatus, PaymentStatus
+from app.domain.shared.enums import PaymentMethod
 from app.domain.repositories.invoice_repository import InvoiceRepository
 from app.domain.exceptions.domain_exceptions import (
     DomainValidationError, BusinessRuleViolationError, EntityNotFoundError

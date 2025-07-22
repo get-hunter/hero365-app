@@ -10,7 +10,7 @@ from typing import Optional
 from datetime import datetime, date
 
 from app.domain.entities.estimate import Estimate, EstimateTerms, AdvancePayment
-from app.domain.enums import EstimateStatus, DocumentType
+from app.domain.entities.estimate_enums.enums import EstimateStatus, DocumentType
 from app.domain.repositories.estimate_repository import EstimateRepository
 from app.domain.exceptions.domain_exceptions import BusinessRuleViolationError, DomainValidationError
 from app.application.dto.estimate_dto import EstimateCreateDTO, EstimateDTO

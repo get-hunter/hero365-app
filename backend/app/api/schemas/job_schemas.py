@@ -16,8 +16,8 @@ from pydantic.types import StringConstraints
 from typing_extensions import Annotated
 
 from ...utils import format_datetime_utc
-# Import centralized enums
-from ...domain.enums import (
+# Import job enums
+from ...domain.entities.job_enums.enums import (
     JobType, JobStatus, JobPriority, JobSource
 )
 from ..converters import EnumConverter, SupabaseConverter

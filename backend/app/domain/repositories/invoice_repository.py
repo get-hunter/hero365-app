@@ -12,7 +12,8 @@ from datetime import datetime
 from decimal import Decimal
 
 from ..entities.invoice import Invoice
-from ..enums import InvoiceStatus, PaymentStatus, PaymentMethod, CurrencyCode
+from ..entities.invoice_enums.enums import InvoiceStatus, PaymentStatus
+from ..shared.enums import PaymentMethod, CurrencyCode
 
 
 class InvoiceRepository(ABC):

@@ -17,7 +17,7 @@ from app.infrastructure.config.dependency_injection import (
 )
 from app.domain.repositories.supplier_repository import SupplierRepository
 from app.domain.entities.supplier import Supplier, SupplierContact, PaymentTerms
-from app.domain.enums import SupplierStatus
+from app.domain.entities.product_enums.enums import SupplierStatus
 from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DuplicateEntityError, BusinessRuleViolationError
 )

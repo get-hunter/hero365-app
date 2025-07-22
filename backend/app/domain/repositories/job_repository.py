@@ -11,7 +11,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 from ..entities.job import Job
-from ..enums import JobStatus, JobType, JobPriority
+from ..entities.job_enums.enums import JobStatus, JobType, JobPriority
 
 
 class JobRepository(ABC):

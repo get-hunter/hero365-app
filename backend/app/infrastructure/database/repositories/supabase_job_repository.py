@@ -20,7 +20,7 @@ from app.domain.entities.job import (
     JobTimeTracking, JobCostEstimate
 )
 from app.domain.value_objects.address import Address
-from app.domain.enums import JobType, JobStatus, JobPriority, JobSource
+from app.domain.entities.job_enums.enums import JobType, JobStatus, JobPriority, JobSource
 from app.domain.repositories.job_repository import JobRepository
 from app.domain.exceptions.domain_exceptions import DomainValidationError
 

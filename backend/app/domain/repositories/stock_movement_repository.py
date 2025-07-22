@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime, date
 
 from ..entities.stock_movement import StockMovement
-from ..enums import StockMovementType
+from ..entities.product_enums.enums import StockMovementType
 
 
 class StockMovementRepository(ABC):

@@ -11,7 +11,8 @@ from datetime import datetime, date
 from decimal import Decimal
 
 from app.domain.entities.estimate import Estimate, EstimateLineItem, EstimateTerms, AdvancePayment
-from app.domain.enums import EstimateStatus, CurrencyCode, TaxType, DiscountType
+from app.domain.entities.estimate_enums.enums import EstimateStatus
+from app.domain.shared.enums import CurrencyCode, TaxType, DiscountType
 from app.domain.repositories.estimate_repository import EstimateRepository
 from app.domain.repositories.contact_repository import ContactRepository
 from app.domain.repositories.project_repository import ProjectRepository

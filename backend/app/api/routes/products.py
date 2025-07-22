@@ -34,7 +34,7 @@ from ...infrastructure.config.dependency_injection import (
     get_product_repository, get_create_product_use_case, get_manage_inventory_use_case,
     get_inventory_reorder_management_use_case
 )
-from ...domain.enums import ProductStatus, ProductType
+from ...domain.entities.product_enums.enums import ProductStatus, ProductType
 
 # Configure logging
 logger = logging.getLogger(__name__)

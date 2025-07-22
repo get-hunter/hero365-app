@@ -43,7 +43,7 @@ from ...infrastructure.config.dependency_injection import (
     get_delete_project_use_case, get_project_search_use_case, get_project_analytics_use_case,
     get_project_assignment_use_case, get_project_template_use_case
 )
-from ...domain.enums import ProjectType, ProjectStatus, ProjectPriority
+from ...domain.entities.project_enums.enums import ProjectType, ProjectStatus, ProjectPriority
 
 
 router = APIRouter(prefix="/projects", tags=["Projects"])

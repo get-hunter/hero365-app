@@ -11,7 +11,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 from app.domain.entities.estimate import Estimate
-from app.domain.enums import EstimateStatus
+from app.domain.entities.estimate_enums.enums import EstimateStatus
 from app.domain.repositories.estimate_repository import EstimateRepository
 from app.domain.exceptions.domain_exceptions import BusinessRuleViolationError
 from app.application.dto.estimate_dto import EstimateDTO, EstimateFilters

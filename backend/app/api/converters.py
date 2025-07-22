@@ -14,11 +14,12 @@ from uuid import UUID
 from pydantic import BaseModel, ValidationError, field_validator
 from fastapi import HTTPException, status
 
-from ..domain.enums import (
+from ..domain.entities.contact_enums.enums import (
     ContactType, ContactStatus, ContactPriority, ContactSource,
-    RelationshipStatus, LifecycleStage, JobType, JobStatus, JobPriority, JobSource,
-    ProjectType, ProjectStatus, ProjectPriority
+    RelationshipStatus, LifecycleStage
 )
+from ..domain.entities.job_enums.enums import JobType, JobStatus, JobPriority, JobSource
+from ..domain.entities.project_enums.enums import ProjectType, ProjectStatus, ProjectPriority
 
 logger = logging.getLogger(__name__)
 

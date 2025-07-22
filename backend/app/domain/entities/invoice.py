@@ -12,10 +12,9 @@ from typing import Optional, List, Dict, Any
 from decimal import Decimal, ROUND_HALF_UP
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
-from ..enums import (
-    InvoiceStatus, PaymentStatus, PaymentMethod, CurrencyCode, 
-    TaxType, DiscountType, EmailStatus
-)
+from .invoice_enums.enums import InvoiceStatus, PaymentStatus
+from ..shared.enums import PaymentMethod, CurrencyCode, TaxType, DiscountType
+from .estimate_enums.enums import EmailStatus
 from ..value_objects.address import Address
 
 

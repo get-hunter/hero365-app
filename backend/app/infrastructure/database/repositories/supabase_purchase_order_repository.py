@@ -14,7 +14,7 @@ from supabase import Client
 
 from app.domain.repositories.purchase_order_repository import PurchaseOrderRepository
 from app.domain.entities.purchase_order import PurchaseOrder
-from app.domain.enums import PurchaseOrderStatus
+from app.domain.entities.product_enums.enums import PurchaseOrderStatus
 from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DatabaseError
 )

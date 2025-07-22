@@ -14,7 +14,7 @@ from supabase import Client
 
 from app.domain.repositories.supplier_repository import SupplierRepository
 from app.domain.entities.supplier import Supplier
-from app.domain.enums import SupplierStatus
+from app.domain.entities.product_enums.enums import SupplierStatus
 from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DuplicateEntityError, DatabaseError
 )

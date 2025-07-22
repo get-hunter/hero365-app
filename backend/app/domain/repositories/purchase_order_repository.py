@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime, date
 
 from ..entities.purchase_order import PurchaseOrder
-from ..enums import PurchaseOrderStatus
+from ..entities.product_enums.enums import PurchaseOrderStatus
 
 
 class PurchaseOrderRepository(ABC):

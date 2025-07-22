@@ -15,7 +15,8 @@ from supabase import Client
 
 from app.domain.repositories.product_repository import ProductRepository
 from app.domain.entities.product import Product
-from app.domain.enums import ProductType, ProductStatus, PricingModel, UnitOfMeasure, CostingMethod
+from app.domain.entities.product_enums.enums import ProductType, ProductStatus, CostingMethod
+from app.domain.shared.enums import PricingModel, UnitOfMeasure
 from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DuplicateEntityError, DatabaseError
 )

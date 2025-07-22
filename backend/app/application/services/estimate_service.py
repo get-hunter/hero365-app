@@ -12,7 +12,8 @@ from datetime import datetime, date
 from decimal import Decimal
 
 from app.domain.entities.estimate import Estimate
-from app.domain.enums import EstimateStatus, CurrencyCode
+from app.domain.entities.estimate.enums import EstimateStatus
+from app.domain.shared.enums import CurrencyCode
 from app.domain.repositories.estimate_repository import EstimateRepository, CommonEstimateQueries
 from app.application.dto.estimate_dto import (
     EstimateDTO, EstimateCreateDTO, EstimateUpdateDTO, EstimateFilters
@@ -292,7 +293,10 @@ class EstimateService:
         """Change estimate status."""
         try:
             if isinstance(new_status, str):
-                new_status = EstimateStatus(new_status.lower())
+                parsed_status = EstimateStatus.parse_from_string(new_status)
+                if not parsed_status:
+                    raise ValidationError(f"Invalid status '{new_status}'. Valid options are: draft, sent, viewed, approved, rejected, cancelled, converted, expired")
+                new_status = parsed_status
                 
             return await self.status_use_case.execute(
                 estimate_id, new_status, business_id, user_id, reason, notes
@@ -445,26 +449,7 @@ class EstimateService:
             logger.error(f"Service error checking estimate existence: {e}")
             return False
     
-    def parse_status_from_string(self, status_string: str) -> Optional[EstimateStatus]:
-        """Parse estimate status from string (helper for voice agent)."""
-        try:
-            status_mapping = {
-                "draft": EstimateStatus.DRAFT,
-                "sent": EstimateStatus.SENT,
-                "viewed": EstimateStatus.VIEWED,
-                "approved": EstimateStatus.APPROVED,
-                "rejected": EstimateStatus.REJECTED,
-                "cancelled": EstimateStatus.CANCELLED,
-                "canceled": EstimateStatus.CANCELLED,  # Common typo
-                "converted": EstimateStatus.CONVERTED,
-                "expired": EstimateStatus.EXPIRED,
-                "pending": EstimateStatus.SENT,  # Alias for sent
-            }
-            
-            return status_mapping.get(status_string.lower().strip())
-            
-        except Exception:
-            return None
+
     
     def format_estimate_for_display(self, estimate: EstimateDTO) -> str:
         """Format estimate for natural language display (helper for voice agent)."""

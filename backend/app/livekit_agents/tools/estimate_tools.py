@@ -9,6 +9,8 @@ import uuid
 from typing import Dict, Any, Optional
 from livekit.agents import function_tool
 
+from app.domain.entities.estimate_enums.enums import EstimateStatus
+
 logger = logging.getLogger(__name__)
 
 
@@ -67,6 +69,60 @@ class EstimateTools:
     def _get_user_id(self) -> str:
         """Get user ID from context (for voice agent, this is typically 'voice_agent')"""
         return self.session_context.get('user_id', 'voice_agent')
+    
+    async def _resolve_estimate_id(self, estimate_id: str, business_id: uuid.UUID, user_id: str, estimate_service) -> Optional[uuid.UUID]:
+        """
+        Intelligently resolve estimate ID from various formats:
+        - UUID string: "123e4567-e89b-12d3-a456-426614174000" 
+        - Estimate number: "EST-001"
+        - Position number: "1", "2", "3" (from recent estimates list)
+        """
+        try:
+            # Try parsing as UUID first
+            try:
+                return uuid.UUID(estimate_id)
+            except ValueError:
+                pass
+            
+            # Try as estimate number (EST-001, etc.)
+            if estimate_id.upper().startswith('EST'):
+                try:
+                    # Search for estimate by number
+                    result = await estimate_service.search_estimates(
+                        business_id=business_id,
+                        user_id=user_id,
+                        search_term=estimate_id.upper(),
+                        limit=1
+                    )
+                    if result["estimates"]:
+                        return result["estimates"][0].id
+                except Exception as e:
+                    logger.warning(f"Error searching by estimate number: {e}")
+            
+            # Try as position number (1, 2, 3, etc.)
+            try:
+                position = int(estimate_id)
+                if 1 <= position <= 20:  # Reasonable limit
+                    # Get recent estimates to find by position
+                    result = await estimate_service.get_recent_estimates(
+                        business_id=business_id,
+                        user_id=user_id,
+                        days=90,  # Look back 90 days
+                        limit=20
+                    )
+                    
+                    estimates = result["estimates"]
+                    if estimates and len(estimates) >= position:
+                        return estimates[position - 1].id  # Convert 1-based to 0-based
+                        
+            except ValueError:
+                pass
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error resolving estimate ID '{estimate_id}': {e}")
+            return None
 
     @function_tool
     async def create_estimate(
@@ -352,7 +408,12 @@ class EstimateTools:
 
     @function_tool
     async def update_estimate_status(self, estimate_id: str, status: str) -> str:
-        """Update the status of a specific estimate using service layer"""
+        """Update the status of a specific estimate using service layer
+        
+        Args:
+            estimate_id: Can be a UUID, estimate number (EST-001), or position number (1, 2, 3)
+            status: New status for the estimate
+        """
         try:
             logger.info(f"📊 Updating estimate {estimate_id} status to {status}")
             
@@ -368,32 +429,41 @@ class EstimateTools:
             if not estimate_service:
                 return "Estimate service not available"
             
-            # Parse status using service helper
-            parsed_status = estimate_service.parse_status_from_string(status)
+            # Parse status using domain enum method
+            parsed_status = EstimateStatus.parse_from_string(status)
             if not parsed_status:
-                available_statuses = ["draft", "sent", "approved", "rejected", "cancelled"]
+                # Get available statuses dynamically from the EstimateStatus enum
+                available_statuses = [s.value for s in EstimateStatus]
                 return f"Invalid status '{status}'. Valid options are: {', '.join(available_statuses)}"
+            
+            # Smart estimate ID resolution
+            actual_estimate_id = await self._resolve_estimate_id(estimate_id, business_id, user_id, estimate_service)
+            if not actual_estimate_id:
+                return f"Could not find estimate '{estimate_id}'. Please check the estimate number or try listing estimates first."
             
             # Update status using service
             result = await estimate_service.change_estimate_status(
-                estimate_id=uuid.UUID(estimate_id),
+                estimate_id=actual_estimate_id,
                 new_status=parsed_status,
                 business_id=business_id,
                 user_id=user_id,
                 reason=f"Status changed via voice agent to {status}"
             )
             
-            return f"Successfully updated estimate '{result.title}' status to {result.status_display.lower()}"
+            return f"Successfully updated estimate '{result.title}' (#{result.estimate_number}) status to {result.status_display.lower()}"
                 
-        except ValueError as e:
-            return f"Invalid estimate ID format: {str(e)}"
         except Exception as e:
             logger.error(f"❌ Error updating estimate status: {e}")
             return f"Error updating estimate status: {str(e)}"
 
     @function_tool
     async def send_estimate(self, estimate_id: str, client_email: Optional[str] = None) -> str:
-        """Send an estimate to client using service layer"""
+        """Send an estimate to client using service layer
+        
+        Args:
+            estimate_id: Can be a UUID, estimate number (EST-001), or position number (1, 2, 3)
+            client_email: Optional client email override
+        """
         try:
             logger.info(f"📧 Sending estimate {estimate_id} to client")
             
@@ -409,18 +479,21 @@ class EstimateTools:
             if not estimate_service:
                 return "Estimate service not available"
             
+            # Smart estimate ID resolution
+            actual_estimate_id = await self._resolve_estimate_id(estimate_id, business_id, user_id, estimate_service)
+            if not actual_estimate_id:
+                return f"Could not find estimate '{estimate_id}'. Please check the estimate number or try listing estimates first."
+            
             # Send estimate using service
             result = await estimate_service.send_estimate(
-                estimate_id=uuid.UUID(estimate_id),
+                estimate_id=actual_estimate_id,
                 business_id=business_id,
                 user_id=user_id,
                 client_email=client_email
             )
             
-            return f"Successfully sent estimate '{result.title}' to {result.client_display_name}"
+            return f"Successfully sent estimate '{result.title}' (#{result.estimate_number}) to {result.client_display_name}"
                 
-        except ValueError as e:
-            return f"Invalid estimate ID format: {str(e)}"
         except Exception as e:
             logger.error(f"❌ Error sending estimate: {e}")
             return f"Error sending estimate: {str(e)}"
@@ -468,7 +541,11 @@ class EstimateTools:
 
     @function_tool
     async def convert_estimate_to_invoice(self, estimate_id: str) -> str:
-        """Convert an approved estimate to an invoice using service layer"""
+        """Convert an approved estimate to an invoice using service layer
+        
+        Args:
+            estimate_id: Can be a UUID, estimate number (EST-001), or position number (1, 2, 3)
+        """
         try:
             logger.info(f"💰 Converting estimate {estimate_id} to invoice")
             
@@ -484,9 +561,14 @@ class EstimateTools:
             if not estimate_service:
                 return "Estimate service not available"
             
+            # Smart estimate ID resolution
+            actual_estimate_id = await self._resolve_estimate_id(estimate_id, business_id, user_id, estimate_service)
+            if not actual_estimate_id:
+                return f"Could not find estimate '{estimate_id}'. Please check the estimate number or try listing estimates first."
+            
             # Get the estimate first to check status
             estimate = await estimate_service.get_estimate(
-                estimate_id=uuid.UUID(estimate_id),
+                estimate_id=actual_estimate_id,
                 business_id=business_id,
                 user_id=user_id
             )
@@ -497,17 +579,15 @@ class EstimateTools:
             
             # Mark as converted (actual invoice creation would be handled by invoice service)
             result = await estimate_service.change_estimate_status(
-                estimate_id=uuid.UUID(estimate_id),
+                estimate_id=actual_estimate_id,
                 new_status="converted",
                 business_id=business_id,
                 user_id=user_id,
                 reason="Converted to invoice via voice agent"
             )
             
-            return f"Estimate '{result.title}' has been marked as converted to invoice. Invoice creation functionality will be implemented in the next phase."
+            return f"Estimate '{result.title}' (#{result.estimate_number}) has been marked as converted to invoice. Invoice creation functionality will be implemented in the next phase."
                 
-        except ValueError as e:
-            return f"Invalid estimate ID format: {str(e)}"
         except Exception as e:
             logger.error(f"❌ Error converting estimate to invoice: {e}")
             return f"Error converting estimate to invoice: {str(e)}" 

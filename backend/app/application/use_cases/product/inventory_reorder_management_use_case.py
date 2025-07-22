@@ -14,7 +14,7 @@ from app.domain.entities.product import Product
 from app.domain.repositories.product_repository import ProductRepository
 from app.domain.repositories.supplier_repository import SupplierRepository
 from app.domain.repositories.purchase_order_repository import PurchaseOrderRepository
-from app.domain.enums import ProductStatus
+from app.domain.entities.product_enums.enums import ProductStatus
 from app.domain.exceptions.domain_exceptions import (
     DomainValidationError, BusinessRuleViolationError, EntityNotFoundError
 )

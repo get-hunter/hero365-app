@@ -10,7 +10,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.domain.entities.estimate_template import EstimateTemplate
-from app.domain.enums import TemplateType
+from app.domain.shared.enums import TemplateType
 from app.domain.repositories.estimate_template_repository import EstimateTemplateRepository
 from app.domain.exceptions.domain_exceptions import BusinessRuleViolationError
 from app.application.dto.estimate_dto import (

@@ -15,7 +15,7 @@ from ...dto.project_dto import (
 from ...exceptions.application_exceptions import NotFoundError, ValidationError
 from app.domain.entities.project import ProjectTemplate, Project
 from app.domain.repositories.project_repository import ProjectTemplateRepository, ProjectRepository
-from app.domain.enums import ProjectType
+from app.domain.entities.project_enums.enums import ProjectType
 from .project_helper_service import ProjectHelperService
 
 

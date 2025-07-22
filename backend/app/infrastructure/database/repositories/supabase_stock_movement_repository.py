@@ -14,7 +14,7 @@ from supabase import Client
 
 from app.domain.repositories.stock_movement_repository import StockMovementRepository
 from app.domain.entities.stock_movement import StockMovement
-from app.domain.enums import StockMovementType
+from app.domain.entities.product_enums.enums import StockMovementType
 from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DatabaseError
 )

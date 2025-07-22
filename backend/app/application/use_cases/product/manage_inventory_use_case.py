@@ -14,7 +14,7 @@ from app.domain.entities.product import Product
 from app.domain.entities.stock_movement import StockMovement, StockMovementContext
 from app.domain.repositories.product_repository import ProductRepository
 from app.domain.repositories.stock_movement_repository import StockMovementRepository
-from app.domain.enums import StockMovementType
+from app.domain.entities.product_enums.enums import StockMovementType
 from app.domain.exceptions.domain_exceptions import (
     DomainValidationError, BusinessRuleViolationError, EntityNotFoundError
 )

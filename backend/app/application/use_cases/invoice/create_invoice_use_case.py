@@ -11,7 +11,8 @@ from datetime import datetime, date, timedelta
 from decimal import Decimal
 
 from app.domain.entities.invoice import Invoice, InvoiceLineItem, PaymentTerms
-from app.domain.enums import InvoiceStatus, CurrencyCode, TaxType, DiscountType, PaymentMethod
+from app.domain.entities.invoice_enums.enums import InvoiceStatus
+from app.domain.shared.enums import CurrencyCode, TaxType, DiscountType, PaymentMethod
 from app.domain.repositories.invoice_repository import InvoiceRepository
 from app.domain.repositories.contact_repository import ContactRepository
 from app.domain.repositories.project_repository import ProjectRepository

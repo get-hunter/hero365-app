@@ -17,7 +17,7 @@ from app.api.schemas.contact_schemas import UserDetailLevel
 from app.domain.repositories.contact_repository import ContactRepository
 from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
 from app.domain.entities.contact import Contact
-from app.domain.enums import ContactType, ContactStatus, ContactPriority, ContactSource, RelationshipStatus, LifecycleStage
+from app.domain.entities.contact_enums.enums import ContactType, ContactStatus, ContactPriority, ContactSource, RelationshipStatus, LifecycleStage
 from ...exceptions.application_exceptions import PermissionDeniedError
 
 

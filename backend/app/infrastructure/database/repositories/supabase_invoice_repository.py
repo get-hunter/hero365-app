@@ -18,10 +18,9 @@ from app.domain.entities.invoice import (
     Invoice, InvoiceLineItem, Payment, PaymentTerms, 
     InvoiceEmailTracking, InvoiceStatusHistoryEntry
 )
-from app.domain.enums import (
-    InvoiceStatus, PaymentStatus, PaymentMethod, CurrencyCode, 
-    TaxType, DiscountType, EmailStatus
-)
+from app.domain.entities.invoice_enums.enums import InvoiceStatus, PaymentStatus
+from app.domain.shared.enums import PaymentMethod, CurrencyCode, TaxType, DiscountType
+from app.domain.entities.estimate_enums.enums import EmailStatus
 from app.domain.value_objects.address import Address
 from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DuplicateEntityError, DatabaseError

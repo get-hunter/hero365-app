@@ -13,7 +13,8 @@ from decimal import Decimal, ROUND_HALF_UP
 from pydantic import BaseModel, Field, validator, computed_field
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
-from ..enums import StockMovementType, CurrencyCode
+from .product_enums.enums import StockMovementType
+from ..shared.enums import CurrencyCode
 
 # Configure logging
 logger = logging.getLogger(__name__)
