@@ -91,12 +91,12 @@ class EstimateTools:
             # Get business ID
             business_id = self._get_business_id()
             if not business_id:
-                return "❌ Business context not available"
+                return "Business context not available"
             
             # Get repositories
             estimate_repo = self._get_estimate_repository()
             if not estimate_repo:
-                return "❌ Estimate repository not available"
+                return "Estimate repository not available"
             
             # If no contact_id provided, try to find a recent contact
             if not contact_id:
@@ -142,17 +142,17 @@ class EstimateTools:
             # Save to repository
             created_estimate = await estimate_repo.create(new_estimate)
             
-            response = f"✅ Successfully created estimate '{title}' ({estimate_number})"
+            response = f"Successfully created estimate '{title}' with number {estimate_number}"
             if total_amount:
                 response += f" for ${total_amount:,.2f}"
             if valid_until_date:
-                response += f" valid until {valid_until_date.strftime('%Y-%m-%d')}"
+                response += f", valid until {valid_until_date.strftime('%B %d, %Y')}"
             
             return response
                 
         except Exception as e:
             logger.error(f"❌ Error creating estimate: {e}")
-            return f"❌ Error creating estimate: {str(e)}"
+            return f"Error creating estimate: {str(e)}"
 
     @function_tool
     async def get_recent_estimates(self, limit: int = 10) -> str:
@@ -167,22 +167,20 @@ class EstimateTools:
             # Get business ID
             business_id = self._get_business_id()
             if not business_id:
-                return "❌ Business context not available"
+                return "Business context not available"
             
             # Get estimate repository
             estimate_repo = self._get_estimate_repository()
             if not estimate_repo:
-                return "❌ Estimate repository not available"
+                return "Estimate repository not available"
             
             # Get recent estimates from repository
             recent_estimates = await estimate_repo.get_recent_by_business(business_id, limit=limit)
             
             if recent_estimates:
-                response = f"📋 Recent estimates:\n"
+                response = f"Here are your {len(recent_estimates)} most recent estimates: "
+                estimate_list = []
                 for i, estimate in enumerate(recent_estimates, 1):
-                    status_icon = "💰" if estimate.status.value == "approved" else "📊"
-                    amount_str = f"${estimate.total_amount:,.2f}" if estimate.total_amount else "No amount"
-                    
                     # Get contact name
                     contact_name = "Unknown Contact"
                     if estimate.contact_id:
@@ -195,15 +193,20 @@ class EstimateTools:
                             except Exception as e:
                                 logger.warning(f"⚠️ Could not get contact name: {e}")
                     
-                    response += f"{i}. {status_icon} {estimate.title} - {estimate.status.value} - {amount_str} - {contact_name}\n"
+                    estimate_info = f"{i}. {estimate.title}, status {estimate.status.value}"
+                    if estimate.total_amount:
+                        estimate_info += f" for ${estimate.total_amount:,.2f}"
+                    estimate_info += f", for {contact_name}"
+                    estimate_list.append(estimate_info)
                 
+                response += ". ".join(estimate_list)
                 return response
             else:
-                return "📋 No recent estimates found. Would you like to create a new estimate?"
+                return "No recent estimates found. Would you like to create a new estimate?"
                 
         except Exception as e:
             logger.error(f"❌ Error getting recent estimates: {e}")
-            return f"❌ Error getting recent estimates: {str(e)}"
+            return f"Error getting recent estimates: {str(e)}"
 
     @function_tool
     async def get_suggested_estimates(self, limit: int = 5) -> str:
@@ -218,19 +221,20 @@ class EstimateTools:
             # Get business ID
             business_id = self._get_business_id()
             if not business_id:
-                return "❌ Business context not available"
+                return "Business context not available"
             
             # Get estimate repository
             estimate_repo = self._get_estimate_repository()
             if not estimate_repo:
-                return "❌ Estimate repository not available"
+                return "Estimate repository not available"
             
             # Get draft estimates
             from app.domain.enums import EstimateStatus
             draft_estimates = await estimate_repo.get_by_status(business_id, EstimateStatus.DRAFT, limit=limit)
             
             if draft_estimates:
-                response = f"📊 Draft estimates that need attention:\n"
+                response = f"Here are {len(draft_estimates)} draft estimates that need attention: "
+                estimate_list = []
                 for i, estimate in enumerate(draft_estimates, 1):
                     # Get contact name
                     contact_name = "Unknown Contact"
@@ -244,18 +248,19 @@ class EstimateTools:
                             except Exception as e:
                                 logger.warning(f"⚠️ Could not get contact name: {e}")
                     
-                    response += f"{i}. 📝 {estimate.title} - {contact_name}"
+                    estimate_info = f"{i}. {estimate.title} for {contact_name}"
                     if estimate.total_amount:
-                        response += f" - ${estimate.total_amount:,.2f}"
-                    response += "\n"
+                        estimate_info += f" worth ${estimate.total_amount:,.2f}"
+                    estimate_list.append(estimate_info)
                 
+                response += ". ".join(estimate_list)
                 return response
             else:
-                return "📊 No draft estimates found. All estimates are up to date!"
+                return "No draft estimates found. All estimates are up to date!"
                 
         except Exception as e:
             logger.error(f"❌ Error getting estimate suggestions: {e}")
-            return f"❌ Error getting estimate suggestions: {str(e)}"
+            return f"Error getting estimate suggestions: {str(e)}"
 
     @function_tool
     async def search_estimates(self, query: str, limit: int = 10) -> str:
@@ -271,12 +276,12 @@ class EstimateTools:
             # Get business ID
             business_id = self._get_business_id()
             if not business_id:
-                return "❌ Business context not available"
+                return "Business context not available"
             
             # Get repositories
             estimate_repo = self._get_estimate_repository()
             if not estimate_repo:
-                return "❌ Estimate repository not available"
+                return "Estimate repository not available"
             
             # Get all estimates and filter by query (basic implementation)
             all_estimates = await estimate_repo.get_by_business_id(business_id, limit=limit*2)
@@ -294,10 +299,9 @@ class EstimateTools:
                         break
             
             if matching_estimates:
-                response = f"🔍 Found {len(matching_estimates)} estimates matching '{query}':\n"
+                response = f"Found {len(matching_estimates)} estimates matching '{query}': "
+                estimate_list = []
                 for i, estimate in enumerate(matching_estimates, 1):
-                    amount_str = f"${estimate.total_amount:,.2f}" if estimate.total_amount else "No amount"
-                    
                     # Get contact name
                     contact_name = "Unknown Contact"
                     if estimate.contact_id:
@@ -310,15 +314,20 @@ class EstimateTools:
                             except Exception as e:
                                 logger.warning(f"⚠️ Could not get contact name: {e}")
                     
-                    response += f"{i}. {estimate.title} - {estimate.status.value} - {amount_str} - {contact_name}\n"
+                    estimate_info = f"{i}. {estimate.title}, status {estimate.status.value}"
+                    if estimate.total_amount:
+                        estimate_info += f" for ${estimate.total_amount:,.2f}"
+                    estimate_info += f", for {contact_name}"
+                    estimate_list.append(estimate_info)
                 
+                response += ". ".join(estimate_list)
                 return response
             else:
-                return f"🔍 No estimates found matching '{query}'. Would you like to create a new estimate?"
+                return f"No estimates found matching '{query}'. Would you like to create a new estimate?"
                 
         except Exception as e:
             logger.error(f"❌ Error searching estimates: {e}")
-            return f"❌ Error searching estimates: {str(e)}"
+            return f"Error searching estimates: {str(e)}"
 
     @function_tool
     async def update_estimate_status(self, estimate_id: str, status: str) -> str:
@@ -329,21 +338,21 @@ class EstimateTools:
             # Get business ID
             business_id = self._get_business_id()
             if not business_id:
-                return "❌ Business context not available"
+                return "Business context not available"
             
             # Get estimate repository
             estimate_repo = self._get_estimate_repository()
             if not estimate_repo:
-                return "❌ Estimate repository not available"
+                return "Estimate repository not available"
             
             # Get the estimate
             estimate = await estimate_repo.get_by_id(uuid.UUID(estimate_id))
             if not estimate:
-                return f"❌ Estimate with ID {estimate_id} not found"
+                return f"Estimate with ID {estimate_id} not found"
             
             # Verify it belongs to the business
             if estimate.business_id != business_id:
-                return "❌ You don't have permission to update this estimate"
+                return "You don't have permission to update this estimate"
             
             # Update status
             from app.domain.enums import EstimateStatus
@@ -352,14 +361,14 @@ class EstimateTools:
                 estimate.status = new_status
                 updated_estimate = await estimate_repo.update(estimate)
                 
-                return f"✅ Successfully updated estimate '{updated_estimate.title}' status to {new_status.value}"
+                return f"Successfully updated estimate '{updated_estimate.title}' status to {new_status.value}"
             except ValueError:
                 valid_statuses = [status.value for status in EstimateStatus]
-                return f"❌ Invalid status '{status}'. Valid options are: {', '.join(valid_statuses)}"
+                return f"Invalid status '{status}'. Valid options are: {', '.join(valid_statuses)}"
                 
         except Exception as e:
             logger.error(f"❌ Error updating estimate status: {e}")
-            return f"❌ Error updating estimate status: {str(e)}"
+            return f"Error updating estimate status: {str(e)}"
 
     @function_tool
     async def convert_estimate_to_invoice(self, estimate_id: str) -> str:
@@ -370,30 +379,30 @@ class EstimateTools:
             # Get business ID
             business_id = self._get_business_id()
             if not business_id:
-                return "❌ Business context not available"
+                return "Business context not available"
             
             # Get estimate repository
             estimate_repo = self._get_estimate_repository()
             if not estimate_repo:
-                return "❌ Estimate repository not available"
+                return "Estimate repository not available"
             
             # Get the estimate
             estimate = await estimate_repo.get_by_id(uuid.UUID(estimate_id))
             if not estimate:
-                return f"❌ Estimate with ID {estimate_id} not found"
+                return f"Estimate with ID {estimate_id} not found"
             
             # Verify it belongs to the business
             if estimate.business_id != business_id:
-                return "❌ You don't have permission to convert this estimate"
+                return "You don't have permission to convert this estimate"
             
             # Check if estimate is approved
             from app.domain.enums import EstimateStatus
             if estimate.status != EstimateStatus.APPROVED:
-                return f"❌ Only approved estimates can be converted to invoices. Current status: {estimate.status.value}"
+                return f"Only approved estimates can be converted to invoices. Current status is {estimate.status.value}"
             
             # For now, return a success message - actual invoice creation would need invoice repository
-            return f"✅ Estimate '{estimate.title}' is ready for invoice conversion. Invoice creation functionality will be implemented in the next phase."
+            return f"Estimate '{estimate.title}' is ready for invoice conversion. Invoice creation functionality will be implemented in the next phase."
                 
         except Exception as e:
             logger.error(f"❌ Error converting estimate to invoice: {e}")
-            return f"❌ Error converting estimate to invoice: {str(e)}" 
+            return f"Error converting estimate to invoice: {str(e)}" 

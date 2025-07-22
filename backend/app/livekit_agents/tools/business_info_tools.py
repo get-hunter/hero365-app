@@ -57,7 +57,7 @@ class BusinessInfoTools:
         if self.business_context.get('address'):
             info.append(f"Address: {self.business_context['address']}")
             
-        return "\n".join(info) if info else "Business information is not available."
+        return ". ".join(info) if info else "Business information is not available."
 
     async def get_user_info(self) -> str:
         """Get current user information"""
@@ -74,7 +74,7 @@ class BusinessInfoTools:
         if self.business_context.get('user_role'):
             info.append(f"Role: {self.business_context['user_role']}")
             
-        return "\n".join(info) if info else "User information is not available."
+        return ". ".join(info) if info else "User information is not available."
 
     async def get_business_status(self) -> str:
         """Get complete business status and activity overview"""
@@ -101,4 +101,4 @@ class BusinessInfoTools:
         if self.business_context.get('jobs_this_week'):
             status.append(f"Jobs This Week: {self.business_context['jobs_this_week']}")
             
-        return "\n".join(status) if status else "Business status is not available." 
+        return ". ".join(status) if status else "Business status is not available." 

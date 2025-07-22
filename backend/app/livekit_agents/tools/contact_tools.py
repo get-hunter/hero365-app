@@ -75,23 +75,23 @@ class ContactTools:
             # Get business ID
             business_id = self._get_business_id()
             if not business_id:
-                return "❌ Business context not available"
+                return "Business context not available"
             
             # Get contact repository
             contact_repo = self._get_contact_repository()
             if not contact_repo:
-                return "❌ Contact repository not available"
+                return "Contact repository not available"
             
             # Check if contact already exists
             if phone:
                 existing_contact = await contact_repo.get_by_phone(business_id, phone)
                 if existing_contact:
-                    return f"ℹ️ Contact with phone {phone} already exists: {existing_contact.get_display_name()}"
+                    return f"A contact with phone {phone} already exists: {existing_contact.get_display_name()}"
             
             if email:
                 existing_contact = await contact_repo.get_by_email(business_id, email)
                 if existing_contact:
-                    return f"ℹ️ Contact with email {email} already exists: {existing_contact.get_display_name()}"
+                    return f"A contact with email {email} already exists: {existing_contact.get_display_name()}"
             
             # Parse name into first and last name
             name_parts = name.strip().split(' ', 1)
@@ -128,17 +128,17 @@ class ContactTools:
             # Save to repository
             created_contact = await contact_repo.create(new_contact)
             
-            response = f"✅ Successfully created contact: {created_contact.get_display_name()}"
+            response = f"Successfully created contact {created_contact.get_display_name()}"
             if phone:
-                response += f" ({phone})"
+                response += f" with phone number {phone}"
             if email:
-                response += f" - {email}"
+                response += f" and email {email}"
             
             return response
                 
         except Exception as e:
             logger.error(f"❌ Error creating contact: {e}")
-            return f"❌ Error creating contact: {str(e)}"
+            return f"Error creating contact: {str(e)}"
 
     async def search_contacts(self, query: str, limit: int = 10) -> str:
         """Search for contacts with direct repository access.
@@ -153,27 +153,34 @@ class ContactTools:
             # Get business ID
             business_id = self._get_business_id()
             if not business_id:
-                return "❌ Business context not available"
+                return "Business context not available"
             
             # Get contact repository
             contact_repo = self._get_contact_repository()
             if not contact_repo:
-                return "❌ Contact repository not available"
+                return "Contact repository not available"
             
             # Search in database
             contacts = await contact_repo.search_contacts(business_id, query, limit=limit)
             
             if contacts:
-                response = f"🔍 Found {len(contacts)} contacts matching '{query}':\n"
+                response = f"Found {len(contacts)} contacts matching '{query}': "
+                contact_list = []
                 for i, contact in enumerate(contacts, 1):
-                    response += f"{i}. {contact.get_display_name()} - {contact.phone or 'No phone'} - {contact.email or 'No email'}\n"
+                    contact_info = f"{i}. {contact.get_display_name()}"
+                    if contact.phone:
+                        contact_info += f", phone {contact.phone}"
+                    if contact.email:
+                        contact_info += f", email {contact.email}"
+                    contact_list.append(contact_info)
+                response += ". ".join(contact_list)
                 return response
             else:
-                return f"🔍 No contacts found matching '{query}'. Would you like to create a new contact?"
+                return f"No contacts found matching '{query}'. Would you like to create a new contact?"
                 
         except Exception as e:
             logger.error(f"❌ Error searching contacts: {e}")
-            return f"❌ Error searching contacts: {str(e)}"
+            return f"Error searching contacts: {str(e)}"
 
     async def get_suggested_contacts(self, limit: int = 5) -> str:
         """Get recent contacts directly from repository.
@@ -187,28 +194,32 @@ class ContactTools:
             # Get business ID
             business_id = self._get_business_id()
             if not business_id:
-                return "❌ Business context not available"
+                return "Business context not available"
             
             # Get contact repository
             contact_repo = self._get_contact_repository()
             if not contact_repo:
-                return "❌ Contact repository not available"
+                return "Contact repository not available"
             
             # Get recent contacts from repository
             recent_contacts = await contact_repo.get_recent_by_business(business_id, limit=limit)
             
             if recent_contacts:
-                response = f"📞 Recent contacts you might want to reach out to:\n"
+                response = f"Here are {len(recent_contacts)} recent contacts you might want to reach out to: "
+                contact_list = []
                 for i, contact in enumerate(recent_contacts, 1):
-                    priority_icon = "🔥" if contact.priority and contact.priority.value == "high" else "📞"
-                    response += f"{i}. {priority_icon} {contact.get_display_name()} - {contact.phone or 'No phone'}\n"
+                    contact_info = f"{i}. {contact.get_display_name()}"
+                    if contact.phone:
+                        contact_info += f", phone {contact.phone}"
+                    contact_list.append(contact_info)
+                response += ". ".join(contact_list)
                 return response
             else:
-                return "📞 No recent contacts found. Would you like to create a new contact?"
+                return "No recent contacts found. Would you like to create a new contact?"
                 
         except Exception as e:
             logger.error(f"❌ Error getting contact suggestions: {e}")
-            return f"❌ Error getting contact suggestions: {str(e)}"
+            return f"Error getting contact suggestions: {str(e)}"
 
     async def get_contact_info(self, contact_name: str, info_type: str = "all") -> str:
         """Get specific information about a contact by name.
@@ -229,24 +240,29 @@ class ContactTools:
             # Get business ID
             business_id = self._get_business_id()
             if not business_id:
-                return "❌ Business context not available"
+                return "Business context not available"
             
             # Get contact repository
             contact_repo = self._get_contact_repository()
             if not contact_repo:
-                return "❌ Contact repository not available"
+                return "Contact repository not available"
             
             # Search for contact by name
             contacts = await contact_repo.search_contacts(business_id, contact_name, limit=5)
             
             if not contacts:
-                return f"❌ Contact '{contact_name}' not found"
+                return f"Contact '{contact_name}' not found"
             
             if len(contacts) > 1:
-                response = f"🔍 Found multiple contacts matching '{contact_name}':\n"
+                response = f"Found multiple contacts matching '{contact_name}': "
+                contact_list = []
                 for i, contact in enumerate(contacts, 1):
-                    response += f"{i}. {contact.get_display_name()} - {contact.phone or 'No phone'}\n"
-                response += "\nPlease be more specific with the contact name."
+                    contact_info = f"{i}. {contact.get_display_name()}"
+                    if contact.phone:
+                        contact_info += f", phone {contact.phone}"
+                    contact_list.append(contact_info)
+                response += ". ".join(contact_list)
+                response += ". Please be more specific with the contact name."
                 return response
             
             # Get the single contact
@@ -258,68 +274,72 @@ class ContactTools:
             
             if info_type in ["phone", "phone number", "number", "call"]:
                 if contact.phone and contact.mobile_phone:
-                    return f"📞 {contact_name_display}'s phone numbers:\n• Primary: {contact.phone}\n• Mobile: {contact.mobile_phone}"
+                    return f"{contact_name_display} has primary phone {contact.phone} and mobile phone {contact.mobile_phone}"
                 elif contact.phone:
-                    return f"📞 {contact_name_display}'s phone number: {contact.phone}"
+                    return f"{contact_name_display}'s phone number is {contact.phone}"
                 elif contact.mobile_phone:
-                    return f"📱 {contact_name_display}'s mobile number: {contact.mobile_phone}"
+                    return f"{contact_name_display}'s mobile number is {contact.mobile_phone}"
                 else:
-                    return f"❌ {contact_name_display} doesn't have a phone number on file."
+                    return f"{contact_name_display} doesn't have a phone number on file."
             
             elif info_type in ["email", "e-mail", "mail"]:
                 if contact.email:
-                    return f"📧 {contact_name_display}'s email: {contact.email}"
+                    return f"{contact_name_display}'s email is {contact.email}"
                 else:
-                    return f"❌ {contact_name_display} doesn't have an email on file."
+                    return f"{contact_name_display} doesn't have an email on file."
             
             elif info_type in ["address", "location", "where"]:
                 if contact.address:
-                    return f"📍 {contact_name_display}'s address: {contact.address.street_address}, {contact.address.city}, {contact.address.state} {contact.address.postal_code}"
+                    return f"{contact_name_display}'s address is {contact.address.street_address}, {contact.address.city}, {contact.address.state} {contact.address.postal_code}"
                 else:
-                    return f"❌ {contact_name_display} doesn't have an address on file."
+                    return f"{contact_name_display} doesn't have an address on file."
             
             elif info_type in ["company", "business", "work"]:
                 if contact.company_name:
-                    company_info = f"🏢 {contact_name_display} works at: {contact.company_name}"
+                    company_info = f"{contact_name_display} works at {contact.company_name}"
                     if contact.job_title:
                         company_info += f" as {contact.job_title}"
                     return company_info
                 else:
-                    return f"❌ {contact_name_display} doesn't have company information on file."
+                    return f"{contact_name_display} doesn't have company information on file."
             
             elif info_type in ["notes", "note", "comments"]:
                 if contact.notes:
-                    return f"📝 Notes for {contact_name_display}: {contact.notes}"
+                    return f"Notes for {contact_name_display}: {contact.notes}"
                 else:
-                    return f"❌ No notes on file for {contact_name_display}."
+                    return f"No notes on file for {contact_name_display}."
             
             # Default: return comprehensive information
             else:
-                response = f"""
-📋 Complete Information for {contact_name_display}:
-
-📞 Phone: {contact.phone or 'Not provided'}
-📱 Mobile: {contact.mobile_phone or 'Not provided'}
-📧 Email: {contact.email or 'Not provided'}
-🏢 Company: {contact.company_name or 'Not provided'}
-💼 Job Title: {contact.job_title or 'Not provided'}
-🏷️ Type: {contact.get_type_display()}
-⭐ Priority: {contact.get_priority_display() if hasattr(contact, 'get_priority_display') else 'Not set'}
-📊 Status: {contact.get_status_display() if hasattr(contact, 'get_status_display') else 'Active'}
-📝 Notes: {contact.notes or 'No notes'}
-"""
+                response = f"Complete information for {contact_name_display}: "
+                info_parts = []
                 
+                if contact.phone:
+                    info_parts.append(f"phone {contact.phone}")
+                if contact.mobile_phone and contact.mobile_phone != contact.phone:
+                    info_parts.append(f"mobile {contact.mobile_phone}")
+                if contact.email:
+                    info_parts.append(f"email {contact.email}")
+                if contact.company_name:
+                    company_part = f"works at {contact.company_name}"
+                    if contact.job_title:
+                        company_part += f" as {contact.job_title}"
+                    info_parts.append(company_part)
                 if contact.address:
-                    response += f"📍 Address: {contact.address.street_address}, {contact.address.city}, {contact.address.state} {contact.address.postal_code}\n"
+                    info_parts.append(f"address is {contact.address.street_address}, {contact.address.city}, {contact.address.state} {contact.address.postal_code}")
                 
-                if hasattr(contact, 'tags') and contact.tags:
-                    response += f"🏷️ Tags: {', '.join(contact.tags)}\n"
+                contact_type = contact.get_type_display() if hasattr(contact, 'get_type_display') else "customer"
+                info_parts.append(f"contact type is {contact_type}")
+                
+                if contact.notes:
+                    info_parts.append(f"notes: {contact.notes}")
                 
                 if hasattr(contact, 'last_contacted') and contact.last_contacted:
-                    response += f"📅 Last Contacted: {contact.last_contacted.strftime('%B %d, %Y')}\n"
+                    info_parts.append(f"last contacted on {contact.last_contacted.strftime('%B %d, %Y')}")
                 
-                return response.strip()
+                response += ", ".join(info_parts)
+                return response
                 
         except Exception as e:
             logger.error(f"❌ Error getting contact info: {e}")
-            return f"❌ Error getting contact info: {str(e)}" 
+            return f"Error getting contact info: {str(e)}" 

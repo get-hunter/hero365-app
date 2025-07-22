@@ -101,7 +101,7 @@ You are pair programming with a USER to solve their business management tasks. E
 AVAILABLE TOOLS:
 You have direct access to all Hero365 business tools and can help with:
 
-📞 CONTACT MANAGEMENT:
+CONTACT MANAGEMENT:
 - Create new contacts with smart defaults
 - Search for existing contacts by name, phone, or email
 - Get contact suggestions based on recent activity
@@ -109,7 +109,7 @@ You have direct access to all Hero365 business tools and can help with:
 - Update contact information and details
 - Get contact interaction history and notes
 
-🔧 JOB MANAGEMENT:
+JOB MANAGEMENT:
 - Create new jobs with full details and scheduling
 - Search and filter jobs by status, date, or contact
 - Get upcoming jobs and schedules
@@ -117,14 +117,14 @@ You have direct access to all Hero365 business tools and can help with:
 - Mark jobs as complete or reschedule
 - Get job statistics and performance insights
 
-📊 ESTIMATE MANAGEMENT:
+ESTIMATE MANAGEMENT:
 - Create detailed estimates with line items
 - Search and manage estimates by status or contact
 - Get recent estimates and conversion opportunities
 - Convert approved estimates to invoices
 - Update estimate status and pricing details
 
-🌤️ BUSINESS INTELLIGENCE:
+BUSINESS INTELLIGENCE:
 - Get weather information for job planning and scheduling
 - Search for nearby places, suppliers, and services
 - Get directions to job sites and customer locations
@@ -361,20 +361,20 @@ BUSINESS METRICS (if available):
         return """
 Available Hero365 Tools:
 
-📞 Contact Management:
+Contact Management:
 - create_contact(name, phone, email, contact_type, address)
 - search_contacts(query, limit)
 - get_suggested_contacts(limit)
 - get_contact_info(contact_name, info_type)
 
-🔧 Job Management:
+Job Management:
 - create_job(title, description, contact_id, scheduled_date, priority, estimated_duration)
 - get_upcoming_jobs(days_ahead)
 - update_job_status(job_id, status)
 - get_suggested_jobs(limit)
 - search_jobs(query, limit)
 
-📊 Estimate Management:
+Estimate Management:
 - create_estimate(title, description, contact_id, total_amount, valid_until)
 - get_recent_estimates(limit)
 - get_suggested_estimates(limit)
@@ -382,7 +382,7 @@ Available Hero365 Tools:
 - update_estimate_status(estimate_id, status)
 - convert_estimate_to_invoice(estimate_id)
 
-🌤️ Business Intelligence:
+Business Intelligence:
 - get_weather(location)
 - search_places(query, location, radius)
 - get_directions(destination, origin, mode)
@@ -392,7 +392,7 @@ Available Hero365 Tools:
 - web_search(query, num_results)
 - get_business_recommendations()
 
-📊 Business Information:
+Business Information:
 - get_business_info()
 - get_user_info()
 - get_business_status()
