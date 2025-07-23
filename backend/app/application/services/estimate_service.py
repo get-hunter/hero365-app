@@ -453,37 +453,8 @@ class EstimateService:
     
     def format_estimate_for_display(self, estimate: EstimateDTO) -> str:
         """Format estimate for natural language display (helper for voice agent)."""
-        try:
-            display_parts = [
-                f"Estimate {estimate.estimate_number}",
-                f"titled '{estimate.title}'",
-                f"for {estimate.client_display_name}",
-                f"worth ${float(estimate.total_amount):,.2f}",
-                f"with status {estimate.status_display.lower()}"
-            ]
-            
-            return " ".join(display_parts)
-            
-        except Exception as e:
-            logger.warning(f"Error formatting estimate for display: {e}")
-            return f"Estimate {estimate.estimate_number if hasattr(estimate, 'estimate_number') else 'Unknown'}"
+        return estimate.format_for_display()
     
     def get_available_status_transitions(self, current_status: EstimateStatus) -> List[EstimateStatus]:
         """Get available status transitions for current status."""
-        try:
-            transitions = {
-                EstimateStatus.DRAFT: [EstimateStatus.SENT, EstimateStatus.CANCELLED],
-                EstimateStatus.SENT: [EstimateStatus.VIEWED, EstimateStatus.APPROVED, EstimateStatus.REJECTED, EstimateStatus.CANCELLED],
-                EstimateStatus.VIEWED: [EstimateStatus.APPROVED, EstimateStatus.REJECTED, EstimateStatus.CANCELLED],
-                EstimateStatus.APPROVED: [EstimateStatus.CONVERTED, EstimateStatus.CANCELLED],
-                EstimateStatus.REJECTED: [],
-                EstimateStatus.CANCELLED: [],
-                EstimateStatus.CONVERTED: [],
-                EstimateStatus.EXPIRED: [EstimateStatus.SENT, EstimateStatus.CANCELLED]
-            }
-            
-            return transitions.get(current_status, [])
-            
-        except Exception as e:
-            logger.warning(f"Error getting status transitions: {e}")
-            return [] 
+        return EstimateStatus.get_available_transitions(current_status) 

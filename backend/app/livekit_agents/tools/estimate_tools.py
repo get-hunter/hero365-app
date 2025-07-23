@@ -15,13 +15,22 @@ logger = logging.getLogger(__name__)
 
 
 class EstimateTools:
-    """Estimate management tools for the Hero365 agent"""
+    """
+    Estimate management tools for the Hero365 agent.
+    
+    Features context-aware position referencing: when users say "estimate 1", 
+    it refers to position 1 from the most recently shown estimate list 
+    (pending, recent, search results, etc.), not from a different list.
+    """
     
     def __init__(self, session_context: Dict[str, Any], context_intelligence: Optional[Any] = None):
         self.session_context = session_context
         self.context_intelligence = context_intelligence
         self._container = None
         self._estimate_service = None
+        # Conversation context for position-based references
+        self._last_shown_estimates = []  # Cache of last estimates shown to user
+        self._last_list_type = None      # Type of last list shown (pending, recent, search, etc.)
         
     def _get_container(self):
         """Get dependency injection container"""
@@ -72,10 +81,14 @@ class EstimateTools:
     
     async def _resolve_estimate_id(self, estimate_id: str, business_id: uuid.UUID, user_id: str, estimate_service) -> Optional[uuid.UUID]:
         """
-        Intelligently resolve estimate ID from various formats:
+        Intelligently resolve estimate ID from various formats with context awareness:
         - UUID string: "123e4567-e89b-12d3-a456-426614174000" 
         - Estimate number: "EST-001"
-        - Position number: "1", "2", "3" (from recent estimates list)
+        - Position number: "1", "2", "3" - refers to position from most recently shown list
+          (pending estimates, recent estimates, search results, etc.)
+        
+        Context-aware behavior: When user says "estimate 1" after seeing a list,
+        it refers to position 1 from that specific list, not from a different list.
         """
         try:
             # Try parsing as UUID first
@@ -84,8 +97,8 @@ class EstimateTools:
             except ValueError:
                 pass
             
-            # Try as estimate number (EST-001, etc.)
-            if estimate_id.upper().startswith('EST'):
+            # Try as estimate number (EST-001, QUO-001, etc.)
+            if estimate_id.upper().startswith(('EST', 'QUO')):
                 try:
                     # Search for estimate by number
                     result = await estimate_service.search_estimates(
@@ -94,7 +107,7 @@ class EstimateTools:
                         search_term=estimate_id.upper(),
                         limit=1
                     )
-                    if result["estimates"]:
+                    if result.get("estimates"):
                         return result["estimates"][0].id
                 except Exception as e:
                     logger.warning(f"Error searching by estimate number: {e}")
@@ -103,17 +116,14 @@ class EstimateTools:
             try:
                 position = int(estimate_id)
                 if 1 <= position <= 20:  # Reasonable limit
-                    # Get recent estimates to find by position
-                    result = await estimate_service.get_recent_estimates(
-                        business_id=business_id,
-                        user_id=user_id,
-                        days=90,  # Look back 90 days
-                        limit=20
-                    )
-                    
-                    estimates = result["estimates"]
-                    if estimates and len(estimates) >= position:
-                        return estimates[position - 1].id  # Convert 1-based to 0-based
+                    # Use cached estimates from last shown list if available
+                    if self._last_shown_estimates and len(self._last_shown_estimates) >= position:
+                        cached_estimate = self._last_shown_estimates[position - 1]  # Convert 1-based to 0-based
+                        logger.info(f"✅ Using position {position} from cached {self._last_list_type} estimates: {cached_estimate.title}")
+                        return cached_estimate.id
+                    else:
+                        logger.warning(f"❌ Position {position} requested but only {len(self._last_shown_estimates) if self._last_shown_estimates else 0} cached estimates available from {self._last_list_type or 'none'}")
+                        return None
                         
             except ValueError:
                 pass
@@ -123,6 +133,19 @@ class EstimateTools:
         except Exception as e:
             logger.error(f"Error resolving estimate ID '{estimate_id}': {e}")
             return None
+
+    def _clear_estimate_cache(self):
+        """Clear cached estimates when context changes."""
+        self._last_shown_estimates = []
+        self._last_list_type = None
+
+    def _get_estimate_not_found_message(self, estimate_id: str) -> str:
+        """Generate a helpful error message when estimate ID resolution fails."""
+        if estimate_id.isdigit():
+            cache_info = f" (cached: {len(self._last_shown_estimates) if self._last_shown_estimates else 0} {self._last_list_type or 'none'} estimates)"
+            return f"❌ Position {estimate_id} not found{cache_info}. Try asking for a list of estimates first, then use the position number from that list."
+        else:
+            return f"❌ Could not find estimate '{estimate_id}'. Please check the estimate number (EST-001) or UUID."
 
     @function_tool
     async def create_estimate(
@@ -176,6 +199,9 @@ class EstimateTools:
             if total_amount:
                 response += f" for ${total_amount:,.2f}"
             
+            # Clear cache since list context has changed
+            self._clear_estimate_cache()
+            
             return response
                 
         except Exception as e:
@@ -226,6 +252,10 @@ class EstimateTools:
             
             if estimates:
                 logger.info(f"✅ Found {len(estimates)} estimates")
+                
+                # Cache estimates for position-based references
+                self._last_shown_estimates = estimates
+                self._last_list_type = "recent"
                 
                 response = f"Here are your {len(estimates)} most recent estimates"
                 if days < 365:
@@ -286,6 +316,10 @@ class EstimateTools:
             estimates = result["estimates"]
             
             if estimates:
+                # Cache estimates for position-based references
+                self._last_shown_estimates = estimates
+                self._last_list_type = "pending"
+                
                 response = f"Here are your {len(estimates)} pending estimates: "
                 estimate_list = []
                 
@@ -337,6 +371,10 @@ class EstimateTools:
             estimates = result["estimates"]
             
             if estimates:
+                # Cache estimates for position-based references
+                self._last_shown_estimates = estimates
+                self._last_list_type = "suggestions"
+                
                 response = f"Here are {len(estimates)} draft estimates that need attention: "
                 estimate_list = []
                 for i, estimate in enumerate(estimates, 1):
@@ -388,6 +426,10 @@ class EstimateTools:
             estimates = result["estimates"]
             
             if estimates:
+                # Cache estimates for position-based references
+                self._last_shown_estimates = estimates
+                self._last_list_type = "search"
+                
                 response = f"Found {len(estimates)} estimates matching '{query}': "
                 estimate_list = []
                 for i, estimate in enumerate(estimates, 1):
@@ -429,32 +471,82 @@ class EstimateTools:
             if not estimate_service:
                 return "Estimate service not available"
             
-            # Parse status using domain enum method
+            # Parse target status using domain enum method
             parsed_status = EstimateStatus.parse_from_string(status)
             if not parsed_status:
-                # Get available statuses dynamically from the EstimateStatus enum
                 available_statuses = [s.value for s in EstimateStatus]
                 return f"Invalid status '{status}'. Valid options are: {', '.join(available_statuses)}"
             
             # Smart estimate ID resolution
             actual_estimate_id = await self._resolve_estimate_id(estimate_id, business_id, user_id, estimate_service)
             if not actual_estimate_id:
-                return f"Could not find estimate '{estimate_id}'. Please check the estimate number or try listing estimates first."
+                return self._get_estimate_not_found_message(estimate_id)
             
-            # Update status using service
+            # STEP 1: Get current estimate details first for validation
+            logger.info(f"🔍 Fetching current estimate details for validation...")
+            try:
+                current_estimate = await estimate_service.get_estimate(
+                    estimate_id=actual_estimate_id,
+                    business_id=business_id,
+                    user_id=user_id
+                )
+            except Exception as e:
+                logger.error(f"Failed to fetch estimate details: {e}")
+                return f"Could not fetch estimate details: {str(e)}"
+            
+            # STEP 2: Show current status and validate transition
+            current_status = current_estimate.status
+            logger.info(f"📋 Current status: {current_status.value if hasattr(current_status, 'value') else current_status} → Target status: {parsed_status.value}")
+            
+            # Ensure current_status is an enum (defensive programming)
+            if isinstance(current_status, str):
+                logger.warning(f"⚠️ Current status is string '{current_status}', converting to enum")
+                current_status = EstimateStatus.parse_from_string(current_status) or EstimateStatus.DRAFT
+            
+            # Check if already at target status
+            if current_status == parsed_status:
+                status_display = current_status.value if hasattr(current_status, 'value') else str(current_status)
+                return f"Estimate '{current_estimate.title}' is already in {status_display} status."
+            
+            # Get available transitions
+            available_transitions = estimate_service.get_available_status_transitions(current_status)
+            available_status_names = [s.value for s in available_transitions]
+            
+            # STEP 3: Pre-validate the transition before attempting
+            if parsed_status not in available_transitions:
+                current_status_display = current_status.value if hasattr(current_status, 'value') else str(current_status)
+                if available_status_names:
+                    return (f"❌ Cannot change estimate '{current_estimate.title}' from {current_status_display} to {parsed_status.value}. "
+                           f"Valid transitions from {current_status_display} are: {', '.join(available_status_names)}")
+                else:
+                    return (f"❌ Cannot change estimate '{current_estimate.title}' from {current_status_display} to {parsed_status.value}. "
+                           f"Status '{current_status_display}' is a terminal state with no allowed transitions.")
+            
+            # STEP 4: Attempt the status update
+            logger.info(f"✅ Transition valid. Updating status...")
+            current_status_display = current_status.value if hasattr(current_status, 'value') else str(current_status)
             result = await estimate_service.change_estimate_status(
                 estimate_id=actual_estimate_id,
                 new_status=parsed_status,
                 business_id=business_id,
                 user_id=user_id,
-                reason=f"Status changed via voice agent to {status}"
+                reason=f"Status changed via voice agent from {current_status_display} to {parsed_status.value}"
             )
             
-            return f"Successfully updated estimate '{result.title}' (#{result.estimate_number}) status to {result.status_display.lower()}"
+            # Clear cache since estimate status changed
+            self._clear_estimate_cache()
+            
+            return f"✅ Successfully updated estimate '{result.title}' (#{result.estimate_number}) from {current_status_display} to {result.status_display.lower()}"
                 
         except Exception as e:
             logger.error(f"❌ Error updating estimate status: {e}")
-            return f"Error updating estimate status: {str(e)}"
+            # Provide more specific error feedback
+            if "Cannot change status from" in str(e):
+                return f"❌ Status transition not allowed: {str(e)}"
+            elif "not found" in str(e).lower():
+                return f"❌ Estimate not found: {str(e)}"
+            else:
+                return f"❌ Error updating estimate status: {str(e)}"
 
     @function_tool
     async def send_estimate(self, estimate_id: str, client_email: Optional[str] = None) -> str:
@@ -482,7 +574,7 @@ class EstimateTools:
             # Smart estimate ID resolution
             actual_estimate_id = await self._resolve_estimate_id(estimate_id, business_id, user_id, estimate_service)
             if not actual_estimate_id:
-                return f"Could not find estimate '{estimate_id}'. Please check the estimate number or try listing estimates first."
+                return self._get_estimate_not_found_message(estimate_id)
             
             # Send estimate using service
             result = await estimate_service.send_estimate(
@@ -491,6 +583,9 @@ class EstimateTools:
                 user_id=user_id,
                 client_email=client_email
             )
+            
+            # Clear cache since estimate status changed to sent
+            self._clear_estimate_cache()
             
             return f"Successfully sent estimate '{result.title}' (#{result.estimate_number}) to {result.client_display_name}"
                 
@@ -564,7 +659,7 @@ class EstimateTools:
             # Smart estimate ID resolution
             actual_estimate_id = await self._resolve_estimate_id(estimate_id, business_id, user_id, estimate_service)
             if not actual_estimate_id:
-                return f"Could not find estimate '{estimate_id}'. Please check the estimate number or try listing estimates first."
+                return self._get_estimate_not_found_message(estimate_id)
             
             # Get the estimate first to check status
             estimate = await estimate_service.get_estimate(
@@ -586,8 +681,73 @@ class EstimateTools:
                 reason="Converted to invoice via voice agent"
             )
             
+            # Clear cache since estimate status changed to converted
+            self._clear_estimate_cache()
+            
             return f"Estimate '{result.title}' (#{result.estimate_number}) has been marked as converted to invoice. Invoice creation functionality will be implemented in the next phase."
                 
         except Exception as e:
             logger.error(f"❌ Error converting estimate to invoice: {e}")
             return f"Error converting estimate to invoice: {str(e)}" 
+
+    @function_tool
+    async def get_estimate_details(self, estimate_id: str) -> str:
+        """Get detailed information about a specific estimate including current status
+        
+        Args:
+            estimate_id: Can be a UUID, estimate number (EST-001), or position number (1, 2, 3)
+        """
+        try:
+            logger.info(f"📋 Getting details for estimate: {estimate_id}")
+            
+            # Get business context
+            business_id = self._get_business_id()
+            if not business_id:
+                return "Business context not available"
+            
+            user_id = self._get_user_id()
+            
+            # Get estimate service
+            estimate_service = self._get_estimate_service()
+            if not estimate_service:
+                return "Estimate service not available"
+            
+            # Smart estimate ID resolution
+            actual_estimate_id = await self._resolve_estimate_id(estimate_id, business_id, user_id, estimate_service)
+            if not actual_estimate_id:
+                return self._get_estimate_not_found_message(estimate_id)
+            
+            # Get estimate details
+            estimate = await estimate_service.get_estimate(
+                estimate_id=actual_estimate_id,
+                business_id=business_id,
+                user_id=user_id
+            )
+            
+            # Get available transitions for current status
+            available_transitions = estimate_service.get_available_status_transitions(estimate.status)
+            available_status_names = [status.value for status in available_transitions]
+            
+            response_parts = [
+                f"Estimate Details:",
+                f"• Number: {estimate.estimate_number}",
+                f"• Title: {estimate.title}",
+                f"• Client: {estimate.client_display_name}",
+                f"• Current Status: {estimate.status_display}",
+                f"• Total Amount: ${float(estimate.total_amount):,.2f}",
+                f"• Created: {estimate.created_date.strftime('%Y-%m-%d')}",
+            ]
+            
+            if available_status_names:
+                response_parts.append(f"• Available Status Changes: {', '.join(available_status_names)}")
+            else:
+                response_parts.append("• Available Status Changes: None (terminal status)")
+            
+            if hasattr(estimate, 'conversion_date') and estimate.conversion_date:
+                response_parts.append(f"• Converted Date: {estimate.conversion_date.strftime('%Y-%m-%d')}")
+                
+            return " ".join(response_parts)
+                
+        except Exception as e:
+            logger.error(f"❌ Error getting estimate details: {e}")
+            return f"Error getting estimate details: {str(e)}" 

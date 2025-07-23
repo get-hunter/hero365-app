@@ -565,22 +565,22 @@ class SupabaseEstimateRepository(EstimateRepository):
             "title": estimate.title,
             "description": estimate.description,
             "po_number": estimate.po_number,
-            "status": estimate.status.value,
+            "status": estimate.status.value if hasattr(estimate.status, 'value') else str(estimate.status),
             "contact_id": str(estimate.contact_id) if estimate.contact_id else None,
             "project_id": str(estimate.project_id) if estimate.project_id else None,
             "job_id": str(estimate.job_id) if estimate.job_id else None,
             "template_id": str(estimate.template_id) if estimate.template_id else None,
             "assigned_to": estimate.created_by,  # Map to assigned_to field
-            "currency": estimate.currency.value,
+            "currency": estimate.currency.value if hasattr(estimate.currency, 'value') else str(estimate.currency),
             "subtotal": float(estimate.get_line_items_subtotal()),
-            "discount_type": estimate.overall_discount_type.value,
+            "discount_type": estimate.overall_discount_type.value if hasattr(estimate.overall_discount_type, 'value') else str(estimate.overall_discount_type),
             "discount_value": float(estimate.overall_discount_value),
             "discount_amount": float(estimate.get_overall_discount_amount()),
-            "tax_type": estimate.tax_type.value,
+            "tax_type": estimate.tax_type.value if hasattr(estimate.tax_type, 'value') else str(estimate.tax_type),
             "tax_rate": float(estimate.tax_rate),
             "tax_amount": float(estimate.get_tax_amount()),
             "total_amount": float(estimate.get_total_amount()),
-            "advance_payment_type": estimate.advance_payment.type.value,
+            "advance_payment_type": estimate.advance_payment.type.value if hasattr(estimate.advance_payment.type, 'value') else str(estimate.advance_payment.type),
             "advance_payment_value": float(estimate.advance_payment.value),
             "advance_payment_amount": float(estimate.advance_payment.get_required_amount(estimate.get_total_amount())),
             "advance_payment_due_date": estimate.advance_payment.due_date.isoformat() if estimate.advance_payment.due_date else None,
@@ -609,7 +609,7 @@ class SupabaseEstimateRepository(EstimateRepository):
             "quantity": float(line_item.quantity),
             "unit": line_item.unit or "each",
             "unit_price": float(line_item.unit_price),
-            "discount_type": line_item.discount_type.value,
+            "discount_type": line_item.discount_type.value if hasattr(line_item.discount_type, 'value') else str(line_item.discount_type),
             "discount_value": float(line_item.discount_value),
             "discount_amount": float(line_item.get_discount_amount()),
             "tax_type": "percentage",  # Map tax_rate to tax_type
@@ -624,7 +624,7 @@ class SupabaseEstimateRepository(EstimateRepository):
         """Convert AdvancePayment to dictionary."""
         return {
             "required": advance_payment.required,
-            "type": advance_payment.type.value,
+            "type": advance_payment.type.value if hasattr(advance_payment.type, 'value') else str(advance_payment.type),
             "value": float(advance_payment.value),
             "due_date": advance_payment.due_date.isoformat() if advance_payment.due_date else None,
             "collected_amount": float(advance_payment.collected_amount),
@@ -652,7 +652,7 @@ class SupabaseEstimateRepository(EstimateRepository):
             "delivered_date": email_tracking.delivered_date.isoformat() if email_tracking.delivered_date else None,
             "opened_date": email_tracking.opened_date.isoformat() if email_tracking.opened_date else None,
             "clicked_date": email_tracking.clicked_date.isoformat() if email_tracking.clicked_date else None,
-            "status": email_tracking.status.value,
+            "status": email_tracking.status.value if hasattr(email_tracking.status, 'value') else str(email_tracking.status),
             "recipient_email": email_tracking.recipient_email,
             "subject": email_tracking.subject,
             "message_id": email_tracking.message_id,
@@ -664,8 +664,8 @@ class SupabaseEstimateRepository(EstimateRepository):
         """Convert StatusHistoryEntry to dictionary."""
         return {
             "id": str(status_entry.id),
-            "from_status": status_entry.from_status.value if status_entry.from_status else None,
-            "to_status": status_entry.to_status.value,
+            "from_status": status_entry.from_status.value if status_entry.from_status and hasattr(status_entry.from_status, 'value') else str(status_entry.from_status) if status_entry.from_status else None,
+            "to_status": status_entry.to_status.value if hasattr(status_entry.to_status, 'value') else str(status_entry.to_status),
             "timestamp": status_entry.timestamp.isoformat(),
             "changed_by": status_entry.changed_by,
             "reason": status_entry.reason,
@@ -1097,7 +1097,6 @@ class SupabaseEstimateRepository(EstimateRepository):
                     query = query.or_(f"title.ilike.%{value}%,description.ilike.%{value}%,client_name.ilike.%{value}%,estimate_number.ilike.%{value}%")
                 elif field == "tags":
                     if value:
-                        # Search for any tag in the list
                         for tag in value:
                             query = query.contains("tags", [tag])
             

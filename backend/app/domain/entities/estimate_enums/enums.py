@@ -6,7 +6,7 @@ document types, and communication tracking.
 """
 
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 
 
 class EstimateStatus(str, Enum):
@@ -52,6 +52,8 @@ class EstimateStatus(str, Enum):
             EstimateStatus.CANCELLED
             >>> EstimateStatus.parse_from_string("pending")  # alias
             EstimateStatus.SENT
+            >>> EstimateStatus.parse_from_string("EstimateStatus.CONVERTED")  # malformed
+            EstimateStatus.CONVERTED
         """
         if not status_string:
             return None
@@ -59,6 +61,11 @@ class EstimateStatus(str, Enum):
         try:
             # Normalize the input
             normalized = status_string.lower().strip()
+            
+            # Handle malformed enum string representations (e.g., "EstimateStatus.CONVERTED")
+            if normalized.startswith('estimatestatus.'):
+                # Extract just the enum value part
+                normalized = normalized.replace('estimatestatus.', '')
             
             # Direct mapping with aliases and common typos
             status_mapping = {
@@ -84,6 +91,36 @@ class EstimateStatus(str, Enum):
             
         except Exception:
             return None
+
+    @classmethod
+    def get_available_transitions(cls, current_status: 'EstimateStatus') -> List['EstimateStatus']:
+        """
+        Get available status transitions from the current status.
+        
+        This defines the core business rules for estimate status transitions.
+        
+        Args:
+            current_status: The current status to get transitions from
+            
+        Returns:
+            List of valid EstimateStatus values that can be transitioned to
+        """
+        transitions = {
+            cls.DRAFT: [cls.SENT, cls.CANCELLED],
+            cls.SENT: [cls.VIEWED, cls.APPROVED, cls.REJECTED, cls.CANCELLED, cls.EXPIRED],
+            cls.VIEWED: [cls.APPROVED, cls.REJECTED, cls.CANCELLED, cls.EXPIRED],
+            cls.APPROVED: [cls.CONVERTED, cls.CANCELLED],
+            cls.REJECTED: [],  # Terminal state
+            cls.CANCELLED: [],  # Terminal state
+            cls.CONVERTED: [],  # Terminal state
+            cls.EXPIRED: [cls.SENT, cls.CANCELLED]
+        }
+        
+        return transitions.get(current_status, [])
+    
+    def get_available_transitions_from_this(self) -> List['EstimateStatus']:
+        """Get available transitions from this status instance."""
+        return self.get_available_transitions(self)
 
 
 class DocumentType(str, Enum):

@@ -315,6 +315,28 @@ class EstimateDTO(BaseModel):
     tags: List[str] = Field(default_factory=list)
     created_by: Optional[str] = None
 
+    def format_for_display(self) -> str:
+        """
+        Format estimate for natural language display (helper for voice agents).
+        
+        Returns:
+            Human-readable string representation of the estimate
+        """
+        try:
+            display_parts = [
+                f"Estimate {self.estimate_number}",
+                f"titled '{self.title}'",
+                f"for {self.client_display_name}",
+                f"worth ${float(self.total_amount):,.2f}",
+                f"with status {self.status_display.lower()}"
+            ]
+            
+            return " ".join(display_parts)
+            
+        except Exception:
+            # Fallback for any missing attributes
+            return f"Estimate {getattr(self, 'estimate_number', 'Unknown')}"
+
     @classmethod
     def from_entity(cls, estimate: Estimate) -> "EstimateDTO":
         """Create DTO from domain entity."""

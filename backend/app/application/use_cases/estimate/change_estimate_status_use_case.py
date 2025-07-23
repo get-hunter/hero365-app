@@ -349,25 +349,21 @@ class ChangeEstimateStatusUseCase:
             # Update the estimate's status to the proper enum
             estimate.status = current_status
         
-        # Define allowed transitions
-        allowed_transitions = {
-            EstimateStatus.DRAFT: [EstimateStatus.SENT, EstimateStatus.CANCELLED],
-            EstimateStatus.SENT: [EstimateStatus.VIEWED, EstimateStatus.APPROVED, EstimateStatus.REJECTED, EstimateStatus.CANCELLED, EstimateStatus.EXPIRED],
-            EstimateStatus.VIEWED: [EstimateStatus.APPROVED, EstimateStatus.REJECTED, EstimateStatus.CANCELLED, EstimateStatus.EXPIRED],
-            EstimateStatus.APPROVED: [EstimateStatus.CONVERTED, EstimateStatus.CANCELLED],
-            EstimateStatus.REJECTED: [],
-            EstimateStatus.CANCELLED: [],
-            EstimateStatus.CONVERTED: [],
-            EstimateStatus.EXPIRED: [EstimateStatus.SENT, EstimateStatus.CANCELLED]
-        }
+        # Get allowed transitions from domain logic
+        allowed_transitions = EstimateStatus.get_available_transitions(current_status)
         
-        if current_status not in allowed_transitions:
-            raise BusinessRuleViolationError(f"Invalid current status: {current_status.value}")
-        
-        if new_status not in allowed_transitions[current_status]:
-            raise BusinessRuleViolationError(
-                f"Cannot change status from {current_status.value} to {new_status.value}"
-            )
+        if new_status not in allowed_transitions:
+            allowed_status_names = [status.value for status in allowed_transitions]
+            if allowed_status_names:
+                raise BusinessRuleViolationError(
+                    f"Cannot change status from {current_status.value} to {new_status.value}. "
+                    f"Valid transitions from {current_status.value} are: {', '.join(allowed_status_names)}"
+                )
+            else:
+                raise BusinessRuleViolationError(
+                    f"Cannot change status from {current_status.value} to {new_status.value}. "
+                    f"Status '{current_status.value}' is a terminal state with no allowed transitions."
+                )
     
     async def _apply_status_change(
         self,
