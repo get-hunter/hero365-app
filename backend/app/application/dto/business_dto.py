@@ -5,17 +5,16 @@ DTOs for business-related data transfer operations.
 """
 
 import uuid
-from dataclasses import dataclass
 from typing import Optional, List
 from datetime import datetime
+from pydantic import BaseModel, Field
 
 from ...domain.entities.business import CompanySize, ReferralSource
 from ...domain.entities.business_membership import BusinessRole, BusinessMembership
 from ...domain.entities.business_invitation import InvitationStatus
 
 
-@dataclass
-class BusinessCreateDTO:
+class BusinessCreateDTO(BaseModel):
     """DTO for creating a new business."""
     name: str
     industry: str
@@ -27,20 +26,13 @@ class BusinessCreateDTO:
     business_address: Optional[str] = None
     website: Optional[str] = None
     business_email: Optional[str] = None
-    selected_features: List[str] = None
-    primary_goals: List[str] = None
+    selected_features: List[str] = Field(default_factory=list)
+    primary_goals: List[str] = Field(default_factory=list)
     referral_source: Optional[ReferralSource] = None
     timezone: Optional[str] = None
-    
-    def __post_init__(self):
-        if self.selected_features is None:
-            self.selected_features = []
-        if self.primary_goals is None:
-            self.primary_goals = []
 
 
-@dataclass
-class BusinessUpdateDTO:
+class BusinessUpdateDTO(BaseModel):
     """DTO for updating business information."""
     business_id: uuid.UUID
     name: Optional[str] = None
@@ -64,8 +56,7 @@ class BusinessUpdateDTO:
     enabled_features: Optional[List[str]] = None
 
 
-@dataclass
-class BusinessResponseDTO:
+class BusinessResponseDTO(BaseModel):
     """DTO for business response data."""
     id: uuid.UUID
     name: str
@@ -99,8 +90,7 @@ class BusinessResponseDTO:
     last_modified: Optional[datetime]
 
 
-@dataclass
-class BusinessSummaryDTO:
+class BusinessSummaryDTO(BaseModel):
     """DTO for business summary information."""
     id: uuid.UUID
     name: str
@@ -112,8 +102,7 @@ class BusinessSummaryDTO:
     onboarding_completed: bool = False
 
 
-@dataclass
-class BusinessSearchDTO:
+class BusinessSearchDTO(BaseModel):
     """DTO for business search parameters."""
     query: Optional[str] = None
     industry: Optional[str] = None
@@ -124,8 +113,7 @@ class BusinessSearchDTO:
     limit: int = 100
 
 
-@dataclass
-class BusinessMembershipCreateDTO:
+class BusinessMembershipCreateDTO(BaseModel):
     """DTO for creating a new business membership."""
     business_id: uuid.UUID
     user_id: str
@@ -137,8 +125,7 @@ class BusinessMembershipCreateDTO:
     job_title: Optional[str] = None
 
 
-@dataclass
-class BusinessMembershipUpdateDTO:
+class BusinessMembershipUpdateDTO(BaseModel):
     """DTO for updating business membership."""
     membership_id: uuid.UUID
     role: Optional[BusinessRole] = None
@@ -148,8 +135,7 @@ class BusinessMembershipUpdateDTO:
     is_active: Optional[bool] = None
 
 
-@dataclass
-class BusinessMembershipResponseDTO:
+class BusinessMembershipResponseDTO(BaseModel):
     """DTO for business membership response data."""
     id: uuid.UUID
     business_id: uuid.UUID
@@ -165,8 +151,7 @@ class BusinessMembershipResponseDTO:
     role_display: str
 
 
-@dataclass
-class BusinessInvitationCreateDTO:
+class BusinessInvitationCreateDTO(BaseModel):
     """DTO for creating a new business invitation."""
     business_id: uuid.UUID
     business_name: str
@@ -181,8 +166,7 @@ class BusinessInvitationCreateDTO:
     expiry_days: int = 7
 
 
-@dataclass
-class BusinessInvitationResponseDTO:
+class BusinessInvitationResponseDTO(BaseModel):
     """DTO for business invitation response data."""
     id: uuid.UUID
     business_id: uuid.UUID
@@ -204,21 +188,18 @@ class BusinessInvitationResponseDTO:
     expiry_summary: str
 
 
-@dataclass
-class BusinessInvitationAcceptDTO:
+class BusinessInvitationAcceptDTO(BaseModel):
     """DTO for accepting a business invitation."""
     invitation_id: uuid.UUID
     user_id: str
 
 
-@dataclass
-class BusinessInvitationDeclineDTO:
+class BusinessInvitationDeclineDTO(BaseModel):
     """DTO for declining a business invitation."""
     invitation_id: uuid.UUID
 
 
-@dataclass
-class UserBusinessSummaryDTO:
+class UserBusinessSummaryDTO(BaseModel):
     """DTO for user's business summary."""
     business: BusinessSummaryDTO
     membership: BusinessMembershipResponseDTO
@@ -226,8 +207,7 @@ class UserBusinessSummaryDTO:
     pending_invitations_count: Optional[int] = None
 
 
-@dataclass
-class BusinessDetailResponseDTO:
+class BusinessDetailResponseDTO(BaseModel):
     """DTO for detailed business information including team members."""
     business: BusinessResponseDTO
     user_membership: BusinessMembershipResponseDTO
@@ -237,8 +217,7 @@ class BusinessDetailResponseDTO:
     owner_membership: BusinessMembershipResponseDTO
 
 
-@dataclass
-class BusinessOnboardingUpdateDTO:
+class BusinessOnboardingUpdateDTO(BaseModel):
     """DTO for updating business onboarding status."""
     business_id: uuid.UUID
     selected_features: Optional[List[str]] = None
@@ -246,15 +225,13 @@ class BusinessOnboardingUpdateDTO:
     complete_onboarding: bool = False
 
 
-@dataclass
-class BusinessTeamInviteDTO:
+class BusinessTeamInviteDTO(BaseModel):
     """DTO for inviting team members with bulk support."""
     business_id: uuid.UUID
     invitations: List[BusinessInvitationCreateDTO]
 
 
-@dataclass
-class BusinessStatsDTO:
+class BusinessStatsDTO(BaseModel):
     """DTO for business statistics."""
     total_businesses: int
     active_businesses: int
@@ -264,8 +241,7 @@ class BusinessStatsDTO:
     expired_invitations: int
 
 
-@dataclass
-class BusinessPermissionCheckDTO:
+class BusinessPermissionCheckDTO(BaseModel):
     """DTO for checking business permissions."""
     business_id: uuid.UUID
     user_id: str

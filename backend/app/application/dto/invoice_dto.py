@@ -8,23 +8,22 @@ import uuid
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 from decimal import Decimal
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 
 from app.domain.value_objects.address import Address
 
 
-@dataclass
-class InvoiceLineItemDTO:
+class InvoiceLineItemDTO(BaseModel):
     """DTO for invoice line items."""
     id: Optional[uuid.UUID] = None
-    description: str = ""
-    quantity: Decimal = Decimal('1')
-    unit_price: Decimal = Decimal('0')
+    description: str = Field(default="", min_length=0)
+    quantity: Decimal = Field(default=Decimal('1'), gt=0)
+    unit_price: Decimal = Field(default=Decimal('0'), ge=0)
     unit: Optional[str] = None
     category: Optional[str] = None
-    discount_type: str = "none"
-    discount_value: Decimal = Decimal('0')
-    tax_rate: Decimal = Decimal('0')
+    discount_type: str = Field(default="none", min_length=1)
+    discount_value: Decimal = Field(default=Decimal('0'), ge=0)
+    tax_rate: Decimal = Field(default=Decimal('0'), ge=0)
     notes: Optional[str] = None
     
     # Calculated fields
@@ -54,19 +53,18 @@ class InvoiceLineItemDTO:
         )
 
 
-@dataclass
-class PaymentDTO:
+class PaymentDTO(BaseModel):
     """DTO for payment entities."""
     id: uuid.UUID
-    amount: Decimal
+    amount: Decimal = Field(gt=0)
     payment_date: datetime
-    payment_method: str
-    status: str
+    payment_method: str = Field(min_length=1)
+    status: str = Field(min_length=1)
     reference: Optional[str] = None
     transaction_id: Optional[str] = None
     notes: Optional[str] = None
     processed_by: Optional[str] = None
-    refunded_amount: Decimal = Decimal('0')
+    refunded_amount: Decimal = Field(default=Decimal('0'), ge=0)
     refund_date: Optional[datetime] = None
     refund_reason: Optional[str] = None
 
@@ -89,40 +87,39 @@ class PaymentDTO:
         )
 
 
-@dataclass
-class InvoiceDTO:
+class InvoiceDTO(BaseModel):
     """Main DTO for invoice entities."""
     id: uuid.UUID
     business_id: uuid.UUID
-    invoice_number: str
-    status: str
+    invoice_number: str = Field(min_length=1)
+    status: str = Field(min_length=1)
     client_id: Optional[uuid.UUID] = None
     client_name: Optional[str] = None
     client_email: Optional[str] = None
     client_phone: Optional[str] = None
     client_address: Optional[Address] = None
-    title: str = ""
+    title: str = Field(default="", min_length=0)
     description: Optional[str] = None
-    line_items: List[InvoiceLineItemDTO] = None
-    currency: str = "USD"
-    tax_rate: Decimal = Decimal('0')
-    tax_type: str = "percentage"
-    overall_discount_type: str = "none"
-    overall_discount_value: Decimal = Decimal('0')
-    payments: List[PaymentDTO] = None
+    line_items: List[InvoiceLineItemDTO] = Field(default_factory=list)
+    currency: str = Field(default="USD", min_length=1)
+    tax_rate: Decimal = Field(default=Decimal('0'), ge=0)
+    tax_type: str = Field(default="percentage", min_length=1)
+    overall_discount_type: str = Field(default="none", min_length=1)
+    overall_discount_value: Decimal = Field(default=Decimal('0'), ge=0)
+    payments: List[PaymentDTO] = Field(default_factory=list)
     template_id: Optional[uuid.UUID] = None
-    template_data: Dict[str, Any] = None
+    template_data: Dict[str, Any] = Field(default_factory=dict)
     estimate_id: Optional[uuid.UUID] = None
     project_id: Optional[uuid.UUID] = None
     job_id: Optional[uuid.UUID] = None
     contact_id: Optional[uuid.UUID] = None
-    tags: List[str] = None
-    custom_fields: Dict[str, Any] = None
+    tags: List[str] = Field(default_factory=list)
+    custom_fields: Dict[str, Any] = Field(default_factory=dict)
     internal_notes: Optional[str] = None
     po_number: Optional[str] = None
     created_by: Optional[str] = None
-    created_date: datetime = None
-    last_modified: datetime = None
+    created_date: Optional[datetime] = None
+    last_modified: Optional[datetime] = None
     sent_date: Optional[datetime] = None
     viewed_date: Optional[datetime] = None
     issue_date: Optional[date] = None
@@ -135,18 +132,6 @@ class InvoiceDTO:
     balance_due: Optional[Decimal] = None
     is_paid: Optional[bool] = None
     is_overdue: Optional[bool] = None
-
-    def __post_init__(self):
-        if self.line_items is None:
-            self.line_items = []
-        if self.payments is None:
-            self.payments = []
-        if self.template_data is None:
-            self.template_data = {}
-        if self.tags is None:
-            self.tags = []
-        if self.custom_fields is None:
-            self.custom_fields = {}
 
     @classmethod
     def from_entity(cls, invoice) -> 'InvoiceDTO':
@@ -196,11 +181,10 @@ class InvoiceDTO:
         )
 
 
-@dataclass
-class CreateInvoiceDTO:
+class CreateInvoiceDTO(BaseModel):
     """DTO for creating new invoices."""
     contact_id: uuid.UUID
-    title: str
+    title: str = Field(min_length=1)
     description: Optional[str] = None
     line_items: List[dict] = None
     currency: Optional[str] = "USD"
@@ -239,8 +223,7 @@ class CreateInvoiceDTO:
             self.custom_fields = {}
 
 
-@dataclass
-class CreateInvoiceFromEstimateDTO:
+class CreateInvoiceFromEstimateDTO(BaseModel):
     """DTO for creating invoices from estimates."""
     business_id: uuid.UUID
     estimate_id: uuid.UUID
@@ -262,8 +245,7 @@ class CreateInvoiceFromEstimateDTO:
     created_by: Optional[str] = None
 
 
-@dataclass
-class UpdateInvoiceDTO:
+class UpdateInvoiceDTO(BaseModel):
     """DTO for updating existing invoices."""
     invoice_id: uuid.UUID
     business_id: uuid.UUID
@@ -290,19 +272,17 @@ class UpdateInvoiceDTO:
     updated_by: Optional[str] = None
 
 
-@dataclass
-class ProcessPaymentDTO:
+class ProcessPaymentDTO(BaseModel):
     """DTO for processing payments."""
-    amount: float
-    payment_method: str
+    amount: float = Field(gt=0)
+    payment_method: str = Field(min_length=1)
     reference: Optional[str] = None
     transaction_id: Optional[str] = None
     notes: Optional[str] = None
     payment_date: Optional[datetime] = None
 
 
-@dataclass
-class InvoiceListFilters:
+class InvoiceListFilters(BaseModel):
     """DTO for invoice list filtering."""
     status: Optional[str] = None
     contact_id: Optional[uuid.UUID] = None
@@ -313,8 +293,7 @@ class InvoiceListFilters:
     overdue_only: Optional[bool] = False
 
 
-@dataclass
-class InvoiceSearchCriteria:
+class InvoiceSearchCriteria(BaseModel):
     """DTO for invoice search criteria."""
     search_text: Optional[str] = None
     statuses: Optional[List[str]] = None

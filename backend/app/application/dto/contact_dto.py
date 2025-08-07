@@ -5,16 +5,15 @@ DTOs for contact-related data transfer operations.
 """
 
 import uuid
-from dataclasses import dataclass
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
+from pydantic import BaseModel, Field
 
 from ...domain.entities.contact import ContactType, ContactStatus, ContactSource, ContactPriority, RelationshipStatus, LifecycleStage
 from ...api.schemas.contact_schemas import UserDetailLevel
 
 
-@dataclass
-class ContactAddressDTO:
+class ContactAddressDTO(BaseModel):
     """DTO for contact address information. Compatible with unified Address value object."""
     street_address: Optional[str] = None
     city: Optional[str] = None
@@ -56,16 +55,14 @@ class ContactAddressDTO:
         return result
 
 
-@dataclass
-class UserReferenceBasicDTO:
+class UserReferenceBasicDTO(BaseModel):
     """DTO for basic user reference information."""
     id: str
     display_name: str
     email: Optional[str] = None
 
 
-@dataclass  
-class UserReferenceFullDTO:
+class UserReferenceFullDTO(BaseModel):
     """DTO for full user reference information."""
     id: str
     display_name: str
@@ -77,8 +74,7 @@ class UserReferenceFullDTO:
     is_active: bool = True
 
 
-@dataclass
-class ContactCreateDTO:
+class ContactCreateDTO(BaseModel):
     """DTO for creating a new contact."""
     business_id: uuid.UUID
     contact_type: ContactType
@@ -93,23 +89,16 @@ class ContactCreateDTO:
     address: Optional[ContactAddressDTO] = None
     priority: ContactPriority = ContactPriority.MEDIUM
     source: Optional[ContactSource] = None
-    tags: List[str] = None
+    tags: List[str] = Field(default_factory=list)
     notes: Optional[str] = None
     estimated_value: Optional[float] = None
     currency: str = "USD"
     assigned_to: Optional[str] = None
     created_by: Optional[str] = None
-    custom_fields: Dict[str, Any] = None
-    
-    def __post_init__(self):
-        if self.tags is None:
-            self.tags = []
-        if self.custom_fields is None:
-            self.custom_fields = {}
+    custom_fields: Dict[str, Any] = Field(default_factory=dict)
 
 
-@dataclass
-class ContactUpdateDTO:
+class ContactUpdateDTO(BaseModel):
     """DTO for updating contact information."""
     contact_id: uuid.UUID
     business_id: uuid.UUID
@@ -132,8 +121,7 @@ class ContactUpdateDTO:
     custom_fields: Optional[Dict[str, Any]] = None
 
 
-@dataclass
-class ContactResponseDTO:
+class ContactResponseDTO(BaseModel):
     """DTO for contact response data."""
     id: uuid.UUID
     business_id: uuid.UUID
@@ -174,8 +162,7 @@ class ContactResponseDTO:
     lifecycle_stage_display: str
 
 
-@dataclass
-class ContactListDTO:
+class ContactListDTO(BaseModel):
     """DTO for contact list with pagination."""
     contacts: List[ContactResponseDTO]
     total_count: int
@@ -185,8 +172,7 @@ class ContactListDTO:
     has_previous: bool
 
 
-@dataclass
-class ContactSearchDTO:
+class ContactSearchDTO(BaseModel):
     """DTO for contact search parameters."""
     business_id: uuid.UUID
     search_term: Optional[str] = None
@@ -212,8 +198,7 @@ class ContactSearchDTO:
     include_user_details: UserDetailLevel = UserDetailLevel.BASIC
 
 
-@dataclass
-class ContactBulkUpdateDTO:
+class ContactBulkUpdateDTO(BaseModel):
     """DTO for bulk contact updates."""
     business_id: uuid.UUID
     contact_ids: List[uuid.UUID]
@@ -225,8 +210,7 @@ class ContactBulkUpdateDTO:
     custom_fields: Optional[Dict[str, Any]] = None
 
 
-@dataclass
-class ContactStatisticsDTO:
+class ContactStatisticsDTO(BaseModel):
     """DTO for contact statistics."""
     total_contacts: int
     active_contacts: int
@@ -254,8 +238,7 @@ class ContactStatisticsDTO:
     average_estimated_value: float
 
 
-@dataclass
-class ContactConversionDTO:
+class ContactConversionDTO(BaseModel):
     """DTO for contact type conversion."""
     contact_id: uuid.UUID
     business_id: uuid.UUID
@@ -264,8 +247,7 @@ class ContactConversionDTO:
     notes: Optional[str] = None
 
 
-@dataclass
-class ContactAssignmentDTO:
+class ContactAssignmentDTO(BaseModel):
     """DTO for contact assignment operations."""
     business_id: uuid.UUID
     contact_ids: List[uuid.UUID]
@@ -273,8 +255,7 @@ class ContactAssignmentDTO:
     notes: Optional[str] = None
 
 
-@dataclass
-class ContactTagOperationDTO:
+class ContactTagOperationDTO(BaseModel):
     """DTO for contact tag operations."""
     business_id: uuid.UUID
     contact_ids: List[uuid.UUID]
@@ -282,8 +263,7 @@ class ContactTagOperationDTO:
     operation: str  # "add", "remove", "replace"
 
 
-@dataclass
-class ContactExportDTO:
+class ContactExportDTO(BaseModel):
     """DTO for contact export operations."""
     business_id: uuid.UUID
     format: str  # "csv", "xlsx", "json"
@@ -293,8 +273,7 @@ class ContactExportDTO:
     include_tags: bool = True
 
 
-@dataclass
-class ContactImportDTO:
+class ContactImportDTO(BaseModel):
     """DTO for contact import operations."""
     business_id: uuid.UUID
     file_data: bytes
@@ -307,8 +286,7 @@ class ContactImportDTO:
     created_by: Optional[str] = None
 
 
-@dataclass
-class ContactImportResultDTO:
+class ContactImportResultDTO(BaseModel):
     """DTO for contact import results."""
     total_processed: int
     successful_imports: int

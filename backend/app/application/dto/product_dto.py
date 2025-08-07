@@ -8,15 +8,14 @@ import uuid
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 from decimal import Decimal
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 
 from app.domain.entities.product_enums.enums import ProductType, ProductStatus, CostingMethod
 from app.domain.shared.enums import PricingModel, UnitOfMeasure
 from app.domain.value_objects.address import Address
 
 
-@dataclass
-class ProductPricingTierDTO:
+class ProductPricingTierDTO(BaseModel):
     """DTO for product pricing tiers."""
     min_quantity: Decimal
     max_quantity: Optional[Decimal] = None
@@ -34,8 +33,7 @@ class ProductPricingTierDTO:
         )
 
 
-@dataclass
-class ProductLocationDTO:
+class ProductLocationDTO(BaseModel):
     """DTO for product location inventory."""
     location_id: uuid.UUID
     location_name: str
@@ -59,8 +57,7 @@ class ProductLocationDTO:
         )
 
 
-@dataclass
-class ProductSupplierDTO:
+class ProductSupplierDTO(BaseModel):
     """DTO for product supplier information."""
     supplier_id: uuid.UUID
     supplier_name: str
@@ -87,8 +84,7 @@ class ProductSupplierDTO:
 
 
 # Create Product DTOs
-@dataclass
-class CreateProductDTO:
+class CreateProductDTO(BaseModel):
     """DTO for creating a new product."""
     business_id: uuid.UUID
     sku: str
@@ -129,8 +125,7 @@ class CreateProductDTO:
     brand: Optional[str] = None
 
 
-@dataclass
-class UpdateProductDTO:
+class UpdateProductDTO(BaseModel):
     """DTO for updating an existing product."""
     name: Optional[str] = None
     description: Optional[str] = None
@@ -179,8 +174,7 @@ class UpdateProductDTO:
     notes: Optional[str] = None
 
 
-@dataclass
-class ProductDTO:
+class ProductDTO(BaseModel):
     """DTO for product entity with full information."""
     id: uuid.UUID
     business_id: uuid.UUID
@@ -241,8 +235,8 @@ class ProductDTO:
     
     # Audit fields
     created_by: str = ""
-    created_date: datetime = datetime.utcnow()
-    last_modified: datetime = datetime.utcnow()
+    created_date: datetime = Field(default_factory=datetime.utcnow)
+    last_modified: datetime = Field(default_factory=datetime.utcnow)
 
     @classmethod
     def from_entity(cls, product) -> 'ProductDTO':
@@ -290,8 +284,7 @@ class ProductDTO:
         )
 
 
-@dataclass 
-class ProductSummaryDTO:
+class ProductSummaryDTO(BaseModel):
     """DTO for product summary in lists."""
     id: uuid.UUID
     sku: str
@@ -321,8 +314,7 @@ class ProductSummaryDTO:
         )
 
 
-@dataclass
-class ProductSearchCriteria:
+class ProductSearchCriteria(BaseModel):
     """DTO for product search criteria."""
     query: Optional[str] = None
     category_id: Optional[uuid.UUID] = None
@@ -334,8 +326,7 @@ class ProductSearchCriteria:
     sort_order: str = "asc"
 
 
-@dataclass
-class ProductListDTO:
+class ProductListDTO(BaseModel):
     """DTO for paginated product lists."""
     products: List[ProductSummaryDTO]
     total_count: int
@@ -345,8 +336,7 @@ class ProductListDTO:
 
 
 # Inventory Management DTOs
-@dataclass
-class StockAdjustmentDTO:
+class StockAdjustmentDTO(BaseModel):
     """DTO for stock adjustments."""
     product_id: uuid.UUID
     quantity_change: Decimal
@@ -355,8 +345,7 @@ class StockAdjustmentDTO:
     notes: Optional[str] = None
 
 
-@dataclass
-class StockMovementDTO:
+class StockMovementDTO(BaseModel):
     """DTO for stock movements."""
     id: uuid.UUID
     product_id: uuid.UUID
@@ -398,8 +387,7 @@ class StockMovementDTO:
         )
 
 
-@dataclass
-class InventoryReportDTO:
+class InventoryReportDTO(BaseModel):
     """DTO for inventory reports."""
     report_date: datetime
     total_products: int
@@ -412,8 +400,7 @@ class InventoryReportDTO:
     slow_moving_products: List[ProductSummaryDTO]
 
 
-@dataclass
-class ProductAvailabilityDTO:
+class ProductAvailabilityDTO(BaseModel):
     """DTO for product availability checking."""
     product_id: uuid.UUID
     sku: str
@@ -427,8 +414,7 @@ class ProductAvailabilityDTO:
 
 
 # Mobile-optimized DTOs
-@dataclass
-class MobileProductDTO:
+class MobileProductDTO(BaseModel):
     """DTO optimized for mobile app consumption."""
     id: uuid.UUID
     sku: str
@@ -460,8 +446,7 @@ class MobileProductDTO:
         )
 
 
-@dataclass
-class MobileProductCatalogDTO:
+class MobileProductCatalogDTO(BaseModel):
     """DTO for mobile product catalog."""
     products: List[MobileProductDTO]
     categories: List[Dict[str, Any]]

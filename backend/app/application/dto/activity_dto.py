@@ -7,13 +7,12 @@ Data Transfer Objects for activity and timeline management operations.
 import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 
 from ...domain.entities.activity import ActivityType, ActivityStatus, ActivityPriority
 
 
-@dataclass
-class ActivityCreateDTO:
+class ActivityCreateDTO(BaseModel):
     """DTO for creating a new activity."""
     business_id: uuid.UUID
     contact_id: uuid.UUID
@@ -26,15 +25,14 @@ class ActivityCreateDTO:
     assigned_to: Optional[str] = None
     duration_minutes: Optional[int] = None
     location: Optional[str] = None
-    tags: List[str] = None
-    metadata: Dict[str, Any] = None
+    tags: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
     template_id: Optional[uuid.UUID] = None
-    participants: List[Dict[str, Any]] = None
-    reminders: List[Dict[str, Any]] = None
+    participants: List[Dict[str, Any]] = Field(default_factory=list)
+    reminders: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-@dataclass
-class ActivityUpdateDTO:
+class ActivityUpdateDTO(BaseModel):
     """DTO for updating an existing activity."""
     activity_id: uuid.UUID
     title: Optional[str] = None
@@ -52,8 +50,7 @@ class ActivityUpdateDTO:
     reschedule_reason: Optional[str] = None
 
 
-@dataclass
-class ActivityResponseDTO:
+class ActivityResponseDTO(BaseModel):
     """DTO for activity response data."""
     id: uuid.UUID
     business_id: uuid.UUID
@@ -85,8 +82,7 @@ class ActivityResponseDTO:
     type_display: str
 
 
-@dataclass
-class ActivityListDTO:
+class ActivityListDTO(BaseModel):
     """DTO for paginated activity lists."""
     activities: List[ActivityResponseDTO]
     total_count: int
@@ -94,21 +90,19 @@ class ActivityListDTO:
     limit: int
 
 
-@dataclass
-class ActivityTemplateCreateDTO:
+class ActivityTemplateCreateDTO(BaseModel):
     """DTO for creating activity templates."""
     business_id: uuid.UUID
     name: str
     description: str
     activity_type: ActivityType
     default_duration: Optional[int] = None
-    default_reminders: List[Dict[str, Any]] = None
-    default_participants: List[str] = None
-    custom_fields: Dict[str, Any] = None
+    default_reminders: List[Dict[str, Any]] = Field(default_factory=list)
+    default_participants: List[str] = Field(default_factory=list)
+    custom_fields: Dict[str, Any] = Field(default_factory=dict)
 
 
-@dataclass
-class ActivityTemplateResponseDTO:
+class ActivityTemplateResponseDTO(BaseModel):
     """DTO for activity template response data."""
     template_id: uuid.UUID
     name: str
@@ -123,8 +117,7 @@ class ActivityTemplateResponseDTO:
     created_date: datetime
 
 
-@dataclass
-class TimelineRequestDTO:
+class TimelineRequestDTO(BaseModel):
     """DTO for timeline request parameters."""
     contact_id: uuid.UUID
     business_id: uuid.UUID
@@ -135,8 +128,7 @@ class TimelineRequestDTO:
     limit: int = 50
 
 
-@dataclass
-class TimelineEntryDTO:
+class TimelineEntryDTO(BaseModel):
     """DTO for individual timeline entries."""
     id: str
     type: str
@@ -155,8 +147,7 @@ class TimelineEntryDTO:
     priority_display: str
 
 
-@dataclass
-class TimelineResponseDTO:
+class TimelineResponseDTO(BaseModel):
     """DTO for timeline response data."""
     contact_id: uuid.UUID
     timeline_entries: List[TimelineEntryDTO]
@@ -167,8 +158,7 @@ class TimelineResponseDTO:
     end_date: Optional[datetime]
 
 
-@dataclass
-class ActivityReminderDTO:
+class ActivityReminderDTO(BaseModel):
     """DTO for activity reminders."""
     reminder_id: uuid.UUID
     activity_id: uuid.UUID
@@ -179,8 +169,7 @@ class ActivityReminderDTO:
     message: Optional[str]
 
 
-@dataclass
-class ActivityStatisticsDTO:
+class ActivityStatisticsDTO(BaseModel):
     """DTO for activity statistics."""
     total_activities: int
     pending_activities: int
@@ -195,8 +184,7 @@ class ActivityStatisticsDTO:
     activities_this_month: int
 
 
-@dataclass
-class ContactActivitySummaryDTO:
+class ContactActivitySummaryDTO(BaseModel):
     """DTO for contact activity summary."""
     contact_id: uuid.UUID
     total_activities: int
@@ -208,8 +196,7 @@ class ContactActivitySummaryDTO:
     activity_score: float  # Engagement score based on activity frequency
 
 
-@dataclass
-class ActivityParticipantDTO:
+class ActivityParticipantDTO(BaseModel):
     """DTO for activity participants."""
     user_id: str
     name: str
@@ -217,8 +204,7 @@ class ActivityParticipantDTO:
     is_primary: bool
 
 
-@dataclass
-class ActivitySearchDTO:
+class ActivitySearchDTO(BaseModel):
     """DTO for activity search parameters."""
     business_id: uuid.UUID
     contact_ids: Optional[List[uuid.UUID]] = None
@@ -241,8 +227,7 @@ class ActivitySearchDTO:
     limit: int = 100
 
 
-@dataclass
-class ActivityBulkUpdateDTO:
+class ActivityBulkUpdateDTO(BaseModel):
     """DTO for bulk activity updates."""
     business_id: uuid.UUID
     activity_ids: List[uuid.UUID]
@@ -256,8 +241,7 @@ class ActivityBulkUpdateDTO:
     notes: Optional[str] = None
 
 
-@dataclass
-class ActivityRescheduleDTO:
+class ActivityRescheduleDTO(BaseModel):
     """DTO for rescheduling activities."""
     activity_id: uuid.UUID
     new_scheduled_date: datetime
@@ -265,8 +249,7 @@ class ActivityRescheduleDTO:
     update_reminders: bool = True
 
 
-@dataclass
-class ActivityCompletionDTO:
+class ActivityCompletionDTO(BaseModel):
     """DTO for completing activities."""
     activity_id: uuid.UUID
     completion_notes: Optional[str] = None
@@ -276,8 +259,7 @@ class ActivityCompletionDTO:
     follow_up_date: Optional[datetime] = None
 
 
-@dataclass
-class DashboardActivitiesDTO:
+class DashboardActivitiesDTO(BaseModel):
     """DTO for dashboard activity overview."""
     overdue_activities: List[ActivityResponseDTO]
     upcoming_activities: List[ActivityResponseDTO]
@@ -288,8 +270,7 @@ class DashboardActivitiesDTO:
     completion_rate: float
 
 
-@dataclass
-class CalendarEventDTO:
+class CalendarEventDTO(BaseModel):
     """DTO for calendar integration."""
     activity_id: uuid.UUID
     title: str
@@ -303,8 +284,7 @@ class CalendarEventDTO:
     recurrence_rule: Optional[str] = None
 
 
-@dataclass
-class ActivityNotificationDTO:
+class ActivityNotificationDTO(BaseModel):
     """DTO for activity notifications."""
     notification_id: uuid.UUID
     activity_id: uuid.UUID
@@ -317,8 +297,7 @@ class ActivityNotificationDTO:
     delivery_method: str = "notification"  # "notification", "email", "sms"
 
 
-@dataclass
-class ActivityTemplateUsageDTO:
+class ActivityTemplateUsageDTO(BaseModel):
     """DTO for template usage statistics."""
     template_id: uuid.UUID
     template_name: str

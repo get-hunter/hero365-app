@@ -6,18 +6,17 @@ Used for data transfer between application layers.
 """
 
 import uuid
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
+from pydantic import BaseModel, Field
 
 from ...domain.entities.job_enums.enums import JobType, JobStatus, JobPriority, JobSource
 from ...domain.entities.job import JobTimeTracking, JobCostEstimate
 from ...domain.value_objects.address import Address
 
 
-@dataclass
-class JobAddressDTO:
+class JobAddressDTO(BaseModel):
     """DTO for job address information. Compatible with unified Address value object."""
     street_address: str
     city: str
@@ -65,8 +64,7 @@ class JobAddressDTO:
         )
 
 
-@dataclass
-class JobTimeTrackingDTO:
+class JobTimeTrackingDTO(BaseModel):
     """DTO for job time tracking information."""
     estimated_hours: Optional[Decimal] = None
     actual_hours: Optional[Decimal] = None
@@ -76,8 +74,7 @@ class JobTimeTrackingDTO:
     break_time_minutes: int = 0
 
 
-@dataclass
-class JobCostEstimateDTO:
+class JobCostEstimateDTO(BaseModel):
     """DTO for job cost estimation."""
     labor_cost: Decimal = Decimal("0")
     material_cost: Decimal = Decimal("0")
@@ -88,8 +85,7 @@ class JobCostEstimateDTO:
     discount_amount: Decimal = Decimal("0")
 
 
-@dataclass
-class JobCreateDTO:
+class JobCreateDTO(BaseModel):
     """DTO for creating a new job."""
     business_id: uuid.UUID
     contact_id: Optional[uuid.UUID]
@@ -111,8 +107,7 @@ class JobCreateDTO:
     custom_fields: Optional[Dict[str, Any]] = None
 
 
-@dataclass
-class JobUpdateDTO:
+class JobUpdateDTO(BaseModel):
     """DTO for updating an existing job."""
     title: Optional[str] = None
     description: Optional[str] = None
@@ -133,8 +128,7 @@ class JobUpdateDTO:
     custom_fields: Optional[Dict[str, Any]] = None
 
 
-@dataclass
-class JobResponseDTO:
+class JobResponseDTO(BaseModel):
     """DTO for job response data."""
     id: uuid.UUID
     business_id: uuid.UUID
@@ -177,8 +171,7 @@ class JobResponseDTO:
     type_display: str
 
 
-@dataclass
-class JobListDTO:
+class JobListDTO(BaseModel):
     """DTO for job list response with minimal data."""
     id: uuid.UUID
     contact_id: Optional[uuid.UUID]
@@ -203,8 +196,7 @@ class JobListDTO:
     type_display: str
 
 
-@dataclass
-class JobSearchDTO:
+class JobSearchDTO(BaseModel):
     """DTO for job search parameters."""
     search_term: Optional[str] = None
     job_type: Optional[JobType] = None
@@ -230,22 +222,19 @@ class JobSearchDTO:
     sort_order: str = "desc"  # asc or desc
 
 
-@dataclass
-class JobStatusUpdateDTO:
+class JobStatusUpdateDTO(BaseModel):
     """DTO for updating job status."""
     status: JobStatus
     notes: Optional[str] = None
 
 
-@dataclass
-class JobAssignmentDTO:
+class JobAssignmentDTO(BaseModel):
     """DTO for job assignment operations."""
     user_ids: List[str]
     replace_existing: bool = False  # If True, replace all assignments; if False, add to existing
 
 
-@dataclass
-class JobBulkUpdateDTO:
+class JobBulkUpdateDTO(BaseModel):
     """DTO for bulk job operations."""
     job_ids: List[uuid.UUID]
     status: Optional[JobStatus] = None
@@ -255,15 +244,13 @@ class JobBulkUpdateDTO:
     priority: Optional[JobPriority] = None
 
 
-@dataclass
-class JobScheduleUpdateDTO:
+class JobScheduleUpdateDTO(BaseModel):
     """DTO for updating job schedule."""
     scheduled_start: Optional[datetime]
     scheduled_end: Optional[datetime]
 
 
-@dataclass
-class JobTimeTrackingUpdateDTO:
+class JobTimeTrackingUpdateDTO(BaseModel):
     """DTO for updating job time tracking."""
     estimated_hours: Optional[Decimal] = None
     actual_hours: Optional[Decimal] = None
@@ -273,8 +260,7 @@ class JobTimeTrackingUpdateDTO:
     break_time_minutes: Optional[int] = None
 
 
-@dataclass
-class JobCostUpdateDTO:
+class JobCostUpdateDTO(BaseModel):
     """DTO for updating job cost estimate."""
     labor_cost: Optional[Decimal] = None
     material_cost: Optional[Decimal] = None
@@ -285,8 +271,7 @@ class JobCostUpdateDTO:
     discount_amount: Optional[Decimal] = None
 
 
-@dataclass
-class JobStatisticsDTO:
+class JobStatisticsDTO(BaseModel):
     """DTO for job statistics."""
     total_jobs: int
     jobs_by_status: Dict[str, int]
@@ -303,8 +288,7 @@ class JobStatisticsDTO:
     on_time_completion_rate: float
 
 
-@dataclass
-class JobRevenueDTO:
+class JobRevenueDTO(BaseModel):
     """DTO for job revenue information."""
     period_start: datetime
     period_end: datetime
@@ -316,8 +300,7 @@ class JobRevenueDTO:
     top_revenue_jobs: List[Dict[str, Any]]
 
 
-@dataclass
-class JobWorkloadDTO:
+class JobWorkloadDTO(BaseModel):
     """DTO for user workload information."""
     user_id: str
     total_assigned_jobs: int
@@ -330,8 +313,7 @@ class JobWorkloadDTO:
     completion_rate: float
 
 
-@dataclass
-class JobScheduleDTO:
+class JobScheduleDTO(BaseModel):
     """DTO for job schedule information."""
     date: datetime
     jobs: List[JobListDTO]
@@ -340,8 +322,7 @@ class JobScheduleDTO:
     conflicts: List[Dict[str, Any]]  # Overlapping jobs
 
 
-@dataclass
-class JobExportDTO:
+class JobExportDTO(BaseModel):
     """DTO for job data export."""
     id: str
     job_number: str
@@ -375,8 +356,7 @@ class JobExportDTO:
     completed_date: str
 
 
-@dataclass
-class JobImportDTO:
+class JobImportDTO(BaseModel):
     """DTO for job data import."""
     job_number: Optional[str]
     title: str
@@ -401,8 +381,7 @@ class JobImportDTO:
     customer_requirements: Optional[str]
 
 
-@dataclass
-class JobImportResultDTO:
+class JobImportResultDTO(BaseModel):
     """DTO for job import results."""
     total_processed: int
     successful_imports: int
@@ -412,8 +391,7 @@ class JobImportResultDTO:
     warnings: List[str]
 
 
-@dataclass
-class JobConversionDTO:
+class JobConversionDTO(BaseModel):
     """DTO for converting job status or type."""
     target_status: Optional[JobStatus] = None
     target_type: Optional[JobType] = None
@@ -422,8 +400,7 @@ class JobConversionDTO:
     new_cost_estimate: Optional[JobCostEstimateDTO] = None
 
 
-@dataclass
-class JobContactDTO:
+class JobContactDTO(BaseModel):
     """DTO for contact information in job responses."""
     id: uuid.UUID
     display_name: str

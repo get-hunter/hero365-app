@@ -4,14 +4,13 @@ Scheduling DTOs
 Data Transfer Objects for intelligent scheduling operations.
 """
 
-from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 from datetime import datetime, time, date
 from decimal import Decimal
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class SchedulingConstraintsDTO:
+class SchedulingConstraintsDTO(BaseModel):
     """DTO for scheduling constraints."""
     max_travel_time_minutes: Optional[int] = None
     working_hours_start: Optional[time] = None
@@ -19,29 +18,26 @@ class SchedulingConstraintsDTO:
     max_jobs_per_user: Optional[int] = None
     require_skill_match: bool = True
     allow_overtime: bool = False
-    optimization_objectives: List[str] = field(default_factory=lambda: ["minimize_travel_time", "maximize_utilization"])
+    optimization_objectives: List[str] = Field(default_factory=lambda: ["minimize_travel_time", "maximize_utilization"])
 
 
-@dataclass
-class TimeWindowDTO:
+class TimeWindowDTO(BaseModel):
     """DTO for time window specification."""
     start_time: datetime
     end_time: datetime
 
 
-@dataclass
-class SchedulingOptimizationRequestDTO:
+class SchedulingOptimizationRequestDTO(BaseModel):
     """DTO for schedule optimization request."""
     job_ids: Optional[List[str]] = None  # If None, optimize all unscheduled jobs
     time_window: Optional[TimeWindowDTO] = None
-    constraints: SchedulingConstraintsDTO = field(default_factory=SchedulingConstraintsDTO)
+    constraints: SchedulingConstraintsDTO = Field(default_factory=SchedulingConstraintsDTO)
     baseline_metrics: Optional[Dict[str, Any]] = None
     notify_users: bool = True
     optimization_algorithm: str = "intelligent"  # intelligent, genetic, local_search
 
 
-@dataclass
-class OptimizedJobAssignmentDTO:
+class OptimizedJobAssignmentDTO(BaseModel):
     """DTO for optimized job assignment result."""
     job_id: str
     assigned_user_id: Optional[str]
@@ -53,8 +49,7 @@ class OptimizedJobAssignmentDTO:
     optimization_notes: Optional[str]
 
 
-@dataclass
-class OptimizationMetricsDTO:
+class OptimizationMetricsDTO(BaseModel):
     """DTO for optimization performance metrics."""
     total_jobs: int
     successfully_scheduled: int
@@ -64,22 +59,20 @@ class OptimizationMetricsDTO:
     average_confidence_score: Decimal
     travel_time_savings_percent: Optional[Decimal] = None
     utilization_improvement_percent: Optional[Decimal] = None
-    optimization_timestamp: datetime = field(default_factory=datetime.utcnow)
+    optimization_timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
-@dataclass
-class SchedulingOptimizationResponseDTO:
+class SchedulingOptimizationResponseDTO(BaseModel):
     """DTO for schedule optimization response."""
     optimization_id: str
     optimized_assignments: List[OptimizedJobAssignmentDTO]
     optimization_metrics: OptimizationMetricsDTO
     success: bool
     message: str
-    warnings: List[str] = field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
 
 
-@dataclass
-class DisruptionDTO:
+class DisruptionDTO(BaseModel):
     """DTO for schedule disruption information."""
     type: str  # traffic_delay, weather, emergency_job, resource_unavailable, customer_reschedule
     affected_job_ids: List[str]
@@ -90,8 +83,7 @@ class DisruptionDTO:
     description: Optional[str]
 
 
-@dataclass
-class AdaptationPreferencesDTO:
+class AdaptationPreferencesDTO(BaseModel):
     """DTO for schedule adaptation preferences."""
     allow_overtime: bool = False
     max_schedule_delay_minutes: int = 60
@@ -101,15 +93,13 @@ class AdaptationPreferencesDTO:
     max_reassignments: int = 5
 
 
-@dataclass
-class RealTimeAdaptationRequestDTO:
+class RealTimeAdaptationRequestDTO(BaseModel):
     """DTO for real-time schedule adaptation request."""
     disruption: DisruptionDTO
-    adaptation_preferences: AdaptationPreferencesDTO = field(default_factory=AdaptationPreferencesDTO)
+    adaptation_preferences: AdaptationPreferencesDTO = Field(default_factory=AdaptationPreferencesDTO)
 
 
-@dataclass
-class AdaptedJobDTO:
+class AdaptedJobDTO(BaseModel):
     """DTO for adapted job information."""
     job_id: str
     original_schedule: Dict[str, Any]  # start, end, assigned_user
@@ -118,8 +108,7 @@ class AdaptedJobDTO:
     impact_score: Decimal
 
 
-@dataclass
-class AdaptationImpactSummaryDTO:
+class AdaptationImpactSummaryDTO(BaseModel):
     """DTO for adaptation impact summary."""
     jobs_rescheduled: int
     users_affected: int
@@ -128,8 +117,7 @@ class AdaptationImpactSummaryDTO:
     adaptation_success_rate: Decimal
 
 
-@dataclass
-class RealTimeAdaptationResponseDTO:
+class RealTimeAdaptationResponseDTO(BaseModel):
     """DTO for real-time adaptation response."""
     adaptation_id: str
     status: str  # success, partial, failed
@@ -137,11 +125,10 @@ class RealTimeAdaptationResponseDTO:
     impact_summary: AdaptationImpactSummaryDTO
     notifications_sent: List[str]
     message: str
-    recommendations: List[str] = field(default_factory=list)
+    recommendations: List[str] = Field(default_factory=list)
 
 
-@dataclass
-class SchedulingAnalyticsRequestDTO:
+class SchedulingAnalyticsRequestDTO(BaseModel):
     """DTO for scheduling analytics request."""
     period: TimeWindowDTO
     user_id: Optional[str] = None
@@ -150,8 +137,7 @@ class SchedulingAnalyticsRequestDTO:
     include_recommendations: bool = True
 
 
-@dataclass
-class SchedulingKPIsDTO:
+class SchedulingKPIsDTO(BaseModel):
     """DTO for scheduling key performance indicators."""
     average_jobs_per_technician_per_day: Decimal
     average_travel_time_per_job_minutes: Decimal
@@ -163,8 +149,7 @@ class SchedulingKPIsDTO:
     emergency_response_time_minutes: Optional[Decimal]
 
 
-@dataclass
-class ImprovementRecommendationDTO:
+class ImprovementRecommendationDTO(BaseModel):
     """DTO for improvement recommendation."""
     type: str  # skill_training, capacity_adjustment, schedule_optimization, route_optimization
     description: str
@@ -174,8 +159,7 @@ class ImprovementRecommendationDTO:
     estimated_roi_percent: Optional[Decimal]
 
 
-@dataclass
-class PredictiveInsightDTO:
+class PredictiveInsightDTO(BaseModel):
     """DTO for predictive scheduling insight."""
     prediction_type: str  # demand_forecast, capacity_shortage, weather_impact
     forecast_date: datetime
@@ -184,8 +168,7 @@ class PredictiveInsightDTO:
     recommended_actions: List[str]
 
 
-@dataclass
-class TrendAnalysisDTO:
+class TrendAnalysisDTO(BaseModel):
     """DTO for trend analysis."""
     metric_name: str
     trend_direction: str  # improving, declining, stable
@@ -194,19 +177,17 @@ class TrendAnalysisDTO:
     significance_level: str  # low, medium, high
 
 
-@dataclass
-class SchedulingAnalyticsResponseDTO:
+class SchedulingAnalyticsResponseDTO(BaseModel):
     """DTO for scheduling analytics response."""
     period: TimeWindowDTO
     kpis: SchedulingKPIsDTO
     recommendations: List[ImprovementRecommendationDTO]
     predictions: List[PredictiveInsightDTO]
     trend_analysis: List[TrendAnalysisDTO]
-    data_quality_score: Decimal = field(default=Decimal("1.0"))
+    data_quality_score: Decimal = Field(default=Decimal("1.0"))
 
 
-@dataclass
-class RealTimeStatusDTO:
+class RealTimeStatusDTO(BaseModel):
     """DTO for real-time job status."""
     job_id: str
     assigned_user_id: str
@@ -219,8 +200,7 @@ class RealTimeStatusDTO:
     alerts: List[str]
 
 
-@dataclass
-class DailyPerformanceDTO:
+class DailyPerformanceDTO(BaseModel):
     """DTO for daily performance metrics."""
     date: datetime
     jobs_completed: int
@@ -232,8 +212,7 @@ class DailyPerformanceDTO:
     utilization_rate_percent: Decimal
 
 
-@dataclass
-class RealTimeScheduleStatusResponseDTO:
+class RealTimeScheduleStatusResponseDTO(BaseModel):
     """DTO for real-time schedule status response."""
     current_time: datetime
     active_jobs: List[RealTimeStatusDTO]
@@ -242,8 +221,7 @@ class RealTimeScheduleStatusResponseDTO:
     system_health: str  # healthy, warning, critical
 
 
-@dataclass
-class LocationUpdateDTO:
+class LocationUpdateDTO(BaseModel):
     """DTO for user location update."""
     user_id: str
     latitude: float
@@ -253,8 +231,7 @@ class LocationUpdateDTO:
     status: str  # available, traveling, on_job, break, unavailable
 
 
-@dataclass
-class WeatherImpactDTO:
+class WeatherImpactDTO(BaseModel):
     """DTO for weather impact analysis."""
     impact_level: str  # none, low, moderate, high, severe
     affected_job_types: List[str]
@@ -264,8 +241,7 @@ class WeatherImpactDTO:
     work_feasibility_score: Decimal
 
 
-@dataclass
-class TravelTimeResultDTO:
+class TravelTimeResultDTO(BaseModel):
     """DTO for travel time calculation result."""
     distance_km: Decimal
     duration_minutes: Decimal
@@ -274,8 +250,7 @@ class TravelTimeResultDTO:
     route_polyline: Optional[str]
 
 
-@dataclass
-class RouteOptimizationResultDTO:
+class RouteOptimizationResultDTO(BaseModel):
     """DTO for route optimization result."""
     total_distance_km: Decimal
     total_duration_minutes: Decimal
@@ -285,20 +260,18 @@ class RouteOptimizationResultDTO:
     traffic_warnings: List[str]
 
 
-@dataclass
-class AvailableTimeSlotRequestDTO:
+class AvailableTimeSlotRequestDTO(BaseModel):
     """DTO for available time slots request."""
     job_type: str
     estimated_duration_hours: float
-    required_skills: List[str] = field(default_factory=list)
+    required_skills: List[str] = Field(default_factory=list)
     job_address: Optional[Dict[str, Any]] = None
     preferred_date_range: TimeWindowDTO = None
     customer_preferences: Optional[Dict[str, Any]] = None
     priority: str = "medium"
 
 
-@dataclass
-class TimeSlotDTO:
+class TimeSlotDTO(BaseModel):
     """DTO for individual time slot."""
     slot_id: str
     start_time: datetime
@@ -312,20 +285,18 @@ class TimeSlotDTO:
     notes: Optional[str] = None
 
 
-@dataclass
-class AvailableTimeSlotsResponseDTO:
+class AvailableTimeSlotsResponseDTO(BaseModel):
     """DTO for available time slots response."""
     request_id: str
     available_slots: List[TimeSlotDTO]
     total_slots_found: int
     search_criteria: Dict[str, Any]
-    recommendations: List[str] = field(default_factory=list)
-    alternative_suggestions: List[Dict[str, Any]] = field(default_factory=list)
+    recommendations: List[str] = Field(default_factory=list)
+    alternative_suggestions: List[Dict[str, Any]] = Field(default_factory=list)
     booking_deadline: Optional[datetime] = None
 
 
-@dataclass
-class TimeSlotBookingRequestDTO:
+class TimeSlotBookingRequestDTO(BaseModel):
     """DTO for time slot booking request."""
     slot_id: str
     customer_contact: Dict[str, Any]
@@ -334,8 +305,7 @@ class TimeSlotBookingRequestDTO:
     confirm_booking: bool = True
 
 
-@dataclass
-class TimeSlotBookingResponseDTO:
+class TimeSlotBookingResponseDTO(BaseModel):
     """DTO for time slot booking response."""
     booking_id: str
     job_id: str
@@ -347,8 +317,7 @@ class TimeSlotBookingResponseDTO:
     cancellation_policy: str
 
 
-@dataclass
-class CalendarEventDTO:
+class CalendarEventDTO(BaseModel):
     """DTO for calendar events."""
     id: Optional[str] = None
     user_id: str = ""
@@ -364,7 +333,7 @@ class CalendarEventDTO:
     recurrence_end_date: Optional[date] = None
     recurrence_count: Optional[int] = None
     recurrence_interval: int = 1
-    recurrence_days_of_week: List[int] = field(default_factory=list)
+    recurrence_days_of_week: List[int] = Field(default_factory=list)
     blocks_scheduling: bool = True
     allows_emergency_override: bool = False
     created_date: Optional[datetime] = None
@@ -372,8 +341,7 @@ class CalendarEventDTO:
     is_active: bool = True
 
 
-@dataclass
-class TimeOffRequestDTO:
+class TimeOffRequestDTO(BaseModel):
     """DTO for time off requests."""
     id: Optional[str] = None
     user_id: str = ""
@@ -395,8 +363,7 @@ class TimeOffRequestDTO:
     duration_days: Optional[int] = None
 
 
-@dataclass
-class WorkingHoursTemplateDTO:
+class WorkingHoursTemplateDTO(BaseModel):
     """DTO for working hours templates."""
     id: Optional[str] = None
     name: str = ""
@@ -425,8 +392,7 @@ class WorkingHoursTemplateDTO:
     total_weekly_hours: Optional[float] = None
 
 
-@dataclass
-class CalendarPreferencesDTO:
+class CalendarPreferencesDTO(BaseModel):
     """DTO for calendar preferences."""
     user_id: str = ""
     business_id: str = ""
@@ -439,7 +405,7 @@ class CalendarPreferencesDTO:
     max_commute_time_minutes: int = 60
     allows_back_to_back_jobs: bool = False
     requires_prep_time_minutes: int = 15
-    job_reminder_minutes_before: List[int] = field(default_factory=lambda: [60, 15])
+    job_reminder_minutes_before: List[int] = Field(default_factory=lambda: [60, 15])
     schedule_change_notifications: bool = True
     new_job_notifications: bool = True
     cancellation_notifications: bool = True
@@ -454,22 +420,20 @@ class CalendarPreferencesDTO:
     last_modified: Optional[datetime] = None
 
 
-@dataclass
-class UserAvailabilityDTO:
+class UserAvailabilityDTO(BaseModel):
     """DTO for user availability information."""
     user_id: str = ""
     date: Optional[date] = None
-    available_slots: List[Dict[str, datetime]] = field(default_factory=list)
+    available_slots: List[Dict[str, datetime]] = Field(default_factory=list)
     total_available_hours: float = 0.0
     working_hours: Optional[Dict[str, time]] = None
-    time_off: List[TimeOffRequestDTO] = field(default_factory=list)
-    calendar_events: List[CalendarEventDTO] = field(default_factory=list)
+    time_off: List[TimeOffRequestDTO] = Field(default_factory=list)
+    calendar_events: List[CalendarEventDTO] = Field(default_factory=list)
     is_available: bool = True
     unavailable_reason: Optional[str] = None
 
 
-@dataclass
-class TeamAvailabilitySummaryDTO:
+class TeamAvailabilitySummaryDTO(BaseModel):
     """DTO for team availability summary."""
     business_id: str = ""
     start_date: Optional[date] = None
@@ -478,14 +442,13 @@ class TeamAvailabilitySummaryDTO:
     available_members: int = 0
     members_on_time_off: int = 0
     members_with_limited_availability: int = 0
-    daily_availability: List[Dict[str, Any]] = field(default_factory=list)
-    member_summaries: List[UserAvailabilityDTO] = field(default_factory=list)
-    peak_availability_hours: List[Dict[str, Any]] = field(default_factory=list)
-    coverage_gaps: List[Dict[str, Any]] = field(default_factory=list)
+    daily_availability: List[Dict[str, Any]] = Field(default_factory=list)
+    member_summaries: List[UserAvailabilityDTO] = Field(default_factory=list)
+    peak_availability_hours: List[Dict[str, Any]] = Field(default_factory=list)
+    coverage_gaps: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-@dataclass
-class CalendarSyncDTO:
+class CalendarSyncDTO(BaseModel):
     """DTO for calendar synchronization."""
     user_id: str = ""
     business_id: str = ""
@@ -494,13 +457,12 @@ class CalendarSyncDTO:
     sync_enabled: bool = False
     sync_direction: str = "bidirectional"  # import_only, export_only, bidirectional
     last_sync_date: Optional[datetime] = None
-    sync_conflicts: List[Dict[str, Any]] = field(default_factory=list)
+    sync_conflicts: List[Dict[str, Any]] = Field(default_factory=list)
     auto_resolve_conflicts: bool = False
 
 
 # Calendar management request/response DTOs
-@dataclass
-class CreateCalendarEventRequestDTO:
+class CreateCalendarEventRequestDTO(BaseModel):
     """DTO for creating calendar events."""
     title: str = ""
     description: Optional[str] = None
@@ -513,13 +475,12 @@ class CreateCalendarEventRequestDTO:
     recurrence_end_date: Optional[date] = None
     recurrence_count: Optional[int] = None
     recurrence_interval: int = 1
-    recurrence_days_of_week: List[int] = field(default_factory=list)
+    recurrence_days_of_week: List[int] = Field(default_factory=list)
     blocks_scheduling: bool = True
     allows_emergency_override: bool = False
 
 
-@dataclass
-class CreateTimeOffRequestDTO:
+class CreateTimeOffRequestDTO(BaseModel):
     """DTO for creating time off requests."""
     time_off_type: str = "vacation"
     start_date: Optional[date] = None
@@ -530,8 +491,7 @@ class CreateTimeOffRequestDTO:
     emergency_contact_allowed: bool = False
 
 
-@dataclass
-class UpdateWorkingHoursRequestDTO:
+class UpdateWorkingHoursRequestDTO(BaseModel):
     """DTO for updating working hours."""
     template_id: Optional[str] = None
     monday_start: Optional[time] = None
@@ -553,10 +513,9 @@ class UpdateWorkingHoursRequestDTO:
     lunch_duration_minutes: int = 60
 
 
-@dataclass
-class AvailabilityCheckRequestDTO:
+class AvailabilityCheckRequestDTO(BaseModel):
     """DTO for checking availability."""
-    user_ids: List[str] = field(default_factory=list)
+    user_ids: List[str] = Field(default_factory=list)
     start_datetime: Optional[datetime] = None
     end_datetime: Optional[datetime] = None
     include_time_off: bool = True
@@ -564,10 +523,9 @@ class AvailabilityCheckRequestDTO:
     include_working_hours: bool = True
 
 
-@dataclass
-class AvailabilityCheckResponseDTO:
+class AvailabilityCheckResponseDTO(BaseModel):
     """DTO for availability check response."""
     request_id: Optional[str] = None
     check_datetime: Optional[datetime] = None
-    user_availability: List[UserAvailabilityDTO] = field(default_factory=list)
-    summary: Dict[str, Any] = field(default_factory=dict) 
+    user_availability: List[UserAvailabilityDTO] = Field(default_factory=list)
+    summary: Dict[str, Any] = Field(default_factory=dict) 

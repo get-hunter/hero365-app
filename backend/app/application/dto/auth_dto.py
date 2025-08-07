@@ -5,50 +5,46 @@ DTOs for transferring authentication and authorization data.
 """
 
 import uuid
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Dict, Any
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class LoginDTO:
+class LoginDTO(BaseModel):
     """DTO for user login."""
     
-    password: str
+    password: str = Field(min_length=1)
     email: Optional[str] = None
     phone: Optional[str] = None
 
 
-@dataclass
-class RegisterDTO:
+class RegisterDTO(BaseModel):
     """DTO for user registration."""
     
-    password: str
+    password: str = Field(min_length=1)
     email: Optional[str] = None
     phone: Optional[str] = None
     full_name: Optional[str] = None
     confirm_password: Optional[str] = None
 
 
-@dataclass
-class AuthTokenDTO:
+class AuthTokenDTO(BaseModel):
     """DTO for authentication tokens."""
     
-    access_token: str
-    token_type: str = "bearer"
-    expires_in: Optional[int] = None
+    access_token: str = Field(min_length=1)
+    token_type: str = Field(default="bearer", min_length=1)
+    expires_in: Optional[int] = Field(default=None, gt=0)
     refresh_token: Optional[str] = None
     scope: Optional[str] = None
 
 
-@dataclass
-class AuthUserDTO:
+class AuthUserDTO(BaseModel):
     """DTO for authenticated user information."""
     
-    id: str
-    email: Optional[str]
-    phone: Optional[str]
-    full_name: Optional[str]
+    id: str = Field(min_length=1)
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    full_name: Optional[str] = None
     is_active: bool = True
     is_superuser: bool = False
     supabase_id: Optional[str] = None
@@ -70,76 +66,68 @@ class AuthUserDTO:
         }
 
 
-@dataclass
-class RefreshTokenDTO:
+class RefreshTokenDTO(BaseModel):
     """DTO for token refresh operations."""
     
-    refresh_token: str
+    refresh_token: str = Field(min_length=1)
 
 
-@dataclass
-class LogoutDTO:
+class LogoutDTO(BaseModel):
     """DTO for user logout."""
     
-    access_token: str
+    access_token: str = Field(min_length=1)
     refresh_token: Optional[str] = None
 
 
-@dataclass
-class ForgotPasswordDTO:
+class ForgotPasswordDTO(BaseModel):
     """DTO for forgot password requests."""
     
     email: Optional[str] = None
     phone: Optional[str] = None
 
 
-@dataclass
-class ResetPasswordTokenDTO:
+class ResetPasswordTokenDTO(BaseModel):
     """DTO for password reset token operations."""
     
-    token: str
-    new_password: str
+    token: str = Field(min_length=1)
+    new_password: str = Field(min_length=1)
     confirm_password: Optional[str] = None
 
 
-@dataclass
-class VerifyTokenDTO:
+class VerifyTokenDTO(BaseModel):
     """DTO for token verification."""
     
-    token: str
-    token_type: str = "access"  # 'access', 'refresh', 'reset'
+    token: str = Field(min_length=1)
+    token_type: str = Field(default="access", min_length=1)  # 'access', 'refresh', 'reset'
 
 
-@dataclass
-class AuthContextDTO:
+class AuthContextDTO(BaseModel):
     """DTO for authentication context in requests."""
     
     user_id: uuid.UUID
-    user_email: Optional[str]
-    user_phone: Optional[str]
+    user_email: Optional[str] = None
+    user_phone: Optional[str] = None
     is_superuser: bool
-    permissions: list[str]
+    permissions: list[str] = Field(default_factory=list)
     session_id: Optional[str] = None
     token_claims: Optional[Dict[str, Any]] = None
 
 
-@dataclass
-class SocialAuthDTO:
+class SocialAuthDTO(BaseModel):
     """DTO for social authentication (OAuth)."""
     
-    provider: str  # 'google', 'facebook', 'github', etc.
-    provider_id: str
+    provider: str = Field(min_length=1)  # 'google', 'facebook', 'github', etc.
+    provider_id: str = Field(min_length=1)
     email: Optional[str] = None
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
     provider_data: Optional[Dict[str, Any]] = None
 
 
-@dataclass
-class SupabaseAuthDTO:
+class SupabaseAuthDTO(BaseModel):
     """DTO for Supabase authentication data."""
     
-    supabase_user_id: str
+    supabase_user_id: str = Field(min_length=1)
     email: Optional[str] = None
     phone: Optional[str] = None
     user_metadata: Optional[Dict[str, Any]] = None
@@ -148,11 +136,10 @@ class SupabaseAuthDTO:
     refresh_token: Optional[str] = None
 
 
-@dataclass
-class AuthSessionDTO:
+class AuthSessionDTO(BaseModel):
     """DTO for authentication session information."""
     
-    session_id: str
+    session_id: str = Field(min_length=1)
     user_id: uuid.UUID
     created_at: datetime
     expires_at: datetime
