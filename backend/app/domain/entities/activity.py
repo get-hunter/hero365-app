@@ -6,12 +6,36 @@ reminders, tasks, and system events.
 """
 
 import uuid
+import logging
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Annotated
 from enum import Enum
-from dataclasses import dataclass, field
+from pydantic import BaseModel, Field, field_validator, UUID4, BeforeValidator
 
 from ..exceptions.domain_exceptions import DomainValidationError
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+
+# Custom Pydantic validators for automatic string-to-enum conversion
+def validate_activity_type(v) -> 'ActivityType':
+    """Convert string to ActivityType enum."""
+    if isinstance(v, str):
+        return ActivityType(v)
+    return v
+
+def validate_activity_status(v) -> 'ActivityStatus':
+    """Convert string to ActivityStatus enum."""
+    if isinstance(v, str):
+        return ActivityStatus(v)
+    return v
+
+def validate_activity_priority(v) -> 'ActivityPriority':
+    """Convert string to ActivityPriority enum."""
+    if isinstance(v, str):
+        return ActivityPriority(v)
+    return v
 
 
 class ActivityType(Enum):
@@ -44,40 +68,43 @@ class ActivityPriority(Enum):
     URGENT = "urgent"
 
 
-@dataclass
-class ActivityParticipant:
+class ActivityParticipant(BaseModel):
     """Represents a participant in an activity."""
-    user_id: str
-    name: str
-    role: str  # "organizer", "participant", "observer"
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    user_id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    role: str = Field(min_length=1)  # "organizer", "participant", "observer"
     is_primary: bool = False
 
 
-@dataclass
-class ActivityReminder:
+class ActivityReminder(BaseModel):
     """Reminder configuration for an activity."""
-    reminder_id: uuid.UUID = field(default_factory=uuid.uuid4)
-    reminder_time: datetime = field(default_factory=datetime.utcnow)
-    reminder_type: str = "notification"  # "notification", "email", "sms"
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    reminder_id: UUID4 = Field(default_factory=uuid.uuid4)
+    reminder_time: datetime = Field(default_factory=datetime.utcnow)
+    reminder_type: str = Field(default="notification", min_length=1)  # "notification", "email", "sms"
     message: Optional[str] = None
     is_sent: bool = False
     sent_at: Optional[datetime] = None
 
 
-@dataclass
-class ActivityTemplate:
+class ActivityTemplate(BaseModel):
     """Template for creating standardized activities."""
-    name: str
-    description: str
-    activity_type: ActivityType
-    created_by: str
-    template_id: uuid.UUID = field(default_factory=uuid.uuid4)
-    default_duration: Optional[int] = None  # in minutes
-    default_reminders: List[Dict[str, Any]] = field(default_factory=list)
-    default_participants: List[str] = field(default_factory=list)
-    custom_fields: Dict[str, Any] = field(default_factory=dict)
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    name: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    activity_type: Annotated[ActivityType, BeforeValidator(validate_activity_type)]
+    created_by: str = Field(min_length=1)
+    template_id: UUID4 = Field(default_factory=uuid.uuid4)
+    default_duration: Optional[int] = Field(default=None, gt=0)  # in minutes
+    default_reminders: List[Dict[str, Any]] = Field(default_factory=list)
+    default_participants: List[str] = Field(default_factory=list)
+    custom_fields: Dict[str, Any] = Field(default_factory=dict)
     is_active: bool = True
-    created_date: datetime = field(default_factory=datetime.utcnow)
+    created_date: datetime = Field(default_factory=datetime.utcnow)
 
 
 class Activity:

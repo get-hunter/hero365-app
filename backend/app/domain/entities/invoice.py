@@ -6,10 +6,11 @@ status management, and financial calculations.
 """
 
 import uuid
-from dataclasses import dataclass, field
+import logging
+from typing import Optional, List, Dict, Any, Annotated
 from datetime import datetime, date, timezone, timedelta
-from typing import Optional, List, Dict, Any
 from decimal import Decimal, ROUND_HALF_UP
+from pydantic import BaseModel, Field, field_validator, model_validator, UUID4, BeforeValidator
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
 from .invoice_enums.enums import InvoiceStatus, PaymentStatus
@@ -17,41 +18,84 @@ from ..shared.enums import PaymentMethod, CurrencyCode, TaxType, DiscountType
 from .estimate_enums.enums import EmailStatus
 from ..value_objects.address import Address
 
+# Configure logging
+logger = logging.getLogger(__name__)
 
-@dataclass
-class InvoiceLineItem:
+
+# Custom Pydantic validators for automatic string-to-enum conversion
+def validate_invoice_status(v) -> InvoiceStatus:
+    """Convert string to InvoiceStatus enum."""
+    if isinstance(v, str):
+        logger.debug(f"Converting status string '{v}' to InvoiceStatus enum")
+        return InvoiceStatus(v)
+    return v
+
+def validate_payment_status(v) -> PaymentStatus:
+    """Convert string to PaymentStatus enum."""
+    if isinstance(v, str):
+        return PaymentStatus(v)
+    return v
+
+def validate_payment_method(v) -> PaymentMethod:
+    """Convert string to PaymentMethod enum."""
+    if isinstance(v, str):
+        return PaymentMethod(v)
+    return v
+
+def validate_currency_code(v) -> CurrencyCode:
+    """Convert string to CurrencyCode enum."""
+    if isinstance(v, str):
+        return CurrencyCode(v)
+    return v
+
+def validate_tax_type(v) -> TaxType:
+    """Convert string to TaxType enum."""
+    if isinstance(v, str):
+        return TaxType(v)
+    return v
+
+def validate_discount_type(v) -> DiscountType:
+    """Convert string to DiscountType enum."""
+    if isinstance(v, str):
+        return DiscountType(v)
+    return v
+
+def validate_email_status(v) -> EmailStatus:
+    """Convert string to EmailStatus enum."""
+    if isinstance(v, str):
+        return EmailStatus(v)
+    return v
+
+
+class InvoiceLineItem(BaseModel):
     """Value object for invoice line items."""
-    id: uuid.UUID = field(default_factory=uuid.uuid4)
-    description: str = ""
-    quantity: Decimal = Decimal("1")
-    unit_price: Decimal = Decimal("0")
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    description: str = Field(default="", min_length=1)
+    quantity: Decimal = Field(default=Decimal("1"), gt=0)
+    unit_price: Decimal = Field(default=Decimal("0"), ge=0)
     unit: Optional[str] = None
     category: Optional[str] = None
-    discount_type: DiscountType = DiscountType.NONE
-    discount_value: Decimal = Decimal("0")
-    tax_rate: Decimal = Decimal("0")
+    discount_type: Annotated[DiscountType, BeforeValidator(validate_discount_type)] = DiscountType.NONE
+    discount_value: Decimal = Field(default=Decimal("0"), ge=0)
+    tax_rate: Decimal = Field(default=Decimal("0"), ge=0)
     notes: Optional[str] = None
     
-    def __post_init__(self):
-        """Validate line item data."""
-        if not self.description or not self.description.strip():
-            raise DomainValidationError("Line item description is required")
-        
-        if self.quantity <= 0:
-            raise DomainValidationError("Quantity must be positive")
-        
-        if self.unit_price < 0:
-            raise DomainValidationError("Unit price cannot be negative")
-        
-        if self.discount_value < 0:
-            raise DomainValidationError("Discount value cannot be negative")
-        
-        if self.tax_rate < 0:
-            raise DomainValidationError("Tax rate cannot be negative")
-        
-        # Validate discount based on type
+    @field_validator('description')
+    @classmethod
+    def validate_description(cls, v):
+        """Validate description is not empty."""
+        if not v or not v.strip():
+            raise ValueError("Line item description is required")
+        return v.strip()
+    
+    @model_validator(mode='after')
+    def validate_discount_percentage(self):
+        """Validate discount percentage doesn't exceed 100%."""
         if self.discount_type == DiscountType.PERCENTAGE and self.discount_value > 100:
-            raise DomainValidationError("Percentage discount cannot exceed 100%")
+            raise ValueError("Percentage discount cannot exceed 100%")
+        return self
     
     def get_subtotal(self) -> Decimal:
         """Calculate line item subtotal before discount."""
@@ -79,33 +123,30 @@ class InvoiceLineItem:
         return self.get_total_after_discount() + self.get_tax_amount()
 
 
-@dataclass
-class Payment:
+class Payment(BaseModel):
     """Value object for invoice payments."""
-    id: uuid.UUID = field(default_factory=uuid.uuid4)
-    amount: Decimal = Decimal("0")
-    payment_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    payment_method: PaymentMethod = PaymentMethod.CASH
-    status: PaymentStatus = PaymentStatus.COMPLETED
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    amount: Decimal = Field(default=Decimal("0"), gt=0)
+    payment_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    payment_method: Annotated[PaymentMethod, BeforeValidator(validate_payment_method)] = PaymentMethod.CASH
+    status: Annotated[PaymentStatus, BeforeValidator(validate_payment_status)] = PaymentStatus.COMPLETED
     reference: Optional[str] = None
     transaction_id: Optional[str] = None
     gateway_response: Optional[Dict[str, Any]] = None
     notes: Optional[str] = None
     processed_by: Optional[str] = None
-    refunded_amount: Decimal = Decimal("0")
+    refunded_amount: Decimal = Field(default=Decimal("0"), ge=0)
     refund_date: Optional[datetime] = None
     refund_reason: Optional[str] = None
     
-    def __post_init__(self):
-        """Validate payment data."""
-        if self.amount <= 0:
-            raise DomainValidationError("Payment amount must be positive")
-        
-        if self.refunded_amount < 0:
-            raise DomainValidationError("Refunded amount cannot be negative")
-        
+    @model_validator(mode='after')
+    def validate_refund_amount(self):
+        """Validate refunded amount doesn't exceed payment amount."""
         if self.refunded_amount > self.amount:
-            raise DomainValidationError("Refunded amount cannot exceed payment amount")
+            raise ValueError("Refunded amount cannot exceed payment amount")
+        return self
     
     def get_net_amount(self) -> Decimal:
         """Calculate net payment amount after refunds."""
@@ -126,45 +167,45 @@ class Payment:
                 self.refunded_amount + amount <= self.amount)
     
     def process_refund(self, amount: Decimal, reason: Optional[str] = None,
-                      processed_by: Optional[str] = None) -> None:
-        """Process a refund for this payment."""
+                      processed_by: Optional[str] = None) -> 'Payment':
+        """Process a refund for this payment. Returns new Payment instance."""
         if not self.can_refund(amount):
             raise BusinessRuleViolationError("Invalid refund amount")
         
-        self.refunded_amount += amount
-        self.refund_date = datetime.now(timezone.utc)
-        self.refund_reason = reason
+        new_refunded_amount = self.refunded_amount + amount
+        new_status = self.status
         
         # Update status based on refund amount
-        if self.is_fully_refunded():
-            self.status = PaymentStatus.REFUNDED
-        elif self.is_partially_refunded():
-            self.status = PaymentStatus.PARTIALLY_REFUNDED
+        if new_refunded_amount >= self.amount:
+            new_status = PaymentStatus.REFUNDED
+        elif new_refunded_amount > 0:
+            new_status = PaymentStatus.PARTIALLY_REFUNDED
+        
+        return self.model_copy(update={
+            'refunded_amount': new_refunded_amount,
+            'refund_date': datetime.now(timezone.utc),
+            'refund_reason': reason,
+            'status': new_status
+        })
 
 
-@dataclass
-class PaymentTerms:
+class PaymentTerms(BaseModel):
     """Value object for invoice payment terms."""
-    net_days: int = 30
-    discount_percentage: Decimal = Decimal("0")
-    discount_days: int = 0
-    late_fee_percentage: Decimal = Decimal("0")
-    late_fee_grace_days: int = 0
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    net_days: int = Field(default=30, gt=0)
+    discount_percentage: Decimal = Field(default=Decimal("0"), ge=0, le=100)
+    discount_days: int = Field(default=0, ge=0)
+    late_fee_percentage: Decimal = Field(default=Decimal("0"), ge=0)
+    late_fee_grace_days: int = Field(default=0, ge=0)
     payment_instructions: Optional[str] = None
     
-    def __post_init__(self):
-        """Validate payment terms."""
-        if self.net_days <= 0:
-            raise DomainValidationError("Net days must be positive")
-        
-        if self.discount_percentage < 0 or self.discount_percentage > 100:
-            raise DomainValidationError("Discount percentage must be between 0 and 100")
-        
-        if self.late_fee_percentage < 0:
-            raise DomainValidationError("Late fee percentage cannot be negative")
-        
+    @model_validator(mode='after')
+    def validate_discount_days(self):
+        """Validate discount days don't exceed net days."""
         if self.discount_days > self.net_days:
-            raise DomainValidationError("Discount days cannot exceed net days")
+            raise ValueError("Discount days cannot exceed net days")
+        return self
     
     def get_due_date(self, issue_date: date) -> date:
         """Calculate invoice due date."""
@@ -205,155 +246,153 @@ class PaymentTerms:
         return total_amount * (self.late_fee_percentage / Decimal("100"))
 
 
-@dataclass
-class InvoiceEmailTracking:
+class InvoiceEmailTracking(BaseModel):
     """Value object for invoice email tracking."""
-    id: uuid.UUID = field(default_factory=uuid.uuid4)
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    id: UUID4 = Field(default_factory=uuid.uuid4)
     sent_date: Optional[datetime] = None
     delivered_date: Optional[datetime] = None
     opened_date: Optional[datetime] = None
     clicked_date: Optional[datetime] = None
-    status: EmailStatus = EmailStatus.PENDING
+    status: Annotated[EmailStatus, BeforeValidator(validate_email_status)] = EmailStatus.PENDING
     recipient_email: Optional[str] = None
     subject: Optional[str] = None
     message_id: Optional[str] = None
     error_message: Optional[str] = None
-    tracking_data: Dict[str, Any] = field(default_factory=dict)
+    tracking_data: Dict[str, Any] = Field(default_factory=dict)
     reminder_type: Optional[str] = None  # 'payment_due', 'overdue', 'thank_you'
 
 
-@dataclass
-class InvoiceStatusHistoryEntry:
+class InvoiceStatusHistoryEntry(BaseModel):
     """Value object for invoice status history tracking."""
-    id: uuid.UUID = field(default_factory=uuid.uuid4)
-    from_status: Optional[InvoiceStatus] = None
-    to_status: InvoiceStatus = InvoiceStatus.DRAFT
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    from_status: Optional[Annotated[InvoiceStatus, BeforeValidator(validate_invoice_status)]] = None
+    to_status: Annotated[InvoiceStatus, BeforeValidator(validate_invoice_status)] = InvoiceStatus.DRAFT
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     changed_by: Optional[str] = None
     reason: Optional[str] = None
     notes: Optional[str] = None
 
 
-@dataclass
-class Invoice:
+class Invoice(BaseModel):
     """
     Invoice domain entity representing a bill for completed work.
     
     Contains comprehensive business logic for payment tracking, status management,
     financial calculations, and client communication.
     """
+    model_config = {"use_enum_values": True, "validate_assignment": True}
     
     # Core identification
-    id: uuid.UUID = field(default_factory=uuid.uuid4)
-    business_id: uuid.UUID = field(default_factory=uuid.uuid4)
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    business_id: UUID4 = Field(default_factory=uuid.uuid4)
     invoice_number: Optional[str] = None
     
     # Status and lifecycle
-    status: InvoiceStatus = InvoiceStatus.DRAFT
-    status_history: List[InvoiceStatusHistoryEntry] = field(default_factory=list)
+    status: Annotated[InvoiceStatus, BeforeValidator(validate_invoice_status)] = InvoiceStatus.DRAFT
+    status_history: List[InvoiceStatusHistoryEntry] = Field(default_factory=list)
     
     # Client information
-    client_id: Optional[uuid.UUID] = None
+    client_id: Optional[UUID4] = None
     client_name: Optional[str] = None
     client_email: Optional[str] = None
     client_phone: Optional[str] = None
     client_address: Optional[Address] = None
     
     # Invoice details
-    title: str = ""
+    title: str = Field(default="", min_length=1)
     description: Optional[str] = None
     po_number: Optional[str] = None
-    line_items: List[InvoiceLineItem] = field(default_factory=list)
+    line_items: List[InvoiceLineItem] = Field(default_factory=list)
     
     # Financial information
-    currency: CurrencyCode = CurrencyCode.USD
-    tax_rate: Decimal = Decimal("0")
-    tax_type: TaxType = TaxType.PERCENTAGE
-    overall_discount_type: DiscountType = DiscountType.NONE
-    overall_discount_value: Decimal = Decimal("0")
+    currency: Annotated[CurrencyCode, BeforeValidator(validate_currency_code)] = CurrencyCode.USD
+    tax_rate: Decimal = Field(default=Decimal("0"), ge=0)
+    tax_type: Annotated[TaxType, BeforeValidator(validate_tax_type)] = TaxType.PERCENTAGE
+    overall_discount_type: Annotated[DiscountType, BeforeValidator(validate_discount_type)] = DiscountType.NONE
+    overall_discount_value: Decimal = Field(default=Decimal("0"), ge=0)
     
     # Payment information
-    payments: List[Payment] = field(default_factory=list)
-    payment_terms: PaymentTerms = field(default_factory=PaymentTerms)
+    payments: List[Payment] = Field(default_factory=list)
+    payment_terms: PaymentTerms = Field(default_factory=PaymentTerms)
     
     # Template and branding
-    template_id: Optional[uuid.UUID] = None
-    template_data: Dict[str, Any] = field(default_factory=dict)
+    template_id: Optional[UUID4] = None
+    template_data: Dict[str, Any] = Field(default_factory=dict)
     
     # Communication tracking
-    email_history: List[InvoiceEmailTracking] = field(default_factory=list)
+    email_history: List[InvoiceEmailTracking] = Field(default_factory=list)
     
     # Relationship tracking
-    estimate_id: Optional[uuid.UUID] = None  # Source estimate if converted
-    project_id: Optional[uuid.UUID] = None
-    job_id: Optional[uuid.UUID] = None
-    contact_id: Optional[uuid.UUID] = None
+    estimate_id: Optional[UUID4] = None  # Source estimate if converted
+    project_id: Optional[UUID4] = None
+    job_id: Optional[UUID4] = None
+    contact_id: Optional[UUID4] = None
     
     # Metadata
-    tags: List[str] = field(default_factory=list)
-    custom_fields: Dict[str, Any] = field(default_factory=dict)
+    tags: List[str] = Field(default_factory=list)
+    custom_fields: Dict[str, Any] = Field(default_factory=dict)
     internal_notes: Optional[str] = None
     
     # Audit fields
     created_by: Optional[str] = None
-    created_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    last_modified: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_modified: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     sent_date: Optional[datetime] = None
     viewed_date: Optional[datetime] = None
     issue_date: Optional[date] = None
     due_date: Optional[date] = None
     paid_date: Optional[datetime] = None
     
-    def __post_init__(self):
-        """Initialize and validate invoice."""
-        if not self.title or not self.title.strip():
-            raise DomainValidationError("Invoice title is required")
+    @field_validator('title')
+    @classmethod
+    def validate_title(cls, v):
+        """Validate title is not empty."""
+        if not v or not v.strip():
+            raise ValueError("Invoice title is required")
+        return v.strip()
+    
+    @field_validator('overall_discount_value')
+    @classmethod
+    def validate_discount_value(cls, v, values):
+        """Validate discount value based on type."""
+        # Note: In Pydantic v2, we need to use model_validator for cross-field validation
+        return v
+    
+    @model_validator(mode='after')
+    def validate_business_rules(self):
+        """Validate core business rules and initialize fields."""
+        # Validate discount based on type
+        if self.overall_discount_type == DiscountType.PERCENTAGE and self.overall_discount_value > 100:
+            raise ValueError("Percentage discount cannot exceed 100%")
         
-        if not self.business_id:
-            raise DomainValidationError("Business ID is required")
+        # Validate client information for non-draft invoices
+        if self.status != InvoiceStatus.DRAFT and not self.client_name:
+            raise ValueError("Client name is required for sent invoices")
+        
+        # Validate line items for non-draft invoices
+        if not self.line_items and self.status != InvoiceStatus.DRAFT:
+            raise ValueError("At least one line item is required for sent invoices")
         
         # Set issue_date to created_date if not provided
         if not self.issue_date:
             self.issue_date = self.created_date.date()
         
-        # Generate invoice number if not provided
-        if not self.invoice_number:
-            self.invoice_number = self._generate_invoice_number()
-        
         # Set due date if not provided
         if not self.due_date and self.status != InvoiceStatus.DRAFT:
             self.due_date = self.payment_terms.get_due_date(self.issue_date)
         
-        # Initialize status history if empty
-        if not self.status_history:
-            self.add_status_history_entry(None, self.status, self.created_by, "Initial status")
-        
-        self._validate_business_rules()
+        return self
     
     def _generate_invoice_number(self) -> str:
         """Generate invoice number."""
         today = date.today()
         return f"INV-{today.strftime('%Y-%m-%d')}-{str(self.id)[:8].upper()}"
     
-    def _validate_business_rules(self) -> None:
-        """Validate core business rules."""
-        # Validate financial values
-        if self.tax_rate < 0:
-            raise DomainValidationError("Tax rate cannot be negative")
-        
-        if self.overall_discount_value < 0:
-            raise DomainValidationError("Overall discount value cannot be negative")
-        
-        if self.overall_discount_type == DiscountType.PERCENTAGE and self.overall_discount_value > 100:
-            raise DomainValidationError("Percentage discount cannot exceed 100%")
-        
-        # Validate client information
-        if self.status != InvoiceStatus.DRAFT and not self.client_name:
-            raise DomainValidationError("Client name is required for sent invoices")
-        
-        # Validate line items
-        if not self.line_items and self.status != InvoiceStatus.DRAFT:
-            raise DomainValidationError("At least one line item is required for sent invoices")
+
     
     # Financial calculation methods
     def get_line_items_subtotal(self) -> Decimal:
@@ -466,84 +505,136 @@ class Invoice:
         """Check if invoice can be cancelled."""
         return self.status not in [InvoiceStatus.PAID, InvoiceStatus.CANCELLED, InvoiceStatus.REFUNDED]
     
-    def send_invoice(self, sent_by: Optional[str] = None) -> None:
-        """Send invoice to client."""
+    def send_invoice(self, sent_by: Optional[str] = None) -> 'Invoice':
+        """Send invoice to client. Returns new Invoice instance."""
         if not self.can_send():
             raise BusinessRuleViolationError("Invoice cannot be sent in current state")
         
-        self.update_status(InvoiceStatus.SENT, sent_by, "Invoice sent to client")
-        self.sent_date = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        new_due_date = self.due_date or self.payment_terms.get_due_date(self.issue_date)
         
-        # Set due date if not already set
-        if not self.due_date:
-            self.due_date = self.payment_terms.get_due_date(self.issue_date)
+        # Create new status history entry
+        new_entry = InvoiceStatusHistoryEntry(
+            from_status=self.status,
+            to_status=InvoiceStatus.SENT,
+            changed_by=sent_by,
+            reason="Invoice sent to client"
+        )
+        
+        return self.model_copy(update={
+            'status': InvoiceStatus.SENT,
+            'sent_date': now,
+            'due_date': new_due_date,
+            'last_modified': now,
+            'status_history': self.status_history + [new_entry]
+        })
     
-    def mark_as_viewed(self, viewed_by: Optional[str] = None) -> None:
-        """Mark invoice as viewed by client."""
+    def mark_as_viewed(self, viewed_by: Optional[str] = None) -> 'Invoice':
+        """Mark invoice as viewed by client. Returns new Invoice instance."""
         if self.status == InvoiceStatus.SENT:
-            self.update_status(InvoiceStatus.VIEWED, viewed_by, "Invoice viewed by client")
-            self.viewed_date = datetime.now(timezone.utc)
+            now = datetime.now(timezone.utc)
+            new_entry = InvoiceStatusHistoryEntry(
+                from_status=self.status,
+                to_status=InvoiceStatus.VIEWED,
+                changed_by=viewed_by,
+                reason="Invoice viewed by client"
+            )
+            
+            return self.model_copy(update={
+                'status': InvoiceStatus.VIEWED,
+                'viewed_date': now,
+                'last_modified': now,
+                'status_history': self.status_history + [new_entry]
+            })
+        return self
     
-    def cancel_invoice(self, cancelled_by: Optional[str] = None, reason: Optional[str] = None) -> None:
-        """Cancel the invoice."""
+    def cancel_invoice(self, cancelled_by: Optional[str] = None, reason: Optional[str] = None) -> 'Invoice':
+        """Cancel the invoice. Returns new Invoice instance."""
         if not self.can_cancel():
             raise BusinessRuleViolationError("Invoice cannot be cancelled in current state")
         
-        self.update_status(InvoiceStatus.CANCELLED, cancelled_by, f"Invoice cancelled. {reason or ''}")
+        now = datetime.now(timezone.utc)
+        new_entry = InvoiceStatusHistoryEntry(
+            from_status=self.status,
+            to_status=InvoiceStatus.CANCELLED,
+            changed_by=cancelled_by,
+            reason=f"Invoice cancelled. {reason or ''}"
+        )
+        
+        return self.model_copy(update={
+            'status': InvoiceStatus.CANCELLED,
+            'last_modified': now,
+            'status_history': self.status_history + [new_entry]
+        })
     
     def update_status(self, new_status: InvoiceStatus, changed_by: Optional[str] = None, 
-                     reason: Optional[str] = None) -> None:
-        """Update invoice status with history tracking."""
+                     reason: Optional[str] = None) -> 'Invoice':
+        """Update invoice status with history tracking. Returns new Invoice instance."""
         if self.status == new_status:
-            return
+            return self
         
-        old_status = self.status
-        self.status = new_status
-        self.last_modified = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        new_entry = InvoiceStatusHistoryEntry(
+            from_status=self.status,
+            to_status=new_status,
+            changed_by=changed_by,
+            reason=reason
+        )
+        
+        update_data = {
+            'status': new_status,
+            'last_modified': now,
+            'status_history': self.status_history + [new_entry]
+        }
         
         # Set paid date if marked as paid
         if new_status == InvoiceStatus.PAID and not self.paid_date:
-            self.paid_date = datetime.now(timezone.utc)
+            update_data['paid_date'] = now
         
-        self.add_status_history_entry(old_status, new_status, changed_by, reason)
+        return self.model_copy(update=update_data)
     
-    def _update_status_based_on_payments(self) -> None:
-        """Update status based on payment amounts."""
+    def _update_status_based_on_payments(self) -> 'Invoice':
+        """Update status based on payment amounts. Returns new Invoice instance."""
         if self.is_paid():
             if self.status != InvoiceStatus.PAID:
-                self.update_status(InvoiceStatus.PAID, None, "Fully paid")
+                return self.update_status(InvoiceStatus.PAID, None, "Fully paid")
         elif self.is_partially_paid():
             if self.status not in [InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE]:
-                self.update_status(InvoiceStatus.PARTIALLY_PAID, None, "Partially paid")
+                return self.update_status(InvoiceStatus.PARTIALLY_PAID, None, "Partially paid")
         
         # Check for overdue status
         if self.is_overdue() and self.status not in [InvoiceStatus.PAID, InvoiceStatus.CANCELLED, InvoiceStatus.REFUNDED]:
             if self.is_partially_paid():
-                self.update_status(InvoiceStatus.OVERDUE, None, "Invoice overdue with partial payment")
+                return self.update_status(InvoiceStatus.OVERDUE, None, "Invoice overdue with partial payment")
             else:
-                self.update_status(InvoiceStatus.OVERDUE, None, "Invoice overdue")
+                return self.update_status(InvoiceStatus.OVERDUE, None, "Invoice overdue")
+        
+        return self
     
     def add_status_history_entry(self, from_status: Optional[InvoiceStatus], 
                                to_status: InvoiceStatus, changed_by: Optional[str] = None,
-                               reason: Optional[str] = None) -> None:
-        """Add entry to status history."""
+                               reason: Optional[str] = None) -> 'Invoice':
+        """Add entry to status history. Returns new Invoice instance."""
         entry = InvoiceStatusHistoryEntry(
             from_status=from_status,
             to_status=to_status,
             changed_by=changed_by,
             reason=reason
         )
-        self.status_history.append(entry)
+        
+        new_history = self.status_history + [entry]
         
         # Keep only last 20 entries
-        if len(self.status_history) > 20:
-            self.status_history = self.status_history[-20:]
+        if len(new_history) > 20:
+            new_history = new_history[-20:]
+        
+        return self.model_copy(update={'status_history': new_history})
     
     # Payment management methods
     def add_payment(self, amount: Decimal, payment_method: PaymentMethod = PaymentMethod.CASH,
                    reference: Optional[str] = None, transaction_id: Optional[str] = None,
-                   notes: Optional[str] = None, processed_by: Optional[str] = None) -> Payment:
-        """Add a payment to the invoice."""
+                   notes: Optional[str] = None, processed_by: Optional[str] = None) -> tuple['Invoice', Payment]:
+        """Add a payment to the invoice. Returns new Invoice instance and Payment."""
         if amount <= 0:
             raise DomainValidationError("Payment amount must be positive")
         
@@ -559,44 +650,61 @@ class Invoice:
             processed_by=processed_by
         )
         
-        self.payments.append(payment)
-        self.last_modified = datetime.now(timezone.utc)
+        # Create new invoice with payment added
+        invoice_with_payment = self.model_copy(update={
+            'payments': self.payments + [payment],
+            'last_modified': datetime.now(timezone.utc)
+        })
         
         # Update status based on payments
-        self._update_status_based_on_payments()
+        final_invoice = invoice_with_payment._update_status_based_on_payments()
         
-        return payment
+        return final_invoice, payment
     
     def process_refund(self, payment_id: uuid.UUID, amount: Decimal, 
-                      reason: Optional[str] = None, processed_by: Optional[str] = None) -> bool:
-        """Process a refund for a specific payment."""
-        for payment in self.payments:
+                      reason: Optional[str] = None, processed_by: Optional[str] = None) -> tuple['Invoice', bool]:
+        """Process a refund for a specific payment. Returns new Invoice instance and success flag."""
+        for i, payment in enumerate(self.payments):
             if payment.id == payment_id:
-                payment.process_refund(amount, reason, processed_by)
-                self.last_modified = datetime.now(timezone.utc)
+                updated_payment = payment.process_refund(amount, reason, processed_by)
+                
+                # Create new payments list with updated payment
+                new_payments = self.payments.copy()
+                new_payments[i] = updated_payment
+                
+                # Create new invoice with updated payments
+                invoice_with_refund = self.model_copy(update={
+                    'payments': new_payments,
+                    'last_modified': datetime.now(timezone.utc)
+                })
                 
                 # Update status if fully refunded
-                if all(p.is_fully_refunded() for p in self.payments if p.status == PaymentStatus.COMPLETED):
-                    self.update_status(InvoiceStatus.REFUNDED, processed_by, "Invoice fully refunded")
+                if all(p.is_fully_refunded() for p in new_payments if p.status == PaymentStatus.COMPLETED):
+                    final_invoice = invoice_with_refund.update_status(InvoiceStatus.REFUNDED, processed_by, "Invoice fully refunded")
+                    return final_invoice, True
                 
-                return True
-        return False
+                return invoice_with_refund, True
+        
+        return self, False
     
     def mark_as_paid(self, marked_by: Optional[str] = None, payment_method: PaymentMethod = PaymentMethod.CASH,
-                    reference: Optional[str] = None) -> None:
-        """Mark invoice as fully paid."""
+                    reference: Optional[str] = None) -> 'Invoice':
+        """Mark invoice as fully paid. Returns new Invoice instance."""
         if not self.can_mark_paid():
             raise BusinessRuleViolationError("Invoice cannot be marked as paid")
         
         remaining_balance = self.get_balance_due()
         if remaining_balance > 0:
-            self.add_payment(
+            final_invoice, _ = self.add_payment(
                 amount=remaining_balance,
                 payment_method=payment_method,
                 reference=reference,
                 notes="Manual payment entry",
                 processed_by=marked_by
             )
+            return final_invoice
+        
+        return self
     
     # Line item management
     def add_line_item(self, description: str, quantity: Decimal, unit_price: Decimal,
@@ -604,8 +712,8 @@ class Invoice:
                      discount_type: DiscountType = DiscountType.NONE,
                      discount_value: Decimal = Decimal("0"),
                      tax_rate: Decimal = Decimal("0"),
-                     notes: Optional[str] = None) -> InvoiceLineItem:
-        """Add a line item to the invoice."""
+                     notes: Optional[str] = None) -> tuple['Invoice', InvoiceLineItem]:
+        """Add a line item to the invoice. Returns new Invoice instance and line item."""
         line_item = InvoiceLineItem(
             description=description,
             quantity=quantity,
@@ -617,34 +725,52 @@ class Invoice:
             tax_rate=tax_rate,
             notes=notes
         )
-        self.line_items.append(line_item)
-        self.last_modified = datetime.now(timezone.utc)
-        return line_item
+        
+        new_invoice = self.model_copy(update={
+            'line_items': self.line_items + [line_item],
+            'last_modified': datetime.now(timezone.utc)
+        })
+        
+        return new_invoice, line_item
     
-    def remove_line_item(self, line_item_id: uuid.UUID) -> bool:
-        """Remove a line item from the invoice."""
+    def remove_line_item(self, line_item_id: uuid.UUID) -> tuple['Invoice', bool]:
+        """Remove a line item from the invoice. Returns new Invoice instance and success flag."""
         for i, item in enumerate(self.line_items):
             if item.id == line_item_id:
-                del self.line_items[i]
-                self.last_modified = datetime.now(timezone.utc)
-                return True
-        return False
+                new_line_items = self.line_items.copy()
+                del new_line_items[i]
+                
+                new_invoice = self.model_copy(update={
+                    'line_items': new_line_items,
+                    'last_modified': datetime.now(timezone.utc)
+                })
+                
+                return new_invoice, True
+        return self, False
     
-    def update_line_item(self, line_item_id: uuid.UUID, **updates) -> bool:
-        """Update a line item."""
-        for item in self.line_items:
+    def update_line_item(self, line_item_id: uuid.UUID, **updates) -> tuple['Invoice', bool]:
+        """Update a line item. Returns new Invoice instance and success flag."""
+        for i, item in enumerate(self.line_items):
             if item.id == line_item_id:
-                for key, value in updates.items():
-                    if hasattr(item, key):
-                        setattr(item, key, value)
-                self.last_modified = datetime.now(timezone.utc)
-                return True
-        return False
+                # Create updated line item using Pydantic's model_copy
+                updated_item = item.model_copy(update=updates)
+                
+                # Create new line items list with updated item
+                new_line_items = self.line_items.copy()
+                new_line_items[i] = updated_item
+                
+                new_invoice = self.model_copy(update={
+                    'line_items': new_line_items,
+                    'last_modified': datetime.now(timezone.utc)
+                })
+                
+                return new_invoice, True
+        return self, False
     
     # Email tracking
     def add_email_tracking(self, recipient_email: str, subject: str, 
-                          reminder_type: Optional[str] = None) -> InvoiceEmailTracking:
-        """Add email tracking entry."""
+                          reminder_type: Optional[str] = None) -> tuple['Invoice', InvoiceEmailTracking]:
+        """Add email tracking entry. Returns new Invoice instance and tracking entry."""
         tracking = InvoiceEmailTracking(
             recipient_email=recipient_email,
             subject=subject,
@@ -652,50 +778,80 @@ class Invoice:
             status=EmailStatus.SENT,
             reminder_type=reminder_type
         )
-        self.email_history.append(tracking)
+        
+        new_email_history = self.email_history + [tracking]
         
         # Keep only last 10 email tracking entries
-        if len(self.email_history) > 10:
-            self.email_history = self.email_history[-10:]
+        if len(new_email_history) > 10:
+            new_email_history = new_email_history[-10:]
         
-        return tracking
+        new_invoice = self.model_copy(update={'email_history': new_email_history})
+        
+        return new_invoice, tracking
     
     def update_email_tracking(self, tracking_id: uuid.UUID, status: EmailStatus,
-                            **tracking_data) -> bool:
-        """Update email tracking status."""
-        for tracking in self.email_history:
+                            **tracking_data) -> tuple['Invoice', bool]:
+        """Update email tracking status. Returns new Invoice instance and success flag."""
+        for i, tracking in enumerate(self.email_history):
             if tracking.id == tracking_id:
-                tracking.status = status
-                if status == EmailStatus.DELIVERED:
-                    tracking.delivered_date = datetime.now(timezone.utc)
-                elif status == EmailStatus.OPENED:
-                    tracking.opened_date = datetime.now(timezone.utc)
-                elif status == EmailStatus.CLICKED:
-                    tracking.clicked_date = datetime.now(timezone.utc)
+                now = datetime.now(timezone.utc)
+                update_data = {'status': status}
                 
-                tracking.tracking_data.update(tracking_data)
-                return True
-        return False
+                if status == EmailStatus.DELIVERED:
+                    update_data['delivered_date'] = now
+                elif status == EmailStatus.OPENED:
+                    update_data['opened_date'] = now
+                elif status == EmailStatus.CLICKED:
+                    update_data['clicked_date'] = now
+                
+                # Update tracking data
+                new_tracking_data = tracking.tracking_data.copy()
+                new_tracking_data.update(tracking_data)
+                update_data['tracking_data'] = new_tracking_data
+                
+                # Create updated tracking entry
+                updated_tracking = tracking.model_copy(update=update_data)
+                
+                # Create new email history with updated entry
+                new_email_history = self.email_history.copy()
+                new_email_history[i] = updated_tracking
+                
+                new_invoice = self.model_copy(update={'email_history': new_email_history})
+                
+                return new_invoice, True
+        return self, False
     
     # Utility methods
-    def add_tag(self, tag: str) -> None:
-        """Add a tag to the invoice."""
+    def add_tag(self, tag: str) -> 'Invoice':
+        """Add a tag to the invoice. Returns new Invoice instance."""
         tag = tag.strip().lower()
         if tag and tag not in self.tags:
-            self.tags.append(tag)
-            self.last_modified = datetime.now(timezone.utc)
+            return self.model_copy(update={
+                'tags': self.tags + [tag],
+                'last_modified': datetime.now(timezone.utc)
+            })
+        return self
     
-    def remove_tag(self, tag: str) -> None:
-        """Remove a tag from the invoice."""
+    def remove_tag(self, tag: str) -> 'Invoice':
+        """Remove a tag from the invoice. Returns new Invoice instance."""
         tag = tag.strip().lower()
         if tag in self.tags:
-            self.tags.remove(tag)
-            self.last_modified = datetime.now(timezone.utc)
+            new_tags = [t for t in self.tags if t != tag]
+            return self.model_copy(update={
+                'tags': new_tags,
+                'last_modified': datetime.now(timezone.utc)
+            })
+        return self
     
-    def set_custom_field(self, field_name: str, value: Any) -> None:
-        """Set a custom field value."""
-        self.custom_fields[field_name] = value
-        self.last_modified = datetime.now(timezone.utc)
+    def set_custom_field(self, field_name: str, value: Any) -> 'Invoice':
+        """Set a custom field value. Returns new Invoice instance."""
+        new_custom_fields = self.custom_fields.copy()
+        new_custom_fields[field_name] = value
+        
+        return self.model_copy(update={
+            'custom_fields': new_custom_fields,
+            'last_modified': datetime.now(timezone.utc)
+        })
     
     def get_custom_field(self, field_name: str, default: Any = None) -> Any:
         """Get a custom field value."""
@@ -704,11 +860,15 @@ class Invoice:
     # Display methods
     def get_status_display(self) -> str:
         """Get human-readable status."""
-        return self.status.get_display()
+        if hasattr(self.status, 'get_display'):
+            return self.status.get_display()
+        return str(self.status)
     
     def get_currency_display(self) -> str:
         """Get human-readable currency."""
-        return self.currency.get_display()
+        if hasattr(self.currency, 'get_display'):
+            return self.currency.get_display()
+        return str(self.currency)
     
     def get_client_display_name(self) -> str:
         """Get client display name."""
@@ -717,12 +877,14 @@ class Invoice:
     def get_total_display(self) -> str:
         """Get formatted total amount."""
         total = self.round_currency(self.get_total_amount())
-        return f"{self.currency.value} {total:,.2f}"
+        currency_value = self.currency.value if hasattr(self.currency, 'value') else str(self.currency)
+        return f"{currency_value} {total:,.2f}"
     
     def get_balance_display(self) -> str:
         """Get formatted balance due."""
         balance = self.round_currency(self.get_balance_due())
-        return f"{self.currency.value} {balance:,.2f}"
+        currency_value = self.currency.value if hasattr(self.currency, 'value') else str(self.currency)
+        return f"{currency_value} {balance:,.2f}"
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert invoice to dictionary representation."""
@@ -730,7 +892,7 @@ class Invoice:
             "id": str(self.id),
             "business_id": str(self.business_id),
             "invoice_number": self.invoice_number,
-            "status": self.status.value,
+            "status": self.status.value if hasattr(self.status, 'value') else str(self.status),
             "status_display": self.get_status_display(),
             "client_id": str(self.client_id) if self.client_id else None,
             "client_name": self.client_name,
@@ -748,7 +910,7 @@ class Invoice:
                     "unit_price": float(item.unit_price),
                     "unit": item.unit,
                     "category": item.category,
-                    "discount_type": item.discount_type.value,
+                    "discount_type": item.discount_type.value if hasattr(item.discount_type, 'value') else str(item.discount_type),
                     "discount_value": float(item.discount_value),
                     "tax_rate": float(item.tax_rate),
                     "subtotal": float(item.get_subtotal()),
@@ -758,18 +920,18 @@ class Invoice:
                 }
                 for item in self.line_items
             ],
-            "currency": self.currency.value,
+            "currency": self.currency.value if hasattr(self.currency, 'value') else str(self.currency),
             "tax_rate": float(self.tax_rate),
-            "tax_type": self.tax_type.value,
-            "overall_discount_type": self.overall_discount_type.value,
+            "tax_type": self.tax_type.value if hasattr(self.tax_type, 'value') else str(self.tax_type),
+            "overall_discount_type": self.overall_discount_type.value if hasattr(self.overall_discount_type, 'value') else str(self.overall_discount_type),
             "overall_discount_value": float(self.overall_discount_value),
             "payments": [
                 {
                     "id": str(payment.id),
                     "amount": float(payment.amount),
                     "payment_date": payment.payment_date.isoformat(),
-                    "payment_method": payment.payment_method.value,
-                    "status": payment.status.value,
+                    "payment_method": payment.payment_method.value if hasattr(payment.payment_method, 'value') else str(payment.payment_method),
+                    "status": payment.status.value if hasattr(payment.status, 'value') else str(payment.status),
                     "reference": payment.reference,
                     "transaction_id": payment.transaction_id,
                     "notes": payment.notes,

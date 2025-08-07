@@ -414,10 +414,20 @@ import type {
   SuppliersGetSupplierPerformanceResponse,
   SuppliersGetSupplierOrdersData,
   SuppliersGetSupplierOrdersResponse,
-  TemplatesGetInvoiceTemplatesData,
-  TemplatesGetInvoiceTemplatesResponse,
+  TemplatesGetTemplatesData,
+  TemplatesGetTemplatesResponse,
+  TemplatesCreateTemplateData,
+  TemplatesCreateTemplateResponse,
   TemplatesGetEstimateTemplatesData,
   TemplatesGetEstimateTemplatesResponse,
+  TemplatesGetInvoiceTemplatesData,
+  TemplatesGetInvoiceTemplatesResponse,
+  TemplatesGetTemplateData,
+  TemplatesGetTemplateResponse,
+  TemplatesUpdateTemplateData,
+  TemplatesUpdateTemplateResponse,
+  TemplatesDeleteTemplateData,
+  TemplatesDeleteTemplateResponse,
   UsersGetCurrentUserProfileResponse,
   UsersUpdateUserBusinessContextData,
   UsersUpdateUserBusinessContextResponse,
@@ -5826,33 +5836,51 @@ export class SuppliersService {
 
 export class TemplatesService {
   /**
-   * Get Invoice Templates
-   * Get invoice templates for the business.
+   * Get Templates
+   * Get all document templates for the business.
    *
-   * Returns estimate templates that are suitable for invoice creation.
-   * Since invoices and estimates share the same template system,
-   * this endpoint returns estimate templates filtered for invoice use.
+   * Can be filtered by document type and active status.
    * Requires 'view_projects' permission.
    * @param data The data for the request.
-   * @param data.skip Number of records to skip
-   * @param data.limit Maximum number of records to return
-   * @param data.templateType Filter by template type
+   * @param data.documentType Filter by document type (estimate, invoice, contract, etc.)
    * @param data.isActive Filter by active status
-   * @returns EstimateTemplateResponse Successful Response
+   * @returns DocumentTemplateResponse Successful Response
    * @throws ApiError
    */
-  public static getInvoiceTemplates(
-    data: TemplatesGetInvoiceTemplatesData = {},
-  ): CancelablePromise<TemplatesGetInvoiceTemplatesResponse> {
+  public static getTemplates(
+    data: TemplatesGetTemplatesData = {},
+  ): CancelablePromise<TemplatesGetTemplatesResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/templates/invoices",
+      url: "/api/v1/templates/",
       query: {
-        skip: data.skip,
-        limit: data.limit,
-        template_type: data.templateType,
+        document_type: data.documentType,
         is_active: data.isActive,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Template
+   * Create a new document template.
+   *
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns DocumentTemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static createTemplate(
+    data: TemplatesCreateTemplateData,
+  ): CancelablePromise<TemplatesCreateTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/templates/",
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },
@@ -5863,14 +5891,11 @@ export class TemplatesService {
    * Get Estimate Templates
    * Get estimate templates for the business.
    *
-   * Returns estimate templates available for estimate creation.
+   * Returns templates specifically designed for estimates.
    * Requires 'view_projects' permission.
    * @param data The data for the request.
-   * @param data.skip Number of records to skip
-   * @param data.limit Maximum number of records to return
-   * @param data.templateType Filter by template type
    * @param data.isActive Filter by active status
-   * @returns EstimateTemplateResponse Successful Response
+   * @returns DocumentTemplateResponse Successful Response
    * @throws ApiError
    */
   public static getEstimateTemplates(
@@ -5880,10 +5905,112 @@ export class TemplatesService {
       method: "GET",
       url: "/api/v1/templates/estimates",
       query: {
-        skip: data.skip,
-        limit: data.limit,
-        template_type: data.templateType,
         is_active: data.isActive,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Invoice Templates
+   * Get invoice templates for the business.
+   *
+   * Returns templates specifically designed for invoices.
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.isActive Filter by active status
+   * @returns DocumentTemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static getInvoiceTemplates(
+    data: TemplatesGetInvoiceTemplatesData = {},
+  ): CancelablePromise<TemplatesGetInvoiceTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/templates/invoices",
+      query: {
+        is_active: data.isActive,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Template
+   * Get a specific template by ID.
+   *
+   * Requires 'view_projects' permission.
+   * @param data The data for the request.
+   * @param data.templateId
+   * @returns DocumentTemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static getTemplate(
+    data: TemplatesGetTemplateData,
+  ): CancelablePromise<TemplatesGetTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/templates/{template_id}",
+      path: {
+        template_id: data.templateId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Template
+   * Update a template.
+   *
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.templateId
+   * @param data.requestBody
+   * @returns DocumentTemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateTemplate(
+    data: TemplatesUpdateTemplateData,
+  ): CancelablePromise<TemplatesUpdateTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/templates/{template_id}",
+      path: {
+        template_id: data.templateId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Template
+   * Delete a template.
+   *
+   * Cannot delete default templates.
+   * Requires 'edit_projects' permission.
+   * @param data The data for the request.
+   * @param data.templateId
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static deleteTemplate(
+    data: TemplatesDeleteTemplateData,
+  ): CancelablePromise<TemplatesDeleteTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/templates/{template_id}",
+      path: {
+        template_id: data.templateId,
       },
       errors: {
         422: "Validation Error",

@@ -6,14 +6,32 @@ travel time, and business constraints using advanced scheduling algorithms.
 """
 
 import uuid
-from dataclasses import dataclass, field
+import logging
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Tuple, Annotated
 from enum import Enum
 from decimal import Decimal
 import math
+from pydantic import BaseModel, Field, field_validator, model_validator, UUID4, BeforeValidator
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+
+# Custom Pydantic validators for automatic string-to-enum conversion
+def validate_scheduling_objective(v) -> 'SchedulingObjective':
+    """Convert string to SchedulingObjective enum."""
+    if isinstance(v, str):
+        return SchedulingObjective(v)
+    return v
+
+def validate_scheduling_constraint(v) -> 'SchedulingConstraint':
+    """Convert string to SchedulingConstraint enum."""
+    if isinstance(v, str):
+        return SchedulingConstraint(v)
+    return v
 
 
 class SchedulingObjective(Enum):
@@ -35,16 +53,17 @@ class SchedulingConstraint(Enum):
     EQUIPMENT_REQUIREMENT = "equipment_requirement"
 
 
-@dataclass
-class TravelTimeCalculation:
+class TravelTimeCalculation(BaseModel):
     """Value object for travel time calculations."""
-    origin_lat: float
-    origin_lng: float
-    destination_lat: float
-    destination_lng: float
-    travel_time_minutes: Decimal
-    distance_km: Decimal
-    traffic_factor: Decimal = Decimal("1.0")
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    origin_lat: float = Field(ge=-90, le=90)
+    origin_lng: float = Field(ge=-180, le=180)
+    destination_lat: float = Field(ge=-90, le=90)
+    destination_lng: float = Field(ge=-180, le=180)
+    travel_time_minutes: Decimal = Field(ge=0)
+    distance_km: Decimal = Field(ge=0)
+    traffic_factor: Decimal = Field(default=Decimal("1.0"), gt=0)
     
     @classmethod
     def calculate_haversine_distance(cls, lat1: float, lon1: float, lat2: float, lon2: float) -> Decimal:
@@ -69,17 +88,18 @@ class TravelTimeCalculation:
         return hours * Decimal("60")  # Convert to minutes
 
 
-@dataclass
-class SchedulingCandidate:
+class SchedulingCandidate(BaseModel):
     """Represents a user candidate for job assignment."""
-    user_id: str
-    skill_match_score: Decimal  # 0-1
-    travel_time_minutes: Decimal
-    efficiency_multiplier: Decimal
-    current_workload: int
-    availability_score: Decimal  # 0-1
-    cost_per_hour: Decimal
-    priority_bonus: Decimal = Decimal("0")
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    user_id: str = Field(min_length=1)
+    skill_match_score: Decimal = Field(ge=0, le=1)  # 0-1
+    travel_time_minutes: Decimal = Field(ge=0)
+    efficiency_multiplier: Decimal = Field(gt=0)
+    current_workload: int = Field(ge=0)
+    availability_score: Decimal = Field(ge=0, le=1)  # 0-1
+    cost_per_hour: Decimal = Field(ge=0)
+    priority_bonus: Decimal = Field(default=Decimal("0"), ge=0)
     
     def calculate_total_score(self, weights: Dict[str, Decimal]) -> Decimal:
         """Calculate weighted total score for ranking."""
@@ -118,18 +138,19 @@ class SchedulingCandidate:
             return Decimal("0.4")
 
 
-@dataclass
-class SchedulingResult:
+class SchedulingResult(BaseModel):
     """Result of job scheduling operation."""
-    job_id: uuid.UUID
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    job_id: UUID4
     assigned_user_id: Optional[str] = None
     scheduled_start: Optional[datetime] = None
     scheduled_end: Optional[datetime] = None
-    estimated_travel_time: Optional[Decimal] = None
-    confidence_score: Optional[Decimal] = None
-    alternative_candidates: List[str] = field(default_factory=list)
+    estimated_travel_time: Optional[Decimal] = Field(default=None, ge=0)
+    confidence_score: Optional[Decimal] = Field(default=None, ge=0, le=1)
+    alternative_candidates: List[str] = Field(default_factory=list)
     scheduling_notes: Optional[str] = None
-    constraints_violated: List[str] = field(default_factory=list)
+    constraints_violated: List[str] = Field(default_factory=list)
     is_feasible: bool = True
 
 

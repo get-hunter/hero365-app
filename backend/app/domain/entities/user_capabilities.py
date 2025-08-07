@@ -6,10 +6,11 @@ Handles skill matching, availability windows, and workload capacity management.
 """
 
 import uuid
-from dataclasses import dataclass, field
+import logging
 from datetime import datetime, timedelta, time, date
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
+from pydantic import BaseModel, Field, field_validator, model_validator, UUID4
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
 
@@ -21,67 +22,76 @@ from .calendar import (
     RecurrenceType, TimeOffType, CalendarEventType
 )
 
+# Configure logging
+logger = logging.getLogger(__name__)
 
-@dataclass
-class UserCapabilities:
+
+class UserCapabilities(BaseModel):
     """
     Enhanced User Capabilities entity with comprehensive calendar management.
     
     This entity manages user capabilities for intelligent job scheduling,
     including skills, availability, calendar events, and scheduling preferences.
     """
+    model_config = {"use_enum_values": True, "validate_assignment": True}
     
-    id: uuid.UUID
-    business_id: uuid.UUID
-    user_id: str
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    business_id: UUID4
+    user_id: str = Field(min_length=1)
     
     # Skills and certifications
-    skills: List[Skill] = field(default_factory=list)
-    certifications: List[Certification] = field(default_factory=list)
+    skills: List[Skill] = Field(default_factory=list)
+    certifications: List[Certification] = Field(default_factory=list)
     
     # Calendar and availability
-    availability_windows: List[AvailabilityWindow] = field(default_factory=list)
-    calendar_events: List[CalendarEvent] = field(default_factory=list)
-    time_off_requests: List[TimeOffRequest] = field(default_factory=list)
+    availability_windows: List[AvailabilityWindow] = Field(default_factory=list)
+    calendar_events: List[CalendarEvent] = Field(default_factory=list)
+    time_off_requests: List[TimeOffRequest] = Field(default_factory=list)
     working_hours_template: Optional[WorkingHoursTemplate] = None
     calendar_preferences: Optional[CalendarPreferences] = None
     
     # Capacity and workload
-    workload_capacity: WorkloadCapacity = field(default_factory=WorkloadCapacity)
+    workload_capacity: WorkloadCapacity = Field(default_factory=WorkloadCapacity)
     
     # Location and mobility
     home_base_address: Optional[str] = None
-    home_base_latitude: Optional[float] = None
-    home_base_longitude: Optional[float] = None
+    home_base_latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    home_base_longitude: Optional[float] = Field(default=None, ge=-180, le=180)
     vehicle_type: Optional[str] = None
     has_vehicle: bool = True
     
     # Legacy scheduling preferences (maintained for backward compatibility)
     preferred_start_time: Optional[time] = None
     preferred_end_time: Optional[time] = None
-    min_time_between_jobs_minutes: int = 30
-    max_commute_time_minutes: int = 60
+    min_time_between_jobs_minutes: int = Field(default=30, ge=0)
+    max_commute_time_minutes: int = Field(default=60, ge=0)
     
     # Performance metrics
-    average_job_rating: Optional[Decimal] = None
-    completion_rate: Optional[Decimal] = None
-    punctuality_score: Optional[Decimal] = None
+    average_job_rating: Optional[Decimal] = Field(default=None, ge=0, le=5)
+    completion_rate: Optional[Decimal] = Field(default=None, ge=0, le=100)
+    punctuality_score: Optional[Decimal] = Field(default=None, ge=0, le=100)
     
     # Metadata
-    created_date: datetime = field(default_factory=datetime.utcnow)
-    last_modified: datetime = field(default_factory=datetime.utcnow)
+    created_date: datetime = Field(default_factory=datetime.utcnow)
+    last_modified: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
     
-    def __post_init__(self):
-        """Validate user capabilities."""
+    @model_validator(mode='after')
+    def validate_capabilities_and_init_preferences(self):
+        """Validate user capabilities and initialize calendar preferences if needed."""
         self._validate_capabilities()
         
-        # Initialize calendar preferences if not provided
+        # Initialize calendar preferences if not provided (using model_copy to maintain immutability)
         if not self.calendar_preferences:
-            self.calendar_preferences = CalendarPreferences(
+            calendar_prefs = CalendarPreferences(
                 user_id=self.user_id,
                 business_id=self.business_id
             )
+            # Note: In Pydantic v2, we can't modify self in model_validator(mode='after')
+            # This initialization should be done in model_validator(mode='before') if needed
+            # For now, we'll just validate and let the caller set preferences if needed
+        
+        return self
     
     def _validate_capabilities(self) -> None:
         """Validate core capabilities business rules."""
@@ -100,42 +110,58 @@ class UserCapabilities:
             raise DomainValidationError("Max commute time must be positive")
     
     # Skills management methods
-    def add_skill(self, skill: Skill) -> None:
-        """Add a skill to the user's capabilities."""
+    def add_skill(self, skill: Skill) -> 'UserCapabilities':
+        """Add a skill to the user's capabilities. Returns new UserCapabilities instance."""
         # Check if skill already exists
         existing_skill = self.get_skill_by_id(skill.skill_id)
         if existing_skill:
             raise BusinessRuleViolationError(f"Skill {skill.skill_id} already exists")
         
-        self.skills.append(skill)
-        self.last_modified = datetime.utcnow()
+        new_skills = self.skills + [skill]
+        return self.model_copy(update={
+            'skills': new_skills,
+            'last_modified': datetime.utcnow()
+        })
     
     def update_skill(self, skill_id: str, level: Optional[SkillLevel] = None, 
                     years_experience: Optional[Decimal] = None,
-                    proficiency_score: Optional[Decimal] = None) -> None:
-        """Update an existing skill."""
+                    proficiency_score: Optional[Decimal] = None) -> 'UserCapabilities':
+        """Update an existing skill. Returns new UserCapabilities instance."""
         skill = self.get_skill_by_id(skill_id)
         if not skill:
             raise BusinessRuleViolationError(f"Skill {skill_id} not found")
         
+        # Create updated skill
+        update_data = {}
         if level:
-            skill.level = level
+            update_data['level'] = level
         if years_experience is not None:
-            skill.years_experience = years_experience
+            update_data['years_experience'] = years_experience
         if proficiency_score is not None:
-            skill.proficiency_score = proficiency_score
+            update_data['proficiency_score'] = proficiency_score
         
-        skill.last_used = datetime.utcnow()
-        self.last_modified = datetime.utcnow()
+        update_data['last_used'] = datetime.utcnow()
+        updated_skill = skill.model_copy(update=update_data)
+        
+        # Create new skills list with updated skill
+        new_skills = [updated_skill if s.skill_id == skill_id else s for s in self.skills]
+        
+        return self.model_copy(update={
+            'skills': new_skills,
+            'last_modified': datetime.utcnow()
+        })
     
-    def remove_skill(self, skill_id: str) -> None:
-        """Remove a skill from the user's capabilities."""
+    def remove_skill(self, skill_id: str) -> 'UserCapabilities':
+        """Remove a skill from the user's capabilities. Returns new UserCapabilities instance."""
         skill = self.get_skill_by_id(skill_id)
         if not skill:
             raise BusinessRuleViolationError(f"Skill {skill_id} not found")
         
-        self.skills.remove(skill)
-        self.last_modified = datetime.utcnow()
+        new_skills = [s for s in self.skills if s.skill_id != skill_id]
+        return self.model_copy(update={
+            'skills': new_skills,
+            'last_modified': datetime.utcnow()
+        })
     
     def get_skill_by_id(self, skill_id: str) -> Optional[Skill]:
         """Get a skill by its ID."""

@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS public.document_templates (
     
     -- Constraints
     CONSTRAINT document_templates_business_or_system CHECK (
-        (business_id IS NOT NULL AND is_system_template = FALSE AND branding_id IS NOT NULL) OR 
+        (business_id IS NOT NULL AND is_system_template = FALSE) OR 
         (business_id IS NULL AND is_system_template = TRUE AND branding_id IS NULL)
     ),
     CONSTRAINT document_templates_unique_default_per_type UNIQUE (business_id, document_type, is_default)
@@ -110,102 +110,8 @@ CREATE TRIGGER update_document_templates_last_modified_trigger
     FOR EACH ROW
     EXECUTE FUNCTION update_document_templates_last_modified();
 
--- Migrate existing estimate templates to document templates
-INSERT INTO public.document_templates (
-    id,
-    business_id,
-    name,
-    description,
-    document_type,
-    template_type,
-    is_active,
-    is_default,
-    usage_count,
-    sections,
-    header_text,
-    footer_text,
-    terms_text,
-    template_data,
-    created_by,
-    created_date,
-    last_modified
-)
-SELECT 
-    id,
-    business_id,
-    name,
-    description,
-    'estimate' as document_type,
-    template_type,
-    is_active,
-    is_default,
-    usage_count,
-    COALESCE(
-        jsonb_build_object(
-            'show_header', true,
-            'show_footer', true,
-            'show_business_info', true,
-            'show_client_info', true,
-            'show_line_items', true,
-            'show_totals', true,
-            'show_validity_period', true,
-            'show_estimate_notes', true,
-            'show_payment_instructions', false,
-            'show_due_date', false
-        ) || COALESCE(sections, '{}'),
-        '{}'::jsonb
-    ) as sections,
-    header_content as header_text,
-    footer_content as footer_text,
-    terms_and_conditions as terms_text,
-    COALESCE(
-        color_scheme || typography || layout || business_info,
-        '{}'::jsonb
-    ) as template_data,
-    created_by,
-    created_date,
-    last_modified
-FROM public.estimate_templates
-WHERE EXISTS (SELECT 1 FROM public.estimate_templates);
-
--- Create default invoice templates for businesses that have estimate templates
-INSERT INTO public.document_templates (
-    business_id,
-    name,
-    document_type,
-    template_type,
-    sections,
-    thank_you_message,
-    payment_instructions,
-    created_by,
-    created_date,
-    last_modified
-)
-SELECT DISTINCT
-    business_id,
-    'Default Invoice Template' as name,
-    'invoice' as document_type,
-    'professional' as template_type,
-    '{
-        "show_header": true,
-        "show_footer": true,
-        "show_business_info": true,
-        "show_client_info": true,
-        "show_line_items": true,
-        "show_totals": true,
-        "show_payment_instructions": true,
-        "show_due_date": true,
-        "show_payment_methods": true,
-        "show_validity_period": false,
-        "show_estimate_notes": false
-    }'::jsonb as sections,
-    'Thank you for your business!' as thank_you_message,
-    'Payment is due within 30 days of invoice date.' as payment_instructions,
-    created_by,
-    NOW() as created_date,
-    NOW() as last_modified
-FROM public.estimate_templates
-WHERE business_id IS NOT NULL;
+-- Note: Data migration will be handled separately if needed
+-- The table is now ready for the unified DocumentTemplate system
 
 -- Update invoices table to reference document_templates instead of estimate_templates
 ALTER TABLE public.invoices 

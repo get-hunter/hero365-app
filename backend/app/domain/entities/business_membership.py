@@ -5,12 +5,24 @@ Represents a user's membership in a business with roles and permissions.
 """
 
 import uuid
-from dataclasses import dataclass
-from typing import Optional, List
+import logging
+from typing import Optional, List, Annotated
 from datetime import datetime
 from enum import Enum
+from pydantic import BaseModel, Field, field_validator, model_validator, UUID4, BeforeValidator
 
 from ..exceptions.domain_exceptions import DomainValidationError
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+
+# Custom Pydantic validators for automatic string-to-enum conversion
+def validate_business_role(v) -> 'BusinessRole':
+    """Convert string to BusinessRole enum."""
+    if isinstance(v, str):
+        return BusinessRole(v)
+    return v
 
 
 class BusinessRole(Enum):
@@ -168,34 +180,47 @@ DEFAULT_ROLE_PERMISSIONS = {
 }
 
 
-@dataclass
-class BusinessMembership:
+class BusinessMembership(BaseModel):
     """
     Business Membership entity representing a user's relationship with a business.
     
     This entity contains business logic for role-based access control,
     permission management, and membership lifecycle.
     """
+    model_config = {"use_enum_values": True, "validate_assignment": True}
     
-    id: uuid.UUID
-    business_id: uuid.UUID
-    user_id: str
-    role: BusinessRole
-    permissions: List[str]
-    joined_date: datetime
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    business_id: UUID4
+    user_id: str = Field(min_length=1)
+    role: Annotated[BusinessRole, BeforeValidator(validate_business_role)]
+    permissions: List[str] = Field(default_factory=list)
+    joined_date: datetime = Field(default_factory=datetime.utcnow)
     invited_date: Optional[datetime] = None
     invited_by: Optional[str] = None
     is_active: bool = True
-    department_id: Optional[uuid.UUID] = None
+    department_id: Optional[UUID4] = None
     job_title: Optional[str] = None
     
-    def __post_init__(self):
-        """Validate business rules after initialization."""
-        # Auto-assign default permissions if none provided
-        if not self.permissions:
-            self.permissions = get_default_permissions_for_role(self.role)
-        
+    @model_validator(mode='before')
+    @classmethod
+    def set_default_permissions(cls, values):
+        """Set default permissions if none provided."""
+        if isinstance(values, dict):
+            # Auto-assign default permissions if none provided
+            if not values.get('permissions'):
+                role = values.get('role')
+                if role:
+                    # Handle both enum and string values
+                    if isinstance(role, str):
+                        role = BusinessRole(role)
+                    values['permissions'] = get_default_permissions_for_role(role)
+        return values
+    
+    @model_validator(mode='after')
+    def validate_membership_rules(self):
+        """Validate business rules after model creation."""
         self._validate_membership_rules()
+        return self
     
     @classmethod
     def create_with_default_permissions(
@@ -247,6 +272,7 @@ class BusinessMembership:
         if not self.user_id:
             raise DomainValidationError("Business membership must have a user ID")
         
+        # Permissions should be set by now (either provided or auto-assigned)
         if not self.permissions:
             raise DomainValidationError("Business membership must have permissions")
         
@@ -351,12 +377,15 @@ class BusinessMembership:
         """Check if membership can remove team members."""
         return self.has_business_permission(BusinessPermission.REMOVE_TEAM_MEMBERS)
     
-    def update_role(self, new_role: BusinessRole) -> None:
+    def update_role(self, new_role: BusinessRole) -> 'BusinessMembership':
         """
-        Update the membership role and adjust permissions accordingly.
+        Update the membership role and adjust permissions accordingly. Returns new BusinessMembership instance.
         
         Args:
             new_role: The new role to assign
+            
+        Returns:
+            New BusinessMembership instance with updated role
             
         Raises:
             DomainValidationError: If role update is invalid
@@ -364,45 +393,43 @@ class BusinessMembership:
         if self.role == BusinessRole.OWNER and new_role != BusinessRole.OWNER:
             raise DomainValidationError("Cannot change owner role")
         
-        old_role = self.role
-        self.role = new_role
-        
         # Update permissions to match new role
-        self.permissions = DEFAULT_ROLE_PERMISSIONS.get(new_role, []).copy()
+        new_permissions = DEFAULT_ROLE_PERMISSIONS.get(new_role, []).copy()
         
-        try:
-            self._validate_membership_rules()
-        except DomainValidationError:
-            # Rollback on validation failure
-            self.role = old_role
-            self.permissions = DEFAULT_ROLE_PERMISSIONS.get(old_role, []).copy()
-            raise
+        return self.model_copy(update={
+            'role': new_role,
+            'permissions': new_permissions
+        })
     
-    def add_permission(self, permission: str) -> None:
-        """Add a custom permission to the membership."""
+    def add_permission(self, permission: str) -> 'BusinessMembership':
+        """Add a custom permission to the membership. Returns new BusinessMembership instance."""
         if permission not in self.permissions:
-            self.permissions.append(permission)
+            new_permissions = self.permissions + [permission]
+            return self.model_copy(update={'permissions': new_permissions})
+        return self
     
-    def add_business_permission(self, permission: BusinessPermission) -> None:
-        """Add a business permission to the membership."""
-        self.add_permission(permission.value)
+    def add_business_permission(self, permission: BusinessPermission) -> 'BusinessMembership':
+        """Add a business permission to the membership. Returns new BusinessMembership instance."""
+        return self.add_permission(permission.value)
     
-    def remove_permission(self, permission: str) -> None:
-        """Remove a permission from the membership."""
+    def remove_permission(self, permission: str) -> 'BusinessMembership':
+        """Remove a permission from the membership. Returns new BusinessMembership instance."""
         if permission in self.permissions:
-            self.permissions.remove(permission)
+            new_permissions = [p for p in self.permissions if p != permission]
+            return self.model_copy(update={'permissions': new_permissions})
+        return self
     
-    def remove_business_permission(self, permission: BusinessPermission) -> None:
-        """Remove a business permission from the membership."""
-        self.remove_permission(permission.value)
+    def remove_business_permission(self, permission: BusinessPermission) -> 'BusinessMembership':
+        """Remove a business permission from the membership. Returns new BusinessMembership instance."""
+        return self.remove_permission(permission.value)
     
-    def activate(self) -> None:
-        """Activate the membership."""
-        self.is_active = True
+    def activate(self) -> 'BusinessMembership':
+        """Activate the membership. Returns new BusinessMembership instance."""
+        return self.model_copy(update={'is_active': True})
     
-    def deactivate(self) -> None:
-        """Deactivate the membership."""
-        self.is_active = False
+    def deactivate(self) -> 'BusinessMembership':
+        """Deactivate the membership. Returns new BusinessMembership instance."""
+        return self.model_copy(update={'is_active': False})
     
     def to_dict(self) -> dict:
         """Convert membership to dictionary representation."""

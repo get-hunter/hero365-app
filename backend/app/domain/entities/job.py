@@ -6,10 +6,11 @@ Handles job lifecycle, status transitions, cost tracking, and team assignments.
 """
 
 import uuid
-from dataclasses import dataclass, field
+import logging
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Annotated
 from enum import Enum
+from pydantic import BaseModel, Field, field_validator, model_validator, UUID4, BeforeValidator
 from .job_enums.enums import JobType, JobStatus, JobPriority, JobSource
 from decimal import Decimal
 
@@ -18,27 +19,54 @@ from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleVi
 # Import unified Address value object
 from ..value_objects.address import Address
 
+# Configure logging
+logger = logging.getLogger(__name__)
 
-@dataclass
-class JobTimeTracking:
+
+# Custom Pydantic validators for automatic string-to-enum conversion
+def validate_job_type(v) -> 'JobType':
+    """Convert string to JobType enum."""
+    if isinstance(v, str):
+        return JobType(v)
+    return v
+
+def validate_job_status(v) -> 'JobStatus':
+    """Convert string to JobStatus enum."""
+    if isinstance(v, str):
+        return JobStatus(v)
+    return v
+
+def validate_job_priority(v) -> 'JobPriority':
+    """Convert string to JobPriority enum."""
+    if isinstance(v, str):
+        return JobPriority(v)
+    return v
+
+def validate_job_source(v) -> 'JobSource':
+    """Convert string to JobSource enum."""
+    if isinstance(v, str):
+        return JobSource(v)
+    return v
+
+
+class JobTimeTracking(BaseModel):
     """Value object for job time tracking."""
-    estimated_hours: Optional[Decimal] = None
-    actual_hours: Optional[Decimal] = None
-    billable_hours: Optional[Decimal] = None
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    estimated_hours: Optional[Decimal] = Field(default=None, ge=0)
+    actual_hours: Optional[Decimal] = Field(default=None, ge=0)
+    billable_hours: Optional[Decimal] = Field(default=None, ge=0)
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
-    break_time_minutes: int = 0
+    break_time_minutes: int = Field(default=0, ge=0)
     
-    def __post_init__(self):
-        """Validate time tracking data."""
-        if self.estimated_hours is not None and self.estimated_hours < 0:
-            raise DomainValidationError("Estimated hours cannot be negative")
-        if self.actual_hours is not None and self.actual_hours < 0:
-            raise DomainValidationError("Actual hours cannot be negative")
-        if self.billable_hours is not None and self.billable_hours < 0:
-            raise DomainValidationError("Billable hours cannot be negative")
-        if self.break_time_minutes < 0:
-            raise DomainValidationError("Break time cannot be negative")
+    @model_validator(mode='after')
+    def validate_time_consistency(self):
+        """Validate time consistency."""
+        if self.start_time and self.end_time:
+            if self.end_time <= self.start_time:
+                raise ValueError("End time must be after start time")
+        return self
     
     def calculate_duration(self) -> Optional[Decimal]:
         """Calculate duration from start and end times."""
@@ -56,33 +84,17 @@ class JobTimeTracking:
         return False
 
 
-@dataclass
-class JobCostEstimate:
+class JobCostEstimate(BaseModel):
     """Value object for job cost estimation."""
-    labor_cost: Decimal = Decimal("0")
-    material_cost: Decimal = Decimal("0")
-    equipment_cost: Decimal = Decimal("0")
-    overhead_cost: Decimal = Decimal("0")
-    markup_percentage: Decimal = Decimal("20")  # Default 20% markup
-    tax_percentage: Decimal = Decimal("0")
-    discount_amount: Decimal = Decimal("0")
+    model_config = {"use_enum_values": True, "validate_assignment": True}
     
-    def __post_init__(self):
-        """Validate cost data."""
-        if self.labor_cost < 0:
-            raise DomainValidationError("Labor cost cannot be negative")
-        if self.material_cost < 0:
-            raise DomainValidationError("Material cost cannot be negative")
-        if self.equipment_cost < 0:
-            raise DomainValidationError("Equipment cost cannot be negative")
-        if self.overhead_cost < 0:
-            raise DomainValidationError("Overhead cost cannot be negative")
-        if self.markup_percentage < 0:
-            raise DomainValidationError("Markup percentage cannot be negative")
-        if self.tax_percentage < 0:
-            raise DomainValidationError("Tax percentage cannot be negative")
-        if self.discount_amount < 0:
-            raise DomainValidationError("Discount amount cannot be negative")
+    labor_cost: Decimal = Field(default=Decimal("0"), ge=0)
+    material_cost: Decimal = Field(default=Decimal("0"), ge=0)
+    equipment_cost: Decimal = Field(default=Decimal("0"), ge=0)
+    overhead_cost: Decimal = Field(default=Decimal("0"), ge=0)
+    markup_percentage: Decimal = Field(default=Decimal("20"), ge=0)  # Default 20% markup
+    tax_percentage: Decimal = Field(default=Decimal("0"), ge=0)
+    discount_amount: Decimal = Field(default=Decimal("0"), ge=0)
     
     def get_subtotal(self) -> Decimal:
         """Calculate subtotal before markup and tax."""
@@ -113,30 +125,30 @@ class JobCostEstimate:
         return Decimal("0")
 
 
-@dataclass
-class Job:
+class Job(BaseModel):
     """
     Job domain entity representing a service job or project.
     
     This entity contains all business logic for job management,
     status transitions, cost tracking, and team assignments.
     """
+    model_config = {"use_enum_values": True, "validate_assignment": True}
     
     # Required fields (no default values)
-    id: uuid.UUID
-    business_id: uuid.UUID
-    job_number: str
-    title: str
-    job_type: JobType
-    status: JobStatus
-    priority: JobPriority
-    source: JobSource
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    business_id: UUID4
+    job_number: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    job_type: Annotated[JobType, BeforeValidator(validate_job_type)]
+    status: Annotated[JobStatus, BeforeValidator(validate_job_status)]
+    priority: Annotated[JobPriority, BeforeValidator(validate_job_priority)]
+    source: Annotated[JobSource, BeforeValidator(validate_job_source)]
     job_address: Address
-    created_by: str
+    created_by: str = Field(min_length=1)
     
     # Optional fields (with default values)
-    contact_id: Optional[uuid.UUID] = None
-    project_id: Optional[uuid.UUID] = None  # Reference to project if job is part of a project
+    contact_id: Optional[UUID4] = None
+    project_id: Optional[UUID4] = None  # Reference to project if job is part of a project
     description: Optional[str] = None
     
     # Location and timing
@@ -146,26 +158,36 @@ class Job:
     actual_end: Optional[datetime] = None
     
     # Assignment and tracking
-    assigned_to: List[str] = field(default_factory=list)  # User IDs
-    time_tracking: JobTimeTracking = field(default_factory=JobTimeTracking)
-    cost_estimate: JobCostEstimate = field(default_factory=JobCostEstimate)
+    assigned_to: List[str] = Field(default_factory=list)  # User IDs
+    time_tracking: JobTimeTracking = Field(default_factory=JobTimeTracking)
+    cost_estimate: JobCostEstimate = Field(default_factory=JobCostEstimate)
     
     # Metadata
-    tags: List[str] = field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
     notes: Optional[str] = None
     internal_notes: Optional[str] = None
     customer_requirements: Optional[str] = None
     completion_notes: Optional[str] = None
-    custom_fields: Dict[str, Any] = field(default_factory=dict)
+    custom_fields: Dict[str, Any] = Field(default_factory=dict)
     
     # Audit fields
-    created_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    last_modified: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_modified: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_date: Optional[datetime] = None
     
-    def __post_init__(self):
-        """Validate job data after initialization."""
+    @field_validator('job_number')
+    @classmethod
+    def validate_job_number_format(cls, v):
+        """Validate job number format."""
+        if not v or len(v.strip()) == 0:
+            raise ValueError("Job number cannot be empty")
+        return v.strip()
+    
+    @model_validator(mode='after')
+    def validate_job_rules(self):
+        """Validate business rules after initialization."""
         self._validate_job_rules()
+        return self
     
     def _validate_job_rules(self) -> None:
         """Validate core job business rules."""
@@ -228,39 +250,47 @@ class Job:
         
         return job
     
-    def update_status(self, new_status: JobStatus, user_id: str, notes: Optional[str] = None) -> None:
-        """Update job status with business rule validation."""
+    def update_status(self, new_status: JobStatus, user_id: str, notes: Optional[str] = None) -> 'Job':
+        """Update job status with business rule validation. Returns new Job instance."""
         if not self._can_transition_to_status(new_status):
             raise BusinessRuleViolationError(
                 f"Cannot transition from {self.status.value} to {new_status.value}"
             )
         
         old_status = self.status
-        self.status = new_status
-        self.last_modified = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        
+        update_data = {
+            'status': new_status,
+            'last_modified': now
+        }
         
         # Handle status-specific logic
         if new_status == JobStatus.IN_PROGRESS and not self.actual_start:
-            self.actual_start = datetime.now(timezone.utc)
+            update_data['actual_start'] = now
         
         if new_status == JobStatus.COMPLETED:
             if not self.actual_end:
-                self.actual_end = datetime.now(timezone.utc)
-            self.completed_date = datetime.now(timezone.utc)
+                update_data['actual_end'] = now
+            update_data['completed_date'] = now
             
             # Auto-calculate actual hours if not set
             if not self.time_tracking.actual_hours and self.actual_start and self.actual_end:
                 duration = self.time_tracking.calculate_duration()
                 if duration:
-                    self.time_tracking.actual_hours = duration
+                    update_data['time_tracking'] = self.time_tracking.model_copy(update={'actual_hours': duration})
         
         # Add status change note
         if notes:
-            status_note = f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Status changed from {old_status.value} to {new_status.value} by {user_id}: {notes}"
+            old_status_value = old_status.value if hasattr(old_status, 'value') else old_status
+            new_status_value = new_status.value if hasattr(new_status, 'value') else new_status
+            status_note = f"[{now.strftime('%Y-%m-%d %H:%M')}] Status changed from {old_status_value} to {new_status_value} by {user_id}: {notes}"
             if self.internal_notes:
-                self.internal_notes += f"\n{status_note}"
+                update_data['internal_notes'] = f"{self.internal_notes}\n{status_note}"
             else:
-                self.internal_notes = status_note
+                update_data['internal_notes'] = status_note
+        
+        return self.model_copy(update=update_data)
     
     def _can_transition_to_status(self, new_status: JobStatus) -> bool:
         """Check if status transition is allowed."""
@@ -279,73 +309,100 @@ class Job:
         
         return new_status in allowed_transitions.get(self.status, [])
     
-    def assign_team_member(self, user_id: str) -> None:
-        """Assign a team member to the job."""
+    def assign_team_member(self, user_id: str) -> 'Job':
+        """Assign a team member to the job. Returns new Job instance."""
         if user_id not in self.assigned_to:
-            self.assigned_to.append(user_id)
-            self.last_modified = datetime.now(timezone.utc)
+            new_assigned = self.assigned_to + [user_id]
+            return self.model_copy(update={
+                'assigned_to': new_assigned,
+                'last_modified': datetime.now(timezone.utc)
+            })
+        return self
     
-    def remove_team_member(self, user_id: str) -> None:
-        """Remove a team member from the job."""
+    def remove_team_member(self, user_id: str) -> 'Job':
+        """Remove a team member from the job. Returns new Job instance."""
         if user_id in self.assigned_to:
-            self.assigned_to.remove(user_id)
-            self.last_modified = datetime.now(timezone.utc)
+            new_assigned = [uid for uid in self.assigned_to if uid != user_id]
+            return self.model_copy(update={
+                'assigned_to': new_assigned,
+                'last_modified': datetime.now(timezone.utc)
+            })
+        return self
     
-    def update_schedule(self, start_time: Optional[datetime], end_time: Optional[datetime]) -> None:
-        """Update job schedule with validation."""
+    def update_schedule(self, start_time: Optional[datetime], end_time: Optional[datetime]) -> 'Job':
+        """Update job schedule with validation. Returns new Job instance."""
         if start_time and end_time and end_time <= start_time:
             raise DomainValidationError("End time must be after start time")
         
-        self.scheduled_start = start_time
-        self.scheduled_end = end_time
-        self.last_modified = datetime.now(timezone.utc)
+        return self.model_copy(update={
+            'scheduled_start': start_time,
+            'scheduled_end': end_time,
+            'last_modified': datetime.now(timezone.utc)
+        })
     
-    def start_job(self, user_id: str) -> None:
-        """Start the job (transition to in progress)."""
+    def start_job(self, user_id: str) -> 'Job':
+        """Start the job (transition to in progress). Returns new Job instance."""
         if self.status != JobStatus.SCHEDULED:
             raise BusinessRuleViolationError("Job must be scheduled to start")
         
-        self.update_status(JobStatus.IN_PROGRESS, user_id, "Job started")
-        self.actual_start = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        updated_job = self.update_status(JobStatus.IN_PROGRESS, user_id, "Job started")
+        return updated_job.model_copy(update={'actual_start': now})
     
-    def complete_job(self, user_id: str, completion_notes: Optional[str] = None) -> None:
-        """Complete the job."""
+    def complete_job(self, user_id: str, completion_notes: Optional[str] = None) -> 'Job':
+        """Complete the job. Returns new Job instance."""
         if self.status != JobStatus.IN_PROGRESS:
             raise BusinessRuleViolationError("Job must be in progress to complete")
         
-        self.completion_notes = completion_notes
-        self.update_status(JobStatus.COMPLETED, user_id, "Job completed")
+        update_data = {}
+        if completion_notes:
+            update_data['completion_notes'] = completion_notes
+        
+        updated_job = self.model_copy(update=update_data) if update_data else self
+        return updated_job.update_status(JobStatus.COMPLETED, user_id, "Job completed")
     
-    def cancel_job(self, user_id: str, reason: str) -> None:
-        """Cancel the job with reason."""
+    def cancel_job(self, user_id: str, reason: str) -> 'Job':
+        """Cancel the job with reason. Returns new Job instance."""
         if self.status in [JobStatus.COMPLETED, JobStatus.INVOICED, JobStatus.PAID]:
             raise BusinessRuleViolationError("Cannot cancel completed or invoiced job")
         
-        self.update_status(JobStatus.CANCELLED, user_id, f"Job cancelled: {reason}")
+        return self.update_status(JobStatus.CANCELLED, user_id, f"Job cancelled: {reason}")
     
-    def add_tag(self, tag: str) -> None:
-        """Add a tag to the job."""
+    def add_tag(self, tag: str) -> 'Job':
+        """Add a tag to the job. Returns new Job instance."""
         tag = tag.strip().lower()
         if tag and tag not in self.tags:
-            self.tags.append(tag)
-            self.last_modified = datetime.now(timezone.utc)
+            new_tags = self.tags + [tag]
+            return self.model_copy(update={
+                'tags': new_tags,
+                'last_modified': datetime.now(timezone.utc)
+            })
+        return self
     
-    def remove_tag(self, tag: str) -> None:
-        """Remove a tag from the job."""
+    def remove_tag(self, tag: str) -> 'Job':
+        """Remove a tag from the job. Returns new Job instance."""
         tag = tag.strip().lower()
         if tag in self.tags:
-            self.tags.remove(tag)
-            self.last_modified = datetime.now(timezone.utc)
+            new_tags = [t for t in self.tags if t != tag]
+            return self.model_copy(update={
+                'tags': new_tags,
+                'last_modified': datetime.now(timezone.utc)
+            })
+        return self
     
-    def update_cost_estimate(self, cost_estimate: JobCostEstimate) -> None:
-        """Update job cost estimate."""
-        self.cost_estimate = cost_estimate
-        self.last_modified = datetime.now(timezone.utc)
+    def update_cost_estimate(self, cost_estimate: JobCostEstimate) -> 'Job':
+        """Update job cost estimate. Returns new Job instance."""
+        return self.model_copy(update={
+            'cost_estimate': cost_estimate,
+            'last_modified': datetime.now(timezone.utc)
+        })
     
-    def update_time_tracking(self, time_tracking: JobTimeTracking) -> None:
-        """Update job time tracking."""
-        self.time_tracking = time_tracking
-        self.last_modified = datetime.now(timezone.utc)
+    def update_time_tracking(self, time_tracking: JobTimeTracking) -> 'Job':
+        """Update job time tracking. Returns new Job instance."""
+        return self.model_copy(update={
+            'time_tracking': time_tracking,
+            'last_modified': datetime.now(timezone.utc)
+        })
     
     def is_overdue(self) -> bool:
         """Check if job is overdue."""

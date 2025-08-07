@@ -6,13 +6,37 @@ Handles skill levels, categories, certifications, and proficiency tracking.
 """
 
 import uuid
-from dataclasses import dataclass, field
+import logging
 from datetime import datetime, timedelta, time, date
-from typing import Optional, List
+from typing import Optional, List, Annotated
 from enum import Enum
 from decimal import Decimal
+from pydantic import BaseModel, Field, field_validator, model_validator, BeforeValidator
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+
+# Custom Pydantic validators for automatic string-to-enum conversion
+def validate_skill_level(v) -> 'SkillLevel':
+    """Convert string to SkillLevel enum."""
+    if isinstance(v, str):
+        return SkillLevel(v)
+    return v
+
+def validate_skill_category(v) -> 'SkillCategory':
+    """Convert string to SkillCategory enum."""
+    if isinstance(v, str):
+        return SkillCategory(v)
+    return v
+
+def validate_certification_status(v) -> 'CertificationStatus':
+    """Convert string to CertificationStatus enum."""
+    if isinstance(v, str):
+        return CertificationStatus(v)
+    return v
 
 
 class SkillLevel(Enum):
@@ -46,26 +70,18 @@ class CertificationStatus(Enum):
     SUSPENDED = "suspended"
 
 
-@dataclass
-class Skill:
+class Skill(BaseModel):
     """Value object representing a user skill."""
-    skill_id: str
-    name: str
-    category: SkillCategory
-    level: SkillLevel
-    years_experience: Decimal
-    last_used: Optional[datetime] = None
-    proficiency_score: Optional[Decimal] = None  # 0-100 score
-    certification_required: bool = False
+    model_config = {"use_enum_values": True, "validate_assignment": True}
     
-    def __post_init__(self):
-        """Validate skill data."""
-        if not self.name or not self.name.strip():
-            raise DomainValidationError("Skill name is required")
-        if self.years_experience < 0:
-            raise DomainValidationError("Years of experience cannot be negative")
-        if self.proficiency_score is not None and (self.proficiency_score < 0 or self.proficiency_score > 100):
-            raise DomainValidationError("Proficiency score must be between 0 and 100")
+    skill_id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    category: Annotated[SkillCategory, BeforeValidator(validate_skill_category)]
+    level: Annotated[SkillLevel, BeforeValidator(validate_skill_level)]
+    years_experience: Decimal = Field(ge=0)
+    last_used: Optional[datetime] = None
+    proficiency_score: Optional[Decimal] = Field(default=None, ge=0, le=100)  # 0-100 score
+    certification_required: bool = False
     
     def is_expert_level(self) -> bool:
         """Check if skill is at expert level or above."""
@@ -83,26 +99,25 @@ class Skill:
         return multipliers.get(self.level, Decimal("1.0"))
 
 
-@dataclass
-class Certification:
+class Certification(BaseModel):
     """Value object representing a certification."""
-    certification_id: str
-    name: str
-    issuing_authority: str
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    certification_id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    issuing_authority: str = Field(min_length=1)
     issue_date: datetime
     expiry_date: Optional[datetime] = None
-    status: CertificationStatus = CertificationStatus.ACTIVE
+    status: Annotated[CertificationStatus, BeforeValidator(validate_certification_status)] = CertificationStatus.ACTIVE
     verification_number: Optional[str] = None
     renewal_required: bool = True
     
-    def __post_init__(self):
-        """Validate certification data."""
-        if not self.name or not self.name.strip():
-            raise DomainValidationError("Certification name is required")
-        if not self.issuing_authority or not self.issuing_authority.strip():
-            raise DomainValidationError("Issuing authority is required")
+    @model_validator(mode='after')
+    def validate_dates(self):
+        """Validate certification dates."""
         if self.expiry_date and self.expiry_date <= self.issue_date:
-            raise DomainValidationError("Expiry date must be after issue date")
+            raise ValueError("Expiry date must be after issue date")
+        return self
     
     def is_valid(self) -> bool:
         """Check if certification is currently valid."""

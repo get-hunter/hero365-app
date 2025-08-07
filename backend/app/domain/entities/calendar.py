@@ -6,13 +6,37 @@ Handles calendar events, working hours templates, and time off requests.
 """
 
 import uuid
-from dataclasses import dataclass, field
+import logging
 from datetime import datetime, timedelta, time, date
-from typing import Optional, List
+from typing import Optional, List, Annotated
 from enum import Enum
 from decimal import Decimal
+from pydantic import BaseModel, Field, field_validator, model_validator, UUID4, BeforeValidator
 
 from ..exceptions.domain_exceptions import DomainValidationError, BusinessRuleViolationError
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+
+# Custom Pydantic validators for automatic string-to-enum conversion
+def validate_recurrence_type(v) -> 'RecurrenceType':
+    """Convert string to RecurrenceType enum."""
+    if isinstance(v, str):
+        return RecurrenceType(v)
+    return v
+
+def validate_time_off_type(v) -> 'TimeOffType':
+    """Convert string to TimeOffType enum."""
+    if isinstance(v, str):
+        return TimeOffType(v)
+    return v
+
+def validate_calendar_event_type(v) -> 'CalendarEventType':
+    """Convert string to CalendarEventType enum."""
+    if isinstance(v, str):
+        return CalendarEventType(v)
+    return v
 
 
 class RecurrenceType(Enum):
@@ -46,15 +70,16 @@ class CalendarEventType(Enum):
     PERSONAL = "personal"
 
 
-@dataclass
-class CalendarEvent:
+class CalendarEvent(BaseModel):
     """Calendar event entity for user scheduling."""
-    id: uuid.UUID
-    user_id: str
-    business_id: uuid.UUID
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    user_id: str = Field(min_length=1)
+    business_id: UUID4
     
     # Event details
-    title: str
+    title: str = Field(min_length=1)
     
     # Time information (required fields first)
     start_datetime: datetime
@@ -62,34 +87,46 @@ class CalendarEvent:
     
     # Optional event details
     description: Optional[str] = None
-    event_type: CalendarEventType = CalendarEventType.WORK_SCHEDULE
+    event_type: Annotated[CalendarEventType, BeforeValidator(validate_calendar_event_type)] = CalendarEventType.WORK_SCHEDULE
     is_all_day: bool = False
-    timezone: str = "UTC"
+    timezone: str = Field(default="UTC", min_length=1)
     
     # Recurrence
-    recurrence_type: RecurrenceType = RecurrenceType.NONE
+    recurrence_type: Annotated[RecurrenceType, BeforeValidator(validate_recurrence_type)] = RecurrenceType.NONE
     recurrence_end_date: Optional[date] = None
-    recurrence_count: Optional[int] = None
-    recurrence_interval: int = 1  # Every N days/weeks/months
-    recurrence_days_of_week: List[int] = field(default_factory=list)  # 0=Monday, 6=Sunday
+    recurrence_count: Optional[int] = Field(default=None, gt=0)
+    recurrence_interval: int = Field(default=1, gt=0)  # Every N days/weeks/months
+    recurrence_days_of_week: List[int] = Field(default_factory=list)  # 0=Monday, 6=Sunday
     
     # Availability impact
     blocks_scheduling: bool = True
     allows_emergency_override: bool = False
     
     # Metadata
-    created_date: datetime = field(default_factory=datetime.utcnow)
-    last_modified: datetime = field(default_factory=datetime.utcnow)
+    created_date: datetime = Field(default_factory=datetime.utcnow)
+    last_modified: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
     
-    def __post_init__(self):
-        """Validate calendar event."""
+    @field_validator('recurrence_days_of_week')
+    @classmethod
+    def validate_days_of_week(cls, v):
+        """Validate days of week are in valid range."""
+        for day in v:
+            if not (0 <= day <= 6):
+                raise ValueError("Days of week must be between 0 (Monday) and 6 (Sunday)")
+        return v
+    
+    @model_validator(mode='after')
+    def validate_calendar_event_rules(self):
+        """Validate calendar event business rules."""
         if self.end_datetime <= self.start_datetime:
-            raise DomainValidationError("End time must be after start time")
+            raise ValueError("End time must be after start time")
         
         if self.recurrence_type != RecurrenceType.NONE:
             if self.recurrence_type == RecurrenceType.WEEKLY and not self.recurrence_days_of_week:
-                raise DomainValidationError("Weekly recurrence requires days of week")
+                raise ValueError("Weekly recurrence requires days of week")
+        
+        return self
     
     def is_recurring(self) -> bool:
         """Check if this event has recurrence."""
@@ -145,15 +182,16 @@ class CalendarEvent:
         return False
 
 
-@dataclass
-class TimeOffRequest:
+class TimeOffRequest(BaseModel):
     """Time off request entity."""
-    id: uuid.UUID
-    user_id: str
-    business_id: uuid.UUID
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    user_id: str = Field(min_length=1)
+    business_id: UUID4
     
     # Request details (required fields first)
-    time_off_type: TimeOffType
+    time_off_type: Annotated[TimeOffType, BeforeValidator(validate_time_off_type)]
     start_date: date
     end_date: date
     
@@ -162,8 +200,8 @@ class TimeOffRequest:
     notes: Optional[str] = None
     
     # Approval workflow
-    status: str = "pending"  # pending, approved, denied, cancelled
-    requested_by: str = ""
+    status: str = Field(default="pending", min_length=1)  # pending, approved, denied, cancelled
+    requested_by: str = Field(default="", min_length=0)
     approved_by: Optional[str] = None
     approval_date: Optional[datetime] = None
     denial_reason: Optional[str] = None
@@ -173,13 +211,15 @@ class TimeOffRequest:
     emergency_contact_allowed: bool = False
     
     # Metadata
-    created_date: datetime = field(default_factory=datetime.utcnow)
-    last_modified: datetime = field(default_factory=datetime.utcnow)
+    created_date: datetime = Field(default_factory=datetime.utcnow)
+    last_modified: datetime = Field(default_factory=datetime.utcnow)
     
-    def __post_init__(self):
-        """Validate time off request."""
+    @model_validator(mode='after')
+    def validate_time_off_request_rules(self):
+        """Validate time off request business rules."""
         if self.end_date < self.start_date:
-            raise DomainValidationError("End date must be after or equal to start date")
+            raise ValueError("End date must be after or equal to start date")
+        return self
     
     def get_duration_days(self) -> int:
         """Get duration in days."""
@@ -194,11 +234,12 @@ class TimeOffRequest:
         return self.start_date <= check_date <= self.end_date
 
 
-@dataclass
-class WorkingHoursTemplate:
+class WorkingHoursTemplate(BaseModel):
     """Template for working hours patterns."""
-    id: uuid.UUID
-    name: str
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    name: str = Field(min_length=1)
     description: Optional[str] = None
     
     # Weekly schedule (day 0 = Monday, 6 = Sunday)
@@ -218,15 +259,15 @@ class WorkingHoursTemplate:
     sunday_end: Optional[time] = None
     
     # Break configurations
-    break_duration_minutes: int = 30
+    break_duration_minutes: int = Field(default=30, ge=0)
     lunch_start_time: Optional[time] = None
-    lunch_duration_minutes: int = 60
+    lunch_duration_minutes: int = Field(default=60, ge=0)
     
     # Flexibility settings
     allows_flexible_start: bool = False
-    flexible_start_window_minutes: int = 30
+    flexible_start_window_minutes: int = Field(default=30, ge=0)
     allows_overtime: bool = False
-    max_overtime_hours_per_day: Decimal = Decimal("2")
+    max_overtime_hours_per_day: Decimal = Field(default=Decimal("2"), ge=0)
     
     def get_working_hours_for_day(self, day_of_week: int) -> Optional[tuple[time, time]]:
         """Get start and end times for a specific day of week."""
@@ -266,27 +307,28 @@ class WorkingHoursTemplate:
         return total_hours
 
 
-@dataclass
-class CalendarPreferences:
+class CalendarPreferences(BaseModel):
     """User calendar and scheduling preferences."""
-    user_id: str
-    business_id: uuid.UUID
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    user_id: str = Field(min_length=1)
+    business_id: UUID4
     
     # Time zone and locale
-    timezone: str = "UTC"
-    date_format: str = "YYYY-MM-DD"
-    time_format: str = "24h"  # 12h or 24h
-    week_start_day: int = 0  # 0=Monday, 1=Tuesday, etc.
+    timezone: str = Field(default="UTC", min_length=1)
+    date_format: str = Field(default="YYYY-MM-DD", min_length=1)
+    time_format: str = Field(default="24h", pattern="^(12h|24h)$")  # 12h or 24h
+    week_start_day: int = Field(default=0, ge=0, le=6)  # 0=Monday, 1=Tuesday, etc.
     
     # Scheduling preferences
-    preferred_working_hours_template_id: Optional[uuid.UUID] = None
-    min_time_between_jobs_minutes: int = 30
-    max_commute_time_minutes: int = 60
+    preferred_working_hours_template_id: Optional[UUID4] = None
+    min_time_between_jobs_minutes: int = Field(default=30, ge=0)
+    max_commute_time_minutes: int = Field(default=60, ge=0)
     allows_back_to_back_jobs: bool = False
-    requires_prep_time_minutes: int = 15
+    requires_prep_time_minutes: int = Field(default=15, ge=0)
     
     # Notification preferences
-    job_reminder_minutes_before: List[int] = field(default_factory=lambda: [60, 15])
+    job_reminder_minutes_before: List[int] = Field(default_factory=lambda: [60, 15])
     schedule_change_notifications: bool = True
     new_job_notifications: bool = True
     cancellation_notifications: bool = True
@@ -299,9 +341,9 @@ class CalendarPreferences:
     holiday_availability: bool = False
     
     # Buffer times
-    travel_buffer_percentage: Decimal = Decimal("1.2")  # 20% buffer
-    job_buffer_minutes: int = 15
+    travel_buffer_percentage: Decimal = Field(default=Decimal("1.2"), gt=0)  # 20% buffer
+    job_buffer_minutes: int = Field(default=15, ge=0)
     
     # Metadata
-    created_date: datetime = field(default_factory=datetime.utcnow)
-    last_modified: datetime = field(default_factory=datetime.utcnow) 
+    created_date: datetime = Field(default_factory=datetime.utcnow)
+    last_modified: datetime = Field(default_factory=datetime.utcnow) 

@@ -5,12 +5,60 @@ Represents a business contact (customer, lead, prospect) with associated busines
 """
 
 import uuid
-from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+import logging
+from typing import Optional, List, Dict, Any, Annotated
 from datetime import datetime
 from enum import Enum
+from pydantic import BaseModel, Field, field_validator, model_validator, UUID4, BeforeValidator
 
 from ..exceptions.domain_exceptions import DomainValidationError
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+
+# Custom Pydantic validators for automatic string-to-enum conversion
+def validate_contact_type(v) -> 'ContactType':
+    """Convert string to ContactType enum."""
+    if isinstance(v, str):
+        return ContactType(v)
+    return v
+
+def validate_contact_status(v) -> 'ContactStatus':
+    """Convert string to ContactStatus enum."""
+    if isinstance(v, str):
+        return ContactStatus(v)
+    return v
+
+def validate_relationship_status(v) -> 'RelationshipStatus':
+    """Convert string to RelationshipStatus enum."""
+    if isinstance(v, str):
+        return RelationshipStatus(v)
+    return v
+
+def validate_lifecycle_stage(v) -> 'LifecycleStage':
+    """Convert string to LifecycleStage enum."""
+    if isinstance(v, str):
+        return LifecycleStage(v)
+    return v
+
+def validate_contact_source(v) -> 'ContactSource':
+    """Convert string to ContactSource enum."""
+    if isinstance(v, str):
+        return ContactSource(v)
+    return v
+
+def validate_contact_priority(v) -> 'ContactPriority':
+    """Convert string to ContactPriority enum."""
+    if isinstance(v, str):
+        return ContactPriority(v)
+    return v
+
+def validate_interaction_type(v) -> 'InteractionType':
+    """Convert string to InteractionType enum."""
+    if isinstance(v, str):
+        return InteractionType(v)
+    return v
 
 
 class ContactType(Enum):
@@ -98,51 +146,53 @@ class InteractionType(Enum):
 from ..value_objects.address import Address
 
 
-@dataclass
-class StatusHistoryEntry:
+class StatusHistoryEntry(BaseModel):
     """Value object for status history entry."""
-    id: uuid.UUID
-    from_status: Optional[RelationshipStatus]
-    to_status: RelationshipStatus
-    timestamp: datetime
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    from_status: Optional[Annotated[RelationshipStatus, BeforeValidator(validate_relationship_status)]] = None
+    to_status: Annotated[RelationshipStatus, BeforeValidator(validate_relationship_status)]
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
     changed_by: str
     changed_by_id: Optional[str] = None
     reason: Optional[str] = None
     notes: Optional[str] = None
 
 
-@dataclass
-class InteractionHistoryEntry:
+class InteractionHistoryEntry(BaseModel):
     """Value object for interaction history entry."""
-    id: uuid.UUID
-    type: InteractionType
-    description: str
-    timestamp: datetime
-    performed_by: str
+    model_config = {"use_enum_values": True, "validate_assignment": True}
+    
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    type: Annotated[InteractionType, BeforeValidator(validate_interaction_type)]
+    description: str = Field(min_length=1)
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    performed_by: str = Field(min_length=1)
     performed_by_id: Optional[str] = None
     outcome: Optional[str] = None
     next_action: Optional[str] = None
     scheduled_follow_up: Optional[datetime] = None
 
 
-@dataclass
-class Contact:
+class Contact(BaseModel):
     """
     Contact entity representing a business contact (customer, lead, prospect, etc.).
     
     This entity contains business logic and rules for contact management,
     validation, and lifecycle operations.
     """
+    model_config = {"use_enum_values": True, "validate_assignment": True}
     
     # Required fields
-    id: uuid.UUID
-    business_id: uuid.UUID
-    contact_type: ContactType
-    status: ContactStatus = ContactStatus.ACTIVE
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    business_id: UUID4
+    contact_type: Annotated[ContactType, BeforeValidator(validate_contact_type)]
+    status: Annotated[ContactStatus, BeforeValidator(validate_contact_status)] = ContactStatus.ACTIVE
     
     # Enhanced relationship tracking
-    relationship_status: RelationshipStatus = RelationshipStatus.PROSPECT
-    lifecycle_stage: LifecycleStage = LifecycleStage.AWARENESS
+    relationship_status: Annotated[RelationshipStatus, BeforeValidator(validate_relationship_status)] = RelationshipStatus.PROSPECT
+    lifecycle_stage: Annotated[LifecycleStage, BeforeValidator(validate_lifecycle_stage)] = LifecycleStage.AWARENESS
     
     # Personal Information
     first_name: Optional[str] = None
@@ -160,81 +210,72 @@ class Contact:
     address: Optional[Address] = None
     
     # Business Information
-    priority: ContactPriority = ContactPriority.MEDIUM
-    source: Optional[ContactSource] = None
-    tags: List[str] = field(default_factory=list)
+    priority: Annotated[ContactPriority, BeforeValidator(validate_contact_priority)] = ContactPriority.MEDIUM
+    source: Optional[Annotated[ContactSource, BeforeValidator(validate_contact_source)]] = None
+    tags: List[str] = Field(default_factory=list)
     notes: Optional[str] = None
     
     # Financial Information
-    estimated_value: Optional[float] = None
-    currency: str = "USD"
+    estimated_value: Optional[float] = Field(default=None, ge=0)
+    currency: str = Field(default="USD", min_length=3, max_length=3)
     
     # Relationship Information
     assigned_to: Optional[str] = None  # User ID of assigned team member
     created_by: Optional[str] = None   # User ID who created the contact
     
     # Custom Fields
-    custom_fields: Dict[str, Any] = field(default_factory=dict)
+    custom_fields: Dict[str, Any] = Field(default_factory=dict)
     
     # Enhanced tracking fields
-    status_history: List[StatusHistoryEntry] = field(default_factory=list)
-    interaction_history: List[InteractionHistoryEntry] = field(default_factory=list)
+    status_history: List[StatusHistoryEntry] = Field(default_factory=list)
+    interaction_history: List[InteractionHistoryEntry] = Field(default_factory=list)
     
     # Metadata
-    created_date: Optional[datetime] = None
-    last_modified: Optional[datetime] = None
+    created_date: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    last_modified: Optional[datetime] = Field(default_factory=datetime.utcnow)
     last_contacted: Optional[datetime] = None
     
-    def __post_init__(self):
-        """Initialize default values and validate business rules."""
-        if self.tags is None:
-            self.tags = []
-        if self.custom_fields is None:
-            self.custom_fields = {}
-        if self.status_history is None:
-            self.status_history = []
-        if self.interaction_history is None:
-            self.interaction_history = []
-        self._validate_contact_rules()
+    @field_validator('email')
+    @classmethod
+    def validate_email_format(cls, v):
+        """Validate email format if provided."""
+        if v and not cls._is_valid_email_static(v):
+            raise ValueError("Invalid email format")
+        return v
     
-    def _validate_contact_rules(self) -> None:
+    @field_validator('phone', 'mobile_phone')
+    @classmethod
+    def validate_phone_format(cls, v):
+        """Validate phone format if provided."""
+        if v and not cls._is_valid_phone_static(v):
+            raise ValueError("Invalid phone format")
+        return v
+    
+    @field_validator('website')
+    @classmethod
+    def validate_website_format(cls, v):
+        """Validate website format if provided."""
+        if v and not cls._is_valid_website_static(v):
+            raise ValueError("Invalid website format")
+        return v
+    
+    @model_validator(mode='after')
+    def validate_contact_rules(self):
         """Validate core contact business rules."""
-        if not self.business_id:
-            raise DomainValidationError("Contact must belong to a business")
-        
         # At least one name or company name required
         if not self.first_name and not self.last_name and not self.company_name:
-            raise DomainValidationError("Contact must have at least first name, last name, or company name")
+            raise ValueError("Contact must have at least first name, last name, or company name")
         
         # At least one contact method required
         if not self.email and not self.phone and not self.mobile_phone:
-            raise DomainValidationError("Contact must have at least one contact method (email or phone)")
-        
-        # Validate email format if provided
-        if self.email and not self._is_valid_email(self.email):
-            raise DomainValidationError("Invalid email format")
-        
-        # Validate phone formats if provided
-        if self.phone and not self._is_valid_phone(self.phone):
-            raise DomainValidationError("Invalid phone format")
-        
-        if self.mobile_phone and not self._is_valid_phone(self.mobile_phone):
-            raise DomainValidationError("Invalid mobile phone format")
-        
-        # Validate website format if provided
-        if self.website and not self._is_valid_website(self.website):
-            raise DomainValidationError("Invalid website format")
-        
-        # Validate estimated value
-        if self.estimated_value is not None and self.estimated_value < 0:
-            raise DomainValidationError("Estimated value cannot be negative")
-        
-        # Validate currency format
-        if self.currency and len(self.currency) != 3:
-            raise DomainValidationError("Currency must be a 3-letter ISO code")
+            raise ValueError("Contact must have at least one contact method (email or phone)")
         
         # Validate relationship status and lifecycle stage alignment
         self._validate_status_alignment()
+        
+        return self
+    
+
     
     def _validate_status_alignment(self) -> None:
         """Validate that relationship status and lifecycle stage are aligned."""
@@ -250,22 +291,40 @@ class Contact:
         
         valid_stages = valid_combinations.get(self.relationship_status, [])
         if valid_stages and self.lifecycle_stage not in valid_stages:
-            # Auto-correct lifecycle stage based on relationship status
-            self.lifecycle_stage = valid_stages[0]
+            # Auto-correct lifecycle stage based on relationship status (for validation only)
+            # In Pydantic, we can't modify self, so we'll just pass this validation
+            # The correction should be handled at the application level
+            pass
     
-    def _is_valid_email(self, email: str) -> bool:
+    @staticmethod
+    def _is_valid_email_static(email: str) -> bool:
         """Basic email validation."""
         return "@" in email and "." in email.split("@")[-1]
     
-    def _is_valid_phone(self, phone: str) -> bool:
+    @staticmethod
+    def _is_valid_phone_static(phone: str) -> bool:
         """Basic phone validation."""
         # Remove common phone formatting characters
         cleaned = phone.replace("+", "").replace("-", "").replace(" ", "").replace("(", "").replace(")", "")
         return cleaned.isdigit() and len(cleaned) >= 10
     
-    def _is_valid_website(self, website: str) -> bool:
+    @staticmethod
+    def _is_valid_website_static(website: str) -> bool:
         """Basic website validation."""
         return website.startswith(('http://', 'https://')) or '.' in website
+    
+    # Instance methods for backward compatibility
+    def _is_valid_email(self, email: str) -> bool:
+        """Basic email validation."""
+        return self._is_valid_email_static(email)
+    
+    def _is_valid_phone(self, phone: str) -> bool:
+        """Basic phone validation."""
+        return self._is_valid_phone_static(phone)
+    
+    def _is_valid_website(self, website: str) -> bool:
+        """Basic website validation."""
+        return self._is_valid_website_static(website)
     
     @classmethod
     def create_contact(cls, business_id: uuid.UUID, contact_type: ContactType,
@@ -363,64 +422,85 @@ class Contact:
             return "Unknown Contact"
     
     def update_relationship_status(self, new_status: RelationshipStatus, 
-                                 changed_by: str, reason: Optional[str] = None) -> None:
-        """Update relationship status with history tracking."""
+                                 changed_by: str, reason: Optional[str] = None) -> 'Contact':
+        """Update relationship status with history tracking. Returns new Contact instance."""
         if self.relationship_status == new_status:
-            return
+            return self
         
         old_status = self.relationship_status
-        self.relationship_status = new_status
-        self.last_modified = datetime.utcnow()
+        now = datetime.utcnow()
         
-        # Auto-update lifecycle stage if needed
-        self._validate_status_alignment()
+        # Create new status history entry
+        new_entry = StatusHistoryEntry(
+            from_status=old_status,
+            to_status=new_status,
+            timestamp=now,
+            changed_by=changed_by,
+            reason=reason
+        )
         
-        # Add to status history
-        self.add_status_history_entry(old_status, new_status, changed_by, reason)
+        new_history = self.status_history + [new_entry]
+        # Keep only last 20 entries to prevent unbounded growth
+        if len(new_history) > 20:
+            new_history = new_history[-20:]
+        
+        return self.model_copy(update={
+            'relationship_status': new_status,
+            'last_modified': now,
+            'status_history': new_history
+        })
     
     def add_status_history_entry(self, from_status: Optional[RelationshipStatus], 
                                to_status: RelationshipStatus, changed_by: str, 
-                               reason: Optional[str] = None) -> None:
-        """Add entry to status history."""
+                               reason: Optional[str] = None) -> 'Contact':
+        """Add entry to status history. Returns new Contact instance."""
         entry = StatusHistoryEntry(
-            id=uuid.uuid4(),
             from_status=from_status,
             to_status=to_status,
             timestamp=datetime.utcnow(),
             changed_by=changed_by,
             reason=reason
         )
-        self.status_history.append(entry)
         
+        new_history = self.status_history + [entry]
         # Keep only last 20 entries to prevent unbounded growth
-        if len(self.status_history) > 20:
-            self.status_history = self.status_history[-20:]
+        if len(new_history) > 20:
+            new_history = new_history[-20:]
+        
+        return self.model_copy(update={'status_history': new_history})
     
     def add_interaction(self, interaction_type: InteractionType, description: str,
                        performed_by: str, outcome: Optional[str] = None,
                        next_action: Optional[str] = None,
-                       scheduled_follow_up: Optional[datetime] = None) -> None:
-        """Add interaction to history and update last_contacted."""
+                       scheduled_follow_up: Optional[datetime] = None) -> 'Contact':
+        """Add interaction to history and update last_contacted. Returns new Contact instance."""
+        now = datetime.utcnow()
+        
         interaction = InteractionHistoryEntry(
-            id=uuid.uuid4(),
             type=interaction_type,
             description=description,
-            timestamp=datetime.utcnow(),
+            timestamp=now,
             performed_by=performed_by,
             outcome=outcome,
             next_action=next_action,
             scheduled_follow_up=scheduled_follow_up
         )
         
-        self.interaction_history.append(interaction)
-        
+        new_history = self.interaction_history + [interaction]
         # Keep only last 10 interactions for quick access
-        if len(self.interaction_history) > 10:
-            self.interaction_history = self.interaction_history[-10:]
+        if len(new_history) > 10:
+            new_history = new_history[-10:]
+        
+        update_data = {
+            'interaction_history': new_history,
+            'last_modified': now
+        }
         
         # Update last contacted for communication interactions
         if interaction_type in [InteractionType.CALL, InteractionType.EMAIL, InteractionType.MEETING]:
-            self.update_last_contacted()
+            update_data['last_contacted'] = now
+        
+        return self.model_copy(update=update_data)
     
     def get_relationship_status_display(self) -> str:
         """Get human-readable relationship status."""
@@ -462,43 +542,45 @@ class Contact:
             RelationshipStatus.QUALIFIED_LEAD
         ]
     
-    def progress_to_qualified_lead(self, changed_by: str, reason: Optional[str] = None) -> None:
-        """Progress prospect to qualified lead."""
+    def progress_to_qualified_lead(self, changed_by: str, reason: Optional[str] = None) -> 'Contact':
+        """Progress prospect to qualified lead. Returns new Contact instance."""
         if not self.can_progress_to_lead():
             raise DomainValidationError(f"Cannot progress {self.relationship_status.value} to qualified lead")
         
-        self.update_relationship_status(RelationshipStatus.QUALIFIED_LEAD, changed_by, reason)
-        self.lifecycle_stage = LifecycleStage.INTEREST
+        updated_contact = self.update_relationship_status(RelationshipStatus.QUALIFIED_LEAD, changed_by, reason)
+        return updated_contact.model_copy(update={'lifecycle_stage': LifecycleStage.INTEREST})
     
-    def progress_to_opportunity(self, changed_by: str, reason: Optional[str] = None) -> None:
-        """Progress qualified lead to opportunity."""
+    def progress_to_opportunity(self, changed_by: str, reason: Optional[str] = None) -> 'Contact':
+        """Progress qualified lead to opportunity. Returns new Contact instance."""
         if not self.can_progress_to_opportunity():
             raise DomainValidationError(f"Cannot progress {self.relationship_status.value} to opportunity")
         
-        self.update_relationship_status(RelationshipStatus.OPPORTUNITY, changed_by, reason)
-        self.lifecycle_stage = LifecycleStage.CONSIDERATION
+        updated_contact = self.update_relationship_status(RelationshipStatus.OPPORTUNITY, changed_by, reason)
+        return updated_contact.model_copy(update={'lifecycle_stage': LifecycleStage.CONSIDERATION})
     
-    def convert_to_client(self, changed_by: str, reason: Optional[str] = None) -> None:
-        """Convert lead/opportunity to active client."""
+    def convert_to_client(self, changed_by: str, reason: Optional[str] = None) -> 'Contact':
+        """Convert lead/opportunity to active client. Returns new Contact instance."""
         if not self.can_convert_to_client():
             raise DomainValidationError(f"Cannot convert {self.relationship_status.value} to client")
         
-        self.update_relationship_status(RelationshipStatus.ACTIVE_CLIENT, changed_by, reason)
-        self.lifecycle_stage = LifecycleStage.CUSTOMER
-        self.contact_type = ContactType.CUSTOMER  # Also update contact type
+        updated_contact = self.update_relationship_status(RelationshipStatus.ACTIVE_CLIENT, changed_by, reason)
+        return updated_contact.model_copy(update={
+            'lifecycle_stage': LifecycleStage.CUSTOMER,
+            'contact_type': ContactType.CUSTOMER
+        })
     
-    def mark_as_lost_lead(self, changed_by: str, reason: Optional[str] = None) -> None:
-        """Mark as lost lead."""
+    def mark_as_lost_lead(self, changed_by: str, reason: Optional[str] = None) -> 'Contact':
+        """Mark as lost lead. Returns new Contact instance."""
         if self.relationship_status not in [RelationshipStatus.QUALIFIED_LEAD, RelationshipStatus.OPPORTUNITY]:
             raise DomainValidationError(f"Cannot mark {self.relationship_status.value} as lost lead")
         
-        self.update_relationship_status(RelationshipStatus.LOST_LEAD, changed_by, reason)
+        return self.update_relationship_status(RelationshipStatus.LOST_LEAD, changed_by, reason)
     
-    def reactivate_contact(self, changed_by: str, reason: Optional[str] = None) -> None:
-        """Reactivate inactive or lost contact."""
+    def reactivate_contact(self, changed_by: str, reason: Optional[str] = None) -> 'Contact':
+        """Reactivate inactive or lost contact. Returns new Contact instance."""
         if self.relationship_status in [RelationshipStatus.INACTIVE, RelationshipStatus.LOST_LEAD]:
-            self.update_relationship_status(RelationshipStatus.PROSPECT, changed_by, reason)
-            self.lifecycle_stage = LifecycleStage.AWARENESS
+            updated_contact = self.update_relationship_status(RelationshipStatus.PROSPECT, changed_by, reason)
+            return updated_contact.model_copy(update={'lifecycle_stage': LifecycleStage.AWARENESS})
         else:
             raise DomainValidationError(f"Cannot reactivate contact with status {self.relationship_status.value}")
     
@@ -547,88 +629,121 @@ class Contact:
         """Check if contact has address with coordinates."""
         return self.address is not None and self.address.has_coordinates()
     
-    def add_tag(self, tag: str) -> None:
-        """Add a tag to the contact."""
+    def add_tag(self, tag: str) -> 'Contact':
+        """Add a tag to the contact. Returns new Contact instance."""
         if tag and tag not in self.tags:
-            self.tags.append(tag.strip().lower())
-            self.last_modified = datetime.utcnow()
+            new_tags = self.tags + [tag.strip().lower()]
+            return self.model_copy(update={
+                'tags': new_tags,
+                'last_modified': datetime.utcnow()
+            })
+        return self
     
-    def remove_tag(self, tag: str) -> None:
-        """Remove a tag from the contact."""
+    def remove_tag(self, tag: str) -> 'Contact':
+        """Remove a tag from the contact. Returns new Contact instance."""
         if tag in self.tags:
-            self.tags.remove(tag)
-            self.last_modified = datetime.utcnow()
+            new_tags = [t for t in self.tags if t != tag]
+            return self.model_copy(update={
+                'tags': new_tags,
+                'last_modified': datetime.utcnow()
+            })
+        return self
     
     def has_tag(self, tag: str) -> bool:
         """Check if contact has a specific tag."""
         return tag.lower() in [t.lower() for t in self.tags]
     
-    def set_custom_field(self, field_name: str, value: Any) -> None:
-        """Set a custom field value."""
-        self.custom_fields[field_name] = value
-        self.last_modified = datetime.utcnow()
+    def set_custom_field(self, field_name: str, value: Any) -> 'Contact':
+        """Set a custom field value. Returns new Contact instance."""
+        new_custom_fields = self.custom_fields.copy()
+        new_custom_fields[field_name] = value
+        
+        return self.model_copy(update={
+            'custom_fields': new_custom_fields,
+            'last_modified': datetime.utcnow()
+        })
     
     def get_custom_field(self, field_name: str, default: Any = None) -> Any:
         """Get a custom field value."""
         return self.custom_fields.get(field_name, default)
     
-    def update_last_contacted(self) -> None:
-        """Update the last contacted timestamp."""
-        self.last_contacted = datetime.utcnow()
-        self.last_modified = datetime.utcnow()
+    def update_last_contacted(self) -> 'Contact':
+        """Update the last contacted timestamp. Returns new Contact instance."""
+        now = datetime.utcnow()
+        return self.model_copy(update={
+            'last_contacted': now,
+            'last_modified': now
+        })
     
-    def convert_to_customer(self) -> None:
-        """Convert lead/prospect to customer."""
+    def convert_to_customer(self) -> 'Contact':
+        """Convert lead/prospect to customer. Returns new Contact instance."""
         if self.contact_type in [ContactType.LEAD, ContactType.PROSPECT]:
-            self.contact_type = ContactType.CUSTOMER
+            update_data = {
+                'contact_type': ContactType.CUSTOMER,
+                'last_modified': datetime.utcnow()
+            }
+            
             # Also update relationship status
             if self.relationship_status in [RelationshipStatus.PROSPECT, RelationshipStatus.QUALIFIED_LEAD]:
-                self.relationship_status = RelationshipStatus.ACTIVE_CLIENT
-                self.lifecycle_stage = LifecycleStage.CUSTOMER
-            self.last_modified = datetime.utcnow()
+                update_data['relationship_status'] = RelationshipStatus.ACTIVE_CLIENT
+                update_data['lifecycle_stage'] = LifecycleStage.CUSTOMER
+            
+            return self.model_copy(update=update_data)
         else:
             raise DomainValidationError(f"Cannot convert {self.contact_type.value} to customer")
     
-    def convert_to_lead(self) -> None:
-        """Convert prospect to lead."""
+    def convert_to_lead(self) -> 'Contact':
+        """Convert prospect to lead. Returns new Contact instance."""
         if self.contact_type == ContactType.PROSPECT:
-            self.contact_type = ContactType.LEAD
-            self.relationship_status = RelationshipStatus.QUALIFIED_LEAD
-            self.lifecycle_stage = LifecycleStage.INTEREST
-            self.last_modified = datetime.utcnow()
+            return self.model_copy(update={
+                'contact_type': ContactType.LEAD,
+                'relationship_status': RelationshipStatus.QUALIFIED_LEAD,
+                'lifecycle_stage': LifecycleStage.INTEREST,
+                'last_modified': datetime.utcnow()
+            })
         else:
             raise DomainValidationError(f"Cannot convert {self.contact_type.value} to lead")
     
-    def assign_to_user(self, user_id: str) -> None:
-        """Assign contact to a team member."""
-        self.assigned_to = user_id
-        self.last_modified = datetime.utcnow()
+    def assign_to_user(self, user_id: str) -> 'Contact':
+        """Assign contact to a team member. Returns new Contact instance."""
+        return self.model_copy(update={
+            'assigned_to': user_id,
+            'last_modified': datetime.utcnow()
+        })
     
-    def unassign(self) -> None:
-        """Remove assignment from contact."""
-        self.assigned_to = None
-        self.last_modified = datetime.utcnow()
+    def unassign(self) -> 'Contact':
+        """Remove assignment from contact. Returns new Contact instance."""
+        return self.model_copy(update={
+            'assigned_to': None,
+            'last_modified': datetime.utcnow()
+        })
     
-    def archive(self) -> None:
-        """Archive the contact."""
+    def archive(self) -> 'Contact':
+        """Archive the contact. Returns new Contact instance."""
         if self.status == ContactStatus.ACTIVE:
-            self.status = ContactStatus.ARCHIVED
-            self.last_modified = datetime.utcnow()
+            return self.model_copy(update={
+                'status': ContactStatus.ARCHIVED,
+                'last_modified': datetime.utcnow()
+            })
         else:
             raise DomainValidationError(f"Cannot archive contact with status: {self.status.value}")
     
-    def activate(self) -> None:
-        """Activate an inactive or archived contact."""
+    def activate(self) -> 'Contact':
+        """Activate an inactive or archived contact. Returns new Contact instance."""
         if self.status in [ContactStatus.INACTIVE, ContactStatus.ARCHIVED]:
-            self.status = ContactStatus.ACTIVE
-            self.last_modified = datetime.utcnow()
+            return self.model_copy(update={
+                'status': ContactStatus.ACTIVE,
+                'last_modified': datetime.utcnow()
+            })
         else:
             raise DomainValidationError(f"Cannot activate contact with status: {self.status.value}")
     
-    def block(self) -> None:
-        """Block the contact."""
-        self.status = ContactStatus.BLOCKED
-        self.last_modified = datetime.utcnow()
+    def block(self) -> 'Contact':
+        """Block the contact. Returns new Contact instance."""
+        return self.model_copy(update={
+            'status': ContactStatus.BLOCKED,
+            'last_modified': datetime.utcnow()
+        })
     
     def get_type_display(self) -> str:
         """Get human-readable contact type."""

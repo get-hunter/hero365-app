@@ -5,13 +5,31 @@ Represents an invitation for a user to join a business team.
 """
 
 import uuid
-from dataclasses import dataclass
-from typing import Optional, List
+import logging
+from typing import Optional, List, Annotated
 from datetime import datetime, timedelta
 from enum import Enum
+from pydantic import BaseModel, Field, field_validator, model_validator, UUID4, BeforeValidator
 
 from ..exceptions.domain_exceptions import DomainValidationError
 from .business_membership import BusinessRole, get_default_permissions_for_role
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+
+# Custom Pydantic validators for automatic string-to-enum conversion
+def validate_business_role(v) -> 'BusinessRole':
+    """Convert string to BusinessRole enum."""
+    if isinstance(v, str):
+        return BusinessRole(v)
+    return v
+
+def validate_invitation_status(v) -> 'InvitationStatus':
+    """Convert string to InvitationStatus enum."""
+    if isinstance(v, str):
+        return InvitationStatus(v)
+    return v
 
 
 class InvitationStatus(Enum):
@@ -23,25 +41,25 @@ class InvitationStatus(Enum):
     CANCELLED = "cancelled"
 
 
-@dataclass
-class BusinessInvitation:
+class BusinessInvitation(BaseModel):
     """
     Business Invitation entity representing an invitation to join a business team.
     
     This entity contains business logic for invitation lifecycle management,
     validation, and expiry handling.
     """
+    model_config = {"use_enum_values": True, "validate_assignment": True}
     
-    id: uuid.UUID
-    business_id: uuid.UUID
-    business_name: str
-    invited_by: str
-    invited_by_name: str
-    role: BusinessRole
-    permissions: List[str]
-    invitation_date: datetime
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    business_id: UUID4
+    business_name: str = Field(min_length=1)
+    invited_by: str = Field(min_length=1)
+    invited_by_name: str = Field(min_length=1)
+    role: Annotated[BusinessRole, BeforeValidator(validate_business_role)]
+    permissions: List[str] = Field(default_factory=list)
+    invitation_date: datetime = Field(default_factory=datetime.utcnow)
     expiry_date: datetime
-    status: InvitationStatus = InvitationStatus.PENDING
+    status: Annotated[InvitationStatus, BeforeValidator(validate_invitation_status)] = InvitationStatus.PENDING
     
     # Contact information (at least one required)
     invited_email: Optional[str] = None
@@ -52,53 +70,73 @@ class BusinessInvitation:
     accepted_date: Optional[datetime] = None
     declined_date: Optional[datetime] = None
     
-    def __post_init__(self):
+    @field_validator('invited_email')
+    @classmethod
+    def validate_email_format(cls, v):
+        """Validate email format if provided."""
+        if v and not cls._is_valid_email_static(v):
+            raise ValueError("Invalid email format")
+        return v
+    
+    @field_validator('invited_phone')
+    @classmethod
+    def validate_phone_format(cls, v):
+        """Validate phone format if provided."""
+        if v and not cls._is_valid_phone_static(v):
+            raise ValueError("Invalid phone format")
+        return v
+    
+    @model_validator(mode='before')
+    @classmethod
+    def set_default_permissions(cls, values):
+        """Set default permissions if none provided."""
+        if isinstance(values, dict):
+            # Auto-assign default permissions if none provided
+            if not values.get('permissions'):
+                role = values.get('role')
+                if role:
+                    # Handle both enum and string values
+                    if isinstance(role, str):
+                        role = BusinessRole(role)
+                    values['permissions'] = get_default_permissions_for_role(role)
+        return values
+    
+    @model_validator(mode='after')
+    def validate_invitation_rules(self):
         """Validate business rules after initialization."""
         self._validate_invitation_rules()
+        return self
     
     def _validate_invitation_rules(self) -> None:
         """Validate core invitation business rules."""
-        if not self.business_id:
-            raise DomainValidationError("Invitation must have a business ID")
-        
-        if not self.business_name or len(self.business_name.strip()) == 0:
-            raise DomainValidationError("Invitation must have a business name")
-        
-        if not self.invited_by:
-            raise DomainValidationError("Invitation must have an inviter")
-        
-        if not self.invited_by_name or len(self.invited_by_name.strip()) == 0:
-            raise DomainValidationError("Invitation must have an inviter name")
-        
         # At least one contact method required
         if not self.invited_email and not self.invited_phone:
             raise DomainValidationError("Invitation must have either email or phone")
         
-        # Validate email format if provided
-        if self.invited_email and not self._is_valid_email(self.invited_email):
-            raise DomainValidationError("Invalid email format")
-        
-        # Validate phone format if provided
-        if self.invited_phone and not self._is_valid_phone(self.invited_phone):
-            raise DomainValidationError("Invalid phone format")
-        
-        # Validate expiry date is in the future
-        if self.expiry_date <= datetime.utcnow():
+        # Validate expiry date is in the future (only for new invitations)
+        if self.status == InvitationStatus.PENDING and self.expiry_date <= datetime.utcnow():
             raise DomainValidationError("Expiry date must be in the future")
-        
-        # Validate permissions are appropriate for role
-        if not self.permissions:
-            self.permissions = get_default_permissions_for_role(self.role)
     
-    def _is_valid_email(self, email: str) -> bool:
+    @staticmethod
+    def _is_valid_email_static(email: str) -> bool:
         """Basic email validation."""
         return "@" in email and "." in email.split("@")[-1]
     
-    def _is_valid_phone(self, phone: str) -> bool:
+    @staticmethod
+    def _is_valid_phone_static(phone: str) -> bool:
         """Basic phone validation."""
         # Remove common phone formatting characters
         cleaned = phone.replace("+", "").replace("-", "").replace(" ", "").replace("(", "").replace(")", "")
         return cleaned.isdigit() and len(cleaned) >= 10
+    
+    # Instance methods for backward compatibility
+    def _is_valid_email(self, email: str) -> bool:
+        """Basic email validation."""
+        return self._is_valid_email_static(email)
+    
+    def _is_valid_phone(self, phone: str) -> bool:
+        """Basic phone validation."""
+        return self._is_valid_phone_static(phone)
     
     @classmethod
     def create_invitation(cls, business_id: uuid.UUID, business_name: str, 
@@ -167,9 +205,9 @@ class BusinessInvitation:
         """Check if the invitation can be resent."""
         return self.status in [InvitationStatus.PENDING, InvitationStatus.EXPIRED]
     
-    def accept(self) -> None:
+    def accept(self) -> 'BusinessInvitation':
         """
-        Accept the invitation.
+        Accept the invitation. Returns new BusinessInvitation instance.
         
         Raises:
             DomainValidationError: If invitation cannot be accepted
@@ -180,12 +218,14 @@ class BusinessInvitation:
             else:
                 raise DomainValidationError(f"Cannot accept invitation with status: {self.status.value}")
         
-        self.status = InvitationStatus.ACCEPTED
-        self.accepted_date = datetime.utcnow()
+        return self.model_copy(update={
+            'status': InvitationStatus.ACCEPTED,
+            'accepted_date': datetime.utcnow()
+        })
     
-    def decline(self) -> None:
+    def decline(self) -> 'BusinessInvitation':
         """
-        Decline the invitation.
+        Decline the invitation. Returns new BusinessInvitation instance.
         
         Raises:
             DomainValidationError: If invitation cannot be declined
@@ -196,12 +236,14 @@ class BusinessInvitation:
             else:
                 raise DomainValidationError(f"Cannot decline invitation with status: {self.status.value}")
         
-        self.status = InvitationStatus.DECLINED
-        self.declined_date = datetime.utcnow()
+        return self.model_copy(update={
+            'status': InvitationStatus.DECLINED,
+            'declined_date': datetime.utcnow()
+        })
     
-    def cancel(self) -> None:
+    def cancel(self) -> 'BusinessInvitation':
         """
-        Cancel the invitation.
+        Cancel the invitation. Returns new BusinessInvitation instance.
         
         Raises:
             DomainValidationError: If invitation cannot be cancelled
@@ -209,16 +251,17 @@ class BusinessInvitation:
         if not self.can_be_cancelled():
             raise DomainValidationError(f"Cannot cancel invitation with status: {self.status.value}")
         
-        self.status = InvitationStatus.CANCELLED
+        return self.model_copy(update={'status': InvitationStatus.CANCELLED})
     
-    def mark_expired(self) -> None:
-        """Mark the invitation as expired."""
+    def mark_expired(self) -> 'BusinessInvitation':
+        """Mark the invitation as expired. Returns new BusinessInvitation instance."""
         if self.status == InvitationStatus.PENDING:
-            self.status = InvitationStatus.EXPIRED
+            return self.model_copy(update={'status': InvitationStatus.EXPIRED})
+        return self
     
-    def extend_expiry(self, days: int = 7) -> None:
+    def extend_expiry(self, days: int = 7) -> 'BusinessInvitation':
         """
-        Extend the invitation expiry date.
+        Extend the invitation expiry date. Returns new BusinessInvitation instance.
         
         Args:
             days: Number of days to extend the expiry
@@ -229,11 +272,14 @@ class BusinessInvitation:
         if self.status != InvitationStatus.PENDING:
             raise DomainValidationError("Can only extend pending invitations")
         
-        self.expiry_date = datetime.utcnow() + timedelta(days=days)
+        new_expiry = datetime.utcnow() + timedelta(days=days)
+        update_data = {'expiry_date': new_expiry}
         
         # If invitation was expired, mark it as pending again
         if self.status == InvitationStatus.EXPIRED:
-            self.status = InvitationStatus.PENDING
+            update_data['status'] = InvitationStatus.PENDING
+        
+        return self.model_copy(update=update_data)
     
     def get_recipient_contact(self) -> str:
         """Get the primary contact method for the recipient."""
@@ -254,7 +300,9 @@ class BusinessInvitation:
             BusinessRole.CONTRACTOR: "Contractor",
             BusinessRole.VIEWER: "Viewer"
         }
-        return role_names.get(self.role, "Unknown")
+        # Handle both enum and string values due to use_enum_values=True
+        role_key = self.role if hasattr(self.role, 'value') else BusinessRole(self.role)
+        return role_names.get(role_key, "Unknown")
     
     def get_status_display(self) -> str:
         """Get a human-readable status name."""
@@ -265,7 +313,9 @@ class BusinessInvitation:
             InvitationStatus.EXPIRED: "Expired",
             InvitationStatus.CANCELLED: "Cancelled"
         }
-        return status_names.get(self.status, "Unknown")
+        # Handle both enum and string values due to use_enum_values=True
+        status_key = self.status if hasattr(self.status, 'value') else InvitationStatus(self.status)
+        return status_names.get(status_key, "Unknown")
     
     def get_expiry_summary(self) -> str:
         """Get a human-readable expiry summary."""
