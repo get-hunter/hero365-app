@@ -1,0 +1,29 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+These are the trades for commercial:
+- Mechanical
+- Refrigeration
+- Plumbing
+- Electrical
+- Security Systems
+- Landscaping
+- Roofing
+- Kitchen Equipment
+- Water Treatment
+- Pool & Spa
+
+And for residential:
+- HVAC
+- Plumbing
+- Electrical
+- Chimney
+- Roofing
+- Garage Door
+- Septic
+- Pest Control
+- Irrigation
+- Painting
