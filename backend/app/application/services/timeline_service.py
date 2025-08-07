@@ -7,7 +7,7 @@ Provides unified timeline feeds by aggregating activities, interactions, and sys
 import uuid
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 from enum import Enum
 
 from ..dto.activity_dto import TimelineEntryDTO, TimelineResponseDTO
@@ -26,8 +26,7 @@ class TimelineEventType(Enum):
     MILESTONE = "milestone"
 
 
-@dataclass
-class TimelineEvent:
+class TimelineEvent(BaseModel):
     """Unified timeline event structure."""
     id: str
     event_type: TimelineEventType
@@ -38,14 +37,8 @@ class TimelineEvent:
     actor_name: str
     metadata: Dict[str, Any]
     priority: str = "medium"
-    tags: List[str] = None
-    related_entities: Dict[str, str] = None  # {entity_type: entity_id}
-    
-    def __post_init__(self):
-        if self.tags is None:
-            self.tags = []
-        if self.related_entities is None:
-            self.related_entities = {}
+    tags: List[str] = Field(default_factory=list)
+    related_entities: Dict[str, str] = Field(default_factory=dict)  # {entity_type: entity_id}
 
 
 class TimelineAggregationService:

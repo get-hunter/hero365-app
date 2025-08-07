@@ -9,7 +9,7 @@ import uuid
 import asyncio
 from typing import List, Dict, Any, Optional, Set
 from datetime import datetime, timedelta
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 from enum import Enum
 import logging
 
@@ -40,8 +40,7 @@ class NotificationPriority(Enum):
     URGENT = "urgent"
 
 
-@dataclass
-class ReminderTemplate:
+class ReminderTemplate(BaseModel):
     """Template for reminder messages."""
     template_id: str
     name: str
@@ -53,8 +52,7 @@ class ReminderTemplate:
     is_active: bool = True
 
 
-@dataclass
-class NotificationPreference:
+class NotificationPreference(BaseModel):
     """User notification preferences."""
     user_id: str
     reminder_types: Set[ReminderType]
@@ -67,8 +65,7 @@ class NotificationPreference:
     frequency_limit: int = 10  # Max notifications per day
 
 
-@dataclass
-class ReminderSchedule:
+class ReminderSchedule(BaseModel):
     """Schedule configuration for reminders."""
     activity_id: uuid.UUID
     reminder_id: uuid.UUID

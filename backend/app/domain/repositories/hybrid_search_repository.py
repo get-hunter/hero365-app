@@ -9,13 +9,12 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional, Tuple
 from uuid import UUID
 from datetime import datetime
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 
 # BaseEntity import removed as it's not needed for this interface
 
 
-@dataclass
-class SearchResult:
+class SearchResult(BaseModel):
     """Result object for hybrid search operations."""
     
     entity_id: UUID
@@ -33,8 +32,7 @@ class SearchResult:
     relationship_details: Optional[Dict[str, Any]] = None
 
 
-@dataclass
-class EmbeddingRecord:
+class EmbeddingRecord(BaseModel):
     """Record object for embedding storage operations."""
     
     entity_id: UUID
@@ -48,8 +46,7 @@ class EmbeddingRecord:
     updated_at: datetime
 
 
-@dataclass
-class SearchQuery:
+class SearchQuery(BaseModel):
     """Query object for hybrid search operations."""
     
     query_text: str

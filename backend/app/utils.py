@@ -1,5 +1,4 @@
 import logging
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -7,6 +6,7 @@ from typing import Any, Optional
 import jwt
 from jinja2 import Template
 from jwt.exceptions import InvalidTokenError
+from pydantic import BaseModel
 
 from app.core.config import settings
 
@@ -28,8 +28,7 @@ def format_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
         return datetime(*utc_dt[:6]).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-@dataclass
-class EmailData:
+class EmailData(BaseModel):
     html_content: str
     subject: str
 

@@ -10,9 +10,9 @@ import aiohttp
 from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime, timedelta
 from decimal import Decimal
-from dataclasses import dataclass
 import json
 import logging
+from pydantic import BaseModel, Field
 
 from ...application.ports.external_services import RouteOptimizationPort, TravelTimePort
 from ...domain.exceptions.domain_exceptions import DomainValidationError
@@ -21,8 +21,7 @@ from ...core.config import settings
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class Location:
+class Location(BaseModel):
     """Location value object for coordinates."""
     latitude: float
     longitude: float
@@ -33,8 +32,7 @@ class Location:
         return f"{self.latitude},{self.longitude}"
 
 
-@dataclass
-class TravelTimeResult:
+class TravelTimeResult(BaseModel):
     """Result of travel time calculation."""
     distance_km: Decimal
     duration_minutes: Decimal
@@ -44,15 +42,14 @@ class TravelTimeResult:
     alternative_routes_count: int = 0
 
 
-@dataclass
-class OptimizedRoute:
+class OptimizedRoute(BaseModel):
     """Optimized route with waypoints."""
     total_distance_km: Decimal
     total_duration_minutes: Decimal
     waypoints_order: List[int]  # Optimized order of waypoints
     route_legs: List[Dict[str, Any]]
     estimated_fuel_cost: Optional[Decimal] = None
-    traffic_warnings: List[str] = None
+    traffic_warnings: List[str] = Field(default_factory=list)
 
 
 class GoogleMapsAdapter:

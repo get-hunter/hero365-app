@@ -10,10 +10,10 @@ import aiohttp
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from decimal import Decimal
-from dataclasses import dataclass
 from enum import Enum
 import json
 import logging
+from pydantic import BaseModel, Field
 
 from ...application.ports.external_services import WeatherServicePort
 from ...domain.exceptions.domain_exceptions import DomainValidationError
@@ -44,8 +44,7 @@ class WeatherImpactLevel(Enum):
     SEVERE = "severe"
 
 
-@dataclass
-class WeatherData:
+class WeatherData(BaseModel):
     """Weather data for a specific location and time."""
     temperature_celsius: float
     humidity_percent: float
@@ -57,8 +56,7 @@ class WeatherData:
     air_quality_index: Optional[int] = None
 
 
-@dataclass
-class WeatherImpact:
+class WeatherImpact(BaseModel):
     """Weather impact analysis for job scheduling."""
     impact_level: WeatherImpactLevel
     affected_job_types: List[str]
@@ -76,8 +74,7 @@ class WeatherImpact:
         return self.impact_level == WeatherImpactLevel.SEVERE
 
 
-@dataclass
-class WeatherForecast:
+class WeatherForecast(BaseModel):
     """Weather forecast for scheduling optimization."""
     location_lat: float
     location_lng: float

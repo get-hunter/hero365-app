@@ -6,8 +6,8 @@ Interface for SMS service operations.
 
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any
-from dataclasses import dataclass
 from enum import Enum
+from pydantic import BaseModel, Field
 
 
 class SMSPriority(Enum):
@@ -17,8 +17,7 @@ class SMSPriority(Enum):
     URGENT = "urgent"
 
 
-@dataclass
-class SMSMessage:
+class SMSMessage(BaseModel):
     """SMS message structure."""
     to: str  # Phone number
     message: str
@@ -29,8 +28,7 @@ class SMSMessage:
     scheduled_at: Optional[str] = None  # ISO format datetime
 
 
-@dataclass
-class SMSResult:
+class SMSResult(BaseModel):
     """SMS send result."""
     success: bool
     message_id: Optional[str] = None

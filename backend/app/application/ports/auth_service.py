@@ -6,9 +6,9 @@ Interface for external authentication service operations.
 
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, List
-from dataclasses import dataclass
 from enum import Enum
 import uuid
+from pydantic import BaseModel, Field
 
 
 class AuthProvider(Enum):
@@ -19,8 +19,7 @@ class AuthProvider(Enum):
     LOCAL = "local"
 
 
-@dataclass
-class AuthUser:
+class AuthUser(BaseModel):
     """External authentication user data."""
     id: str  # Provider-specific user ID
     email: Optional[str] = None
@@ -34,8 +33,7 @@ class AuthUser:
     last_sign_in: Optional[str] = None
 
 
-@dataclass 
-class AuthToken:
+class AuthToken(BaseModel):
     """Authentication token information."""
     access_token: str
     refresh_token: Optional[str] = None
@@ -45,8 +43,7 @@ class AuthToken:
     scope: Optional[str] = None
 
 
-@dataclass
-class AuthResult:
+class AuthResult(BaseModel):
     """Authentication operation result."""
     success: bool
     user: Optional[AuthUser] = None

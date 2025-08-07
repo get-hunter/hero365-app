@@ -126,7 +126,7 @@ class Address(BaseModel):
         return f"Address(street_address='{self.street_address}', city='{self.city}', state='{self.state}')"
 
     model_config = {
-        "frozen": True,  # Equivalent to dataclass(frozen=True)
+        "frozen": True,
         "str_strip_whitespace": True,
         "validate_assignment": True,
         "json_encoders": {

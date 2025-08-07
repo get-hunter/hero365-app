@@ -6,8 +6,8 @@ Interface for email service operations.
 
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any
-from dataclasses import dataclass
 from enum import Enum
+from pydantic import BaseModel, Field
 
 
 class EmailPriority(Enum):
@@ -18,24 +18,21 @@ class EmailPriority(Enum):
     URGENT = "urgent"
 
 
-@dataclass
-class EmailTemplate:
+class EmailTemplate(BaseModel):
     """Email template configuration."""
     template_id: str
     subject: str
     variables: Dict[str, Any]
 
 
-@dataclass
-class EmailAttachment:
+class EmailAttachment(BaseModel):
     """Email attachment configuration."""
     filename: str
     content: bytes
     content_type: str
 
 
-@dataclass
-class EmailMessage:
+class EmailMessage(BaseModel):
     """Email message structure."""
     to: List[str]
     subject: str
@@ -53,8 +50,7 @@ class EmailMessage:
     metadata: Optional[Dict[str, Any]] = None
 
 
-@dataclass
-class EmailResult:
+class EmailResult(BaseModel):
     """Email send result."""
     success: bool
     message_id: Optional[str] = None
