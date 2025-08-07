@@ -1,7 +1,7 @@
 # SEO Website Builder Implementation Plan
 
 ## Executive Summary
-Build an AI-powered website generation and SEO optimization platform that automatically creates, deploys, and maintains high-performing websites for Hero365 professionals, integrated with Google Business Profile management, local SEO tools, and one-click domain registration for maximum SEO impact.
+Build an AI-powered website generation and SEO optimization platform that automatically creates, deploys, and maintains high-performing websites for Hero365 professionals, integrated with Google Business Profile management, local SEO tools, and one-click domain registration for maximum SEO impact. The system leverages the trade-based business classification (Commercial and Residential trades) to generate industry-specific, highly optimized websites.
 
 ## Architecture Overview
 
@@ -24,19 +24,48 @@ Build an AI-powered website generation and SEO optimization platform that automa
 
 ## Phase 1: Foundation (Week 1-2)
 
+### 1.0 Unified Business Branding System
+```python
+# backend/app/domain/entities/business_branding.py
+"""
+Centralized branding configuration shared across all business components:
+- Websites (SEO sites, landing pages)
+- Documents (Estimates, Invoices, Contracts)
+- Emails (Transactional, Marketing)
+- Mobile App (Custom theming)
+
+Benefits:
+1. Single source of truth for brand identity
+2. Consistent customer experience across all touchpoints
+3. Easy brand updates propagate to all components
+4. Trade-specific theme suggestions
+5. Export to design tools (Figma, Sketch)
+"""
+
+# Key Features:
+- ColorScheme: Unified colors with trade-specific suggestions
+- Typography: Consistent fonts and sizes across all materials
+- BrandAssets: Centralized logo, watermark, signature management
+- Trade Themes: Automatic color suggestions based on trade type
+- CSS Generation: Auto-generate CSS variables for web components
+- Component Configs: Specific settings for each component type
+```
+
 ### 1.1 Database Schema Design
 ```sql
 -- Website configuration and templates
 CREATE TABLE website_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    trade_type VARCHAR(50) NOT NULL, -- 'plumbing', 'electrical', etc.
-    trade_category VARCHAR(20) NOT NULL, -- 'commercial' or 'residential'
+    trade_type VARCHAR(50) NOT NULL, -- Specific trade from CommercialTrade or ResidentialTrade enums
+    trade_category VARCHAR(20) NOT NULL, -- 'COMMERCIAL', 'RESIDENTIAL', or 'BOTH'
     name VARCHAR(100) NOT NULL,
     description TEXT,
     preview_url VARCHAR(500),
     structure JSONB NOT NULL, -- Page hierarchy and components
     default_content JSONB, -- AI prompts and seed content
     seo_config JSONB, -- Meta tags, schema templates
+    is_multi_trade BOOLEAN DEFAULT FALSE, -- Support for multi-trade businesses
+    supported_trades TEXT[], -- Array of supported trade combinations
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -44,13 +73,14 @@ CREATE TABLE website_templates (
 CREATE TABLE business_websites (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+    branding_id UUID REFERENCES business_branding(id), -- Link to centralized branding
     template_id UUID REFERENCES website_templates(id),
     domain VARCHAR(255) UNIQUE,
     subdomain VARCHAR(100), -- for hero365.ai subdomains
     status VARCHAR(50) DEFAULT 'draft', -- draft, building, deployed, error
     
-    -- Customization
-    theme_config JSONB, -- colors, fonts, logo
+    -- Customization (overrides from central branding if needed)
+    theme_overrides JSONB, -- Component-specific overrides
     content_overrides JSONB, -- User edits to AI content
     pages JSONB, -- Generated page structure
     
@@ -116,36 +146,79 @@ CREATE TABLE website_analytics (
 ### 1.2 Domain Entities
 ```python
 # backend/app/domain/entities/website.py
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, Field
 from typing import Optional, Dict, List
 from datetime import datetime
 from uuid import UUID
+from enum import Enum
+
+from app.domain.entities.business import TradeCategory, CommercialTrade, ResidentialTrade
+
+class WebsiteStatus(Enum):
+    DRAFT = "draft"
+    BUILDING = "building"
+    BUILT = "built"
+    DEPLOYING = "deploying"
+    DEPLOYED = "deployed"
+    ERROR = "error"
 
 class WebsiteTemplate(BaseModel):
     id: UUID
-    trade_type: str  # 'plumbing', 'electrical', etc.
-    trade_category: str  # 'commercial' or 'residential'
+    trade_type: str  # Specific trade value from CommercialTrade or ResidentialTrade
+    trade_category: TradeCategory
     name: str
-    description: Optional[str]
-    preview_url: Optional[HttpUrl]
-    structure: Dict  # Page hierarchy
-    default_content: Dict
-    seo_config: Dict
+    description: Optional[str] = None
+    preview_url: Optional[HttpUrl] = None
+    structure: Dict = Field(default_factory=dict)  # Page hierarchy
+    default_content: Dict = Field(default_factory=dict)
+    seo_config: Dict = Field(default_factory=dict)
+    is_multi_trade: bool = False
+    supported_trades: List[str] = Field(default_factory=list)
+    
+    def supports_business(self, business: 'Business') -> bool:
+        """Check if template supports a business's trades"""
+        business_trades = business.get_all_trades()
+        if self.is_multi_trade:
+            return any(trade in self.supported_trades for trade in business_trades)
+        return self.trade_type in business_trades
 
 class BusinessWebsite(BaseModel):
     id: UUID
     business_id: UUID
-    template_id: Optional[UUID]
-    domain: Optional[str]
-    subdomain: Optional[str]
-    status: str  # draft, building, deployed
-    theme_config: Dict
-    content_overrides: Dict
-    pages: List[Dict]
-    deployment_info: Optional[Dict]
-    seo_settings: Dict
-    last_build_at: Optional[datetime]
-    last_deploy_at: Optional[datetime]
+    template_id: Optional[UUID] = None
+    domain: Optional[str] = None
+    subdomain: Optional[str] = None
+    status: WebsiteStatus = WebsiteStatus.DRAFT
+    
+    # Customization
+    theme_config: Dict = Field(default_factory=dict)
+    content_overrides: Dict = Field(default_factory=dict)
+    pages: List[Dict] = Field(default_factory=list)
+    
+    # Trade-specific content
+    primary_trade: Optional[str] = None  # Primary trade for SEO focus
+    secondary_trades: List[str] = Field(default_factory=list)  # Additional trades to mention
+    service_areas: List[str] = Field(default_factory=list)  # Geographic service areas
+    
+    # Deployment
+    deployment_info: Optional[Dict] = None
+    seo_settings: Dict = Field(default_factory=dict)
+    last_build_at: Optional[datetime] = None
+    last_deploy_at: Optional[datetime] = None
+    
+    def get_seo_focus_keywords(self) -> List[str]:
+        """Generate primary SEO keywords based on trades"""
+        keywords = []
+        if self.primary_trade:
+            keywords.extend([
+                f"{self.primary_trade} services",
+                f"{self.primary_trade} contractor",
+                f"professional {self.primary_trade}"
+            ])
+        for area in self.service_areas[:3]:  # Top 3 service areas
+            if self.primary_trade:
+                keywords.append(f"{self.primary_trade} {area}")
+        return keywords
 ```
 
 ### 1.3 Repository Layer
@@ -176,11 +249,14 @@ class WebsiteRepository(ABC):
 ## Phase 2: Template System (Week 2-3)
 
 ### 2.1 Create Industry Templates
+
+#### Commercial Trade Templates
 ```typescript
-// website-builder/templates/plumbing-commercial.ts
+// website-builder/templates/commercial/plumbing.ts
 export const plumbingCommercialTemplate = {
-  trade: 'plumbing',
-  category: 'commercial',
+  trade: CommercialTrade.PLUMBING,
+  category: TradeCategory.COMMERCIAL,
+  name: 'Commercial Plumbing Professional',
   pages: [
     {
       path: '/',
@@ -208,13 +284,78 @@ export const plumbingCommercialTemplate = {
     schema: ['LocalBusiness', 'PlumbingService']
   }
 };
+
+// Templates for all 10 Commercial Trades:
+// - Mechanical, Refrigeration, Plumbing, Electrical
+// - Security Systems, Landscaping, Roofing
+// - Kitchen Equipment, Water Treatment, Pool & Spa
 ```
 
-### 2.2 AI Content Generator Service
+#### Residential Trade Templates
+```typescript
+// website-builder/templates/residential/hvac.ts
+export const hvacResidentialTemplate = {
+  trade: ResidentialTrade.HVAC,
+  category: TradeCategory.RESIDENTIAL,
+  name: 'Residential HVAC Services',
+  pages: [
+    {
+      path: '/',
+      name: 'Home',
+      sections: [
+        { type: 'hero', config: { headline: 'Your Comfort is Our Priority' } },
+        { type: 'services', config: { residential: true } },
+        { type: 'emergency-service' },
+        { type: 'reviews' },
+        { type: 'service-areas' }
+      ]
+    }
+  ],
+  seo: {
+    keywords: ['hvac repair', 'air conditioning', 'heating services'],
+    schema: ['LocalBusiness', 'HVACBusiness']
+  }
+};
+
+// Templates for all 10 Residential Trades:
+// - HVAC, Plumbing, Electrical, Chimney
+// - Roofing, Garage Door, Septic
+// - Pest Control, Irrigation, Painting
+```
+
+#### Multi-Trade Templates
+```typescript
+// website-builder/templates/multi-trade.ts
+export const multiTradeTemplate = {
+  trade_category: TradeCategory.BOTH,
+  is_multi_trade: true,
+  name: 'Multi-Service Professional',
+  supports_dynamic_trades: true,
+  pages: [
+    {
+      path: '/',
+      name: 'Home',
+      sections: [
+        { type: 'hero', config: { dynamic: true } },
+        { type: 'trade-selector' },  // Dynamic based on business trades
+        { type: 'service-grid', config: { multi_trade: true } },
+        { type: 'why-choose-us' },
+        { type: 'coverage-map' }
+      ]
+    }
+  ]
+};
+```
+
+### 2.2 AI Content Generator Service with Unified Branding
 ```python
 # backend/app/application/services/content_generator_service.py
 from typing import Dict, List
 import openai
+import json
+
+from app.domain.entities.business import Business, TradeCategory
+from app.domain.entities.business_branding import BusinessBranding
 
 class ContentGeneratorService:
     def __init__(self, openai_client):
@@ -224,16 +365,41 @@ class ContentGeneratorService:
         self,
         template: WebsiteTemplate,
         business: Business,
+        branding: BusinessBranding,
         page_type: str
     ) -> Dict:
-        """Generate SEO-optimized content for a page"""
+        """Generate SEO-optimized content for a page with brand consistency"""
         
-        prompt = self._build_content_prompt(template, business, page_type)
+        # Get business trade information
+        primary_trade = business.get_primary_trade()
+        all_trades = business.get_all_trades()
+        is_multi_trade = business.is_multi_trade_business()
+        
+        # Apply trade-specific branding if not already applied
+        if not branding.trade_customizations:
+            branding = branding.apply_trade_theme(
+                primary_trade, 
+                business.trade_category.value if business.trade_category else "both"
+            )
+        
+        # Build trade-specific prompt
+        prompt = self._build_trade_content_prompt(
+            template, 
+            business, 
+            page_type,
+            primary_trade,
+            all_trades,
+            is_multi_trade
+        )
         
         response = await self.client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are an SEO expert..."},
+                {
+                    "role": "system", 
+                    "content": f"You are an SEO expert specializing in {primary_trade} services. "
+                              f"Create compelling, keyword-rich content for local service businesses."
+                },
                 {"role": "user", "content": prompt}
             ],
             response_format={"type": "json_object"}
@@ -241,15 +407,110 @@ class ContentGeneratorService:
         
         return json.loads(response.choices[0].message.content)
     
+    def _build_trade_content_prompt(
+        self,
+        template: WebsiteTemplate,
+        business: Business,
+        page_type: str,
+        primary_trade: str,
+        all_trades: List[str],
+        is_multi_trade: bool
+    ) -> str:
+        """Build content prompt based on trade specifics"""
+        
+        base_prompt = f"""
+        Generate SEO-optimized content for a {page_type} page.
+        
+        Business Information:
+        - Name: {business.name}
+        - Primary Trade: {primary_trade}
+        - All Services: {', '.join(all_trades)}
+        - Multi-Trade Business: {is_multi_trade}
+        - Trade Category: {business.trade_category.value if business.trade_category else 'Both'}
+        - Location: {business.business_address}
+        - Service Areas: {', '.join(business.service_areas)}
+        
+        SEO Requirements:
+        - Include location-based keywords
+        - Mention all relevant trades naturally
+        - Focus on {primary_trade} as the main service
+        - Include calls-to-action
+        - Use schema markup suggestions
+        """
+        
+        if business.trade_category == TradeCategory.COMMERCIAL:
+            base_prompt += """
+        - Emphasize commercial expertise, certifications, and scale
+        - Mention business hours, emergency services, and contracts
+        - Include industry-specific terminology
+        """
+        elif business.trade_category == TradeCategory.RESIDENTIAL:
+            base_prompt += """
+        - Focus on homeowner benefits, trust, and reliability
+        - Emphasize family-friendly service and local presence
+        - Include residential-specific services and warranties
+        """
+        
+        return base_prompt
+    
     async def optimize_meta_tags(
         self,
         page_content: str,
-        target_keywords: List[str],
+        business: Business,
         location: str
     ) -> Dict:
-        """Generate optimized meta tags"""
-        # Implementation
-        pass
+        """Generate optimized meta tags based on business trades"""
+        
+        primary_trade = business.get_primary_trade()
+        seo_keywords = business.get_seo_keywords()
+        
+        return {
+            "title": f"{business.name} - {primary_trade.title()} Services in {location}",
+            "description": f"Professional {primary_trade} services in {location}. "
+                          f"{business.name} offers {', '.join(business.get_all_trades())}. "
+                          f"Call now for expert service.",
+            "keywords": seo_keywords[:10],  # Top 10 keywords
+            "og:title": f"{business.name} - Expert {primary_trade.title()} Services",
+            "og:description": f"Trusted {primary_trade} professionals serving {location}",
+            "schema": self._generate_schema_markup(business, primary_trade, location)
+        }
+    
+    def _generate_schema_markup(
+        self, 
+        business: Business, 
+        primary_trade: str,
+        location: str
+    ) -> Dict:
+        """Generate JSON-LD schema for local business"""
+        
+        return {
+            "@context": "https://schema.org",
+            "@type": "LocalBusiness",
+            "name": business.name,
+            "description": f"{primary_trade.title()} services in {location}",
+            "address": {
+                "@type": "PostalAddress",
+                "streetAddress": business.business_address,
+                "addressLocality": location
+            },
+            "telephone": business.phone_number,
+            "email": business.business_email,
+            "url": business.website,
+            "areaServed": business.service_areas,
+            "hasOfferCatalog": {
+                "@type": "OfferCatalog",
+                "name": f"{primary_trade.title()} Services",
+                "itemListElement": [
+                    {
+                        "@type": "Offer",
+                        "itemOffered": {
+                            "@type": "Service",
+                            "name": trade.title()
+                        }
+                    } for trade in business.get_all_trades()
+                ]
+            }
+        }
 ```
 
 ## Phase 3: Website Builder Engine (Week 3-4)
@@ -280,23 +541,31 @@ class DomainRegistrationService:
     
     async def search_domains(
         self,
-        business_name: str,
-        location: str,
-        trade_type: str
+        business: Business,
+        location: str
     ) -> List[Dict]:
-        """Generate and check domain suggestions"""
+        """Generate and check domain suggestions based on business trades"""
         
-        # Generate smart suggestions
+        # Get business trade information
+        primary_trade = business.get_primary_trade()
+        all_trades = business.get_all_trades()
+        
+        # Generate smart suggestions using business and trade info
         suggestions = self._generate_domain_suggestions(
-            business_name,
-            location,
-            trade_type
+            business_name=business.name,
+            location=location,
+            primary_trade=primary_trade,
+            all_trades=all_trades,
+            is_multi_trade=business.is_multi_trade_business()
         )
         
         # Check availability across all TLDs
         results = []
         for suggestion in suggestions:
-            for tld in ['.com', '.net', '.org', '.co', '.biz', '.pro', '.services']:
+            # Prioritize TLDs based on trade category
+            tlds = self._get_tlds_for_trade(business.trade_category)
+            
+            for tld in tlds:
                 domain = f"{suggestion}{tld}"
                 
                 # Check availability and pricing with Cloudflare
@@ -308,13 +577,30 @@ class DomainRegistrationService:
                         'available': True,
                         'price': price['amount'],  # At-cost pricing
                         'premium': price.get('premium', False),
-                        'score': self._calculate_seo_score(domain, trade_type)
+                        'score': self._calculate_trade_seo_score(
+                            domain, 
+                            primary_trade,
+                            all_trades,
+                            business.trade_category
+                        ),
+                        'recommended_for': primary_trade
                     })
         
         # Sort by SEO score and price
         results.sort(key=lambda x: (-x['score'], x['price']))
         
         return results[:20]  # Return top 20 suggestions
+    
+    def _get_tlds_for_trade(self, trade_category: TradeCategory) -> List[str]:
+        """Get recommended TLDs based on trade category"""
+        base_tlds = ['.com', '.net', '.org']
+        
+        if trade_category == TradeCategory.COMMERCIAL:
+            return base_tlds + ['.pro', '.biz', '.services', '.contractors']
+        elif trade_category == TradeCategory.RESIDENTIAL:
+            return base_tlds + ['.services', '.repair', '.home', '.house']
+        else:  # BOTH
+            return base_tlds + ['.services', '.pro', '.contractors', '.solutions']
     
     async def register_domain(
         self,
@@ -366,32 +652,58 @@ class DomainRegistrationService:
         for record in dns_records:
             await self.cloudflare.add_dns_record(domain, record)
     
-    def _calculate_seo_score(self, domain: str, trade_type: str) -> int:
-        """Calculate SEO value of domain"""
+    def _calculate_trade_seo_score(
+        self, 
+        domain: str, 
+        primary_trade: str,
+        all_trades: List[str],
+        trade_category: TradeCategory
+    ) -> int:
+        """Calculate SEO value of domain based on trades"""
         
         score = 100
         
         # Prefer .com
         if domain.endswith('.com'):
             score += 20
+        elif domain.endswith('.services') or domain.endswith('.pro'):
+            score += 15  # Good for service businesses
         
         # Shorter is better
-        if len(domain) < 15:
+        domain_length = len(domain.split('.')[0])  # Without TLD
+        if domain_length < 15:
             score += 15
-        elif len(domain) > 25:
+        elif domain_length > 25:
             score -= 10
         
-        # Contains trade keyword
-        if trade_type.lower() in domain.lower():
-            score += 25
+        # Contains primary trade keyword (highest value)
+        if primary_trade.lower() in domain.lower():
+            score += 30
+        # Contains any trade keyword
+        elif any(trade.lower() in domain.lower() for trade in all_trades):
+            score += 20
+        
+        # Trade category specific scoring
+        if trade_category == TradeCategory.COMMERCIAL:
+            if any(word in domain.lower() for word in ['commercial', 'pro', 'business']):
+                score += 10
+        elif trade_category == TradeCategory.RESIDENTIAL:
+            if any(word in domain.lower() for word in ['home', 'house', 'residential']):
+                score += 10
         
         # No hyphens is better
         if '-' not in domain:
             score += 10
+        elif domain.count('-') == 1:
+            score += 5  # One hyphen is acceptable
         
         # Easy to spell/remember
-        if domain.replace('.', '').isalpha():
+        if domain.replace('.', '').replace('-', '').isalpha():
             score += 10
+        
+        # Exact match bonus
+        if domain.split('.')[0].lower() == primary_trade.lower():
+            score += 25
         
         return min(score, 100)
 ```
@@ -748,20 +1060,33 @@ async def search_domains(
     business_id: UUID = Depends(get_current_business),
     domain_service: DomainRegistrationService = Depends()
 ):
-    """Search for available domains with SEO scoring"""
+    """Search for available domains with trade-based SEO scoring"""
     
     business = await get_business(business_id)
     
-    # Generate and check domain suggestions
+    # Use business trades for domain generation
+    if not business.get_all_trades():
+        raise HTTPException(
+            status_code=400,
+            detail="Business must have at least one trade specified for domain suggestions"
+        )
+    
+    # Generate and check domain suggestions based on trades
     suggestions = await domain_service.search_domains(
-        business_name=business.name,
-        location=business.city,
-        trade_type=request.trade_type
+        business=business,
+        location=request.location or business.city
     )
     
+    # Group suggestions by trade relevance
+    primary_trade = business.get_primary_trade()
+    primary_suggestions = [s for s in suggestions if s['recommended_for'] == primary_trade]
+    other_suggestions = [s for s in suggestions if s['recommended_for'] != primary_trade]
+    
     return {
-        "suggestions": suggestions,
-        "recommended": suggestions[0] if suggestions else None
+        "primary_suggestions": primary_suggestions[:10],
+        "other_suggestions": other_suggestions[:10],
+        "recommended": primary_suggestions[0] if primary_suggestions else suggestions[0] if suggestions else None,
+        "business_trades": business.get_all_trades()
     }
 
 @router.post("/domains/register")
@@ -809,21 +1134,47 @@ async def register_domain(
 async def create_website(
     request: CreateWebsiteRequest,
     business_id: UUID = Depends(get_current_business),
-    builder_service: WebsiteBuilderService = Depends()
+    builder_service: WebsiteBuilderService = Depends(),
+    content_service: ContentGeneratorService = Depends()
 ):
-    """Create a new website for business"""
+    """Create a new website based on business trades"""
     
-    # Select template
-    template = await get_template(request.trade_type)
+    business = await get_business(business_id)
     
-    # Generate content
-    content = await generate_content(business_id, template)
+    # Validate business has trades
+    if not business.get_all_trades():
+        raise HTTPException(
+            status_code=400,
+            detail="Business must have at least one trade specified"
+        )
     
-    # Create website record
+    # Auto-select template based on business trades
+    primary_trade = business.get_primary_trade()
+    template = await get_template_for_trade(
+        primary_trade,
+        business.trade_category,
+        is_multi_trade=business.is_multi_trade_business()
+    )
+    
+    if not template:
+        # Fallback to multi-trade template
+        template = await get_multi_trade_template()
+    
+    # Generate trade-specific content
+    content = await content_service.generate_page_content(
+        template=template,
+        business=business,
+        page_type="full_site"
+    )
+    
+    # Create website record with trade information
     website = await create_website_record(
-        business_id,
-        template.id,
-        content
+        business_id=business_id,
+        template_id=template.id,
+        content=content,
+        primary_trade=primary_trade,
+        secondary_trades=business.get_all_trades()[1:] if len(business.get_all_trades()) > 1 else [],
+        service_areas=business.service_areas
     )
     
     # Trigger build job
@@ -832,7 +1183,10 @@ async def create_website(
     return WebsiteResponse(
         id=website.id,
         status="building",
-        preview_url=f"/preview/{website.id}"
+        preview_url=f"/preview/{website.id}",
+        template_name=template.name,
+        primary_trade=primary_trade,
+        seo_keywords=business.get_seo_keywords()[:5]  # Top 5 keywords
     )
 
 @router.post("/{website_id}/publish")
@@ -1273,6 +1627,183 @@ async def test_concurrent_builds():
     pass
 ```
 
+## Phase 9.5: Trade-Specific Template Generation (Week 9)
+
+### 9.5.1 Template Factory Service
+```python
+# backend/app/application/services/template_factory_service.py
+from typing import Dict, Optional
+from app.domain.entities.business import Business, TradeCategory, CommercialTrade, ResidentialTrade
+
+class TemplateFactoryService:
+    """Factory for creating trade-specific website templates"""
+    
+    def __init__(self):
+        self.commercial_templates = self._load_commercial_templates()
+        self.residential_templates = self._load_residential_templates()
+    
+    def _load_commercial_templates(self) -> Dict:
+        """Load all commercial trade templates"""
+        return {
+            CommercialTrade.MECHANICAL: "mechanical_commercial.json",
+            CommercialTrade.REFRIGERATION: "refrigeration_commercial.json",
+            CommercialTrade.PLUMBING: "plumbing_commercial.json",
+            CommercialTrade.ELECTRICAL: "electrical_commercial.json",
+            CommercialTrade.SECURITY_SYSTEMS: "security_commercial.json",
+            CommercialTrade.LANDSCAPING: "landscaping_commercial.json",
+            CommercialTrade.ROOFING: "roofing_commercial.json",
+            CommercialTrade.KITCHEN_EQUIPMENT: "kitchen_equipment_commercial.json",
+            CommercialTrade.WATER_TREATMENT: "water_treatment_commercial.json",
+            CommercialTrade.POOL_SPA: "pool_spa_commercial.json"
+        }
+    
+    def _load_residential_templates(self) -> Dict:
+        """Load all residential trade templates"""
+        return {
+            ResidentialTrade.HVAC: "hvac_residential.json",
+            ResidentialTrade.PLUMBING: "plumbing_residential.json",
+            ResidentialTrade.ELECTRICAL: "electrical_residential.json",
+            ResidentialTrade.CHIMNEY: "chimney_residential.json",
+            ResidentialTrade.ROOFING: "roofing_residential.json",
+            ResidentialTrade.GARAGE_DOOR: "garage_door_residential.json",
+            ResidentialTrade.SEPTIC: "septic_residential.json",
+            ResidentialTrade.PEST_CONTROL: "pest_control_residential.json",
+            ResidentialTrade.IRRIGATION: "irrigation_residential.json",
+            ResidentialTrade.PAINTING: "painting_residential.json"
+        }
+    
+    async def get_template_for_business(
+        self, 
+        business: Business
+    ) -> Optional[WebsiteTemplate]:
+        """Get the best template for a business based on trades"""
+        
+        primary_trade = business.get_primary_trade()
+        
+        if business.is_multi_trade_business():
+            # Use multi-trade template
+            return await self._get_multi_trade_template(business)
+        
+        # Single trade - get specific template
+        if business.trade_category == TradeCategory.COMMERCIAL:
+            for trade in business.commercial_trades:
+                if trade.value == primary_trade:
+                    return await self._load_template(
+                        self.commercial_templates.get(trade)
+                    )
+        
+        elif business.trade_category == TradeCategory.RESIDENTIAL:
+            for trade in business.residential_trades:
+                if trade.value == primary_trade:
+                    return await self._load_template(
+                        self.residential_templates.get(trade)
+                    )
+        
+        # Both categories - check both
+        else:
+            # Check commercial first
+            for trade in business.commercial_trades:
+                if trade.value == primary_trade:
+                    return await self._load_template(
+                        self.commercial_templates.get(trade)
+                    )
+            # Then residential
+            for trade in business.residential_trades:
+                if trade.value == primary_trade:
+                    return await self._load_template(
+                        self.residential_templates.get(trade)
+                    )
+        
+        return None
+    
+    async def _get_multi_trade_template(
+        self,
+        business: Business
+    ) -> WebsiteTemplate:
+        """Create dynamic multi-trade template"""
+        
+        all_trades = business.get_all_trades()
+        primary_trade = business.get_primary_trade()
+        
+        template = WebsiteTemplate(
+            id=uuid.uuid4(),
+            trade_type=primary_trade,
+            trade_category=business.trade_category or TradeCategory.BOTH,
+            name=f"Multi-Service {business.trade_category.value if business.trade_category else 'Professional'}",
+            is_multi_trade=True,
+            supported_trades=all_trades,
+            structure={
+                "pages": [
+                    {
+                        "path": "/",
+                        "sections": [
+                            {"type": "hero", "focus": primary_trade},
+                            {"type": "multi-service-grid", "trades": all_trades},
+                            {"type": "why-choose-us"},
+                            {"type": "service-areas", "areas": business.service_areas}
+                        ]
+                    },
+                    # Dynamic service pages for each trade
+                    *[
+                        {
+                            "path": f"/services/{trade.lower().replace(' ', '-')}",
+                            "trade": trade,
+                            "sections": [
+                                {"type": "service-hero", "trade": trade},
+                                {"type": "service-details"},
+                                {"type": "pricing"},
+                                {"type": "cta"}
+                            ]
+                        } for trade in all_trades
+                    ]
+                ]
+            },
+            seo_config={
+                "primary_keywords": business.get_seo_keywords(),
+                "schema_types": ["LocalBusiness", "ProfessionalService"] + 
+                               [f"{trade.title()}Service" for trade in all_trades[:3]]
+            }
+        )
+        
+        return template
+```
+
+### 9.5.2 Template Seed Data
+```sql
+-- Seed commercial trade templates
+INSERT INTO website_templates (trade_type, trade_category, name, structure, seo_config)
+VALUES 
+    ('mechanical', 'COMMERCIAL', 'Commercial Mechanical Services', '{}', '{}'),
+    ('refrigeration', 'COMMERCIAL', 'Commercial Refrigeration Experts', '{}', '{}'),
+    ('plumbing', 'COMMERCIAL', 'Commercial Plumbing Solutions', '{}', '{}'),
+    ('electrical', 'COMMERCIAL', 'Commercial Electrical Contractors', '{}', '{}'),
+    ('security_systems', 'COMMERCIAL', 'Business Security Systems', '{}', '{}'),
+    ('landscaping', 'COMMERCIAL', 'Commercial Landscaping Services', '{}', '{}'),
+    ('roofing', 'COMMERCIAL', 'Commercial Roofing Specialists', '{}', '{}'),
+    ('kitchen_equipment', 'COMMERCIAL', 'Commercial Kitchen Equipment', '{}', '{}'),
+    ('water_treatment', 'COMMERCIAL', 'Industrial Water Treatment', '{}', '{}'),
+    ('pool_spa', 'COMMERCIAL', 'Commercial Pool & Spa Services', '{}', '{}');
+
+-- Seed residential trade templates  
+INSERT INTO website_templates (trade_type, trade_category, name, structure, seo_config)
+VALUES
+    ('hvac', 'RESIDENTIAL', 'Home HVAC Services', '{}', '{}'),
+    ('plumbing', 'RESIDENTIAL', 'Residential Plumbing Experts', '{}', '{}'),
+    ('electrical', 'RESIDENTIAL', 'Home Electrical Services', '{}', '{}'),
+    ('chimney', 'RESIDENTIAL', 'Chimney Cleaning & Repair', '{}', '{}'),
+    ('roofing', 'RESIDENTIAL', 'Residential Roofing Services', '{}', '{}'),
+    ('garage_door', 'RESIDENTIAL', 'Garage Door Repair & Installation', '{}', '{}'),
+    ('septic', 'RESIDENTIAL', 'Septic System Services', '{}', '{}'),
+    ('pest_control', 'RESIDENTIAL', 'Pest Control Solutions', '{}', '{}'),
+    ('irrigation', 'RESIDENTIAL', 'Lawn Irrigation Systems', '{}', '{}'),
+    ('painting', 'RESIDENTIAL', 'Professional Painting Services', '{}', '{}');
+
+-- Multi-trade template
+INSERT INTO website_templates (trade_type, trade_category, name, is_multi_trade, structure, seo_config)
+VALUES
+    ('multi', 'BOTH', 'Multi-Service Professional', true, '{}', '{}');
+```
+
 ## Phase 10: Production Deployment (Week 9-10)
 
 ### 10.1 Infrastructure Setup
@@ -1422,20 +1953,60 @@ echo "API clients generated successfully"
 
 ## Timeline Summary
 
-- **Week 1-2**: Database schema, domain entities, repositories (including domain registration tables)
-- **Week 2-3**: Template system, AI content generation, domain registration service
-- **Week 3-4**: Website builder engine, deployment service with auto-DNS configuration
-- **Week 4-5**: Google Business Profile integration
-- **Week 5-6**: SEO optimization engine with domain scoring
-- **Week 6-7**: API endpoints, mobile integration with domain picker UI
-- **Week 7-8**: Background jobs, testing
-- **Week 8-9**: Performance optimization, security
-- **Week 9-10**: Production deployment, monitoring
+- **Week 1-2**: Database schema, domain entities with Pydantic v2, repositories (including domain registration tables)
+- **Week 2-3**: Trade-specific template system (20 templates for Commercial/Residential trades), AI content generation, domain registration service with Cloudflare
+- **Week 3-4**: Website builder engine with trade-aware content, deployment service with auto-DNS configuration
+- **Week 4-5**: Google Business Profile integration with trade-specific optimization
+- **Week 5-6**: SEO optimization engine with trade-based domain scoring
+- **Week 6-7**: API endpoints with trade validation, mobile integration with domain picker UI
+- **Week 7-8**: Background jobs, testing for all trade combinations
+- **Week 8-9**: Performance optimization, multi-trade template generation
+- **Week 9**: Trade-specific template factory and seed data creation
+- **Week 9-10**: Production deployment, monitoring, trade-based analytics
+
+## Key Updates from Latest Business Entity Changes
+
+1. **Unified Business Branding System** ✨ **NEW**:
+   - Centralized `BusinessBranding` entity manages brand identity across ALL components
+   - Single source of truth for colors, fonts, logos shared by websites, estimates, invoices, emails
+   - Trade-specific theme suggestions (e.g., industrial colors for commercial, friendly for residential)
+   - Auto-generates CSS variables for web components
+   - Export to design tools (Figma, Sketch) for consistent design workflows
+   - Eliminates duplication between EstimateTemplate, InvoiceTemplate, and WebsiteTemplate branding
+
+2. **Trade-Based Architecture**: 
+   - Removed `BusinessType` enum in favor of explicit trade classifications
+   - Business entity now uses `CommercialTrade` (10 trades) and `ResidentialTrade` (10 trades) enums
+   - Support for multi-trade businesses with primary and secondary trade identification
+
+3. **Pydantic v2 Migration**:
+   - Business entity migrated from dataclass to Pydantic BaseModel
+   - Enhanced validation with field and model validators
+   - Immutable operations pattern for better data integrity
+
+4. **Template System Enhancement**:
+   - 20 pre-built templates (10 commercial, 10 residential)
+   - Dynamic multi-trade template generation
+   - Trade-specific SEO optimization and content generation
+   - Templates now reference centralized `BusinessBranding` instead of duplicating brand settings
+
+5. **Domain Registration Improvements**:
+   - Trade-aware domain suggestions and SEO scoring
+   - TLD recommendations based on trade category
+   - Primary trade focus for domain naming
+
+6. **Database Schema Updates**:
+   - Added `business_branding` table for centralized brand management
+   - Added trade_category, commercial_trades, residential_trades columns to businesses
+   - Service areas support for geographic targeting
+   - Constraint ensuring at least one trade is specified
+   - Foreign key references from templates to business_branding
 
 ## Next Steps
 
-1. Review and approve implementation plan
-2. Set up development environment
-3. Create Jira epics and stories
-4. Begin Phase 1 implementation
-5. Schedule weekly progress reviews
+1. Review and approve updated implementation plan
+2. Complete Business entity migration across all repositories and use cases
+3. Set up development environment with trade templates
+4. Create Jira epics for each trade template
+5. Begin Phase 1 implementation with trade-aware architecture
+6. Schedule weekly progress reviews with trade-specific milestones

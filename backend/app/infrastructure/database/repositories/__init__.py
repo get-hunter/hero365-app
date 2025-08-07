@@ -13,7 +13,7 @@ from .supabase_project_repository import SupabaseProjectRepository
 from .supabase_user_capabilities_repository import SupabaseUserCapabilitiesRepository
 from .supabase_estimate_repository import SupabaseEstimateRepository
 from .supabase_invoice_repository import SupabaseInvoiceRepository
-from .supabase_estimate_template_repository import SupabaseEstimateTemplateRepository
+from .supabase_document_template_repository import SupabaseDocumentTemplateRepository
 from .supabase_product_repository import SupabaseProductRepository
 from .supabase_product_category_repository import SupabaseProductCategoryRepository
 from .supabase_stock_movement_repository import SupabaseStockMovementRepository
@@ -31,7 +31,7 @@ __all__ = [
     "SupabaseUserCapabilitiesRepository",
     "SupabaseEstimateRepository",
     "SupabaseInvoiceRepository",
-    "SupabaseEstimateTemplateRepository",
+    "SupabaseDocumentTemplateRepository",
     "SupabaseProductRepository",
     "SupabaseProductCategoryRepository",
     "SupabaseStockMovementRepository",

@@ -401,66 +401,10 @@ class EstimateDTO(BaseModel):
 
 
 # Template DTOs (simplified for compatibility)
-class EstimateTemplateListFilters(BaseModel):
-    """Filters for estimate template listing."""
-    
-    name_contains: Optional[str] = Field(None, description="Filter by template name")
-    category: Optional[str] = Field(None, description="Filter by template category")
-    is_active: Optional[bool] = Field(None, description="Filter by active status")
-    created_by: Optional[str] = Field(None, description="Filter by creator")
-    
-    # Sorting
-    sort_by: Optional[str] = Field(default="name", description="Sort field")
-    sort_desc: bool = Field(default=False, description="Sort in descending order")
-
-    model_config = {
-        "use_enum_values": True
-    }
+# Legacy EstimateTemplateListFilters removed - now using unified DocumentTemplate system
 
 
-class EstimateTemplateResponseDTO(BaseModel):
-    """DTO for estimate template representation."""
-    
-    id: UUID4
-    name: str
-    description: Optional[str] = None
-    category: Optional[str] = None
-    is_active: bool = True
-    created_date: datetime
-    created_by: Optional[str] = None
-
-    @classmethod
-    def from_entity(cls, template: Any) -> "EstimateTemplateResponseDTO":
-        """Create DTO from domain entity."""
-        return cls(
-            id=template.id,
-            name=template.name,
-            description=template.description,
-            category=template.category,
-            is_active=template.is_active,
-            created_date=template.created_date,
-            created_by=template.created_by
-        )
-
-    model_config = {
-        "use_enum_values": True,
-        "json_encoders": {
-            UUID4: lambda v: str(v),
-            datetime: lambda v: v.isoformat() if v else None
-        }
-    }
+# Legacy EstimateTemplateResponseDTO removed - now using unified DocumentTemplate system
 
 
-class EstimateTemplateListResponseDTO(BaseModel):
-    """DTO for estimate template list response."""
-    
-    templates: List[EstimateTemplateResponseDTO]
-    total_count: int = 0
-    page: int = 1
-    per_page: int = 50
-    has_next: bool = False
-    has_prev: bool = False
-
-    model_config = {
-        "use_enum_values": True
-    }
+# Legacy EstimateTemplateListResponseDTO removed - now using unified DocumentTemplate system

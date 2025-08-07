@@ -20,8 +20,11 @@ from .scheduling_engine import IntelligentSchedulingEngine
 
 # Financial entities
 from .estimate import Estimate
-from .estimate_template import EstimateTemplate
 from .invoice import Invoice
+
+# Template entities
+from .document_template import DocumentTemplate, DocumentType, DocumentTemplateFactory
+from .business_branding import BusinessBranding
 
 # Inventory management entities
 from .product import Product, ProductPricingTier, ProductLocation, ProductSupplier
@@ -53,8 +56,13 @@ __all__ = [
     
     # Financial entities
     "Estimate",
-    "EstimateTemplate",
     "Invoice",
+    
+    # Template entities
+    "DocumentTemplate",
+    "DocumentType",
+    "DocumentTemplateFactory",
+    "BusinessBranding",
     
     # Inventory management entities
     "Product",

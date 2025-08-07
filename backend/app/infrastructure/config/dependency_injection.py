@@ -52,7 +52,7 @@ from app.infrastructure.database.repositories import (
     SupabaseUserCapabilitiesRepository,
     SupabaseEstimateRepository,
     SupabaseInvoiceRepository,
-    SupabaseEstimateTemplateRepository,
+    SupabaseDocumentTemplateRepository,
     SupabaseProductRepository,
     SupabaseProductCategoryRepository,
     SupabaseStockMovementRepository,
@@ -127,7 +127,7 @@ from ...application.use_cases.estimate.delete_estimate_use_case import DeleteEst
 from ...application.use_cases.estimate.list_estimates_use_case import ListEstimatesUseCase
 from ...application.use_cases.estimate.search_estimates_use_case import SearchEstimatesUseCase
 from ...application.use_cases.estimate.convert_estimate_to_invoice_use_case import ConvertEstimateToInvoiceUseCase
-from ...application.use_cases.estimate.get_estimate_templates_use_case import GetEstimateTemplatesUseCase
+from ...application.use_cases.document_template.manage_document_templates_use_case import ManageDocumentTemplatesUseCase
 from ...application.use_cases.estimate.get_next_estimate_number_use_case import GetNextEstimateNumberUseCase
 
 # Invoice Use Cases
@@ -156,7 +156,7 @@ from app.domain.repositories import (
     ProjectRepository,
     EstimateRepository,
     InvoiceRepository,
-    EstimateTemplateRepository,
+    DocumentTemplateRepository,
     ProductRepository,
     ProductCategoryRepository,
     StockMovementRepository,
@@ -200,7 +200,7 @@ class DependencyContainer:
         # Estimate management repositories
         self._repositories['estimate_repository'] = SupabaseEstimateRepository(supabase_client=supabase_client)
         self._repositories['invoice_repository'] = SupabaseInvoiceRepository(supabase_client=supabase_client)
-        self._repositories['estimate_template_repository'] = SupabaseEstimateTemplateRepository(supabase_client=supabase_client)
+        self._repositories['document_template_repository'] = SupabaseDocumentTemplateRepository(supabase_client=supabase_client)
         
         # Inventory management repositories
         self._repositories['product_repository'] = SupabaseProductRepository(supabase_client=supabase_client)
@@ -522,8 +522,8 @@ class DependencyContainer:
             estimate_repository=self.get_repository('estimate_repository')
         )
         
-        self._use_cases['get_estimate_templates'] = GetEstimateTemplatesUseCase(
-            estimate_template_repository=self.get_repository('estimate_template_repository')
+        self._use_cases['manage_document_templates'] = ManageDocumentTemplatesUseCase(
+            template_repository=self.get_repository('document_template_repository')
         )
         
         self._use_cases['get_next_estimate_number'] = GetNextEstimateNumberUseCase(
@@ -842,9 +842,9 @@ class DependencyContainer:
         """Get invoice repository from container."""
         return self._repositories['invoice_repository']
     
-    def get_estimate_template_repository(self) -> EstimateTemplateRepository:
-        """Get estimate template repository from container."""
-        return self._repositories['estimate_template_repository']
+    def get_document_template_repository(self) -> DocumentTemplateRepository:
+        """Get document template repository from container."""
+        return self._repositories['document_template_repository']
     
     # Inventory management repositories
     def get_product_repository(self) -> ProductRepository:
@@ -891,9 +891,9 @@ class DependencyContainer:
         """Get search estimates use case from container."""
         return self.get_use_case('search_estimates')
     
-    def get_get_estimate_templates_use_case(self) -> GetEstimateTemplatesUseCase:
-        """Get get estimate templates use case from container."""
-        return self.get_use_case('get_estimate_templates')
+    def get_manage_document_templates_use_case(self) -> ManageDocumentTemplatesUseCase:
+        """Get manage document templates use case from container."""
+        return self.get_use_case('manage_document_templates')
 
     def get_get_next_estimate_number_use_case(self) -> GetNextEstimateNumberUseCase:
         """Get next estimate number use case from container."""
@@ -1208,9 +1208,9 @@ def get_invoice_repository() -> InvoiceRepository:
     """Get invoice repository from container."""
     return get_container().get_invoice_repository()
 
-def get_estimate_template_repository() -> EstimateTemplateRepository:
-    """Get estimate template repository from container."""
-    return get_container().get_estimate_template_repository()
+def get_document_template_repository() -> DocumentTemplateRepository:
+    """Get document template repository from container."""
+    return get_container().get_document_template_repository()
 
 
 # Inventory management dependencies
@@ -1270,9 +1270,9 @@ def get_search_estimates_use_case() -> SearchEstimatesUseCase:
     return get_container().get_search_estimates_use_case()
 
 
-def get_get_estimate_templates_use_case() -> GetEstimateTemplatesUseCase:
-    """Get get estimate templates use case from container."""
-    return get_container().get_get_estimate_templates_use_case()
+def get_manage_document_templates_use_case() -> ManageDocumentTemplatesUseCase:
+    """Get manage document templates use case from container."""
+    return get_container().get_manage_document_templates_use_case()
 
 
 def get_get_next_estimate_number_use_case() -> GetNextEstimateNumberUseCase:

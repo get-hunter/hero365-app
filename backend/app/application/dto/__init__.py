@@ -70,9 +70,7 @@ from .estimate_dto import (
     EstimateCreateDTO,
     EstimateUpdateDTO,
     EstimateFilters,
-    EstimateTemplateListFilters,
-    EstimateTemplateResponseDTO,
-    EstimateTemplateListResponseDTO,
+    # Legacy EstimateTemplate DTOs removed - using unified DocumentTemplate system
 )
 from .invoice_dto import (
     InvoiceDTO,
@@ -152,9 +150,7 @@ __all__ = [
     "EstimateCreateDTO",
     "EstimateUpdateDTO", 
     "EstimateFilters",
-    "EstimateTemplateListFilters",
-    "EstimateTemplateResponseDTO",
-    "EstimateTemplateListResponseDTO",
+    # Legacy EstimateTemplate DTOs removed
     # Invoice DTOs
     "InvoiceDTO",
     "CreateInvoiceDTO",

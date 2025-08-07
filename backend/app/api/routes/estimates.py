@@ -35,7 +35,7 @@ from ...application.exceptions.application_exceptions import (
     ValidationError, NotFoundError, PermissionDeniedError, BusinessRuleViolationError
 )
 from ...infrastructure.config.dependency_injection import (
-    get_estimate_repository, get_estimate_template_repository,
+    get_estimate_repository,
     get_create_estimate_use_case, get_get_estimate_use_case, get_update_estimate_use_case,
     get_delete_estimate_use_case, get_list_estimates_use_case, get_search_estimates_use_case,
     get_convert_estimate_to_invoice_use_case, get_get_next_estimate_number_use_case
