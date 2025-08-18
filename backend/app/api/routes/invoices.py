@@ -485,6 +485,7 @@ async def update_invoice(
             tags=request.tags,
             custom_fields=request.custom_fields,
             internal_notes=request.internal_notes,
+            issue_date=request.issue_date,
             due_date=request.due_date,
             payment_net_days=request.payment_net_days,
             early_payment_discount_percentage=request.early_payment_discount_percentage,

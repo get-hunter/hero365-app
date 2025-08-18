@@ -92,10 +92,15 @@ class UpdateInvoiceUseCase:
             # Note: We still allow updates but caller should be aware of limitations
         
         # Check if invoice is in a status that allows updates
-        restricted_statuses = [InvoiceStatus.CANCELLED, InvoiceStatus.VOID]
-        if invoice.status in restricted_statuses:
+        restricted_statuses = [InvoiceStatus.CANCELLED, InvoiceStatus.REFUNDED]
+        restricted_status_values = [status.value for status in restricted_statuses]
+        
+        # Handle both enum and string status values (due to use_enum_values: True)
+        current_status = invoice.status.value if hasattr(invoice.status, 'value') else invoice.status
+        
+        if current_status in restricted_status_values:
             raise BusinessRuleViolationError(
-                f"Invoice with status '{invoice.status.value}' cannot be updated"
+                f"Invoice with status '{current_status}' cannot be updated"
             )
     
     def _update_invoice_fields(self, invoice: Invoice, request: UpdateInvoiceDTO) -> None:

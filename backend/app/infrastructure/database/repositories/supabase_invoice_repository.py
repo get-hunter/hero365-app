@@ -52,13 +52,30 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             raise DatabaseError(f"Failed to create invoice: {str(e)}")
     
     async def get_by_id(self, invoice_id: uuid.UUID) -> Optional[Invoice]:
-        """Get invoice by ID."""
+        """Get invoice by ID with line items and payments."""
         try:
+            # Fetch main invoice record
             response = self.client.table(self.table_name).select("*").eq("id", str(invoice_id)).execute()
             
-            if response.data:
-                return self._dict_to_invoice(response.data[0])
-            return None
+            if not response.data:
+                return None
+            
+            # Fetch line items for this invoice
+            line_items_response = self.client.table("invoice_line_items").select("*").eq(
+                "invoice_id", str(invoice_id)
+            ).order("sort_order").execute()
+            
+            # Fetch payments for this invoice
+            payments_response = self.client.table("payments").select("*").eq(
+                "invoice_id", str(invoice_id)
+            ).order("payment_date").execute()
+            
+            # Enrich invoice data with line items and payments
+            invoice_data = response.data[0]
+            invoice_data["_line_items"] = line_items_response.data
+            invoice_data["_payments"] = payments_response.data
+            
+            return self._dict_to_invoice(invoice_data)
             
         except Exception as e:
             raise DatabaseError(f"Failed to get invoice by ID: {str(e)}")
@@ -66,13 +83,32 @@ class SupabaseInvoiceRepository(InvoiceRepository):
     async def get_by_invoice_number(self, business_id: uuid.UUID, invoice_number: str) -> Optional[Invoice]:
         """Get invoice by invoice number within a business."""
         try:
+            # Fetch main invoice record
             response = self.client.table(self.table_name).select("*").eq(
                 "business_id", str(business_id)
             ).eq("invoice_number", invoice_number).execute()
             
-            if response.data:
-                return self._dict_to_invoice(response.data[0])
-            return None
+            if not response.data:
+                return None
+            
+            invoice_id = response.data[0]["id"]
+            
+            # Fetch line items for this invoice
+            line_items_response = self.client.table("invoice_line_items").select("*").eq(
+                "invoice_id", invoice_id
+            ).order("sort_order").execute()
+            
+            # Fetch payments for this invoice
+            payments_response = self.client.table("payments").select("*").eq(
+                "invoice_id", invoice_id
+            ).order("payment_date").execute()
+            
+            # Enrich invoice data with line items and payments
+            invoice_data = response.data[0]
+            invoice_data["_line_items"] = line_items_response.data
+            invoice_data["_payments"] = payments_response.data
+            
+            return self._dict_to_invoice(invoice_data)
             
         except Exception as e:
             raise DatabaseError(f"Failed to get invoice by number: {str(e)}")
@@ -254,7 +290,26 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             ).execute()
             
             if response.data:
-                return self._dict_to_invoice(response.data[0])
+                # After update, fetch the complete invoice with line items and payments
+                # like we do in get_by_id
+                invoice_id = invoice.id
+                
+                # Fetch line items for this invoice
+                line_items_response = self.client.table("invoice_line_items").select("*").eq(
+                    "invoice_id", str(invoice_id)
+                ).order("sort_order").execute()
+                
+                # Fetch payments for this invoice
+                payments_response = self.client.table("payments").select("*").eq(
+                    "invoice_id", str(invoice_id)
+                ).order("payment_date").execute()
+                
+                # Enrich invoice data with line items and payments
+                updated_invoice_data = response.data[0]
+                updated_invoice_data["_line_items"] = line_items_response.data
+                updated_invoice_data["_payments"] = payments_response.data
+                
+                return self._dict_to_invoice(updated_invoice_data)
             else:
                 raise EntityNotFoundError(f"Invoice with ID {invoice.id} not found")
                 
@@ -274,52 +329,46 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             raise DatabaseError(f"Failed to delete invoice: {str(e)}")
     
     def _invoice_to_dict(self, invoice: Invoice) -> dict:
-        """Convert Invoice entity to database dictionary."""
+        """Convert Invoice entity to database dictionary - only fields that exist in DB schema."""
+        def get_enum_value(field_value):
+            """Helper to safely get enum value (handles both string and enum types)."""
+            return field_value.value if hasattr(field_value, 'value') else field_value
+        
         return {
+            # Core fields that exist in DB schema
             "id": str(invoice.id),
             "business_id": str(invoice.business_id),
             "invoice_number": invoice.invoice_number,
-            "status": invoice.status.value,
-            "client_id": str(invoice.client_id) if invoice.client_id else None,
-            "client_name": invoice.client_name,
-            "client_email": invoice.client_email,
-            "client_phone": invoice.client_phone,
-            "client_address": invoice.client_address.to_dict() if invoice.client_address else None,
             "title": invoice.title,
             "description": invoice.description,
-            "line_items": [self._line_item_to_dict(item) for item in invoice.line_items],
-            "currency": invoice.currency.value,
-            "tax_rate": float(invoice.tax_rate),
-            "tax_type": invoice.tax_type.value,
-            "overall_discount_type": invoice.overall_discount_type.value,
-            "overall_discount_value": float(invoice.overall_discount_value),
-            "payments": [self._payment_to_dict(payment) for payment in invoice.payments],
-            "payment_terms": self._payment_terms_to_dict(invoice.payment_terms),
-            "template_id": str(invoice.template_id) if invoice.template_id else None,
-            "template_data": invoice.template_data,
-            "estimate_id": str(invoice.estimate_id) if invoice.estimate_id else None,
+            "status": get_enum_value(invoice.status),
+            "contact_id": str(invoice.contact_id) if invoice.contact_id else None,  # DB uses contact_id, not client_id
             "project_id": str(invoice.project_id) if invoice.project_id else None,
             "job_id": str(invoice.job_id) if invoice.job_id else None,
-            "contact_id": str(invoice.contact_id) if invoice.contact_id else None,
-            "tags": invoice.tags,
-            "custom_fields": invoice.custom_fields,
-            "internal_notes": invoice.internal_notes,
-            "created_by": invoice.created_by,
-            "created_date": invoice.created_date.isoformat(),
-            "last_modified": invoice.last_modified.isoformat(),
-            "sent_date": invoice.sent_date.isoformat() if invoice.sent_date else None,
-            "viewed_date": invoice.viewed_date.isoformat() if invoice.viewed_date else None,
-            "due_date": invoice.due_date.isoformat() if invoice.due_date else None,
-            "paid_date": invoice.paid_date.isoformat() if invoice.paid_date else None,
-            # Calculated fields for database storage
-            "line_items_subtotal": float(invoice.get_line_items_subtotal()),
-            "total_discount": float(invoice.get_line_items_discount_total() + invoice.get_overall_discount_amount()),
+            "estimate_id": str(invoice.estimate_id) if invoice.estimate_id else None,
+            "template_id": str(invoice.template_id) if invoice.template_id else None,
+            "currency": get_enum_value(invoice.currency),
+            "subtotal": float(invoice.get_line_items_subtotal()),
+            "discount_type": get_enum_value(invoice.overall_discount_type),
+            "discount_value": float(invoice.overall_discount_value),
+            "discount_amount": float(invoice.get_overall_discount_amount()),
+            "tax_type": get_enum_value(invoice.tax_type),
+            "tax_rate": float(invoice.tax_rate),
             "tax_amount": float(invoice.get_tax_amount()),
             "total_amount": float(invoice.get_total_amount()),
-            "total_payments": float(invoice.get_total_payments()),
-            "balance_due": float(invoice.get_balance_due()),
-            "is_paid": invoice.is_paid(),
-            "is_overdue": invoice.is_overdue()
+            "amount_paid": float(invoice.get_total_payments()),
+            "amount_due": float(invoice.get_balance_due()),
+            "issue_date": invoice.issue_date.isoformat() if invoice.issue_date else None,
+            "due_date": invoice.due_date.isoformat() if invoice.due_date else None,
+            "payment_terms": f"Net {invoice.payment_terms.net_days}" if invoice.payment_terms else None,
+            "late_fee_percentage": float(invoice.payment_terms.late_fee_percentage) if invoice.payment_terms else 0.0,
+            "late_fee_amount": 0.0,  # No late fees applied during template updates
+            "late_fee_applied": False,
+            "payment_instructions": invoice.payment_terms.payment_instructions if invoice.payment_terms else None,
+            "notes": invoice.internal_notes,
+            "created_by": invoice.created_by,
+            "created_date": invoice.created_date.isoformat(),
+            "last_modified": invoice.last_modified.isoformat()
         }
     
     def _line_item_to_dict(self, line_item: InvoiceLineItem) -> dict:
@@ -331,7 +380,7 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             "unit_price": float(line_item.unit_price),
             "unit": line_item.unit,
             "category": line_item.category,
-            "discount_type": line_item.discount_type.value,
+            "discount_type": line_item.discount_type.value if hasattr(line_item.discount_type, 'value') else line_item.discount_type,
             "discount_value": float(line_item.discount_value),
             "tax_rate": float(line_item.tax_rate),
             "notes": line_item.notes
@@ -343,8 +392,8 @@ class SupabaseInvoiceRepository(InvoiceRepository):
             "id": str(payment.id),
             "amount": float(payment.amount),
             "payment_date": payment.payment_date.isoformat(),
-            "payment_method": payment.payment_method.value,
-            "status": payment.status.value,
+            "payment_method": payment.payment_method.value if hasattr(payment.payment_method, 'value') else payment.payment_method,
+            "status": payment.status.value if hasattr(payment.status, 'value') else payment.status,
             "reference": payment.reference,
             "transaction_id": payment.transaction_id,
             "notes": payment.notes,
@@ -406,7 +455,7 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 return None
 
         # Parse line items (from separate table or JSON field)
-        line_items_data = data.get("line_items", [])
+        line_items_data = data.get("_line_items", data.get("line_items", []))
         # If it's a string, try to parse as JSON (backward compatibility)
         if isinstance(line_items_data, str):
             line_items_data = safe_json_parse(line_items_data, [])
@@ -433,7 +482,7 @@ class SupabaseInvoiceRepository(InvoiceRepository):
                 continue
 
         # Parse payments (from separate table or JSON field)
-        payments_data = data.get("payments", [])
+        payments_data = data.get("_payments", data.get("payments", []))
         # If it's a string, try to parse as JSON (backward compatibility)
         if isinstance(payments_data, str):
             payments_data = safe_json_parse(payments_data, [])

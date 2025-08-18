@@ -7,7 +7,7 @@ Handles validation errors gracefully and provides consistent error handling.
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, date
 from typing import TypeVar, Type, Any, Dict, List, Optional, Union
 from uuid import UUID
 
@@ -287,6 +287,32 @@ class SupabaseConverter:
                 return datetime.fromisoformat(value.replace('Z', '+00:00'))
             except (ValueError, TypeError):
                 logger.warning(f"Failed to parse datetime: {value}")
+                return None
+        return value
+    
+    @staticmethod
+    def parse_date(value: Any) -> Optional[date]:
+        """Safely parse date from various formats including datetime strings."""
+        if value is None:
+            return None
+        if isinstance(value, date):
+            return value
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, str):
+            try:
+                # First try parsing as ISO date
+                try:
+                    return date.fromisoformat(value)
+                except ValueError:
+                    pass
+                
+                # Try parsing as datetime string and extract date
+                dt_str = value.replace('Z', '+00:00')
+                parsed_dt = datetime.fromisoformat(dt_str)
+                return parsed_dt.date()
+            except (ValueError, TypeError):
+                logger.warning(f"Failed to parse date: {value}")
                 return None
         return value
     

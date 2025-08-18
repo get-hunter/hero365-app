@@ -6397,6 +6397,10 @@ export type UpdateDocumentTemplateRequest = {
   name?: string | null
   description?: string | null
   is_active?: boolean | null
+  /**
+   * Set as default template for this document type
+   */
+  is_default?: boolean | null
   branding_id?: string | null
 }
 
@@ -6456,6 +6460,10 @@ export type UpdateInvoiceSchema = {
     [key: string]: unknown
   } | null
   internal_notes?: string | null
+  /**
+   * Custom issue date
+   */
+  issue_date?: string | null
   due_date?: string | null
   payment_net_days?: number | null
   early_payment_discount_percentage?: number | string | null

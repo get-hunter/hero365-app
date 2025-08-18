@@ -262,6 +262,7 @@ class UpdateInvoiceDTO(BaseModel):
     tags: Optional[List[str]] = None
     custom_fields: Optional[Dict[str, Any]] = None
     internal_notes: Optional[str] = None
+    issue_date: Optional[date] = None
     due_date: Optional[date] = None
     payment_net_days: Optional[int] = None
     early_payment_discount_percentage: Optional[Decimal] = None

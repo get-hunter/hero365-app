@@ -93,7 +93,8 @@ class InvoiceLineItem(BaseModel):
     @model_validator(mode='after')
     def validate_discount_percentage(self):
         """Validate discount percentage doesn't exceed 100%."""
-        if self.discount_type == DiscountType.PERCENTAGE and self.discount_value > 100:
+        discount_type_value = self.discount_type.value if hasattr(self.discount_type, 'value') else self.discount_type
+        if discount_type_value == DiscountType.PERCENTAGE.value and self.discount_value > 100:
             raise ValueError("Percentage discount cannot exceed 100%")
         return self
     
@@ -103,9 +104,10 @@ class InvoiceLineItem(BaseModel):
     
     def get_discount_amount(self) -> Decimal:
         """Calculate discount amount."""
-        if self.discount_type == DiscountType.NONE:
+        discount_type_value = self.discount_type.value if hasattr(self.discount_type, 'value') else self.discount_type
+        if discount_type_value == DiscountType.NONE.value:
             return Decimal("0")
-        elif self.discount_type == DiscountType.PERCENTAGE:
+        elif discount_type_value == DiscountType.PERCENTAGE.value:
             return self.get_subtotal() * (self.discount_value / Decimal("100"))
         else:  # FIXED_AMOUNT
             return min(self.discount_value, self.get_subtotal())
@@ -365,16 +367,24 @@ class Invoice(BaseModel):
     @model_validator(mode='after')
     def validate_business_rules(self):
         """Validate core business rules and initialize fields."""
+        # Helper function to get enum value (handles both string and enum types)
+        def get_enum_value(field_value):
+            return field_value.value if hasattr(field_value, 'value') else field_value
+        
         # Validate discount based on type
-        if self.overall_discount_type == DiscountType.PERCENTAGE and self.overall_discount_value > 100:
+        discount_type_value = get_enum_value(self.overall_discount_type)
+        if discount_type_value == DiscountType.PERCENTAGE.value and self.overall_discount_value > 100:
             raise ValueError("Percentage discount cannot exceed 100%")
         
+        # Get current status value for comparisons
+        status_value = get_enum_value(self.status)
+        
         # Validate client information for non-draft invoices
-        if self.status != InvoiceStatus.DRAFT and not self.client_name:
+        if status_value != InvoiceStatus.DRAFT.value and not self.client_name:
             raise ValueError("Client name is required for sent invoices")
         
         # Validate line items for non-draft invoices
-        if not self.line_items and self.status != InvoiceStatus.DRAFT:
+        if not self.line_items and status_value != InvoiceStatus.DRAFT.value:
             raise ValueError("At least one line item is required for sent invoices")
         
         # Set issue_date to created_date if not provided
@@ -382,7 +392,7 @@ class Invoice(BaseModel):
             self.issue_date = self.created_date.date()
         
         # Set due date if not provided
-        if not self.due_date and self.status != InvoiceStatus.DRAFT:
+        if not self.due_date and status_value != InvoiceStatus.DRAFT.value:
             self.due_date = self.payment_terms.get_due_date(self.issue_date)
         
         return self
@@ -409,9 +419,10 @@ class Invoice(BaseModel):
     
     def get_overall_discount_amount(self) -> Decimal:
         """Calculate overall discount amount."""
-        if self.overall_discount_type == DiscountType.NONE:
+        discount_type_value = self.overall_discount_type.value if hasattr(self.overall_discount_type, 'value') else self.overall_discount_type
+        if discount_type_value == DiscountType.NONE.value:
             return Decimal("0")
-        elif self.overall_discount_type == DiscountType.PERCENTAGE:
+        elif discount_type_value == DiscountType.PERCENTAGE.value:
             return self.get_subtotal_after_line_discounts() * (self.overall_discount_value / Decimal("100"))
         else:  # FIXED_AMOUNT
             return min(self.overall_discount_value, self.get_subtotal_after_line_discounts())
@@ -422,11 +433,12 @@ class Invoice(BaseModel):
     
     def get_tax_amount(self) -> Decimal:
         """Calculate tax amount."""
-        if self.tax_type == TaxType.NONE:
+        tax_type_value = self.tax_type.value if hasattr(self.tax_type, 'value') else self.tax_type
+        if tax_type_value == TaxType.NONE.value:
             return Decimal("0")
-        elif self.tax_type in [TaxType.PERCENTAGE, TaxType.EXCLUSIVE]:
+        elif tax_type_value in [TaxType.PERCENTAGE.value, TaxType.EXCLUSIVE.value]:
             return self.get_total_before_tax() * (self.tax_rate / Decimal("100"))
-        elif self.tax_type == TaxType.FIXED_AMOUNT:
+        elif tax_type_value == TaxType.FIXED_AMOUNT.value:
             return self.tax_rate
         else:  # INCLUSIVE tax is already included in line item prices
             return Decimal("0")

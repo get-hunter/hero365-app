@@ -8,7 +8,9 @@ import uuid
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 from decimal import Decimal
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, field_validator, model_validator
+
+from app.api.converters import SupabaseConverter
 
 
 class InvoiceLineItemSchema(BaseModel):
@@ -168,6 +170,7 @@ class UpdateInvoiceSchema(BaseModel):
     tags: Optional[List[str]] = None
     custom_fields: Optional[Dict[str, Any]] = None
     internal_notes: Optional[str] = Field(None, max_length=2000)
+    issue_date: Optional[date] = Field(None, description="Custom issue date")
     due_date: Optional[date] = None
     payment_net_days: Optional[int] = Field(None, ge=0, le=365)
     early_payment_discount_percentage: Optional[Decimal] = Field(None, ge=0, le=100)
@@ -176,11 +179,33 @@ class UpdateInvoiceSchema(BaseModel):
     late_fee_grace_days: Optional[int] = Field(None, ge=0, le=365)
     payment_instructions: Optional[str] = Field(None, max_length=1000)
 
-    @validator('due_date')
-    def validate_due_date(cls, v):
-        if v and v <= date.today():
-            raise ValueError('Due date must be in the future')
+    @field_validator('issue_date', 'due_date', mode='before')
+    @classmethod
+    def validate_date_fields(cls, v):
+        """Parse date fields from various formats including datetime strings."""
+        return SupabaseConverter.parse_date(v)
+
+    @validator('issue_date')
+    def validate_issue_date(cls, v):
+        if v and v > date.today():
+            raise ValueError('Issue date cannot be in the future')
         return v
+
+    @model_validator(mode='after')
+    def validate_update_logic(self):
+        """Smart validation for invoice updates that considers the context."""
+        # For updates, we should be more lenient with date validation
+        # The main business rule we enforce is that due_date >= issue_date if both are provided
+        if self.due_date and self.issue_date:
+            if self.due_date < self.issue_date:
+                raise ValueError('Due date must be greater than or equal to issue date')
+        
+        # Note: We don't enforce "due date must be in future" for updates because:
+        # 1. The invoice may already exist with a valid past due date
+        # 2. Users updating templates/other fields shouldn't be blocked by old dates
+        # 3. Business logic can handle overdue invoices appropriately
+        
+        return self
 
     class Config:
         from_attributes = True

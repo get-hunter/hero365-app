@@ -48,6 +48,7 @@ class UpdateDocumentTemplateRequest(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=1000)
     is_active: Optional[bool] = None
+    is_default: Optional[bool] = Field(None, description="Set as default template for this document type")
     branding_id: Optional[uuid.UUID] = None
 
 

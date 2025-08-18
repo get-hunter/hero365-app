@@ -369,12 +369,24 @@ async def update_template(
         if request.branding_id is not None:
             updates['branding_id'] = request.branding_id
         
-        # Update template
-        updated_template = await use_case.update_template(
-            template_id=template_id,
-            updates=updates,
-            updated_by=current_user["sub"]
-        )
+        # Apply regular updates first (if any)
+        if updates:
+            updated_template = await use_case.update_template(
+                template_id=template_id,
+                updates=updates,
+                updated_by=current_user["sub"]
+            )
+        else:
+            updated_template = template
+        
+        # Handle setting as default template (if requested)
+        if request.is_default is not None and request.is_default:
+            updated_template = await use_case.set_default_template(
+                template_id=template_id,
+                business_id=business_id,
+                document_type=template.document_type,
+                set_by=current_user["sub"]
+            )
         
         logger.info(f"🔧 TemplatesAPI: Updated template {template_id}")
         
