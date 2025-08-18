@@ -418,16 +418,18 @@ import type {
   TemplatesGetTemplatesResponse,
   TemplatesCreateTemplateData,
   TemplatesCreateTemplateResponse,
-  TemplatesGetEstimateTemplatesData,
-  TemplatesGetEstimateTemplatesResponse,
-  TemplatesGetInvoiceTemplatesData,
-  TemplatesGetInvoiceTemplatesResponse,
+  TemplatesGetDefaultTemplateData,
+  TemplatesGetDefaultTemplateResponse,
   TemplatesGetTemplateData,
   TemplatesGetTemplateResponse,
   TemplatesUpdateTemplateData,
   TemplatesUpdateTemplateResponse,
   TemplatesDeleteTemplateData,
   TemplatesDeleteTemplateResponse,
+  TemplatesSetDefaultTemplateData,
+  TemplatesSetDefaultTemplateResponse,
+  TemplatesCloneTemplateData,
+  TemplatesCloneTemplateResponse,
   UsersGetCurrentUserProfileResponse,
   UsersUpdateUserBusinessContextData,
   UsersUpdateUserBusinessContextResponse,
@@ -5837,14 +5839,16 @@ export class SuppliersService {
 export class TemplatesService {
   /**
    * Get Templates
-   * Get all document templates for the business.
+   * Get all templates for the business.
    *
-   * Can be filtered by document type and active status.
-   * Requires 'view_projects' permission.
+   * Returns both business-specific and system templates.
+   * Can be filtered by template type, category, and status.
    * @param data The data for the request.
-   * @param data.documentType Filter by document type (estimate, invoice, contract, etc.)
+   * @param data.templateType Filter by template type
+   * @param data.category Filter by category
    * @param data.isActive Filter by active status
-   * @returns DocumentTemplateResponse Successful Response
+   * @param data.isSystem Show only system templates
+   * @returns TemplateResponse Successful Response
    * @throws ApiError
    */
   public static getTemplates(
@@ -5854,8 +5858,10 @@ export class TemplatesService {
       method: "GET",
       url: "/api/v1/templates/",
       query: {
-        document_type: data.documentType,
+        template_type: data.templateType,
+        category: data.category,
         is_active: data.isActive,
+        is_system: data.isSystem,
       },
       errors: {
         422: "Validation Error",
@@ -5865,12 +5871,10 @@ export class TemplatesService {
 
   /**
    * Create Template
-   * Create a new document template.
-   *
-   * Requires 'edit_projects' permission.
+   * Create a new template.
    * @param data The data for the request.
    * @param data.requestBody
-   * @returns DocumentTemplateResponse Successful Response
+   * @returns TemplateResponse Successful Response
    * @throws ApiError
    */
   public static createTemplate(
@@ -5888,50 +5892,23 @@ export class TemplatesService {
   }
 
   /**
-   * Get Estimate Templates
-   * Get estimate templates for the business.
+   * Get Default Template
+   * Get the default template for a specific type.
    *
-   * Returns templates specifically designed for estimates.
-   * Requires 'view_projects' permission.
+   * Returns the business default or falls back to system default.
    * @param data The data for the request.
-   * @param data.isActive Filter by active status
-   * @returns DocumentTemplateResponse Successful Response
+   * @param data.templateType
+   * @returns unknown Successful Response
    * @throws ApiError
    */
-  public static getEstimateTemplates(
-    data: TemplatesGetEstimateTemplatesData = {},
-  ): CancelablePromise<TemplatesGetEstimateTemplatesResponse> {
+  public static getDefaultTemplate(
+    data: TemplatesGetDefaultTemplateData,
+  ): CancelablePromise<TemplatesGetDefaultTemplateResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/templates/estimates",
-      query: {
-        is_active: data.isActive,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Invoice Templates
-   * Get invoice templates for the business.
-   *
-   * Returns templates specifically designed for invoices.
-   * Requires 'view_projects' permission.
-   * @param data The data for the request.
-   * @param data.isActive Filter by active status
-   * @returns DocumentTemplateResponse Successful Response
-   * @throws ApiError
-   */
-  public static getInvoiceTemplates(
-    data: TemplatesGetInvoiceTemplatesData = {},
-  ): CancelablePromise<TemplatesGetInvoiceTemplatesResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/templates/invoices",
-      query: {
-        is_active: data.isActive,
+      url: "/api/v1/templates/default/{template_type}",
+      path: {
+        template_type: data.templateType,
       },
       errors: {
         422: "Validation Error",
@@ -5942,11 +5919,9 @@ export class TemplatesService {
   /**
    * Get Template
    * Get a specific template by ID.
-   *
-   * Requires 'view_projects' permission.
    * @param data The data for the request.
    * @param data.templateId
-   * @returns DocumentTemplateResponse Successful Response
+   * @returns TemplateResponse Successful Response
    * @throws ApiError
    */
   public static getTemplate(
@@ -5966,13 +5941,11 @@ export class TemplatesService {
 
   /**
    * Update Template
-   * Update a template.
-   *
-   * Requires 'edit_projects' permission.
+   * Update an existing template.
    * @param data The data for the request.
    * @param data.templateId
    * @param data.requestBody
-   * @returns DocumentTemplateResponse Successful Response
+   * @returns TemplateResponse Successful Response
    * @throws ApiError
    */
   public static updateTemplate(
@@ -5995,9 +5968,6 @@ export class TemplatesService {
   /**
    * Delete Template
    * Delete a template.
-   *
-   * Cannot delete default templates.
-   * Requires 'edit_projects' permission.
    * @param data The data for the request.
    * @param data.templateId
    * @returns void Successful Response
@@ -6012,6 +5982,55 @@ export class TemplatesService {
       path: {
         template_id: data.templateId,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Set Default Template
+   * Set a template as the default for its type.
+   * @param data The data for the request.
+   * @param data.templateId
+   * @returns TemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static setDefaultTemplate(
+    data: TemplatesSetDefaultTemplateData,
+  ): CancelablePromise<TemplatesSetDefaultTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/templates/{template_id}/set-default",
+      path: {
+        template_id: data.templateId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Clone Template
+   * Clone an existing template.
+   * @param data The data for the request.
+   * @param data.templateId
+   * @param data.requestBody
+   * @returns TemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static cloneTemplate(
+    data: TemplatesCloneTemplateData,
+  ): CancelablePromise<TemplatesCloneTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/templates/{template_id}/clone",
+      path: {
+        template_id: data.templateId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },

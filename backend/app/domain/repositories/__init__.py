@@ -15,7 +15,7 @@ from .project_repository import ProjectRepository
 from .base_repository import BaseRepository
 from .estimate_repository import EstimateRepository
 from .invoice_repository import InvoiceRepository
-from .document_template_repository import DocumentTemplateRepository
+from .template_repository import TemplateRepository
 from .user_capabilities_repository import UserCapabilitiesRepository
 from .product_repository import ProductRepository
 from .product_category_repository import ProductCategoryRepository
@@ -35,7 +35,7 @@ __all__ = [
     "ProjectRepository",
     "EstimateRepository",
     "InvoiceRepository",
-    "DocumentTemplateRepository",
+    "TemplateRepository",
     "UserCapabilitiesRepository",
     "ProductRepository",
     "ProductCategoryRepository",

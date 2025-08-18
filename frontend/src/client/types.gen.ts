@@ -2585,22 +2585,6 @@ export type CreateCalendarEventRequest = {
 }
 
 /**
- * Request schema for creating a document template.
- */
-export type CreateDocumentTemplateRequest = {
-  name: string
-  description?: string | null
-  /**
-   * Type of document (estimate, invoice, contract, etc.)
-   */
-  document_type: string
-  /**
-   * Reference to business branding
-   */
-  branding_id?: string | null
-}
-
-/**
  * Schema for creating estimates.
  */
 export type CreateEstimateSchema = {
@@ -2888,6 +2872,30 @@ export type CreateSupplierSchema = {
 }
 
 /**
+ * Create template request model.
+ */
+export type CreateTemplateRequest = {
+  name: string
+  /**
+   * Template type (invoice, estimate, website, etc.)
+   */
+  template_type: string
+  /**
+   * Template category
+   */
+  category?: string | null
+  description?: string | null
+  /**
+   * Template configuration (JSONB)
+   */
+  config?: {
+    [key: string]: unknown
+  }
+  tags?: Array<string>
+  branding_id?: string | null
+}
+
+/**
  * Request to create time off.
  */
 export type CreateTimeOffRequest = {
@@ -3109,30 +3117,6 @@ export type DisruptionType =
   | "resource_unavailable"
   | "customer_reschedule"
   | "equipment_failure"
-
-/**
- * Response schema for document template.
- */
-export type DocumentTemplateResponse = {
-  id: string
-  business_id?: string | null
-  branding_id?: string | null
-  name: string
-  description?: string | null
-  document_type: string
-  template_type: string
-  is_active: boolean
-  is_default: boolean
-  is_system_template: boolean
-  usage_count: number
-  last_used_date?: string | null
-  created_by?: string | null
-  created_date: string
-  last_modified: string
-  tags?: Array<string>
-  category?: string | null
-  version: string
-}
 
 /**
  * Schema for estimate action responses.
@@ -6006,6 +5990,36 @@ export type TeamAvailabilitySummary = {
 }
 
 /**
+ * Template response model.
+ */
+export type TemplateResponse = {
+  id: string
+  business_id: string | null
+  branding_id: string | null
+  template_type: string
+  category: string | null
+  name: string
+  description: string | null
+  version: number
+  is_active: boolean
+  is_default: boolean
+  is_system: boolean
+  config: {
+    [key: string]: unknown
+  }
+  usage_count: number
+  last_used_at: string | null
+  tags: Array<string>
+  metadata: {
+    [key: string]: unknown
+  }
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  updated_by: string | null
+}
+
+/**
  * Schema for timeline entry response.
  */
 export type TimelineEntryResponse = {
@@ -6391,20 +6405,6 @@ export type TrendAnalysis = {
 }
 
 /**
- * Request schema for updating a document template.
- */
-export type UpdateDocumentTemplateRequest = {
-  name?: string | null
-  description?: string | null
-  is_active?: boolean | null
-  /**
-   * Set as default template for this document type
-   */
-  is_default?: boolean | null
-  branding_id?: string | null
-}
-
-/**
  * Schema for updating estimates.
  */
 export type UpdateEstimateSchema = {
@@ -6530,6 +6530,24 @@ export type UpdateSupplierSchema = {
   shipping_terms?: string | null
   notes?: string | null
   internal_notes?: string | null
+  tags?: Array<string> | null
+}
+
+/**
+ * Update template request model.
+ */
+export type UpdateTemplateRequest = {
+  name?: string | null
+  description?: string | null
+  category?: string | null
+  is_active?: boolean | null
+  is_default?: boolean | null
+  /**
+   * Template configuration updates
+   */
+  config?: {
+    [key: string]: unknown
+  } | null
   tags?: Array<string> | null
 }
 
@@ -8922,61 +8940,68 @@ export type SuppliersGetSupplierOrdersResponse = unknown
 
 export type TemplatesGetTemplatesData = {
   /**
-   * Filter by document type (estimate, invoice, contract, etc.)
+   * Filter by category
    */
-  documentType?: string | null
+  category?: string | null
   /**
    * Filter by active status
    */
   isActive?: boolean | null
+  /**
+   * Show only system templates
+   */
+  isSystem?: boolean | null
+  /**
+   * Filter by template type
+   */
+  templateType?: string | null
 }
 
-export type TemplatesGetTemplatesResponse = Array<DocumentTemplateResponse>
+export type TemplatesGetTemplatesResponse = Array<TemplateResponse>
 
 export type TemplatesCreateTemplateData = {
-  requestBody: CreateDocumentTemplateRequest
+  requestBody: CreateTemplateRequest
 }
 
-export type TemplatesCreateTemplateResponse = DocumentTemplateResponse
+export type TemplatesCreateTemplateResponse = TemplateResponse
 
-export type TemplatesGetEstimateTemplatesData = {
-  /**
-   * Filter by active status
-   */
-  isActive?: boolean | null
+export type TemplatesGetDefaultTemplateData = {
+  templateType: string
 }
 
-export type TemplatesGetEstimateTemplatesResponse =
-  Array<DocumentTemplateResponse>
-
-export type TemplatesGetInvoiceTemplatesData = {
-  /**
-   * Filter by active status
-   */
-  isActive?: boolean | null
-}
-
-export type TemplatesGetInvoiceTemplatesResponse =
-  Array<DocumentTemplateResponse>
+export type TemplatesGetDefaultTemplateResponse = TemplateResponse | null
 
 export type TemplatesGetTemplateData = {
   templateId: string
 }
 
-export type TemplatesGetTemplateResponse = DocumentTemplateResponse
+export type TemplatesGetTemplateResponse = TemplateResponse
 
 export type TemplatesUpdateTemplateData = {
-  requestBody: UpdateDocumentTemplateRequest
+  requestBody: UpdateTemplateRequest
   templateId: string
 }
 
-export type TemplatesUpdateTemplateResponse = DocumentTemplateResponse
+export type TemplatesUpdateTemplateResponse = TemplateResponse
 
 export type TemplatesDeleteTemplateData = {
   templateId: string
 }
 
 export type TemplatesDeleteTemplateResponse = void
+
+export type TemplatesSetDefaultTemplateData = {
+  templateId: string
+}
+
+export type TemplatesSetDefaultTemplateResponse = TemplateResponse
+
+export type TemplatesCloneTemplateData = {
+  requestBody: string
+  templateId: string
+}
+
+export type TemplatesCloneTemplateResponse = TemplateResponse
 
 export type UsersGetCurrentUserProfileResponse = UserProfileResponse
 

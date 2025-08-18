@@ -1,21 +1,22 @@
 """
 Templates API Routes
 
-Unified template management endpoints for different document types (estimates, invoices, contracts, etc.)
+Unified template management endpoints using the flexible Template system.
+Supports all document types, websites, and more with JSONB configuration.
 """
 
 import uuid
 import logging
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
+from pydantic import BaseModel, Field
 
 from ..deps import get_current_user, get_business_context
 from ..middleware.permissions import require_view_projects_dep, require_edit_projects_dep
-from ..schemas.document_template_schemas import DocumentTemplateResponse, CreateDocumentTemplateRequest, UpdateDocumentTemplateRequest
-from ...domain.entities.document_template import DocumentType
-from ...application.use_cases.document_template.manage_document_templates_use_case import ManageDocumentTemplatesUseCase
+from ...domain.entities.template import TemplateType, TemplateCategory
+from ...application.use_cases.template.manage_templates_use_case import ManageTemplatesUseCase
 from ...application.exceptions.application_exceptions import NotFoundError, PermissionDeniedError
-from ...infrastructure.config.dependency_injection import get_manage_document_templates_use_case
+from ...infrastructure.config.dependency_injection import get_manage_templates_use_case
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -23,401 +24,538 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/templates", tags=["templates"])
 
 
-@router.get("/", response_model=List[DocumentTemplateResponse])
+# Response Models
+class TemplateResponse(BaseModel):
+    """Template response model."""
+    id: uuid.UUID
+    business_id: Optional[uuid.UUID]
+    branding_id: Optional[uuid.UUID]
+    template_type: str
+    category: Optional[str]
+    name: str
+    description: Optional[str]
+    version: int
+    is_active: bool
+    is_default: bool
+    is_system: bool
+    config: dict
+    usage_count: int
+    last_used_at: Optional[str]
+    tags: List[str]
+    metadata: dict
+    created_by: Optional[str]
+    created_at: str
+    updated_at: str
+    updated_by: Optional[str]
+
+
+class CreateTemplateRequest(BaseModel):
+    """Create template request model."""
+    name: str = Field(..., min_length=1, max_length=200)
+    template_type: str = Field(..., description="Template type (invoice, estimate, website, etc.)")
+    category: Optional[str] = Field(None, description="Template category")
+    description: Optional[str] = Field(None)
+    config: dict = Field(default_factory=dict, description="Template configuration (JSONB)")
+    tags: List[str] = Field(default_factory=list)
+    branding_id: Optional[uuid.UUID] = Field(None)
+
+
+class UpdateTemplateRequest(BaseModel):
+    """Update template request model."""
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = Field(None)
+    category: Optional[str] = Field(None)
+    is_active: Optional[bool] = Field(None)
+    is_default: Optional[bool] = Field(None)
+    config: Optional[dict] = Field(None, description="Template configuration updates")
+    tags: Optional[List[str]] = Field(None)
+
+
+class SetDefaultTemplateRequest(BaseModel):
+    """Set default template request model."""
+    template_type: str = Field(..., description="Template type to set as default")
+
+
+@router.get("/", response_model=List[TemplateResponse])
 async def get_templates(
     business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    document_type: Optional[str] = Query(None, description="Filter by document type (estimate, invoice, contract, etc.)"),
+    template_type: Optional[str] = Query(None, description="Filter by template type"),
+    category: Optional[str] = Query(None, description="Filter by category"),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
-    use_case: ManageDocumentTemplatesUseCase = Depends(get_manage_document_templates_use_case),
+    is_system: Optional[bool] = Query(None, description="Show only system templates"),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
     _: bool = Depends(require_view_projects_dep)
 ):
     """
-    Get all document templates for the business.
+    Get all templates for the business.
     
-    Can be filtered by document type and active status.
-    Requires 'view_projects' permission.
+    Returns both business-specific and system templates.
+    Can be filtered by template type, category, and status.
     """
     business_id = uuid.UUID(business_context["business_id"])
-    logger.info(f"🔧 TemplatesAPI: Getting templates for business {business_id}")
+    logger.info(f"🔧 TemplatesV2API: Getting templates for business {business_id}")
     
     try:
-        # Parse document type if provided
-        doc_type = None
-        if document_type:
+        # Parse template type if provided
+        t_type = None
+        if template_type:
             try:
-                doc_type = DocumentType(document_type.lower())
+                t_type = TemplateType(template_type.lower())
             except ValueError:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid document type: {document_type}. Valid types: {[dt.value for dt in DocumentType]}"
+                    detail=f"Invalid template type: {template_type}"
                 )
         
-        # Get templates
-        templates = await use_case.get_business_templates(
-            business_id=business_id,
-            document_type=doc_type,
-            is_active=is_active
-        )
+        # Parse category if provided
+        t_category = None
+        if category:
+            try:
+                t_category = TemplateCategory(category.lower())
+            except ValueError:
+                # Allow custom categories
+                pass
         
-        logger.info(f"🔧 TemplatesAPI: Found {len(templates)} templates")
+        # Get templates based on filters
+        if is_system:
+            templates = await use_case.get_system_templates(
+                template_type=t_type,
+                category=t_category,
+                is_active=is_active
+            )
+        else:
+            templates = await use_case.get_business_templates(
+                business_id=business_id,
+                template_type=t_type,
+                is_active=is_active
+            )
+        
+        logger.info(f"🔧 TemplatesV2API: Found {len(templates)} templates")
         
         # Convert to API response
         return [
-            DocumentTemplateResponse(
+            TemplateResponse(
                 id=template.id,
                 business_id=template.business_id,
                 branding_id=template.branding_id,
+                template_type=template.template_type,
+                category=template.category,
                 name=template.name,
                 description=template.description,
-                document_type=template.document_type,
-                template_type=template.template_type,
+                version=template.version,
                 is_active=template.is_active,
                 is_default=template.is_default,
-                is_system_template=template.is_system_template,
+                is_system=template.is_system,
+                config=template.config,
                 usage_count=template.usage_count,
-                last_used_date=template.last_used_date,
-                created_by=template.created_by,
-                created_date=template.created_date,
-                last_modified=template.last_modified,
+                last_used_at=template.last_used_at.isoformat() if template.last_used_at else None,
                 tags=template.tags,
-                category=template.category,
-                version=template.version
+                metadata=template.metadata,
+                created_by=template.created_by,
+                created_at=template.created_at.isoformat(),
+                updated_at=template.updated_at.isoformat(),
+                updated_by=template.updated_by
             ) for template in templates
         ]
         
-    except PermissionDeniedError as e:
-        logger.error(f"❌ TemplatesAPI: Permission denied: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception as e:
-        logger.error(f"❌ TemplatesAPI: Error getting templates: {str(e)}")
+        logger.error(f"❌ TemplatesV2API: Error getting templates: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
         )
 
 
-@router.get("/estimates", response_model=List[DocumentTemplateResponse])
-async def get_estimate_templates(
+@router.get("/default/{template_type}", response_model=Optional[TemplateResponse])
+async def get_default_template(
+    template_type: str,
     business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    is_active: Optional[bool] = Query(True, description="Filter by active status"),
-    use_case: ManageDocumentTemplatesUseCase = Depends(get_manage_document_templates_use_case),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
     _: bool = Depends(require_view_projects_dep)
 ):
     """
-    Get estimate templates for the business.
+    Get the default template for a specific type.
     
-    Returns templates specifically designed for estimates.
-    Requires 'view_projects' permission.
+    Returns the business default or falls back to system default.
     """
     business_id = uuid.UUID(business_context["business_id"])
-    logger.info(f"🔧 TemplatesAPI: Getting estimate templates for business {business_id}")
     
     try:
-        templates = await use_case.get_business_templates(
-            business_id=business_id,
-            document_type=DocumentType.ESTIMATE,
-            is_active=is_active
-        )
-        
-        logger.info(f"🔧 TemplatesAPI: Found {len(templates)} estimate templates")
-        
-        return [
-            DocumentTemplateResponse(
-                id=template.id,
-                business_id=template.business_id,
-                branding_id=template.branding_id,
-                name=template.name,
-                description=template.description,
-                document_type=template.document_type,
-                template_type=template.template_type,
-                is_active=template.is_active,
-                is_default=template.is_default,
-                is_system_template=template.is_system_template,
-                usage_count=template.usage_count,
-                last_used_date=template.last_used_date,
-                created_by=template.created_by,
-                created_date=template.created_date,
-                last_modified=template.last_modified,
-                tags=template.tags,
-                category=template.category,
-                version=template.version
-            ) for template in templates
-        ]
-        
-    except Exception as e:
-        logger.error(f"❌ TemplatesAPI: Error getting estimate templates: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
-        )
-
-
-@router.get("/invoices", response_model=List[DocumentTemplateResponse])
-async def get_invoice_templates(
-    business_context: dict = Depends(get_business_context),
-    current_user: dict = Depends(get_current_user),
-    is_active: Optional[bool] = Query(True, description="Filter by active status"),
-    use_case: ManageDocumentTemplatesUseCase = Depends(get_manage_document_templates_use_case),
-    _: bool = Depends(require_view_projects_dep)
-):
-    """
-    Get invoice templates for the business.
-    
-    Returns templates specifically designed for invoices.
-    Requires 'view_projects' permission.
-    """
-    business_id = uuid.UUID(business_context["business_id"])
-    logger.info(f"🔧 TemplatesAPI: Getting invoice templates for business {business_id}")
-    
-    try:
-        templates = await use_case.get_business_templates(
-            business_id=business_id,
-            document_type=DocumentType.INVOICE,
-            is_active=is_active
-        )
-        
-        logger.info(f"🔧 TemplatesAPI: Found {len(templates)} invoice templates")
-        
-        return [
-            DocumentTemplateResponse(
-                id=template.id,
-                business_id=template.business_id,
-                branding_id=template.branding_id,
-                name=template.name,
-                description=template.description,
-                document_type=template.document_type,
-                template_type=template.template_type,
-                is_active=template.is_active,
-                is_default=template.is_default,
-                is_system_template=template.is_system_template,
-                usage_count=template.usage_count,
-                last_used_date=template.last_used_date,
-                created_by=template.created_by,
-                created_date=template.created_date,
-                last_modified=template.last_modified,
-                tags=template.tags,
-                category=template.category,
-                version=template.version
-            ) for template in templates
-        ]
-        
-    except Exception as e:
-        logger.error(f"❌ TemplatesAPI: Error getting invoice templates: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
-        )
-
-
-@router.post("/", response_model=DocumentTemplateResponse, status_code=status.HTTP_201_CREATED)
-async def create_template(
-    request: CreateDocumentTemplateRequest,
-    business_context: dict = Depends(get_business_context),
-    current_user: dict = Depends(get_current_user),
-    use_case: ManageDocumentTemplatesUseCase = Depends(get_manage_document_templates_use_case),
-    _: bool = Depends(require_edit_projects_dep)
-):
-    """
-    Create a new document template.
-    
-    Requires 'edit_projects' permission.
-    """
-    business_id = uuid.UUID(business_context["business_id"])
-    logger.info(f"🔧 TemplatesAPI: Creating template {request.name} for business {business_id}")
-    
-    try:
-        # Parse document type
+        # Parse template type
         try:
-            doc_type = DocumentType(request.document_type.lower())
+            t_type = TemplateType(template_type.lower())
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid document type: {request.document_type}. Valid types: {[dt.value for dt in DocumentType]}"
+                detail=f"Invalid template type: {template_type}"
             )
         
-        # Create template
-        template = await use_case.create_template(
+        template = await use_case.get_default_template(
             business_id=business_id,
-            name=request.name,
-            document_type=doc_type,
-            branding_id=request.branding_id,
-            description=request.description,
-            created_by=current_user["sub"]
+            template_type=t_type
         )
         
-        logger.info(f"🔧 TemplatesAPI: Created template {template.id}")
+        if not template:
+            return None
         
-        return DocumentTemplateResponse(
+        return TemplateResponse(
             id=template.id,
             business_id=template.business_id,
             branding_id=template.branding_id,
+            template_type=template.template_type,
+            category=template.category,
             name=template.name,
             description=template.description,
-            document_type=template.document_type,
-            template_type=template.template_type,
+            version=template.version,
             is_active=template.is_active,
             is_default=template.is_default,
-            is_system_template=template.is_system_template,
+            is_system=template.is_system,
+            config=template.config,
             usage_count=template.usage_count,
-            last_used_date=template.last_used_date,
-            created_by=template.created_by,
-            created_date=template.created_date,
-            last_modified=template.last_modified,
+            last_used_at=template.last_used_at.isoformat() if template.last_used_at else None,
             tags=template.tags,
-            category=template.category,
-            version=template.version
+            metadata=template.metadata,
+            created_by=template.created_by,
+            created_at=template.created_at.isoformat(),
+            updated_at=template.updated_at.isoformat(),
+            updated_by=template.updated_by
         )
         
-    except PermissionDeniedError as e:
-        logger.error(f"❌ TemplatesAPI: Permission denied: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception as e:
-        logger.error(f"❌ TemplatesAPI: Error creating template: {str(e)}")
+        logger.error(f"❌ TemplatesV2API: Error getting default template: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
         )
 
 
-@router.get("/{template_id}", response_model=DocumentTemplateResponse)
+@router.get("/{template_id}", response_model=TemplateResponse)
 async def get_template(
     template_id: uuid.UUID,
     business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageDocumentTemplatesUseCase = Depends(get_manage_document_templates_use_case),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
     _: bool = Depends(require_view_projects_dep)
 ):
-    """
-    Get a specific template by ID.
-    
-    Requires 'view_projects' permission.
-    """
-    logger.info(f"🔧 TemplatesAPI: Getting template {template_id}")
-    
+    """Get a specific template by ID."""
     try:
         template = await use_case.get_template(template_id)
         
-        # Check if template belongs to the user's business (or is a system template)
-        if template.business_id and template.business_id != uuid.UUID(business_context["business_id"]):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+        # Check access permissions
+        business_id = uuid.UUID(business_context["business_id"])
+        if template.business_id and template.business_id != business_id and not template.is_system:
+            raise PermissionDeniedError("Cannot access template from another business")
         
-        return DocumentTemplateResponse(
+        return TemplateResponse(
             id=template.id,
             business_id=template.business_id,
             branding_id=template.branding_id,
+            template_type=template.template_type,
+            category=template.category,
             name=template.name,
             description=template.description,
-            document_type=template.document_type,
-            template_type=template.template_type,
+            version=template.version,
             is_active=template.is_active,
             is_default=template.is_default,
-            is_system_template=template.is_system_template,
+            is_system=template.is_system,
+            config=template.config,
             usage_count=template.usage_count,
-            last_used_date=template.last_used_date,
-            created_by=template.created_by,
-            created_date=template.created_date,
-            last_modified=template.last_modified,
+            last_used_at=template.last_used_at.isoformat() if template.last_used_at else None,
             tags=template.tags,
-            category=template.category,
-            version=template.version
+            metadata=template.metadata,
+            created_by=template.created_by,
+            created_at=template.created_at.isoformat(),
+            updated_at=template.updated_at.isoformat(),
+            updated_by=template.updated_by
         )
         
     except NotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+    except PermissionDeniedError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception as e:
-        logger.error(f"❌ TemplatesAPI: Error getting template: {str(e)}")
+        logger.error(f"❌ TemplatesV2API: Error getting template: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
         )
 
 
-@router.put("/{template_id}", response_model=DocumentTemplateResponse)
-async def update_template(
-    template_id: uuid.UUID,
-    request: UpdateDocumentTemplateRequest,
+@router.post("/", response_model=TemplateResponse, status_code=status.HTTP_201_CREATED)
+async def create_template(
+    request: CreateTemplateRequest,
     business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageDocumentTemplatesUseCase = Depends(get_manage_document_templates_use_case),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
     _: bool = Depends(require_edit_projects_dep)
 ):
-    """
-    Update a template.
-    
-    Requires 'edit_projects' permission.
-    """
+    """Create a new template."""
     business_id = uuid.UUID(business_context["business_id"])
-    logger.info(f"🔧 TemplatesAPI: Updating template {template_id}")
     
     try:
-        # First get the template to verify ownership
+        # Parse template type
+        try:
+            t_type = TemplateType(request.template_type.lower())
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid template type: {request.template_type}"
+            )
+        
+        # Parse category if provided
+        t_category = None
+        if request.category:
+            try:
+                t_category = TemplateCategory(request.category.lower())
+            except ValueError:
+                # Allow custom categories
+                t_category = None
+        
+        template = await use_case.create_template(
+            business_id=business_id,
+            name=request.name,
+            template_type=t_type,
+            branding_id=request.branding_id,
+            description=request.description,
+            category=t_category,
+            config=request.config,
+            created_by=current_user["sub"],
+            tags=request.tags
+        )
+        
+        logger.info(f"🔧 TemplatesV2API: Created template {template.id}")
+        
+        return TemplateResponse(
+            id=template.id,
+            business_id=template.business_id,
+            branding_id=template.branding_id,
+            template_type=template.template_type,
+            category=template.category,
+            name=template.name,
+            description=template.description,
+            version=template.version,
+            is_active=template.is_active,
+            is_default=template.is_default,
+            is_system=template.is_system,
+            config=template.config,
+            usage_count=template.usage_count,
+            last_used_at=template.last_used_at.isoformat() if template.last_used_at else None,
+            tags=template.tags,
+            metadata=template.metadata,
+            created_by=template.created_by,
+            created_at=template.created_at.isoformat(),
+            updated_at=template.updated_at.isoformat(),
+            updated_by=template.updated_by
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ TemplatesV2API: Error creating template: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
+@router.put("/{template_id}", response_model=TemplateResponse)
+async def update_template(
+    template_id: uuid.UUID,
+    request: UpdateTemplateRequest,
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
+    _: bool = Depends(require_edit_projects_dep)
+):
+    """Update an existing template."""
+    business_id = uuid.UUID(business_context["business_id"])
+    
+    try:
+        # Get existing template to check permissions
         template = await use_case.get_template(template_id)
         
+        # Check permissions
+        if template.is_system:
+            raise PermissionDeniedError("Cannot modify system templates")
         if template.business_id != business_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+            raise PermissionDeniedError("Cannot modify template from another business")
         
-        # Build updates dict from request
+        # Build updates dict
         updates = {}
         if request.name is not None:
             updates['name'] = request.name
         if request.description is not None:
             updates['description'] = request.description
+        if request.category is not None:
+            updates['category'] = request.category
         if request.is_active is not None:
             updates['is_active'] = request.is_active
-        if request.branding_id is not None:
-            updates['branding_id'] = request.branding_id
+        if request.config is not None:
+            updates['config'] = request.config
+        if request.tags is not None:
+            updates['tags'] = request.tags
         
-        # Apply regular updates first (if any)
+        # Update template
         if updates:
-            updated_template = await use_case.update_template(
+            template = await use_case.update_template(
                 template_id=template_id,
                 updates=updates,
                 updated_by=current_user["sub"]
             )
-        else:
-            updated_template = template
         
-        # Handle setting as default template (if requested)
-        if request.is_default is not None and request.is_default:
-            updated_template = await use_case.set_default_template(
+        # Handle setting as default
+        if request.is_default is True:
+            template = await use_case.set_default_template(
                 template_id=template_id,
                 business_id=business_id,
-                document_type=template.document_type,
+                template_type=template.template_type,
                 set_by=current_user["sub"]
             )
         
-        logger.info(f"🔧 TemplatesAPI: Updated template {template_id}")
+        logger.info(f"🔧 TemplatesV2API: Updated template {template_id}")
         
-        return DocumentTemplateResponse(
-            id=updated_template.id,
-            business_id=updated_template.business_id,
-            branding_id=updated_template.branding_id,
-            name=updated_template.name,
-            description=updated_template.description,
-            document_type=updated_template.document_type,
-            template_type=updated_template.template_type,
-            is_active=updated_template.is_active,
-            is_default=updated_template.is_default,
-            is_system_template=updated_template.is_system_template,
-            usage_count=updated_template.usage_count,
-            last_used_date=updated_template.last_used_date,
-            created_by=updated_template.created_by,
-            created_date=updated_template.created_date,
-            last_modified=updated_template.last_modified,
-            tags=updated_template.tags,
-            category=updated_template.category,
-            version=updated_template.version
+        return TemplateResponse(
+            id=template.id,
+            business_id=template.business_id,
+            branding_id=template.branding_id,
+            template_type=template.template_type,
+            category=template.category,
+            name=template.name,
+            description=template.description,
+            version=template.version,
+            is_active=template.is_active,
+            is_default=template.is_default,
+            is_system=template.is_system,
+            config=template.config,
+            usage_count=template.usage_count,
+            last_used_at=template.last_used_at.isoformat() if template.last_used_at else None,
+            tags=template.tags,
+            metadata=template.metadata,
+            created_by=template.created_by,
+            created_at=template.created_at.isoformat(),
+            updated_at=template.updated_at.isoformat(),
+            updated_by=template.updated_by
         )
         
     except NotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
     except PermissionDeniedError as e:
-        logger.error(f"❌ TemplatesAPI: Permission denied: {str(e)}")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception as e:
-        logger.error(f"❌ TemplatesAPI: Error updating template: {str(e)}")
+        logger.error(f"❌ TemplatesV2API: Error updating template: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
+@router.post("/{template_id}/set-default", response_model=TemplateResponse)
+async def set_default_template(
+    template_id: uuid.UUID,
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
+    _: bool = Depends(require_edit_projects_dep)
+):
+    """Set a template as the default for its type."""
+    business_id = uuid.UUID(business_context["business_id"])
+    
+    try:
+        # Get template to determine its type
+        template = await use_case.get_template(template_id)
+        
+        # Set as default
+        template = await use_case.set_default_template(
+            template_id=template_id,
+            business_id=business_id,
+            template_type=template.template_type,
+            set_by=current_user["sub"]
+        )
+        
+        logger.info(f"🔧 TemplatesV2API: Set template {template_id} as default for type {template.template_type}")
+        
+        return TemplateResponse(
+            id=template.id,
+            business_id=template.business_id,
+            branding_id=template.branding_id,
+            template_type=template.template_type,
+            category=template.category,
+            name=template.name,
+            description=template.description,
+            version=template.version,
+            is_active=template.is_active,
+            is_default=template.is_default,
+            is_system=template.is_system,
+            config=template.config,
+            usage_count=template.usage_count,
+            last_used_at=template.last_used_at.isoformat() if template.last_used_at else None,
+            tags=template.tags,
+            metadata=template.metadata,
+            created_by=template.created_by,
+            created_at=template.created_at.isoformat(),
+            updated_at=template.updated_at.isoformat(),
+            updated_by=template.updated_by
+        )
+        
+    except NotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+    except Exception as e:
+        logger.error(f"❌ TemplatesV2API: Error setting default template: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
+@router.post("/{template_id}/clone", response_model=TemplateResponse, status_code=status.HTTP_201_CREATED)
+async def clone_template(
+    template_id: uuid.UUID,
+    new_name: str = Body(..., description="Name for the cloned template"),
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
+    _: bool = Depends(require_edit_projects_dep)
+):
+    """Clone an existing template."""
+    business_id = uuid.UUID(business_context["business_id"])
+    
+    try:
+        template = await use_case.clone_template(
+            template_id=template_id,
+            new_name=new_name,
+            business_id=business_id,
+            cloned_by=current_user["sub"]
+        )
+        
+        logger.info(f"🔧 TemplatesV2API: Cloned template {template_id} to {template.id}")
+        
+        return TemplateResponse(
+            id=template.id,
+            business_id=template.business_id,
+            branding_id=template.branding_id,
+            template_type=template.template_type,
+            category=template.category,
+            name=template.name,
+            description=template.description,
+            version=template.version,
+            is_active=template.is_active,
+            is_default=template.is_default,
+            is_system=template.is_system,
+            config=template.config,
+            usage_count=template.usage_count,
+            last_used_at=template.last_used_at.isoformat() if template.last_used_at else None,
+            tags=template.tags,
+            metadata=template.metadata,
+            created_by=template.created_by,
+            created_at=template.created_at.isoformat(),
+            updated_at=template.updated_at.isoformat(),
+            updated_by=template.updated_by
+        )
+        
+    except NotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+    except Exception as e:
+        logger.error(f"❌ TemplatesV2API: Error cloning template: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
@@ -429,43 +567,18 @@ async def delete_template(
     template_id: uuid.UUID,
     business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
-    use_case: ManageDocumentTemplatesUseCase = Depends(get_manage_document_templates_use_case),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
     _: bool = Depends(require_edit_projects_dep)
 ):
-    """
-    Delete a template.
-    
-    Cannot delete default templates.
-    Requires 'edit_projects' permission.
-    """
-    business_id = uuid.UUID(business_context["business_id"])
-    logger.info(f"🔧 TemplatesAPI: Deleting template {template_id}")
-    
+    """Delete a template."""
     try:
-        # Verify ownership
-        template = await use_case.get_template(template_id)
-        
-        if template.business_id != business_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
-        
-        # Delete template
-        success = await use_case.delete_template(template_id)
-        
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to delete template"
-            )
-        
-        logger.info(f"🔧 TemplatesAPI: Deleted template {template_id}")
+        await use_case.delete_template(template_id)
+        logger.info(f"🔧 TemplatesV2API: Deleted template {template_id}")
         
     except NotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
-    except PermissionDeniedError as e:
-        logger.error(f"❌ TemplatesAPI: Permission denied: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception as e:
-        logger.error(f"❌ TemplatesAPI: Error deleting template: {str(e)}")
+        logger.error(f"❌ TemplatesV2API: Error deleting template: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"

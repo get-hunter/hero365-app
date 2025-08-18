@@ -5,30 +5,26 @@
 TRUNCATE TABLE 
     activity_reminders,
     activity_participants,
-    activity_templates,
+    activities,
     calendar_preferences,
     calendar_events,
     job_attachments,
     job_notes,
     job_activities,
-    job_templates,
     contact_notes,
     contact_activities,
     contact_segment_memberships,
     contact_segments,
-    activities,
     payments,
     invoice_line_items,
     invoices,
     estimate_line_items,
     estimates,
-    document_templates,
+    templates,
     jobs,
     projects,
-    project_templates,
     contacts,
     user_capabilities,
-    working_hours_templates,
     business_invitations,
     business_memberships,
     departments,
@@ -113,6 +109,7 @@ INSERT INTO businesses (
     postal_code,
     country,
     timezone,
+    business_hours,
     onboarding_completed,
     is_active,
     trade_category,
@@ -134,6 +131,7 @@ INSERT INTO businesses (
     '78701',
     'US',
     'America/Chicago',
+    '{"monday": {"open": "08:00", "close": "17:00", "is_open": true}, "tuesday": {"open": "08:00", "close": "17:00", "is_open": true}, "wednesday": {"open": "08:00", "close": "17:00", "is_open": true}, "thursday": {"open": "08:00", "close": "17:00", "is_open": true}, "friday": {"open": "08:00", "close": "17:00", "is_open": true}, "saturday": {"open": "09:00", "close": "15:00", "is_open": true}, "sunday": {"open": null, "close": null, "is_open": false}, "timezone": "America/Chicago"}'::jsonb,
     true,
     true,
     'residential',
@@ -249,49 +247,7 @@ INSERT INTO business_memberships (
     true
 );
 
--- 5. Create Working Hours Templates
-INSERT INTO working_hours_templates (
-    id,
-    name,
-    description,
-    monday_start, monday_end,
-    tuesday_start, tuesday_end,
-    wednesday_start, wednesday_end,
-    thursday_start, thursday_end,
-    friday_start, friday_end,
-    saturday_start, saturday_end,
-    sunday_start, sunday_end,
-    break_duration_minutes,
-    is_active
-) VALUES 
-(
-    '990e8400-e29b-41d4-a716-446655440001'::uuid,
-    'Standard Business Hours',
-    'Monday-Friday 8AM-5PM',
-    '08:00', '17:00',
-    '08:00', '17:00',
-    '08:00', '17:00',
-    '08:00', '17:00',
-    '08:00', '17:00',
-    NULL, NULL,
-    NULL, NULL,
-    60,
-    true
-),
-(
-    '990e8400-e29b-41d4-a716-446655440002'::uuid,
-    'Emergency Schedule',
-    '24/7 emergency coverage with rotating shifts',
-    '00:00', '23:59',
-    '00:00', '23:59',
-    '00:00', '23:59',
-    '00:00', '23:59',
-    '00:00', '23:59',
-    '00:00', '23:59',
-    '00:00', '23:59',
-    30,
-    true
-);
+-- 5. Working Hours Templates removed - not part of current schema
 
 -- 6. Create User Capabilities
 INSERT INTO user_capabilities (
@@ -310,7 +266,6 @@ INSERT INTO user_capabilities (
     average_job_rating,
     completion_rate,
     punctuality_score,
-    working_hours_template_id,
     is_active
 ) VALUES 
 -- Mike (Owner)
@@ -330,7 +285,6 @@ INSERT INTO user_capabilities (
     4.8,
     98.5,
     95.2,
-    '990e8400-e29b-41d4-a716-446655440001'::uuid,
     true
 ),
 -- Sarah (Manager)
@@ -350,7 +304,6 @@ INSERT INTO user_capabilities (
     4.9,
     97.8,
     98.1,
-    '990e8400-e29b-41d4-a716-446655440001'::uuid,
     true
 ),
 -- David (Senior Tech)
@@ -370,7 +323,6 @@ INSERT INTO user_capabilities (
     4.7,
     96.5,
     92.3,
-    '990e8400-e29b-41d4-a716-446655440002'::uuid,
     true
 );
 
@@ -645,43 +597,7 @@ INSERT INTO jobs (
     true
 );
 
--- 11. Create Job Templates
-INSERT INTO job_templates (
-    id,
-    business_id,
-    name,
-    description,
-    job_type,
-    estimated_cost,
-    checklist,
-    required_skills,
-    instructions,
-    is_active
-) VALUES 
-(
-    'ff0e8400-e29b-41d4-a716-446655440001'::uuid,
-    '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'Standard Sink Repair',
-    'Template for common sink repairs',
-    'repair',
-    150.00,
-    '["Check faucet connections", "Inspect under-sink plumbing", "Test water pressure", "Replace worn parts", "Test for leaks"]'::jsonb,
-    ARRAY['basic_plumbing', 'hand_tools'],
-    'Standard procedure for sink repairs. Always turn off water supply first.',
-    true
-),
-(
-    'ff0e8400-e29b-41d4-a716-446655440002'::uuid,
-    '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'Emergency Pipe Repair',
-    'Template for emergency pipe repairs',
-    'emergency',
-    350.00,
-    '["Assess damage", "Turn off water supply", "Remove damaged section", "Install replacement", "Test system", "Clean up area"]'::jsonb,
-    ARRAY['pipe_fitting', 'emergency_response', 'power_tools'],
-    'Emergency protocol. Safety first. Document all damage with photos.',
-    true
-);
+-- 11. Job Templates removed - not part of current schema
 
 -- 12. Create Activities
 INSERT INTO activities (
@@ -741,40 +657,7 @@ INSERT INTO activities (
     true
 );
 
--- 13. Create Activity Templates
-INSERT INTO activity_templates (
-    id,
-    business_id,
-    name,
-    description,
-    activity_type,
-    estimated_duration_minutes,
-    checklist,
-    instructions,
-    is_active
-) VALUES 
-(
-    '120e8400-e29b-41d4-a716-446655440001'::uuid,
-    '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'Customer Follow-up Call',
-    'Standard follow-up call template',
-    'task',
-    30,
-    '["Review previous job details", "Ask about satisfaction", "Inquire about future needs", "Update contact preferences"]'::jsonb,
-    'Call within 48 hours of job completion. Be friendly and professional.',
-    true
-),
-(
-    '120e8400-e29b-41d4-a716-446655440002'::uuid,
-    '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'Quote Preparation',
-    'Standard quote preparation process',
-    'task',
-    90,
-    '["Review job requirements", "Calculate materials", "Estimate labor", "Add markup", "Format quote", "Schedule delivery"]'::jsonb,
-    'Use standard pricing guidelines. Include all materials and labor.',
-    true
-);
+-- 13. Activity Templates removed - not part of current schema
 
 -- 14. Create Contact Activities
 INSERT INTO contact_activities (
@@ -991,7 +874,6 @@ INSERT INTO calendar_preferences (
     user_id,
     business_id,
     timezone,
-    preferred_working_hours_template_id,
     min_time_between_jobs_minutes,
     max_commute_time_minutes,
     allows_back_to_back_jobs,
@@ -1002,7 +884,6 @@ INSERT INTO calendar_preferences (
     '550e8400-e29b-41d4-a716-446655440002'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
     'America/Chicago',
-    '990e8400-e29b-41d4-a716-446655440001'::uuid,
     45,
     60,
     false,
@@ -1013,7 +894,6 @@ INSERT INTO calendar_preferences (
     '550e8400-e29b-41d4-a716-446655440003'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
     'America/Chicago',
-    '990e8400-e29b-41d4-a716-446655440002'::uuid,
     30,
     90,
     true,
@@ -1089,56 +969,7 @@ INSERT INTO business_invitations (
     'Welcome to Elite Plumbing! Please join our team to start managing jobs and customers.'
 );
 
--- 24. Create Project Templates (before projects)
-INSERT INTO project_templates (
-    id,
-    business_id,
-    name,
-    description,
-    project_type,
-    priority,
-    estimated_budget,
-    estimated_duration,
-    tags,
-    is_system_template
-) VALUES 
--- Business-specific templates
-(
-    '550e8400-e29b-41d4-a716-446655440050'::uuid,
-    '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'Complete Plumbing System Installation',
-    'Full residential plumbing system installation including main lines, fixtures, and testing',
-    'installation',
-    'high',
-    8500.00,
-    14,
-    ARRAY['plumbing', 'residential', 'new_construction'],
-    false
-),
-(
-    '550e8400-e29b-41d4-a716-446655440051'::uuid,
-    '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'Bathroom Renovation Project',
-    'Complete bathroom renovation including plumbing fixtures, tile work, and vanity installation',
-    'renovation',
-    'medium',
-    12000.00,
-    21,
-    ARRAY['bathroom', 'renovation', 'residential'],
-    false
-),
-(
-    '550e8400-e29b-41d4-a716-446655440052'::uuid,
-    '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'Commercial Maintenance Contract',
-    'Monthly maintenance contract for commercial properties',
-    'maintenance',
-    'low',
-    2400.00,
-    365,
-    ARRAY['commercial', 'maintenance', 'contract'],
-    false
-);
+-- 24. Project Templates removed - not part of current schema
 
 -- 25. Create Projects
 INSERT INTO projects (
@@ -1273,42 +1104,97 @@ WHERE id = 'ee0e8400-e29b-41d4-a716-446655440003'::uuid;
 -- ESTIMATES, QUOTES & INVOICES SEED DATA
 -- =====================================
 
--- 26. Create Document Templates
-INSERT INTO document_templates (
+-- 26. Create Templates (using new template system)
+-- First, insert system templates that match the business needs
+INSERT INTO templates (
     id,
     business_id,
+    template_type,
+    category,
     name,
     description,
-    document_type,
-    template_type,
     is_active,
     is_default,
-    color_overrides,
-    font_overrides,
-    sections,
-    header_text,
-    footer_text,
-    terms_text,
+    is_system,
+    config,
     created_by,
-    created_date,
-    last_modified
+    created_at,
+    updated_at
 ) VALUES 
--- Professional Estimate Template (Default)
+-- Professional Invoice/Estimate Template (Default for Invoice)
 (
     '550e8400-e29b-41d4-a716-446655440020'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'Professional Plumbing Estimate',
-    'Clean, professional template for residential and commercial estimates',
+    'invoice',
+    'professional',
+    'Professional Plumbing Invoice',
+    'Clean, professional template for residential and commercial invoices',
+    true,
+    true,
+    false,
+    '{
+        "colors": {
+            "primary": "#1f2937",
+            "secondary": "#3b82f6",
+            "accent": "#10b981"
+        },
+        "fonts": {
+            "font_family": "Inter",
+            "header_size": "24px",
+            "body_size": "14px"
+        },
+        "sections": {
+            "show_header": true,
+            "show_footer": true,
+            "show_business_info": true,
+            "show_client_info": true,
+            "show_line_items": true,
+            "show_totals": true,
+            "show_terms_conditions": true
+        },
+        "header_text": "Elite Plumbing Services - Professional Invoice",
+        "footer_text": "Thank you for choosing Elite Plumbing Services. We appreciate your business!",
+        "terms_text": "All work performed according to local plumbing codes. Payment due within terms specified."
+    }'::jsonb,
+    '550e8400-e29b-41d4-a716-446655440001',
+    now() - interval '3 months',
+    now() - interval '3 months'
+),
+-- Professional Estimate Template (Default for Estimate)
+(
+    '550e8400-e29b-41d4-a716-446655440022'::uuid,
+    '660e8400-e29b-41d4-a716-446655440000'::uuid,
     'estimate',
     'professional',
+    'Professional Plumbing Estimate',
+    'Clean, professional template for residential and commercial estimates',
     true,
     true,
-    '{"primary": "#1f2937", "secondary": "#3b82f6", "accent": "#10b981"}'::jsonb,
-    '{"font_family": "Inter", "header_size": "24px", "body_size": "14px"}'::jsonb,
-    '{"show_header": true, "show_footer": true, "show_business_info": true, "show_client_info": true, "show_line_items": true, "show_totals": true, "show_terms_conditions": true}'::jsonb,
-    'Elite Plumbing Services - Professional Estimates',
-    'Thank you for choosing Elite Plumbing Services. We appreciate your business!',
-    'All work performed according to local plumbing codes. Estimates valid for 30 days. Payment due upon completion unless otherwise arranged.',
+    false,
+    '{
+        "colors": {
+            "primary": "#1f2937",
+            "secondary": "#3b82f6",
+            "accent": "#10b981"
+        },
+        "fonts": {
+            "font_family": "Inter",
+            "header_size": "24px",
+            "body_size": "14px"
+        },
+        "sections": {
+            "show_header": true,
+            "show_footer": true,
+            "show_business_info": true,
+            "show_client_info": true,
+            "show_line_items": true,
+            "show_totals": true,
+            "show_terms_conditions": true
+        },
+        "header_text": "Elite Plumbing Services - Professional Estimates",
+        "footer_text": "Thank you for choosing Elite Plumbing Services. We appreciate your business!",
+        "terms_text": "All work performed according to local plumbing codes. Estimates valid for 30 days. Payment due upon completion unless otherwise arranged."
+    }'::jsonb,
     '550e8400-e29b-41d4-a716-446655440001',
     now() - interval '3 months',
     now() - interval '3 months'
@@ -1317,18 +1203,37 @@ INSERT INTO document_templates (
 (
     '550e8400-e29b-41d4-a716-446655440021'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
-    'Emergency Service Quote',
-    'Streamlined template for emergency and quick service quotes',
-    'estimate',
+    'invoice',
     'service_focused',
+    'Emergency Service Invoice',
+    'Streamlined template for emergency and quick service invoices',
     true,
     false,
-    '{"primary": "#dc2626", "secondary": "#fbbf24", "accent": "#059669"}'::jsonb,
-    '{"font_family": "Arial", "header_size": "22px", "body_size": "13px"}'::jsonb,
-    '{"show_header": true, "show_footer": true, "show_business_info": true, "show_client_info": true, "show_line_items": true, "show_totals": true, "show_terms_conditions": false}'::jsonb,
-    '24/7 Emergency Plumbing Services',
-    'Emergency service available 24/7. Call us anytime!',
-    'Emergency service rates apply. Immediate response guaranteed.',
+    false,
+    '{
+        "colors": {
+            "primary": "#dc2626",
+            "secondary": "#fbbf24",
+            "accent": "#059669"
+        },
+        "fonts": {
+            "font_family": "Arial",
+            "header_size": "22px",
+            "body_size": "13px"
+        },
+        "sections": {
+            "show_header": true,
+            "show_footer": true,
+            "show_business_info": true,
+            "show_client_info": true,
+            "show_line_items": true,
+            "show_totals": true,
+            "show_terms_conditions": false
+        },
+        "header_text": "24/7 Emergency Plumbing Services",
+        "footer_text": "Emergency service available 24/7. Call us anytime!",
+        "terms_text": "Emergency service rates apply. Immediate response guaranteed."
+    }'::jsonb,
     '550e8400-e29b-41d4-a716-446655440002',
     now() - interval '2 months',
     now() - interval '2 months'
@@ -1384,7 +1289,7 @@ INSERT INTO estimates (
     'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     NULL,
     NULL,
-    '550e8400-e29b-41d4-a716-446655440020'::uuid,
+    '550e8400-e29b-41d4-a716-446655440022'::uuid,
     'David Chen',
     '550e8400-e29b-41d4-a716-446655440003'::uuid,
     'John Smith',
@@ -1423,7 +1328,7 @@ INSERT INTO estimates (
     'bb0e8400-e29b-41d4-a716-446655440003'::uuid,
     NULL,
     NULL,
-    '550e8400-e29b-41d4-a716-446655440020'::uuid,
+    '550e8400-e29b-41d4-a716-446655440022'::uuid,
     'Sarah Wilson',
     '550e8400-e29b-41d4-a716-446655440002'::uuid,
     'Robert Davis - Austin Property Management',
@@ -1462,7 +1367,7 @@ INSERT INTO estimates (
     'bb0e8400-e29b-41d4-a716-446655440004'::uuid,
     NULL,
     NULL,
-    '550e8400-e29b-41d4-a716-446655440020'::uuid,
+    '550e8400-e29b-41d4-a716-446655440022'::uuid,
     'Mike Johnson',
     '550e8400-e29b-41d4-a716-446655440001'::uuid,
     NULL,
@@ -1540,7 +1445,7 @@ INSERT INTO estimates (
     'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     NULL,
     NULL,
-    '550e8400-e29b-41d4-a716-446655440020'::uuid,
+    '550e8400-e29b-41d4-a716-446655440022'::uuid,
     'David Chen',
     '550e8400-e29b-41d4-a716-446655440003'::uuid,
     'John Smith',

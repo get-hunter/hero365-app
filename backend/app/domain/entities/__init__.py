@@ -23,7 +23,7 @@ from .estimate import Estimate
 from .invoice import Invoice
 
 # Template entities
-from .document_template import DocumentTemplate, DocumentType, DocumentTemplateFactory
+from .template import Template, TemplateType, TemplateCategory, TemplateFactory
 from .business_branding import BusinessBranding
 
 # Inventory management entities
@@ -59,9 +59,10 @@ __all__ = [
     "Invoice",
     
     # Template entities
-    "DocumentTemplate",
-    "DocumentType",
-    "DocumentTemplateFactory",
+    "Template",
+    "TemplateType",
+    "TemplateCategory",
+    "TemplateFactory",
     "BusinessBranding",
     
     # Inventory management entities
