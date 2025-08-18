@@ -343,7 +343,7 @@ class SupabaseDocumentTemplateRepository(DocumentTemplateRepository):
             template_data=data.get("template_data", {}),
             usage_count=data.get("usage_count", 0),
             last_used_date=last_used_date,
-            tags=data.get("tags", []),
+            tags=(data.get("tags") or []),
             category=data.get("category"),
             version=data.get("version", "1.0"),
             created_by=data.get("created_by"),

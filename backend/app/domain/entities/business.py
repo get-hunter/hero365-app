@@ -83,7 +83,7 @@ class Business(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     industry: str = Field(..., min_length=1, max_length=100)
     company_size: CompanySize
-    owner_id: UUID4
+    # owner_id removed - use business_memberships with role='owner' instead
     
     # Business Profile
     custom_industry: Optional[str] = Field(None, max_length=100)
@@ -409,4 +409,4 @@ class Business(BaseModel):
     def __repr__(self) -> str:
         trades = self.get_all_trades()
         return (f"Business(id={self.id}, name='{self.name}', industry='{self.industry}', "
-                f"trades={trades}, owner_id='{self.owner_id}', is_active={self.is_active})") 
+                f"trades={trades}, is_active={self.is_active})") 

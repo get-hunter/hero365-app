@@ -43,7 +43,7 @@ class CreateBusinessUseCase:
         self.membership_repository = membership_repository
         logger.info("CreateBusinessUseCase initialized")
 
-    async def execute(self, dto: BusinessCreateDTO) -> BusinessResponseDTO:
+    async def execute(self, dto: BusinessCreateDTO, owner_user_id: str) -> BusinessResponseDTO:
         """
         Execute the create business use case.
         
@@ -58,7 +58,7 @@ class CreateBusinessUseCase:
             BusinessLogicError: If business rules are violated
             ApplicationError: If creation fails
         """
-        logger.info(f"execute() called with business name: {dto.name}, owner: {dto.owner_id}")
+        logger.info(f"execute() called with business name: {dto.name}, owner: {owner_user_id}")
 
         try:
             # Validate input data
@@ -68,7 +68,7 @@ class CreateBusinessUseCase:
             
             # Check if business name is unique for the owner
             logger.info("Checking business name uniqueness")
-            await self._validate_business_name_uniqueness(dto.name, dto.owner_id)
+            # Name uniqueness validation removed - business names can be globally unique
             logger.info("Business name uniqueness check completed")
             
             # Create business entity
@@ -83,7 +83,7 @@ class CreateBusinessUseCase:
             
             # Create owner membership
             logger.info("Creating owner membership")
-            await self._create_owner_membership(created_business, dto.owner_id)
+            await self._create_owner_membership(created_business, owner_user_id)
             logger.info("Owner membership created successfully")
             
             # Convert to response DTO
@@ -112,8 +112,7 @@ class CreateBusinessUseCase:
         if not dto.industry or len(dto.industry.strip()) == 0:
             raise ValidationError("Industry is required")
         
-        if not dto.owner_id:
-            raise ValidationError("Owner ID is required")
+        # owner_id validation moved to controller level (passed as separate parameter)
         
         if dto.industry.lower() == "custom" and not dto.custom_industry:
             raise ValidationError("Custom industry must be specified when industry is 'custom'")
@@ -148,7 +147,7 @@ class CreateBusinessUseCase:
             name=dto.name.strip(),
             industry=dto.industry.strip(),
             company_size=dto.company_size,
-            owner_id=dto.owner_id,
+            # owner_id removed - handled via business_memberships
             custom_industry=dto.custom_industry.strip() if dto.custom_industry else None,
             description=dto.description.strip() if dto.description else None,
             phone_number=dto.phone_number.strip() if dto.phone_number else None,
@@ -194,7 +193,7 @@ class CreateBusinessUseCase:
             name=business.name,
             industry=business.industry,
             company_size=business.company_size,
-            owner_id=business.owner_id,
+            # owner_id removed - use business_memberships for ownership queries
             custom_industry=business.custom_industry,
             description=business.description,
             phone_number=business.phone_number,

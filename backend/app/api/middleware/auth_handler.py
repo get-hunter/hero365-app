@@ -69,6 +69,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
             user_info = await self._validate_token(token)
             if user_info:
                 logger.info(f"Token validated successfully for user: {user_info.get('sub', 'unknown')}")
+                # Debug: Log business memberships
+                memberships = user_info.get('business_memberships', [])
+                logger.info(f"User has {len(memberships)} business memberships")
+                if memberships:
+                    logger.info(f"First membership: {memberships[0]}")
                 # Add user info to request state
                 request.state.user = user_info
                 request.state.authenticated = True

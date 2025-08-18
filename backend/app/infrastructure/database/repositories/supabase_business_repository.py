@@ -37,7 +37,7 @@ class SupabaseBusinessRepository(BusinessRepository):
     
     async def create(self, business: Business) -> Business:
         """Create a new business in Supabase."""
-        logger.info(f"create() called for business: {business.name}, owner: {business.owner_id}")
+        logger.info(f"create() called for business: {business.name}")
         
         try:
             business_data = self._business_to_dict(business)
@@ -73,11 +73,19 @@ class SupabaseBusinessRepository(BusinessRepository):
             raise DatabaseError(f"Failed to get business by ID: {str(e)}")
     
     async def get_by_owner(self, owner_id: str, skip: int = 0, limit: int = 100) -> List[Business]:
-        """Get businesses owned by a specific user."""
+        """Get businesses owned by a specific user via business_memberships."""
         try:
-            response = self.client.table(self.table_name).select("*").eq(
-                "owner_id", owner_id
-            ).range(skip, skip + limit - 1).order("created_date", desc=True).execute()
+            # Query via business_memberships join since owner_id was removed
+            response = (
+                self.client.table(self.table_name)
+                .select("*, business_memberships!inner(*)")
+                .eq("business_memberships.user_id", owner_id)
+                .eq("business_memberships.role", "owner")
+                .eq("business_memberships.is_active", True)
+                .range(skip, skip + limit - 1)
+                .order("created_date", desc=True)
+                .execute()
+            )
             
             return [self._dict_to_business(business_data) for business_data in response.data]
             
@@ -191,9 +199,18 @@ class SupabaseBusinessRepository(BusinessRepository):
             raise DatabaseError(f"Failed to count active businesses: {str(e)}")
     
     async def count_by_owner(self, owner_id: str) -> int:
-        """Get count of businesses owned by a specific user."""
+        """Get count of businesses owned by a specific user via business_memberships."""
         try:
-            response = self.client.table(self.table_name).select("id", count="exact").eq("owner_id", owner_id).execute()
+            # Query via business_memberships join since owner_id was removed
+            response = (
+                self.client
+                .table(self.table_name)
+                .select("id", count="exact")
+                .eq("business_memberships.user_id", owner_id)
+                .eq("business_memberships.role", "owner")
+                .eq("business_memberships.is_active", True)
+                .execute()
+            )
             
             return response.count or 0
             
@@ -211,9 +228,9 @@ class SupabaseBusinessRepository(BusinessRepository):
             raise DatabaseError(f"Failed to check business existence: {str(e)}")
     
     async def is_name_unique_for_owner(self, name: str, owner_id: str, exclude_business_id: Optional[uuid.UUID] = None) -> bool:
-        """Check if business name is unique for a specific owner."""
+        """Check if business name is globally unique (owner_id parameter kept for compatibility)."""
         try:
-            query = self.client.table(self.table_name).select("id").eq("name", name).eq("owner_id", owner_id)
+            query = self.client.table(self.table_name).select("id").eq("name", name)
             
             if exclude_business_id:
                 query = query.neq("id", str(exclude_business_id))
@@ -259,7 +276,7 @@ class SupabaseBusinessRepository(BusinessRepository):
             "industry": business.industry,
             "custom_industry": business.custom_industry,
             "company_size": business.company_size.value,
-            "owner_id": business.owner_id,
+            # owner_id removed - use business_memberships instead
             "description": business.description,
             "phone_number": business.phone_number,
             "business_address": business.business_address,
@@ -313,7 +330,7 @@ class SupabaseBusinessRepository(BusinessRepository):
             name=data["name"],
             industry=data["industry"],
             company_size=CompanySize(data["company_size"]),
-            owner_id=data["owner_id"],
+            # owner_id removed - use business_memberships instead
             custom_industry=data.get("custom_industry"),
             description=data.get("description"),
             phone_number=data.get("phone_number"),

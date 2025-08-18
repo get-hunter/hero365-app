@@ -430,12 +430,21 @@ class Job(BaseModel):
     
     def get_status_display(self) -> str:
         """Get human-readable status."""
-        return self.status.get_display()
+        if hasattr(self.status, 'get_display'):
+            return self.status.get_display()
+        # Handle status as string
+        return str(self.status).replace('_', ' ').title()
     
     def get_priority_display(self) -> str:
         """Get human-readable priority."""
-        return self.priority.get_display()
+        if hasattr(self.priority, 'get_display'):
+            return self.priority.get_display()
+        # Handle priority as string
+        return str(self.priority).replace('_', ' ').title()
     
     def get_type_display(self) -> str:
         """Get human-readable type."""
-        return self.job_type.get_display() 
+        if hasattr(self.job_type, 'get_display'):
+            return self.job_type.get_display()
+        # Handle job_type as string
+        return str(self.job_type).replace('_', ' ').title() 

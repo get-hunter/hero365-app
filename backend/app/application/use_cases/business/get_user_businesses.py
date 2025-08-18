@@ -76,7 +76,7 @@ class GetUserBusinessesUseCase:
                 user_business_summary = UserBusinessSummaryDTO(
                     business=business_summary,
                     membership=membership_response,
-                    is_owner=membership.role == BusinessRole.OWNER,
+                    is_owner=(membership.role.value if hasattr(membership.role, 'value') else membership.role) == BusinessRole.OWNER.value,
                     pending_invitations_count=pending_invitations_count
                 )
                 
@@ -110,7 +110,8 @@ class GetUserBusinessesUseCase:
         """Get pending invitations count for owners/admins."""
         try:
             # Only show pending invitations count to owners and admins
-            if membership.role in [BusinessRole.OWNER, BusinessRole.ADMIN]:
+            role_value = membership.role.value if hasattr(membership.role, 'value') else membership.role
+            if role_value in [BusinessRole.OWNER.value, BusinessRole.ADMIN.value]:
                 return await self.invitation_repository.count_pending_business_invitations(business_id)
             return 0
         except Exception:
@@ -144,5 +145,5 @@ class GetUserBusinessesUseCase:
             is_active=membership.is_active,
             department_id=membership.department_id,
             job_title=membership.job_title,
-            role_display=membership.role.value.title()
+            role_display=(membership.role.value if hasattr(membership.role, 'value') else membership.role).title()
         ) 

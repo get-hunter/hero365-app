@@ -574,6 +574,22 @@ class SupabaseAuthAdapter(AuthServicePort):
     def _convert_to_auth_user(self, supabase_user) -> AuthUser:
         """Convert Supabase user to AuthUser."""
         user_metadata = supabase_user.user_metadata or {}
+        
+        # Convert datetime objects to ISO format strings
+        created_at_str = None
+        if supabase_user.created_at:
+            if hasattr(supabase_user.created_at, 'isoformat'):
+                created_at_str = supabase_user.created_at.isoformat()
+            else:
+                created_at_str = str(supabase_user.created_at)
+        
+        last_sign_in_str = None
+        if supabase_user.last_sign_in_at:
+            if hasattr(supabase_user.last_sign_in_at, 'isoformat'):
+                last_sign_in_str = supabase_user.last_sign_in_at.isoformat()
+            else:
+                last_sign_in_str = str(supabase_user.last_sign_in_at)
+        
         return AuthUser(
             id=supabase_user.id,
             email=supabase_user.email,
@@ -583,16 +599,26 @@ class SupabaseAuthAdapter(AuthServicePort):
             is_email_verified=bool(supabase_user.email_confirmed_at),
             is_phone_verified=bool(supabase_user.phone_confirmed_at),
             provider_metadata=user_metadata,
-            created_at=supabase_user.created_at,
-            last_sign_in=supabase_user.last_sign_in_at
+            created_at=created_at_str,
+            last_sign_in=last_sign_in_str
         )
     
     def _convert_to_auth_token(self, supabase_session) -> AuthToken:
         """Convert Supabase session to AuthToken."""
+        # Convert expires_at to string if it's provided as an integer timestamp
+        expires_at_str = None
+        if supabase_session.expires_at is not None:
+            if isinstance(supabase_session.expires_at, (int, float)):
+                # Convert Unix timestamp to string
+                expires_at_str = str(int(supabase_session.expires_at))
+            else:
+                # Already a string or other type, convert to string
+                expires_at_str = str(supabase_session.expires_at)
+        
         return AuthToken(
             access_token=supabase_session.access_token,
             refresh_token=supabase_session.refresh_token,
             token_type=supabase_session.token_type or "Bearer",
             expires_in=supabase_session.expires_in,
-            expires_at=supabase_session.expires_at
+            expires_at=expires_at_str
         ) 

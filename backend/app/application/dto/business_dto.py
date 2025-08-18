@@ -19,7 +19,7 @@ class BusinessCreateDTO(BaseModel):
     name: str
     industry: str
     company_size: CompanySize
-    owner_id: str
+    # owner_id removed - use business_memberships instead
     custom_industry: Optional[str] = None
     description: Optional[str] = None
     phone_number: Optional[str] = None
@@ -62,7 +62,7 @@ class BusinessResponseDTO(BaseModel):
     name: str
     industry: str
     company_size: CompanySize
-    owner_id: str
+    # owner_id removed - use business_memberships instead
     custom_industry: Optional[str]
     description: Optional[str]
     phone_number: Optional[str]
@@ -108,7 +108,7 @@ class BusinessSearchDTO(BaseModel):
     industry: Optional[str] = None
     company_size: Optional[CompanySize] = None
     is_active: Optional[bool] = True
-    owner_id: Optional[str] = None
+    # owner_id removed - use business_memberships instead
     skip: int = 0
     limit: int = 100
 

@@ -119,7 +119,7 @@ class ManageBusinessBrandingUseCase:
         # Apply trade-specific theme if requested
         if apply_trade_theme and business.get_primary_trade():
             primary_trade = business.get_primary_trade()
-            trade_category = business.trade_category.value if business.trade_category else "both"
+            trade_category = (business.trade_category.value if hasattr(business.trade_category, 'value') else business.trade_category) if business.trade_category else "both"
             branding = branding.apply_trade_theme(primary_trade, trade_category)
         
         # Save branding
@@ -275,7 +275,7 @@ class ManageBusinessBrandingUseCase:
         temp_branding = BusinessBranding(business_id=business_id)
         temp_branding = temp_branding.apply_trade_theme(
             business.get_primary_trade(),
-            business.trade_category.value if business.trade_category else "both"
+            (business.trade_category.value if hasattr(business.trade_category, 'value') else business.trade_category) if business.trade_category else "both"
         )
         
         return {

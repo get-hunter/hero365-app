@@ -82,7 +82,7 @@ class BusinessController:
                 name=request.name,
                 industry=request.industry,
                 company_size=CompanySize(request.company_size.value),
-                owner_id=current_user_id,
+                # owner_id removed - will be handled via business_membership
                 custom_industry=request.custom_industry,
                 description=request.description,
                 phone_number=request.phone_number,
@@ -94,11 +94,11 @@ class BusinessController:
                 referral_source=ReferralSource(request.referral_source.value) if request.referral_source else None,
                 timezone=request.timezone
             )
-            logger.info(f"BusinessCreateDTO created successfully: name={dto.name}, owner_id={dto.owner_id}")
+            logger.info(f"BusinessCreateDTO created successfully: name={dto.name}")
             
             # Execute use case
             logger.info("Calling create_business_use_case.execute")
-            result = await self.create_business_use_case.execute(dto)
+            result = await self.create_business_use_case.execute(dto, current_user_id)
             logger.info(f"create_business_use_case.execute completed successfully: business_id={result.id}")
             
             # Convert to response schema
@@ -261,8 +261,8 @@ class BusinessController:
             id=dto.id,
             name=dto.name,
             industry=dto.industry,
-            company_size=dto.company_size.value,
-            owner_id=dto.owner_id,
+            company_size=dto.company_size.value if hasattr(dto.company_size, 'value') else dto.company_size,
+            # owner_id removed - use business_memberships instead
             custom_industry=dto.custom_industry,
             description=dto.description,
             phone_number=dto.phone_number,
@@ -276,7 +276,7 @@ class BusinessController:
             insurance_number=dto.insurance_number,
             selected_features=dto.selected_features,
             primary_goals=dto.primary_goals,
-            referral_source=dto.referral_source.value if dto.referral_source else None,
+            referral_source=dto.referral_source.value if dto.referral_source and hasattr(dto.referral_source, 'value') else dto.referral_source if dto.referral_source else None,
             onboarding_completed=dto.onboarding_completed,
             onboarding_completed_date=dto.onboarding_completed_date,
             timezone=dto.timezone,
@@ -297,7 +297,7 @@ class BusinessController:
                 id=dto.business.id,
                 name=dto.business.name,
                 industry=dto.business.industry,
-                company_size=dto.business.company_size.value,
+                company_size=dto.business.company_size.value if hasattr(dto.business.company_size, 'value') else dto.business.company_size,
                 is_active=dto.business.is_active,
                 created_date=dto.business.created_date,
                 team_member_count=dto.business.team_member_count,
@@ -314,7 +314,7 @@ class BusinessController:
             id=dto.id,
             business_id=dto.business_id,
             user_id=dto.user_id,
-            role=dto.role.value,
+            role=dto.role.value if hasattr(dto.role, 'value') else dto.role,
             permissions=dto.permissions,
             joined_date=dto.joined_date,
             invited_date=dto.invited_date,
@@ -335,11 +335,11 @@ class BusinessController:
             invited_phone=dto.invited_phone,
             invited_by=dto.invited_by,
             invited_by_name=dto.invited_by_name,
-            role=dto.role.value,
+            role=dto.role.value if hasattr(dto.role, 'value') else dto.role,
             permissions=dto.permissions,
             invitation_date=dto.invitation_date,
             expiry_date=dto.expiry_date,
-            status=dto.status.value,
+            status=dto.status.value if hasattr(dto.status, 'value') else dto.status,
             message=dto.message,
             accepted_date=dto.accepted_date,
             declined_date=dto.declined_date,

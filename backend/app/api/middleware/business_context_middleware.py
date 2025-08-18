@@ -95,60 +95,39 @@ class BusinessContextMiddleware(BaseHTTPMiddleware):
         return False
     
     def _extract_business_id_from_request(self, request: Request) -> Optional[str]:
-        """Extract business ID from request path parameters or headers."""
-        # Try to extract from path parameters first
-        path_params = request.path_params
-        
-        # Check common path parameter names
-        business_id_keys = ["business_id", "businessId"]
-        for key in business_id_keys:
-            if key in path_params:
-                try:
-                    # Validate UUID format
-                    uuid.UUID(path_params[key])
-                    return path_params[key]
-                except (ValueError, TypeError):
-                    pass
-        
-        # Try to extract from query parameters
-        query_params = request.query_params
-        for key in business_id_keys:
-            if key in query_params:
-                try:
-                    uuid.UUID(query_params[key])
-                    return query_params[key]
-                except (ValueError, TypeError):
-                    pass
-        
-        # Try to extract from headers
-        business_id = request.headers.get("X-Business-ID")
-        if business_id:
-            try:
-                uuid.UUID(business_id)
-                return business_id
-            except (ValueError, TypeError):
-                pass
-        
-        # Try to get from user's current business context
+        """Extract business ID using consistent method: user's first active business membership."""
+        # Get authenticated user from request state
         user = getattr(request.state, 'user', {})
-        current_business_id = user.get('current_business_id')
-        if current_business_id:
-            return current_business_id
+        user_id = user.get('id') or user.get('sub')
         
-        # Fallback: if user has business memberships but no current business context,
-        # use the first one (similar to deps.py logic)
+        if not user_id:
+            logger.debug("BusinessContextMiddleware: No authenticated user found")
+            return None
+        
+        # Debug: Log what we're receiving
+        logger.info(f"BusinessContextMiddleware: User object keys: {user.keys() if isinstance(user, dict) else 'Not a dict'}")
+        
+        # Get business memberships directly from user object if available
         business_memberships = user.get('business_memberships', [])
-        if business_memberships:
-            first_business_id = business_memberships[0].get("business_id")
-            if first_business_id:
-                try:
-                    # Validate UUID format
-                    uuid.UUID(first_business_id)
-                    logger.info(f"BusinessContextMiddleware: Using first business membership as fallback context: {first_business_id}")
-                    return first_business_id
-                except (ValueError, TypeError):
-                    pass
+        logger.info(f"BusinessContextMiddleware: Found {len(business_memberships)} memberships in user object")
         
+        if business_memberships:
+            # Use first active business membership
+            for membership in business_memberships:
+                business_id = membership.get("business_id")
+                is_active = membership.get("is_active", True)
+                
+                if business_id and is_active:
+                    try:
+                        # Validate UUID format
+                        uuid.UUID(business_id)
+                        logger.info(f"BusinessContextMiddleware: Using business context from membership: {business_id}")
+                        return business_id
+                    except (ValueError, TypeError):
+                        logger.warning(f"BusinessContextMiddleware: Invalid business_id format: {business_id}")
+                        continue
+        
+        logger.info(f"BusinessContextMiddleware: No active business memberships found for user: {user_id}")
         return None
     
     async def _validate_business_access(self, request: Request, business_id: str) -> bool:

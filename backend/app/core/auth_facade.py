@@ -162,16 +162,23 @@ class AuthFacade:
             membership_data = []
             for membership in memberships:
                 if membership.is_active:
+                    # Handle role as either enum or string
+                    role_value = membership.role.value if hasattr(membership.role, 'value') else membership.role
+                    
                     membership_data.append({
                         "business_id": str(membership.business_id),
-                        "role": membership.role.value,
+                        "role": role_value,
                         "permissions": membership.permissions,
-                        "role_level": membership.get_role_level()
+                        "role_level": membership.get_role_level() if hasattr(membership, 'get_role_level') else 0
                     })
             
             return membership_data
             
-        except Exception:
+        except Exception as e:
+            # Log the actual error for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting user business memberships for {user_id}: {str(e)}")
             return []
 
     def _get_current_business_id_from_metadata(self, metadata: Dict, memberships: List[Dict]) -> Optional[str]:
