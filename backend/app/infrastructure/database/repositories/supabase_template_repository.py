@@ -131,18 +131,19 @@ class SupabaseTemplateRepository(TemplateRepository):
     ) -> Optional[Template]:
         """Get the default template for a business and type."""
         try:
-            # First try to get business-specific default
-            result = self.client.table(self.table_name).select("*") \
-                .eq("business_id", str(business_id)) \
-                .eq("template_type", template_type.value if hasattr(template_type, 'value') else template_type) \
-                .eq("is_default", True) \
-                .eq("is_active", True) \
-                .execute()
+            # Use the improved database function (v2) that checks preferences first
+            result = self.client.rpc(
+                'get_default_template_v2',
+                {
+                    'p_business_id': str(business_id),
+                    'p_template_type': template_type.value if hasattr(template_type, 'value') else template_type
+                }
+            ).execute()
             
-            if result.data:
+            if result.data and len(result.data) > 0:
                 return self._dict_to_template(result.data[0])
             
-            # Fall back to system default
+            # If still no default found, get any system default as fallback
             system_result = self.client.table(self.table_name).select("*") \
                 .eq("is_system", True) \
                 .eq("template_type", template_type.value if hasattr(template_type, 'value') else template_type) \
@@ -200,9 +201,9 @@ class SupabaseTemplateRepository(TemplateRepository):
     ) -> bool:
         """Set a template as default for its type and business."""
         try:
-            # Use the database function
+            # Use the improved database function (v2)
             result = self.client.rpc(
-                'set_default_template',
+                'set_default_template_v2',
                 {
                     'p_template_id': str(template_id),
                     'p_business_id': str(business_id),

@@ -550,7 +550,8 @@ class DependencyContainer:
         )
         
         self._use_cases['update_invoice'] = UpdateInvoiceUseCase(
-            invoice_repository=self.get_repository('invoice_repository')
+            invoice_repository=self.get_repository('invoice_repository'),
+            template_repository=self.get_repository('template_repository')
         )
         
         self._use_cases['delete_invoice'] = DeleteInvoiceUseCase(

@@ -13,6 +13,8 @@ from app.domain.entities.invoice import Invoice, InvoiceLineItem
 from app.domain.entities.invoice_enums.enums import InvoiceStatus
 from app.domain.shared.enums import CurrencyCode, TaxType, DiscountType
 from app.domain.repositories.invoice_repository import InvoiceRepository
+from app.domain.repositories.template_repository import TemplateRepository
+from app.domain.entities.template import TemplateType
 from app.domain.exceptions.domain_exceptions import (
     DomainValidationError, BusinessRuleViolationError, EntityNotFoundError
 )
@@ -26,8 +28,9 @@ logger = logging.getLogger(__name__)
 class UpdateInvoiceUseCase:
     """Use case for updating existing invoices."""
     
-    def __init__(self, invoice_repository: InvoiceRepository):
+    def __init__(self, invoice_repository: InvoiceRepository, template_repository: TemplateRepository = None):
         self.invoice_repository = invoice_repository
+        self.template_repository = template_repository
     
     async def execute(self, request: UpdateInvoiceDTO, user_id: str) -> InvoiceDTO:
         """Execute the update invoice use case."""
@@ -39,6 +42,11 @@ class UpdateInvoiceUseCase:
             
             # Validate invoice can be updated
             self._validate_invoice_for_update(invoice)
+            
+            # Validate template if provided
+            if request.template_id is not None:
+                validated_template_id = await self._validate_template(request.template_id, request.business_id)
+                request.template_id = validated_template_id
             
             # Update invoice fields
             self._update_invoice_fields(invoice, request)
@@ -103,6 +111,47 @@ class UpdateInvoiceUseCase:
                 f"Invoice with status '{current_status}' cannot be updated"
             )
     
+    async def _validate_template(self, template_id: uuid.UUID, business_id: uuid.UUID) -> Optional[uuid.UUID]:
+        """Validate template exists or return default template."""
+        if self.template_repository is None:
+            logger.info(f"Template repository is None, returning template_id {template_id} as-is")
+            return template_id
+            
+        try:
+            # Check if template exists
+            logger.info(f"Looking up template {template_id} in database")
+            template = await self.template_repository.get_by_id(template_id)
+            if template:
+                logger.info(f"Found template: id={template.id}, business_id={template.business_id}, is_system={template.is_system}, is_active={template.is_active}")
+                logger.info(f"Checking if template belongs to business {business_id} or is system template")
+                
+                # Validate it's either a system template or belongs to this business
+                if template.is_system or template.business_id == business_id:
+                    logger.info(f"Template validation passed, using template {template_id}")
+                    return template_id
+                else:
+                    logger.warning(f"Template {template_id} doesn't belong to business {business_id} (template.business_id={template.business_id}, is_system={template.is_system})")
+            else:
+                logger.warning(f"Template {template_id} not found in database")
+            
+            # Get default template as fallback
+            logger.info(f"Attempting to get default template for business {business_id} and type INVOICE")
+            default_template = await self.template_repository.get_default_template(
+                business_id=business_id,
+                template_type=TemplateType.INVOICE
+            )
+            
+            if default_template:
+                logger.warning(f"CLIENT DATA ISSUE: Template {template_id} not found/invalid. Using default template {default_template.id} ({default_template.name}). Client should refresh template cache.")
+                return default_template.id
+            else:
+                logger.error("CRITICAL: No default template found, setting template_id to None")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error validating template: {e}")
+            return None
+    
     def _update_invoice_fields(self, invoice: Invoice, request: UpdateInvoiceDTO) -> None:
         """Update invoice fields with provided values."""
         if request.title is not None:
@@ -127,6 +176,7 @@ class UpdateInvoiceUseCase:
             invoice.overall_discount_value = request.overall_discount_value
         
         if request.template_id is not None:
+            # Note: Template validation happens in execute method now
             invoice.template_id = request.template_id
         
         if request.template_data is not None:
