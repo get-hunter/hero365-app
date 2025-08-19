@@ -418,6 +418,14 @@ import type {
   TemplatesGetTemplatesResponse,
   TemplatesCreateTemplateData,
   TemplatesCreateTemplateResponse,
+  TemplatesGetInvoiceTemplatesData,
+  TemplatesGetInvoiceTemplatesResponse,
+  TemplatesGetEstimateTemplatesData,
+  TemplatesGetEstimateTemplatesResponse,
+  TemplatesGetContractTemplatesData,
+  TemplatesGetContractTemplatesResponse,
+  TemplatesGetTemplatesByTypeData,
+  TemplatesGetTemplatesByTypeResponse,
   TemplatesGetDefaultTemplateData,
   TemplatesGetDefaultTemplateResponse,
   TemplatesGetTemplateData,
@@ -5856,7 +5864,7 @@ export class TemplatesService {
   ): CancelablePromise<TemplatesGetTemplatesResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/templates/",
+      url: "/api/v1/templates",
       query: {
         template_type: data.templateType,
         category: data.category,
@@ -5882,9 +5890,115 @@ export class TemplatesService {
   ): CancelablePromise<TemplatesCreateTemplateResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/templates/",
+      url: "/api/v1/templates",
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Invoice Templates
+   * Get all invoice templates.
+   * @param data The data for the request.
+   * @param data.isActive Filter by active status
+   * @param data.isSystem Show only system templates
+   * @returns TemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static getInvoiceTemplates(
+    data: TemplatesGetInvoiceTemplatesData = {},
+  ): CancelablePromise<TemplatesGetInvoiceTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/templates/invoices",
+      query: {
+        is_active: data.isActive,
+        is_system: data.isSystem,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Estimate Templates
+   * Get all estimate templates.
+   * @param data The data for the request.
+   * @param data.isActive Filter by active status
+   * @param data.isSystem Show only system templates
+   * @returns TemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static getEstimateTemplates(
+    data: TemplatesGetEstimateTemplatesData = {},
+  ): CancelablePromise<TemplatesGetEstimateTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/templates/estimates",
+      query: {
+        is_active: data.isActive,
+        is_system: data.isSystem,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Contract Templates
+   * Get all contract templates.
+   * @param data The data for the request.
+   * @param data.isActive Filter by active status
+   * @param data.isSystem Show only system templates
+   * @returns TemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static getContractTemplates(
+    data: TemplatesGetContractTemplatesData = {},
+  ): CancelablePromise<TemplatesGetContractTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/templates/contracts",
+      query: {
+        is_active: data.isActive,
+        is_system: data.isSystem,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Templates By Type
+   * Get all templates for a specific type (e.g., /templates/type/invoice).
+   *
+   * This is a convenience endpoint for mobile apps.
+   * @param data The data for the request.
+   * @param data.templateType
+   * @param data.isActive Filter by active status
+   * @param data.isSystem Show only system templates
+   * @returns TemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static getTemplatesByType(
+    data: TemplatesGetTemplatesByTypeData,
+  ): CancelablePromise<TemplatesGetTemplatesByTypeResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/templates/type/{template_type}",
+      path: {
+        template_type: data.templateType,
+      },
+      query: {
+        is_active: data.isActive,
+        is_system: data.isSystem,
+      },
       errors: {
         422: "Validation Error",
       },

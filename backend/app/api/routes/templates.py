@@ -76,7 +76,7 @@ class SetDefaultTemplateRequest(BaseModel):
     template_type: str = Field(..., description="Template type to set as default")
 
 
-@router.get("/", response_model=List[TemplateResponse])
+@router.get("", response_model=List[TemplateResponse])
 async def get_templates(
     business_context: dict = Depends(get_business_context),
     current_user: dict = Depends(get_current_user),
@@ -94,7 +94,7 @@ async def get_templates(
     Can be filtered by template type, category, and status.
     """
     business_id = uuid.UUID(business_context["business_id"])
-    logger.info(f"🔧 TemplatesV2API: Getting templates for business {business_id}")
+    logger.info(f"Getting templates for business {business_id}")
     
     try:
         # Parse template type if provided
@@ -131,7 +131,7 @@ async def get_templates(
                 is_active=is_active
             )
         
-        logger.info(f"🔧 TemplatesV2API: Found {len(templates)} templates")
+        logger.info(f"Found {len(templates)} templates")
         
         # Convert to API response
         return [
@@ -160,7 +160,194 @@ async def get_templates(
         ]
         
     except Exception as e:
-        logger.error(f"❌ TemplatesV2API: Error getting templates: {str(e)}")
+        logger.error(f"Error getting templates: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
+@router.get("/invoices", response_model=List[TemplateResponse])
+async def get_invoice_templates(
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    is_system: Optional[bool] = Query(None, description="Show only system templates"),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
+    _: bool = Depends(require_view_projects_dep)
+):
+    """Get all invoice templates."""
+    return await _get_templates_by_type("invoice", business_context, current_user, is_active, is_system, use_case)
+
+
+@router.get("/estimates", response_model=List[TemplateResponse])
+async def get_estimate_templates(
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    is_system: Optional[bool] = Query(None, description="Show only system templates"),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
+    _: bool = Depends(require_view_projects_dep)
+):
+    """Get all estimate templates."""
+    return await _get_templates_by_type("estimate", business_context, current_user, is_active, is_system, use_case)
+
+
+@router.get("/contracts", response_model=List[TemplateResponse])
+async def get_contract_templates(
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    is_system: Optional[bool] = Query(None, description="Show only system templates"),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
+    _: bool = Depends(require_view_projects_dep)
+):
+    """Get all contract templates."""
+    return await _get_templates_by_type("contract", business_context, current_user, is_active, is_system, use_case)
+
+
+async def _get_templates_by_type(
+    template_type: str, 
+    business_context: dict, 
+    current_user: dict, 
+    is_active: Optional[bool], 
+    is_system: Optional[bool], 
+    use_case: ManageTemplatesUseCase
+) -> List[TemplateResponse]:
+    """Helper function to get templates by type."""
+    business_id = uuid.UUID(business_context["business_id"])
+    logger.info(f"Getting {template_type} templates for business {business_id}")
+    
+    try:
+        # Parse template type
+        try:
+            t_type = TemplateType(template_type.lower())
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid template type: {template_type}"
+            )
+        
+        # Get templates based on filters
+        if is_system:
+            templates = await use_case.get_system_templates(
+                template_type=t_type,
+                is_active=is_active
+            )
+        else:
+            templates = await use_case.get_business_templates(
+                business_id=business_id,
+                template_type=t_type,
+                is_active=is_active
+            )
+        
+        logger.info(f"Found {len(templates)} {template_type} templates")
+        
+        # Convert to API response
+        return [
+            TemplateResponse(
+                id=template.id,
+                business_id=template.business_id,
+                branding_id=template.branding_id,
+                template_type=template.template_type,
+                category=template.category,
+                name=template.name,
+                description=template.description,
+                version=template.version,
+                is_active=template.is_active,
+                is_default=template.is_default,
+                is_system=template.is_system,
+                config=template.config,
+                usage_count=template.usage_count,
+                last_used_at=template.last_used_at.isoformat() if template.last_used_at else None,
+                tags=template.tags,
+                metadata=template.metadata,
+                created_by=template.created_by,
+                created_at=template.created_at.isoformat(),
+                updated_at=template.updated_at.isoformat(),
+                updated_by=template.updated_by
+            ) for template in templates
+        ]
+        
+    except Exception as e:
+        logger.error(f"Error getting {template_type} templates: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
+@router.get("/type/{template_type}", response_model=List[TemplateResponse])
+async def get_templates_by_type(
+    template_type: str,
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    is_system: Optional[bool] = Query(None, description="Show only system templates"),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
+    _: bool = Depends(require_view_projects_dep)
+):
+    """
+    Get all templates for a specific type (e.g., /templates/type/invoice).
+    
+    This is a convenience endpoint for mobile apps.
+    """
+    business_id = uuid.UUID(business_context["business_id"])
+    logger.info(f"Getting {template_type} templates for business {business_id}")
+    
+    try:
+        # Parse template type
+        try:
+            t_type = TemplateType(template_type.lower())
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid template type: {template_type}"
+            )
+        
+        # Get templates based on filters
+        if is_system:
+            templates = await use_case.get_system_templates(
+                template_type=t_type,
+                is_active=is_active
+            )
+        else:
+            templates = await use_case.get_business_templates(
+                business_id=business_id,
+                template_type=t_type,
+                is_active=is_active
+            )
+        
+        logger.info(f"Found {len(templates)} {template_type} templates")
+        
+        # Convert to API response
+        return [
+            TemplateResponse(
+                id=template.id,
+                business_id=template.business_id,
+                branding_id=template.branding_id,
+                template_type=template.template_type,
+                category=template.category,
+                name=template.name,
+                description=template.description,
+                version=template.version,
+                is_active=template.is_active,
+                is_default=template.is_default,
+                is_system=template.is_system,
+                config=template.config,
+                usage_count=template.usage_count,
+                last_used_at=template.last_used_at.isoformat() if template.last_used_at else None,
+                tags=template.tags,
+                metadata=template.metadata,
+                created_by=template.created_by,
+                created_at=template.created_at.isoformat(),
+                updated_at=template.updated_at.isoformat(),
+                updated_by=template.updated_by
+            ) for template in templates
+        ]
+        
+    except Exception as e:
+        logger.error(f"Error getting {template_type} templates: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
@@ -224,7 +411,7 @@ async def get_default_template(
         )
         
     except Exception as e:
-        logger.error(f"❌ TemplatesV2API: Error getting default template: {str(e)}")
+        logger.error(f"Error getting default template: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
@@ -276,14 +463,14 @@ async def get_template(
     except PermissionDeniedError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception as e:
-        logger.error(f"❌ TemplatesV2API: Error getting template: {str(e)}")
+        logger.error(f"Error getting template: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
         )
 
 
-@router.post("/", response_model=TemplateResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=TemplateResponse, status_code=status.HTTP_201_CREATED)
 async def create_template(
     request: CreateTemplateRequest,
     business_context: dict = Depends(get_business_context),
@@ -325,7 +512,7 @@ async def create_template(
             tags=request.tags
         )
         
-        logger.info(f"🔧 TemplatesV2API: Created template {template.id}")
+        logger.info(f"Created template {template.id}")
         
         return TemplateResponse(
             id=template.id,
@@ -351,7 +538,7 @@ async def create_template(
         )
         
     except Exception as e:
-        logger.error(f"❌ TemplatesV2API: Error creating template: {str(e)}")
+        logger.error(f"Error creating template: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
@@ -412,7 +599,7 @@ async def update_template(
                 set_by=current_user["sub"]
             )
         
-        logger.info(f"🔧 TemplatesV2API: Updated template {template_id}")
+        logger.info(f"Updated template {template_id}")
         
         return TemplateResponse(
             id=template.id,
@@ -442,7 +629,7 @@ async def update_template(
     except PermissionDeniedError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception as e:
-        logger.error(f"❌ TemplatesV2API: Error updating template: {str(e)}")
+        logger.error(f"Error updating template: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
@@ -472,7 +659,7 @@ async def set_default_template(
             set_by=current_user["sub"]
         )
         
-        logger.info(f"🔧 TemplatesV2API: Set template {template_id} as default for type {template.template_type}")
+        logger.info(f"Set template {template_id} as default for type {template.template_type}")
         
         return TemplateResponse(
             id=template.id,
@@ -500,7 +687,7 @@ async def set_default_template(
     except NotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
     except Exception as e:
-        logger.error(f"❌ TemplatesV2API: Error setting default template: {str(e)}")
+        logger.error(f"Error setting default template: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
@@ -527,7 +714,7 @@ async def clone_template(
             cloned_by=current_user["sub"]
         )
         
-        logger.info(f"🔧 TemplatesV2API: Cloned template {template_id} to {template.id}")
+        logger.info(f"Cloned template {template_id} to {template.id}")
         
         return TemplateResponse(
             id=template.id,
@@ -555,7 +742,7 @@ async def clone_template(
     except NotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
     except Exception as e:
-        logger.error(f"❌ TemplatesV2API: Error cloning template: {str(e)}")
+        logger.error(f"Error cloning template: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
@@ -573,12 +760,12 @@ async def delete_template(
     """Delete a template."""
     try:
         await use_case.delete_template(template_id)
-        logger.info(f"🔧 TemplatesV2API: Deleted template {template_id}")
+        logger.info(f"Deleted template {template_id}")
         
     except NotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
     except Exception as e:
-        logger.error(f"❌ TemplatesV2API: Error deleting template: {str(e)}")
+        logger.error(f"Error deleting template: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"

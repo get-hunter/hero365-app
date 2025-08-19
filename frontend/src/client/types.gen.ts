@@ -8965,6 +8965,59 @@ export type TemplatesCreateTemplateData = {
 
 export type TemplatesCreateTemplateResponse = TemplateResponse
 
+export type TemplatesGetInvoiceTemplatesData = {
+  /**
+   * Filter by active status
+   */
+  isActive?: boolean | null
+  /**
+   * Show only system templates
+   */
+  isSystem?: boolean | null
+}
+
+export type TemplatesGetInvoiceTemplatesResponse = Array<TemplateResponse>
+
+export type TemplatesGetEstimateTemplatesData = {
+  /**
+   * Filter by active status
+   */
+  isActive?: boolean | null
+  /**
+   * Show only system templates
+   */
+  isSystem?: boolean | null
+}
+
+export type TemplatesGetEstimateTemplatesResponse = Array<TemplateResponse>
+
+export type TemplatesGetContractTemplatesData = {
+  /**
+   * Filter by active status
+   */
+  isActive?: boolean | null
+  /**
+   * Show only system templates
+   */
+  isSystem?: boolean | null
+}
+
+export type TemplatesGetContractTemplatesResponse = Array<TemplateResponse>
+
+export type TemplatesGetTemplatesByTypeData = {
+  /**
+   * Filter by active status
+   */
+  isActive?: boolean | null
+  /**
+   * Show only system templates
+   */
+  isSystem?: boolean | null
+  templateType: string
+}
+
+export type TemplatesGetTemplatesByTypeResponse = Array<TemplateResponse>
+
 export type TemplatesGetDefaultTemplateData = {
   templateType: string
 }
