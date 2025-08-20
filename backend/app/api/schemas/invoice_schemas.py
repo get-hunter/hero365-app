@@ -283,6 +283,8 @@ class InvoiceResponseSchema(BaseModel):
     
     # Status information
     status_info: Dict[str, Any]
+    
+
 
     class Config:
         from_attributes = True

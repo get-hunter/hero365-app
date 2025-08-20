@@ -7,7 +7,8 @@ Supports all document types, websites, and more with JSONB configuration.
 
 import uuid
 import logging
-from typing import List, Optional
+from datetime import datetime
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from pydantic import BaseModel, Field
 
@@ -134,7 +135,7 @@ async def get_templates(
         logger.info(f"Found {len(templates)} templates")
         
         # Convert to API response
-        return [
+        response_templates = [
             TemplateResponse(
                 id=template.id,
                 business_id=template.business_id,
@@ -158,6 +159,8 @@ async def get_templates(
                 updated_by=template.updated_by
             ) for template in templates
         ]
+        
+        return response_templates
         
     except Exception as e:
         logger.error(f"Error getting templates: {str(e)}")
@@ -293,7 +296,6 @@ async def get_templates_by_type(
     This is a convenience endpoint for mobile apps.
     """
     business_id = uuid.UUID(business_context["business_id"])
-    logger.info(f"Getting {template_type} templates for business {business_id}")
     
     try:
         # Parse template type
@@ -412,6 +414,67 @@ async def get_default_template(
         
     except Exception as e:
         logger.error(f"Error getting default template: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
+@router.post("/validate", response_model=Dict[str, Any])
+async def validate_template_access(
+    template_ids: List[uuid.UUID] = Body(..., description="List of template IDs to validate"),
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
+    _: bool = Depends(require_view_projects_dep)
+):
+    """
+    Validate if templates exist and are accessible for the current business.
+    
+    Helps prevent template validation errors by checking accessibility upfront.
+    Returns validation status for each template ID.
+    """
+    business_id = uuid.UUID(business_context["business_id"])
+    
+    try:
+        validation_results = {}
+        
+        for template_id in template_ids:
+            try:
+                template = await use_case.get_template(template_id)
+                
+                # Check if template is accessible (system or belongs to business)
+                if template.is_system or template.business_id == business_id:
+                    validation_results[str(template_id)] = {
+                        "valid": True,
+                        "accessible": True,
+                        "name": template.name,
+                        "template_type": template.template_type,
+                        "is_system": template.is_system,
+                        "is_active": template.is_active
+                    }
+                else:
+                    validation_results[str(template_id)] = {
+                        "valid": True,
+                        "accessible": False,
+                        "error": "Template belongs to a different business",
+                        "name": template.name,
+                        "template_type": template.template_type
+                    }
+            except Exception:
+                validation_results[str(template_id)] = {
+                    "valid": False,
+                    "accessible": False,
+                    "error": "Template not found"
+                }
+        
+        return {
+            "validation_results": validation_results,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error validating template access: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"

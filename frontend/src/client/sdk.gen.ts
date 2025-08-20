@@ -428,6 +428,8 @@ import type {
   TemplatesGetTemplatesByTypeResponse,
   TemplatesGetDefaultTemplateData,
   TemplatesGetDefaultTemplateResponse,
+  TemplatesValidateTemplateAccessData,
+  TemplatesValidateTemplateAccessResponse,
   TemplatesGetTemplateData,
   TemplatesGetTemplateResponse,
   TemplatesUpdateTemplateData,
@@ -6024,6 +6026,31 @@ export class TemplatesService {
       path: {
         template_type: data.templateType,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Validate Template Access
+   * Validate if templates exist and are accessible for the current business.
+   *
+   * Helps prevent template validation errors by checking accessibility upfront.
+   * Returns validation status for each template ID.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static validateTemplateAccess(
+    data: TemplatesValidateTemplateAccessData,
+  ): CancelablePromise<TemplatesValidateTemplateAccessResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/templates/validate",
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },

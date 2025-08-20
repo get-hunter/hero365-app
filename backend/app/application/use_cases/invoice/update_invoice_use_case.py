@@ -114,38 +114,31 @@ class UpdateInvoiceUseCase:
     async def _validate_template(self, template_id: uuid.UUID, business_id: uuid.UUID) -> Optional[uuid.UUID]:
         """Validate template exists or return default template."""
         if self.template_repository is None:
-            logger.info(f"Template repository is None, returning template_id {template_id} as-is")
             return template_id
             
         try:
             # Check if template exists
-            logger.info(f"Looking up template {template_id} in database")
             template = await self.template_repository.get_by_id(template_id)
             if template:
-                logger.info(f"Found template: id={template.id}, business_id={template.business_id}, is_system={template.is_system}, is_active={template.is_active}")
-                logger.info(f"Checking if template belongs to business {business_id} or is system template")
-                
                 # Validate it's either a system template or belongs to this business
                 if template.is_system or template.business_id == business_id:
-                    logger.info(f"Template validation passed, using template {template_id}")
                     return template_id
                 else:
-                    logger.warning(f"Template {template_id} doesn't belong to business {business_id} (template.business_id={template.business_id}, is_system={template.is_system})")
+                    logger.warning(f"Template {template_id} doesn't belong to business {business_id}")
             else:
-                logger.warning(f"Template {template_id} not found in database")
+                logger.warning(f"Template {template_id} not found")
             
             # Get default template as fallback
-            logger.info(f"Attempting to get default template for business {business_id} and type INVOICE")
             default_template = await self.template_repository.get_default_template(
                 business_id=business_id,
                 template_type=TemplateType.INVOICE
             )
             
             if default_template:
-                logger.warning(f"CLIENT DATA ISSUE: Template {template_id} not found/invalid. Using default template {default_template.id} ({default_template.name}). Client should refresh template cache.")
+                logger.info(f"Using default template {default_template.id} instead of {template_id}")
                 return default_template.id
             else:
-                logger.error("CRITICAL: No default template found, setting template_id to None")
+                logger.warning("No default template found, setting template_id to None")
                 return None
                 
         except Exception as e:

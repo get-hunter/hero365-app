@@ -133,8 +133,7 @@ class InvoiceDTO(BaseModel):
     is_paid: Optional[bool] = None
     is_overdue: Optional[bool] = None
     
-    # Validation warnings for client
-    validation_warnings: List[str] = Field(default_factory=list)
+
 
     @classmethod
     def from_entity(cls, invoice) -> 'InvoiceDTO':

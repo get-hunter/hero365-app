@@ -9024,6 +9024,14 @@ export type TemplatesGetDefaultTemplateData = {
 
 export type TemplatesGetDefaultTemplateResponse = TemplateResponse | null
 
+export type TemplatesValidateTemplateAccessData = {
+  requestBody: Array<string>
+}
+
+export type TemplatesValidateTemplateAccessResponse = {
+  [key: string]: unknown
+}
+
 export type TemplatesGetTemplateData = {
   templateId: string
 }
