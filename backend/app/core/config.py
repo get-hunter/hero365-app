@@ -116,13 +116,13 @@ class Settings(BaseSettings):
     CARTESIA_API_KEY: str | None = None
     
     # AI Provider Configuration for Content Generation
-    CONTENT_GENERATION_PROVIDER: Literal["openai", "claude", "gemini"] = "openai"
+    CONTENT_GENERATION_PROVIDER: Literal["openai", "claude", "gemini"] = "claude"
     CLAUDE_API_KEY: str | None = None
     GEMINI_API_KEY: str | None = None
     
     # Content Generation Model Settings
-    OPENAI_CONTENT_MODEL: str = "gpt-4"
-    CLAUDE_CONTENT_MODEL: str = "claude-3-5-sonnet-20241022"
+    OPENAI_CONTENT_MODEL: str = "gpt-4o"
+    CLAUDE_CONTENT_MODEL: str = "claude-sonnet-4-20250514"
     GEMINI_CONTENT_MODEL: str = "gemini-1.5-pro"
     
     # Content Generation Parameters
@@ -143,6 +143,17 @@ class Settings(BaseSettings):
     VOICE_MAX_EXTENSION_MS: int = 5000   # Max milliseconds to wait for utterance extension
     VOICE_MIN_AUDIO_LENGTH_MS: int = 200 # Minimum audio length to process
     VOICE_ENABLE_PAUSE_PROCESSING: bool = True  # Enable send-on-pause optimization
+    
+    # AWS Configuration
+    AWS_ACCESS_KEY_ID: str | None = None
+    AWS_SECRET_ACCESS_KEY: str | None = None
+    AWS_REGION: str = "us-east-1"
+    
+    # Website Builder Configuration
+    WEBSITE_TEMPLATE_PATH: str = "app/infrastructure/templates"
+    WEBSITE_BUILD_PATH: str = "build_output"
+    WEBSITE_BUILD_OUTPUT_PATH: str = "build_output"
+    BACKEND_URL: str = "http://localhost:8000"
     
     # Hero365 Subdomain Configuration
     HERO365_CLOUDFRONT_DISTRIBUTION_ID: str | None = None

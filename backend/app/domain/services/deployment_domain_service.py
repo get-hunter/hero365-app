@@ -826,10 +826,10 @@ class DeploymentDomainService:
         missing_fields = []
         
         # Check required fields
-        if not business.phone:
+        if not business.phone_number:
             missing_fields.append("Business phone number")
         
-        if not business.email:
+        if not business.business_email:
             missing_fields.append("Business email address")
         
         if not business.address:

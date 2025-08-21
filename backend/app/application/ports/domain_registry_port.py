@@ -9,27 +9,25 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 from datetime import datetime
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 
 from ...domain.entities.business import Business
 
 
-@dataclass
-class DomainAvailabilityResult:
+class DomainAvailabilityResult(BaseModel):
     """Domain availability check result."""
     
     domain: str
     available: bool
-    premium: bool = False
+    premium: bool = Field(default=False)
     price: Optional[Decimal] = None
     renewal_price: Optional[Decimal] = None
-    registration_period_years: int = 1
-    transfer_lock_days: int = 60
-    redemption_period_days: int = 30
+    registration_period_years: int = Field(default=1)
+    transfer_lock_days: int = Field(default=60)
+    redemption_period_days: int = Field(default=30)
 
 
-@dataclass
-class DomainPricingInfo:
+class DomainPricingInfo(BaseModel):
     """Domain pricing information."""
     
     domain: str
@@ -38,62 +36,58 @@ class DomainPricingInfo:
     renewal_price: Decimal
     transfer_price: Decimal
     redemption_price: Optional[Decimal] = None
-    currency: str = "USD"
-    premium: bool = False
+    currency: str = Field(default="USD")
+    premium: bool = Field(default=False)
     premium_tier: Optional[str] = None
 
 
-@dataclass
-class ContactInformation:
+class ContactInformation(BaseModel):
     """Domain registration contact information."""
     
     first_name: str
     last_name: str
-    organization: Optional[str] = None
     email: str
     phone: str
     address_line_1: str
-    address_line_2: Optional[str] = None
     city: str
     state: str
     postal_code: str
-    country: str = "US"
+    country: str
+    organization: Optional[str] = None
+    address_line_2: Optional[str] = None
 
 
-@dataclass
-class DomainRegistrationResult:
+class DomainRegistrationResult(BaseModel):
     """Domain registration operation result."""
     
     success: bool
     domain: str
     registration_id: Optional[str] = None
     expires_at: Optional[datetime] = None
-    name_servers: List[str] = None
-    auto_renew: bool = True
-    privacy_protection: bool = True
+    name_servers: List[str] = Field(default_factory=list)
+    auto_renew: bool = Field(default=True)
+    privacy_protection: bool = Field(default=True)
     error_message: Optional[str] = None
     transaction_id: Optional[str] = None
 
 
-@dataclass
-class DNSRecord:
+class DNSRecord(BaseModel):
     """DNS record data structure."""
     
     name: str
-    type: str  # A, AAAA, CNAME, MX, TXT, etc.
+    type: str = Field(description="Record type: A, AAAA, CNAME, MX, TXT, etc.")
     value: str
-    ttl: int = 300
-    priority: Optional[int] = None  # For MX records
+    ttl: int = Field(default=300)
+    priority: Optional[int] = Field(default=None, description="For MX records")
 
 
-@dataclass
-class DNSConfiguration:
+class DNSConfiguration(BaseModel):
     """DNS configuration for a domain."""
     
     domain: str
     records: List[DNSRecord]
     name_servers: List[str]
-    dnssec_enabled: bool = False
+    dnssec_enabled: bool = Field(default=False)
 
 
 class DomainRegistryPort(ABC):

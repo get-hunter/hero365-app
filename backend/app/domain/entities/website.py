@@ -6,11 +6,11 @@ business websites, domain registrations, and SEO tracking.
 """
 
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, time
 from decimal import Decimal
 from typing import Optional, Dict, List, Any, Union
 from enum import Enum
-from pydantic import BaseModel, Field, HttpUrl, validator, root_validator
+from pydantic import BaseModel, Field, HttpUrl, validator, model_validator
 
 from .business import TradeCategory, CommercialTrade, ResidentialTrade
 
@@ -115,7 +115,7 @@ class WebsiteTemplate(BaseModel):
     @validator('trade_category')
     def validate_trade_category(cls, v):
         """Validate trade category is valid."""
-        if v not in [TradeCategory.COMMERCIAL, TradeCategory.RESIDENTIAL, TradeCategory.BOTH]:
+        if v not in [TradeCategory.COMMERCIAL, TradeCategory.RESIDENTIAL]:
             raise ValueError(f"Invalid trade category: {v}")
         return v
     
@@ -259,6 +259,7 @@ class BusinessWebsite(BaseModel):
     # Deployment
     deployment_config: DeploymentConfig = Field(default_factory=DeploymentConfig)
     build_config: Dict[str, Any] = Field(default_factory=dict, description="Build-time settings")
+    website_url: Optional[str] = Field(None, max_length=500, description="Full website URL after deployment")
     
     # Build tracking
     build_path: Optional[str] = Field(None, max_length=500)
@@ -279,16 +280,13 @@ class BusinessWebsite(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
-    @root_validator
-    def validate_domain_or_subdomain(cls, values):
+    @model_validator(mode='after')
+    def validate_domain_or_subdomain(self):
         """Ensure either domain or subdomain is provided."""
-        domain = values.get('domain')
-        subdomain = values.get('subdomain')
-        
-        if not domain and not subdomain:
+        if not self.domain and not self.subdomain:
             raise ValueError("Either domain or subdomain must be provided")
         
-        return values
+        return self
     
     @validator('seo_keywords')
     def validate_seo_keywords(cls, v):
@@ -582,18 +580,18 @@ class WebsiteAnalytics(BaseModel):
     # Audit fields
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
-    @root_validator
-    def validate_device_percentages(cls, values):
+    @model_validator(mode='after')
+    def validate_device_percentages(self):
         """Ensure device percentages add up to 100%."""
-        desktop = values.get('desktop_percentage', Decimal('0'))
-        mobile = values.get('mobile_percentage', Decimal('0'))
-        tablet = values.get('tablet_percentage', Decimal('0'))
+        desktop = self.desktop_percentage or Decimal('0')
+        mobile = self.mobile_percentage or Decimal('0')
+        tablet = self.tablet_percentage or Decimal('0')
         
         total = desktop + mobile + tablet
         if total > 0 and abs(total - Decimal('100')) > Decimal('0.1'):
             raise ValueError("Device percentages must add up to 100%")
         
-        return values
+        return self
     
     def get_ctr(self) -> Optional[Decimal]:
         """Calculate click-through rate from search."""
@@ -1180,3 +1178,48 @@ class GoogleBusinessProfile(BaseModel):
             self.location_id is not None and 
             self.sync_status == SyncStatus.ACTIVE
         )
+
+
+class ReviewData(BaseModel):
+    """Google Business Profile review data."""
+    
+    google_review_id: str
+    reviewer_name: str
+    reviewer_profile_photo: Optional[str] = None
+    rating: int = Field(ge=1, le=5)
+    review_text: str
+    review_date: datetime
+    business_response: Optional[str] = None
+    response_date: Optional[datetime] = None
+    is_responded: bool = Field(default=False)
+    sentiment_score: Optional[float] = Field(default=None, ge=-1.0, le=1.0)
+    review_url: Optional[str] = None
+
+
+class InsightData(BaseModel):
+    """Google Business Profile insights data."""
+    
+    profile_id: uuid.UUID
+    date_range_start: date
+    date_range_end: date
+    
+    # Search metrics
+    search_queries_direct: int = Field(default=0, ge=0)
+    search_queries_indirect: int = Field(default=0, ge=0)
+    search_queries_chain: int = Field(default=0, ge=0)
+    
+    # View metrics
+    views_search: int = Field(default=0, ge=0)
+    views_maps: int = Field(default=0, ge=0)
+    
+    # Action metrics
+    actions_website: int = Field(default=0, ge=0)
+    actions_phone: int = Field(default=0, ge=0)
+    actions_directions: int = Field(default=0, ge=0)
+    
+    # Calculated metrics
+    total_searches: int = Field(default=0, ge=0)
+    total_views: int = Field(default=0, ge=0)
+    total_actions: int = Field(default=0, ge=0)
+    
+    collected_at: datetime = Field(default_factory=datetime.utcnow)

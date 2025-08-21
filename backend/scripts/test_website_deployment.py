@@ -13,16 +13,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
-from ..app.domain.entities.business import Business, TradeCategory
-from ..app.domain.entities.business_branding import BusinessBranding
-from ..app.domain.entities.website import BusinessWebsite, WebsiteStatus
-from ..app.infrastructure.templates.website_templates import (
+from app.domain.entities.business import Business, TradeCategory, CompanySize
+from app.domain.entities.business_branding import BusinessBranding
+from app.domain.entities.website import BusinessWebsite, WebsiteStatus, WebsiteTemplate
+from app.infrastructure.templates.website_templates import (
     WebsiteTemplateService, TemplateType, WEBSITE_TEMPLATES
 )
-from ..app.application.services.website_builder_service import WebsiteBuilderService
-from ..app.application.services.ai_content_generator_service import AIContentGeneratorService
-from ..app.infrastructure.adapters.aws_hosting_adapter import AWSHostingAdapter
-from ..app.domain.services.deployment_domain_service import DeploymentDomainService
+from app.application.services.website_orchestration_service import WebsiteOrchestrationService
+from app.infrastructure.adapters.aws_hosting_adapter import AWSHostingAdapter
+from app.domain.services.deployment_domain_service import DeploymentDomainService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -44,8 +43,10 @@ class WebsiteBuilderTester:
         self.test_results = {}
         self.hosting_adapter = AWSHostingAdapter()
         self.deployment_domain_service = DeploymentDomainService()
-        self.builder_service = WebsiteBuilderService()
-        self.content_service = AIContentGeneratorService()
+        self.orchestration_service = WebsiteOrchestrationService(
+            hosting_service=self.hosting_adapter,
+            content_provider="claude"  # Use Claude as configured
+        )
     
     async def quick_test_deployment(
         self,
@@ -69,7 +70,7 @@ class WebsiteBuilderTester:
             )
             
             # 2. Create test branding
-            test_branding = self._create_test_branding(test_business)
+            test_branding = self._create_test_branding(test_business.id)
             
             # 3. Get template for trade
             template_data = WebsiteTemplateService.get_template_by_trade(
@@ -79,45 +80,55 @@ class WebsiteBuilderTester:
             if not template_data:
                 raise Exception(f"No template found for {trade_type} {trade_category}")
             
-            # 4. Create website entity
-            subdomain = f"test-{trade_type}-{uuid.uuid4().hex[:8]}"
-            test_website = BusinessWebsite(
-                id=uuid.uuid4(),
-                business_id=test_business.id,
-                subdomain=subdomain,
-                status=WebsiteStatus.BUILDING,
-                primary_trade=trade_type,
-                seo_keywords=[f"{trade_type} services", f"{trade_type} {location}"]
+            # Convert template data to WebsiteTemplate object
+            template = WebsiteTemplate(
+                trade_type=trade_type,
+                trade_category=trade_category,
+                name=template_data.get("name", f"{trade_type.title()} Template"),
+                description=template_data.get("description", f"Professional {trade_type} website template"),
+                structure=template_data.get("structure", {}),
+                default_content=template_data.get("default_content", {}),
+                seo_config=template_data.get("seo_config", {})
             )
+            
+            # 4. Generate subdomain and options
+            subdomain = f"test-{trade_type}-{uuid.uuid4().hex[:8]}"
             
             # 5. Build website
             logger.info("🏗️ Building website...")
-            build_result = await self.builder_service.build_website(
-                test_website, test_business, test_branding, template_data
+            build_result = await self.orchestration_service.build_website(
+                test_business, test_branding, template, options={"subdomain": subdomain}
             )
             
-            if not build_result.success:
-                raise Exception(f"Website build failed: {build_result.error_message}")
+            if not build_result.get("success", False):
+                error_msg = build_result.get("error", "Unknown build error")
+                raise Exception(f"Website build failed: {error_msg}")
             
             # 6. Deploy to hero365.ai subdomain
             logger.info("☁️ Deploying to hero365.ai subdomain...")
+            # Create a mock website object for deployment
+            mock_website = type('MockWebsite', (), {
+                'id': uuid.uuid4(),
+                'subdomain': subdomain,
+                'business_id': test_business.id
+            })()
             deployment_result = await self._deploy_to_hero365_subdomain(
-                test_website, build_result.build_path
+                mock_website, build_result.get("build_path", "/tmp/mock-build")
             )
             
             # 7. Generate test report
             test_report = {
                 "success": True,
-                "website_id": str(test_website.id),
+                "website_id": str(mock_website.id),
                 "subdomain": subdomain,
                 "preview_url": f"https://{subdomain}.hero365.ai",
                 "business_name": business_name,
                 "trade_type": trade_type,
                 "trade_category": trade_category.value,
                 "location": location,
-                "build_time_seconds": build_result.build_time_seconds,
-                "lighthouse_score": build_result.lighthouse_score,
-                "pages_generated": build_result.pages_generated,
+                "build_time_seconds": build_result.get("build_time_seconds", 0),
+                "lighthouse_score": build_result.get("lighthouse_score", 0),
+                "pages_generated": build_result.get("pages_generated", 0),
                 "deployment_time": deployment_result.get("deployment_time_seconds", 0),
                 "files_uploaded": deployment_result.get("files_uploaded", 0),
                 "created_at": datetime.utcnow().isoformat(),
@@ -405,12 +416,12 @@ class WebsiteBuilderTester:
             id=uuid.uuid4(),
             name=name,
             industry="Home Services",
-            company_size="SMALL",
+            company_size=CompanySize.SMALL,
             trade_category=trade_category,
             residential_trades=[trade_type] if trade_category == TradeCategory.RESIDENTIAL else [],
             commercial_trades=[trade_type] if trade_category == TradeCategory.COMMERCIAL else [],
-            phone="+1-555-TEST-123",
-            email=f"test@{name.lower().replace(' ', '')}.com",
+            phone_number="+1-555-TEST-123",
+            business_email=f"test@{name.lower().replace(' ', '')}.com",
             address="123 Test Street",
             city=location,
             state="NY",
@@ -418,11 +429,11 @@ class WebsiteBuilderTester:
             service_areas=[location, f"{location} Metro", "Nearby Areas"]
         )
     
-    def _create_test_branding(self, business: Business) -> BusinessBranding:
+    def _create_test_branding(self, business_id: uuid.UUID) -> BusinessBranding:
         """Create test branding for the business."""
         
         return BusinessBranding(
-            business_id=business.id,
+            business_id=business_id,
             theme_name="Professional Blue",
             primary_color="#2563eb",
             secondary_color="#1e40af",

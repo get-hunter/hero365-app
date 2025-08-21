@@ -168,14 +168,14 @@ MECHANICAL_COMMERCIAL_TEMPLATE = {
                         "config": {
                             "headline": "24/7 Emergency Mechanical Services",
                             "response_time": "2-hour response guarantee",
-                            "phone_prominent": true
+                            "phone_prominent": True
                         }
                     },
                     {
                         "type": "emergency-form",
                         "config": {
                             "priority": "emergency",
-                            "auto_call": true
+                            "auto_call": True
                         }
                     }
                 ]
@@ -188,7 +188,7 @@ MECHANICAL_COMMERCIAL_TEMPLATE = {
                     {
                         "type": "quote-form",
                         "config": {
-                            "detailed": true,
+                            "detailed": True,
                             "fields": ["facility_assessment", "equipment_specs", "timeline", "budget_range"]
                         }
                     }
@@ -498,7 +498,7 @@ HVAC_RESIDENTIAL_TEMPLATE = {
                     {
                         "type": "financing-options",
                         "config": {
-                            "highlight": true,
+                            "highlight": True,
                             "message": "Flexible financing available for new installations"
                         }
                     },
@@ -557,14 +557,14 @@ HVAC_RESIDENTIAL_TEMPLATE = {
                         "config": {
                             "headline": "24/7 Emergency HVAC Service",
                             "response_time": "Same-day service guarantee",
-                            "phone_prominent": true
+                            "phone_prominent": True
                         }
                     },
                     {
                         "type": "emergency-form",
                         "config": {
                             "priority": "emergency",
-                            "auto_call": true
+                            "auto_call": True
                         }
                     }
                 ]
@@ -578,7 +578,7 @@ HVAC_RESIDENTIAL_TEMPLATE = {
                         "type": "booking-calendar",
                         "config": {
                             "service_duration": 60,
-                            "emergency_slots": true
+                            "emergency_slots": True
                         }
                     }
                 ]
@@ -924,3 +924,60 @@ class WebsiteTemplateService:
                 return False
         
         return True
+
+
+class WebsiteTemplateService:
+    """Service for managing website templates."""
+    
+    @staticmethod
+    def get_template_by_trade(trade_type: str, trade_category: TradeCategory) -> Optional[Dict[str, Any]]:
+        """Get template data for a specific trade and category."""
+        
+        # Map trade_type and category to TemplateType
+        trade_mapping = {
+            # Commercial trades
+            ("mechanical", TradeCategory.COMMERCIAL): TemplateType.MECHANICAL_COMMERCIAL,
+            ("refrigeration", TradeCategory.COMMERCIAL): TemplateType.REFRIGERATION_COMMERCIAL,
+            ("plumbing", TradeCategory.COMMERCIAL): TemplateType.PLUMBING_COMMERCIAL,
+            ("electrical", TradeCategory.COMMERCIAL): TemplateType.ELECTRICAL_COMMERCIAL,
+            ("security_systems", TradeCategory.COMMERCIAL): TemplateType.SECURITY_SYSTEMS_COMMERCIAL,
+            ("landscaping", TradeCategory.COMMERCIAL): TemplateType.LANDSCAPING_COMMERCIAL,
+            ("roofing", TradeCategory.COMMERCIAL): TemplateType.ROOFING_COMMERCIAL,
+            ("kitchen_equipment", TradeCategory.COMMERCIAL): TemplateType.KITCHEN_EQUIPMENT_COMMERCIAL,
+            ("water_treatment", TradeCategory.COMMERCIAL): TemplateType.WATER_TREATMENT_COMMERCIAL,
+            ("pool_spa", TradeCategory.COMMERCIAL): TemplateType.POOL_SPA_COMMERCIAL,
+            
+            # Residential trades
+            ("hvac", TradeCategory.RESIDENTIAL): TemplateType.HVAC_RESIDENTIAL,
+            ("plumbing", TradeCategory.RESIDENTIAL): TemplateType.PLUMBING_RESIDENTIAL,
+            ("electrical", TradeCategory.RESIDENTIAL): TemplateType.ELECTRICAL_RESIDENTIAL,
+            ("chimney", TradeCategory.RESIDENTIAL): TemplateType.CHIMNEY_RESIDENTIAL,
+            ("roofing", TradeCategory.RESIDENTIAL): TemplateType.ROOFING_RESIDENTIAL,
+            ("garage_door", TradeCategory.RESIDENTIAL): TemplateType.GARAGE_DOOR_RESIDENTIAL,
+            ("septic", TradeCategory.RESIDENTIAL): TemplateType.SEPTIC_RESIDENTIAL,
+            ("pest_control", TradeCategory.RESIDENTIAL): TemplateType.PEST_CONTROL_RESIDENTIAL,
+            ("irrigation", TradeCategory.RESIDENTIAL): TemplateType.IRRIGATION_RESIDENTIAL,
+            ("painting", TradeCategory.RESIDENTIAL): TemplateType.PAINTING_RESIDENTIAL,
+        }
+        
+        # Get template type
+        template_type = trade_mapping.get((trade_type, trade_category))
+        if not template_type:
+            return None
+        
+        # Get template data
+        return WEBSITE_TEMPLATES.get(template_type)
+    
+    @staticmethod
+    def get_all_templates() -> Dict[TemplateType, Dict[str, Any]]:
+        """Get all available templates."""
+        return WEBSITE_TEMPLATES
+    
+    @staticmethod
+    def get_templates_by_category(trade_category: TradeCategory) -> Dict[TemplateType, Dict[str, Any]]:
+        """Get all templates for a specific trade category."""
+        return {
+            template_type: template_data
+            for template_type, template_data in WEBSITE_TEMPLATES.items()
+            if template_data.get("trade_category") == trade_category
+        }

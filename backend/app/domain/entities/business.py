@@ -90,6 +90,13 @@ class Business(BaseModel):
     description: Optional[str] = None
     phone_number: Optional[str] = Field(None, max_length=20)
     business_address: Optional[str] = None
+    
+    # Address components (for SEO and local business features)
+    address: Optional[str] = Field(None, max_length=200, description="Street address")
+    city: Optional[str] = Field(None, max_length=100, description="City")
+    state: Optional[str] = Field(None, max_length=50, description="State")
+    zip_code: Optional[str] = Field(None, max_length=20, description="ZIP/Postal code")
+    
     website: Optional[str] = Field(None, max_length=500)
     logo_url: Optional[str] = Field(None, max_length=500)
     business_email: Optional[str] = Field(None, max_length=320)
@@ -131,7 +138,6 @@ class Business(BaseModel):
     last_modified: Optional[datetime] = Field(default_factory=datetime.utcnow)
     
     class Config:
-        use_enum_values = True
         validate_assignment = True
         arbitrary_types_allowed = True
     

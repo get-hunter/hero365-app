@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://quickfix-optimized.hero365.ai/sitemap.xml

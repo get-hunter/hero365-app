@@ -7,7 +7,7 @@ between domain services and external service adapters.
 
 import asyncio
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 import uuid
 
@@ -28,6 +28,9 @@ from ...application.ports.hosting_port import HostingPort
 
 # Factory for creating content generation adapters
 from ...infrastructure.adapters.content_generation_factory import create_content_adapter
+
+# Website builder service for static site generation
+from ..services.website_builder_service import WebsiteBuilderService
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +64,9 @@ class WebsiteOrchestrationService:
         self.hosting_service = hosting_service
         self.domain_registry = domain_registry
         self.seo_research = seo_research
+        
+        # Website builder service for static site generation
+        self.website_builder = WebsiteBuilderService()
     
     async def build_website(
         self,
@@ -136,7 +142,26 @@ class WebsiteOrchestrationService:
                 website, business, options.get("environment", "production") if options else "production"
             )
             
-            # Step 7: Validate deployment readiness (business logic)
+            # Step 7: Build static website files (external service)
+            logger.info("Building static website files...")
+            build_result = await self.website_builder.build_website(
+                website=website,
+                business=business,
+                branding=branding,
+                template=template
+            )
+            
+            if not build_result.success:
+                return {
+                    "success": False,
+                    "build_id": build_id,
+                    "error": f"Website build failed: {build_result.error_message}"
+                }
+            
+            # Update website status to BUILT
+            website.status = WebsiteStatus.BUILT
+            
+            # Step 8: Validate deployment readiness (business logic)
             readiness_validation = self.deployment_domain_service.validate_deployment_readiness(
                 website, business, options or {}
             )
@@ -148,31 +173,29 @@ class WebsiteOrchestrationService:
                     "error": f"Deployment validation failed: {'; '.join(readiness_validation.issues)}"
                 }
             
-            # Step 8: Deploy website (external service)
+            # Step 9: Deploy website (external service)
             logger.info("Deploying website...")
             
-            # Convert content to files for deployment
-            files = self._convert_content_to_files(content_result.content_data, template)
+            # Use the Hero365 subdomain adapter for deployment
+            from ...infrastructure.adapters.hero365_subdomain_adapter import Hero365SubdomainAdapter
+            subdomain_adapter = Hero365SubdomainAdapter()
             
-            # Create deployment configuration
-            deployment_config = self._create_deployment_config(website, deployment_strategy, options)
-            
-            deployment_result = await self.hosting_service.deploy_static_site(
-                files=files,
-                config=deployment_config
+            deployment_result = await subdomain_adapter.deploy_to_subdomain(
+                website=website,
+                build_path=build_result.build_path
             )
             
             if not deployment_result.success:
                 return {
                     "success": False,
                     "build_id": build_id,
-                    "error": f"Deployment failed: {deployment_result.error_message}"
+                    "error": f"Deployment failed: {getattr(deployment_result, 'error', 'Unknown deployment error')}"
                 }
             
-            # Step 9: Calculate final metrics
+            # Step 10: Calculate final metrics
             build_time = (datetime.utcnow() - start_time).total_seconds()
             
-            # Step 10: Update website status
+            # Step 11: Update website status
             website.status = WebsiteStatus.DEPLOYED
             website.website_url = deployment_result.website_url
             website.last_build_at = datetime.utcnow()
@@ -185,8 +208,10 @@ class WebsiteOrchestrationService:
                 "build_id": build_id,
                 "website": website,
                 "website_url": deployment_result.website_url,
+                "build_path": build_result.build_path,
                 "build_time_seconds": build_time,
                 "pages_generated": len(required_pages),
+                "lighthouse_score": build_result.lighthouse_score,
                 "readiness_score": readiness_validation.readiness_score,
                 "deployment_strategy": deployment_strategy,
                 "content_warnings": content_validation.get("quality_issues", [])

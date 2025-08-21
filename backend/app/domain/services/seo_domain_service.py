@@ -156,7 +156,7 @@ class SEODomainService:
         # Sort by relevance (shorter, more direct keywords first)
         keywords.sort(key=lambda x: (len(x.split()), len(x)))
         
-        return keywords[:100]  # Limit to top 100 keywords
+        return keywords[:50]  # Limit to top 50 keywords for BusinessWebsite validation
     
     def calculate_seo_score(
         self,
@@ -592,7 +592,7 @@ class SEODomainService:
             "@context": "https://schema.org",
             "@type": "LocalBusiness",
             "name": business.name,
-            "telephone": business.phone,
+            "telephone": business.phone_number,
             "email": business.email,
             "address": {
                 "@type": "PostalAddress",
@@ -680,7 +680,7 @@ class SEODomainService:
             "mainEntity": {
                 "@type": "LocalBusiness",
                 "name": business.name,
-                "telephone": business.phone,
+                "telephone": business.phone_number,
                 "email": business.email,
                 "address": {
                     "@type": "PostalAddress",
@@ -699,7 +699,7 @@ class SEODomainService:
             "@context": "https://schema.org",
             "@type": "Organization",
             "name": business.name,
-            "telephone": business.phone,
+            "telephone": business.phone_number,
             "email": business.email,
             "address": {
                 "@type": "PostalAddress",

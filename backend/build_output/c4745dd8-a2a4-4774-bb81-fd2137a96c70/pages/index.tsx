@@ -1,0 +1,40 @@
+
+import React from 'react';
+import Head from 'next/head';
+
+export default function HomePage() {
+  return (
+    <>
+      <Head>
+        <title>QuickFix Plumbing - Home</title>
+        <meta name="description" content="" />
+        <meta name="keywords" content="" />
+        <meta property="og:title" content="" />
+        <meta property="og:description" content="" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+        
+      </Head>
+      
+      <main className="page-home">
+                <section className="hero">
+          <div className="hero-content">
+            <h1 className="hero-headline">Welcome</h1>
+            <p className="hero-subtitle"></p>
+            <div className="hero-cta">
+              <button className="btn btn-primary" onClick={() => window.location.href = 'tel:+1-555-TEST-123'}>
+                Request Emergency Service
+              </button>
+              <button className="btn btn-secondary" onClick={() => window.location.href = '#contact'}>
+                Schedule Regular Service
+              </button>
+            </div>
+          </div>
+        </section>
+        <section className="emergency-banner">\n          <h2>Emergency-Banner</h2>\n        </section>
+        <section className="services-grid">\n          <h2>Services-Grid</h2>\n        </section>
+        <section className="quick-quote">\n          <h2>Quick-Quote</h2>\n        </section>
+      </main>
+    </>
+  );
+}

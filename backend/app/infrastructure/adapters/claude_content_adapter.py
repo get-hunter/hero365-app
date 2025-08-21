@@ -53,41 +53,17 @@ class ClaudeContentAdapter(ContentGenerationPort):
         template: WebsiteTemplate,
         required_pages: List[str]
     ) -> ContentGenerationResult:
-        """Generate complete website content using Claude."""
+        """Generate complete website content using Claude in a SINGLE optimized request."""
         
         start_time = datetime.utcnow()
         
         try:
-            logger.info(f"Generating content for {len(required_pages)} pages using Claude")
+            logger.info(f"Generating ALL website content in single Claude request (pages: {required_pages})")
             
-            # Generate content for each page
-            content_data = {}
-            generation_tasks = []
-            
-            for page_type in required_pages:
-                task = self._generate_single_page_content(
-                    business, branding, template, page_type
-                )
-                generation_tasks.append((page_type, task))
-            
-            # Execute all generations in parallel
-            page_results = await asyncio.gather(
-                *[task for _, task in generation_tasks],
-                return_exceptions=True
+            # Generate ALL content in one batch request
+            content_data = await self._generate_complete_website_batch(
+                business, branding, template, required_pages
             )
-            
-            # Process results
-            warnings = []
-            for i, (page_type, result) in enumerate(zip([pt for pt, _ in generation_tasks], page_results)):
-                if isinstance(result, Exception):
-                    warnings.append(f"Failed to generate {page_type}: {str(result)}")
-                    continue
-                
-                content_data[page_type] = result
-            
-            # Generate global content (business info, SEO, etc.)
-            global_content = await self._generate_global_content(business, branding, template)
-            content_data.update(global_content)
             
             generation_time = (datetime.utcnow() - start_time).total_seconds()
             
@@ -96,11 +72,11 @@ class ClaudeContentAdapter(ContentGenerationPort):
                 content_data=content_data,
                 pages_generated=list(content_data.keys()),
                 generation_time_seconds=generation_time,
-                warnings=warnings if warnings else None
+                warnings=None
             )
             
         except Exception as e:
-            logger.error(f"Claude content generation failed: {str(e)}")
+            logger.error(f"Claude batch content generation failed: {str(e)}")
             generation_time = (datetime.utcnow() - start_time).total_seconds()
             
             return ContentGenerationResult(
@@ -388,17 +364,17 @@ Always return structured, well-formatted content that can be easily parsed and u
         return {
             "business_info": {
                 "name": business.name,
-                "phone": business.phone,
-                "email": business.email,
+                "phone": business.phone_number,
+                "email": business.business_email,
                 "address": f"{business.address}, {business.city}, {business.state} {business.zip_code}",
                 "service_areas": business.service_areas,
                 "primary_trade": business.get_primary_trade(),
                 "all_trades": business.get_all_trades()
             },
             "branding": {
-                "primary_color": branding.primary_color,
-                "secondary_color": branding.secondary_color,
-                "font_family": branding.font_family,
+                "primary_color": branding.color_scheme.primary_color,
+                "secondary_color": branding.color_scheme.secondary_color,
+                "font_family": branding.typography.heading_font,
                 "theme_name": branding.theme_name
             },
             "generated_by": "claude",
@@ -422,13 +398,13 @@ Always return structured, well-formatted content that can be easily parsed and u
         - Trade: {business.get_primary_trade()} ({business.trade_category.value})
         - Location: {business.city}, {business.state}
         - Service Areas: {', '.join(business.service_areas)}
-        - Phone: {business.phone}
-        - Email: {business.email}
+        - Phone: {business.phone_number}
+        - Email: {business.business_email}
         
         **Branding Guidelines:**
-        - Primary Color: {branding.primary_color}
-        - Secondary Color: {branding.secondary_color}
-        - Font Family: {branding.font_family}
+        - Primary Color: {branding.color_scheme.primary_color}
+        - Secondary Color: {branding.color_scheme.secondary_color}
+        - Font Family: {branding.typography.heading_font}
         - Theme: {branding.theme_name}
         
         **Page Type:** {page_type}
@@ -753,3 +729,308 @@ Always return structured, well-formatted content that can be easily parsed and u
         except Exception as e:
             logger.error(f"Claude section update failed: {str(e)}")
             raise
+    
+    async def _generate_complete_website_batch(
+        self,
+        business: Business,
+        branding: BusinessBranding,
+        template: WebsiteTemplate,
+        required_pages: List[str]
+    ) -> Dict[str, Any]:
+        """Generate ALL website content in a single optimized Claude request."""
+        
+        # Build comprehensive prompt for entire website
+        prompt = self._build_batch_website_prompt(business, branding, template, required_pages)
+        
+        try:
+            response = await self.client.messages.create(
+                model=self.model,
+                max_tokens=8000,  # Increased for batch generation
+                temperature=self.temperature,
+                system=self._get_batch_generation_system_prompt(),
+                messages=[
+                    {
+                        "role": "user", 
+                        "content": prompt
+                    }
+                ]
+            )
+            
+            content_text = response.content[0].text
+            
+            # Parse the batch response into structured content
+            return self._parse_batch_content_response(content_text, template)
+            
+        except Exception as e:
+            logger.error(f"Claude batch generation failed: {str(e)}")
+            raise
+    
+    def _build_batch_website_prompt(
+        self,
+        business: Business,
+        branding: BusinessBranding,
+        template: WebsiteTemplate,
+        required_pages: List[str]
+    ) -> str:
+        """Build optimized prompt for generating entire website content in one request."""
+        
+        # Get trade-specific context
+        trade_context = self._get_trade_context(business.industry, business.trade_category)
+        
+        # Build business context
+        business_context = f"""
+**Business Information:**
+- Name: {business.name}
+- Industry: {business.industry.title()}
+- Trade Category: {business.trade_category.value}
+- Service Areas: {', '.join(business.service_areas)}
+- Phone: {business.phone_number}
+- Email: {business.business_email}
+- Address: {business.address}, {business.city}, {business.state} {business.zip_code}
+"""
+        
+        # Build branding context
+        branding_context = f"""
+**Branding Guidelines:**
+- Primary Color: {branding.color_scheme.primary_color}
+- Secondary Color: {branding.color_scheme.secondary_color}
+- Typography: {branding.typography.heading_font}
+- Brand Voice: Professional, trustworthy, expert
+"""
+        
+        # Build template structure
+        pages_structure = []
+        for page in template.structure.get("pages", []):
+            page_name = page.get("name", "Home")
+            sections = [s.get("type") for s in page.get("sections", [])]
+            pages_structure.append(f"- {page_name}: {', '.join(sections)}")
+        
+        structure_context = f"""
+**Website Structure:**
+{chr(10).join(pages_structure)}
+"""
+        
+        return f"""Generate complete website content for a {business.industry} business in {business.trade_category.value.lower()} sector.
+
+{business_context}
+
+{branding_context}
+
+{structure_context}
+
+{trade_context}
+
+**Content Requirements:**
+Generate ALL content for the entire website in a single response. Include:
+
+1. **Hero Section**: Compelling headline, subheadline, primary/secondary CTAs
+2. **Services Grid**: 6 core services with titles, descriptions, and benefits
+3. **About Section**: Company story, expertise, credentials, team info
+4. **Emergency Banner**: 24/7 availability, urgent service messaging
+5. **Contact/Quote Form**: Lead capture with service selection
+6. **SEO Content**: Meta titles, descriptions, keywords for each page
+
+**Output Format:**
+Return as structured JSON with this exact format:
+
+```json
+{{
+  "hero": {{
+    "headline": "Main headline",
+    "subheadline": "Supporting text",
+    "primaryCTA": {{"text": "Call Now", "action": "phone"}},
+    "secondaryCTA": {{"text": "Get Quote", "action": "scroll"}}
+  }},
+  "servicesGrid": {{
+    "heading": "Our Services",
+    "subheading": "Professional services description",
+    "services": [
+      {{"title": "Service 1", "description": "Service description"}},
+      {{"title": "Service 2", "description": "Service description"}},
+      {{"title": "Service 3", "description": "Service description"}},
+      {{"title": "Service 4", "description": "Service description"}},
+      {{"title": "Service 5", "description": "Service description"}},
+      {{"title": "Service 6", "description": "Service description"}}
+    ]
+  }},
+  "about": {{
+    "heading": "About Us",
+    "story": "Company background and expertise",
+    "credentials": ["License info", "Insurance", "Certifications"],
+    "experience": "Years of experience and specialties"
+  }},
+  "emergencyBanner": {{
+    "heading": "24/7 Emergency Service",
+    "message": "Urgent service availability",
+    "phone": "{business.phone_number}",
+    "availability": "Available 24/7"
+  }},
+  "quoteForm": {{
+    "heading": "Get Free Estimate",
+    "subheading": "Contact form description",
+    "services": ["Service 1", "Service 2", "Service 3", "Emergency"],
+    "button": {{"text": "Get Quote"}}
+  }},
+  "seo": {{
+    "title": "SEO page title",
+    "description": "Meta description",
+    "keywords": ["keyword1", "keyword2", "keyword3"]
+  }}
+}}
+```
+
+Generate professional, conversion-focused content that builds trust and drives leads. Focus on local SEO and trade-specific expertise."""
+    
+    def _get_batch_generation_system_prompt(self) -> str:
+        """System prompt optimized for batch website content generation."""
+        
+        return """You are an expert website content creator specializing in home services and trade businesses. 
+
+Your expertise includes:
+- Trade-specific marketing and customer psychology
+- Local SEO optimization for service businesses
+- Conversion-focused copywriting
+- Professional branding and messaging
+- Mobile-first content strategy
+
+Generate complete, professional website content that:
+- Builds trust and credibility
+- Drives phone calls and form submissions
+- Ranks well in local search results
+- Appeals to homeowners and property managers
+- Showcases expertise and professionalism
+
+Always return valid JSON with all required sections. Focus on benefits over features, use action-oriented language, and include local/regional references when appropriate."""
+    
+    def _parse_batch_content_response(self, content_text: str, template: WebsiteTemplate) -> Dict[str, Any]:
+        """Parse batch content response into structured format."""
+        
+        try:
+            # Extract JSON from response
+            json_start = content_text.find('{')
+            json_end = content_text.rfind('}') + 1
+            
+            if json_start == -1 or json_end == 0:
+                raise ValueError("No JSON found in response")
+            
+            json_content = content_text[json_start:json_end]
+            parsed_content = json.loads(json_content)
+            
+            # Structure content for website builder
+            structured_content = {}
+            
+            # Map content to page paths and sections
+            for page in template.structure.get("pages", []):
+                page_path = page.get("path", "/")
+                
+                # Add full page content
+                structured_content[page_path] = parsed_content
+                
+                # Add section-specific content
+                for section in page.get("sections", []):
+                    section_type = section.get("type")
+                    section_key = f"{page_path}_{section_type}"
+                    
+                    if section_type in parsed_content:
+                        structured_content[section_key] = {section_type: parsed_content[section_type]}
+            
+            return structured_content
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse batch content JSON: {str(e)}")
+            logger.error(f"Content: {content_text[:500]}...")
+            
+            # Fallback: create basic content structure
+            return self._create_fallback_content(template)
+        
+        except Exception as e:
+            logger.error(f"Batch content parsing failed: {str(e)}")
+            return self._create_fallback_content(template)
+    
+    def _create_fallback_content(self, template: WebsiteTemplate) -> Dict[str, Any]:
+        """Create fallback content structure when parsing fails."""
+        
+        fallback_content = {
+            "hero": {
+                "headline": "Professional Service You Can Trust",
+                "subheadline": "Expert solutions for your home and business needs",
+                "primaryCTA": {"text": "Call Now", "action": "phone"},
+                "secondaryCTA": {"text": "Get Quote", "action": "scroll"}
+            },
+            "servicesGrid": {
+                "heading": "Our Services",
+                "subheading": "Professional services tailored to your needs",
+                "services": [
+                    {"title": "Emergency Repairs", "description": "24/7 emergency service availability"},
+                    {"title": "Installation", "description": "Professional installation services"},
+                    {"title": "Maintenance", "description": "Regular maintenance and inspections"},
+                    {"title": "Consultation", "description": "Expert advice and recommendations"}
+                ]
+            },
+            "emergencyBanner": {
+                "heading": "24/7 Emergency Service",
+                "message": "Call now for immediate assistance",
+                "availability": "Available 24/7"
+            },
+            "quoteForm": {
+                "heading": "Get Free Estimate",
+                "subheading": "Contact us for a personalized quote",
+                "button": {"text": "Get Quote"}
+            }
+        }
+        
+        # Structure for website builder
+        structured_content = {}
+        
+        for page in template.structure.get("pages", []):
+            page_path = page.get("path", "/")
+            structured_content[page_path] = fallback_content
+            
+            for section in page.get("sections", []):
+                section_type = section.get("type")
+                section_key = f"{page_path}_{section_type}"
+                
+                if section_type in fallback_content:
+                    structured_content[section_key] = {section_type: fallback_content[section_type]}
+        
+        return structured_content
+    
+    def _get_trade_context(self, industry: str, trade_category) -> str:
+        """Get trade-specific context for content generation."""
+        
+        trade_contexts = {
+            "plumbing": """
+**Plumbing Industry Context:**
+- Emergency services are critical (burst pipes, water damage, no hot water)
+- Common services: drain cleaning, pipe repair, water heater installation, leak detection
+- Customer pain points: water damage, expensive repairs, unreliable contractors
+- Trust factors: licensing, insurance, 24/7 availability, upfront pricing
+- Seasonal considerations: frozen pipes in winter, outdoor plumbing in summer
+""",
+            "electrical": """
+**Electrical Industry Context:**
+- Safety is paramount (electrical hazards, code compliance)
+- Common services: panel upgrades, outlet installation, lighting, troubleshooting
+- Customer pain points: power outages, safety concerns, code violations
+- Trust factors: licensed electrician, insured, code compliance, safety certifications
+- Emergency situations: power outages, electrical fires, dangerous wiring
+""",
+            "hvac": """
+**HVAC Industry Context:**
+- Comfort and energy efficiency are key selling points
+- Common services: AC repair, heating installation, duct cleaning, maintenance
+- Customer pain points: high energy bills, uncomfortable temperatures, poor air quality
+- Trust factors: certified technicians, energy efficiency expertise, maintenance plans
+- Seasonal peaks: AC in summer, heating in winter, maintenance in spring/fall
+""",
+            "roofing": """
+**Roofing Industry Context:**
+- Weather protection and property value are primary concerns
+- Common services: roof repair, replacement, inspection, gutter work
+- Customer pain points: leaks, storm damage, expensive replacements
+- Trust factors: insurance work, warranty, storm response, quality materials
+- Weather dependency: storm season, winter limitations, urgent repairs
+"""
+        }
+        
+        return trade_contexts.get(industry.lower(), trade_contexts["plumbing"])

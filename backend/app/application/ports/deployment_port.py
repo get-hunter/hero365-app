@@ -6,16 +6,15 @@ Defines what the application layer expects from deployment providers.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
+from typing import Dict, Any, Optional, List
+from pydantic import BaseModel, Field
 
 from ...domain.entities.business import Business
 from ...domain.entities.business_branding import BusinessBranding
 from ...domain.entities.website import BusinessWebsite, WebsiteTemplate
 
 
-@dataclass
-class BuildResult:
+class BuildResult(BaseModel):
     """Result of static site build operation."""
     
     success: bool
@@ -23,12 +22,11 @@ class BuildResult:
     build_time_seconds: float
     pages_built: int
     total_size_mb: float
-    error_message: str = None
-    build_logs: str = None
+    error_message: Optional[str] = None
+    build_logs: Optional[str] = None
 
 
-@dataclass
-class DeploymentResult:
+class DeploymentResult(BaseModel):
     """Result of website deployment operation."""
     
     success: bool
@@ -36,8 +34,8 @@ class DeploymentResult:
     deployment_time_seconds: float
     files_uploaded: int
     performance_score: Optional[int] = None
-    deployment_info: Dict[str, Any] = None
-    error_message: str = None
+    deployment_info: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
 
 
 class DeploymentPort(ABC):

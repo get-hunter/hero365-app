@@ -116,6 +116,33 @@ get_cost_forecast() {
     echo ""
 }
 
+# Function to check S3 usage and costs
+check_s3_usage() {
+    echo "🪣 S3 Storage Analysis:"
+    
+    # Get S3 bucket list and sizes
+    buckets=$(aws s3api list-buckets --query 'Buckets[].Name' --output text 2>/dev/null)
+    
+    if [ -n "$buckets" ]; then
+        echo "   Buckets found:"
+        for bucket in $buckets; do
+            size=$(aws s3 ls s3://$bucket --recursive --summarize 2>/dev/null | grep "Total Size" | awk '{print $3}' || echo "0")
+            objects=$(aws s3 ls s3://$bucket --recursive --summarize 2>/dev/null | grep "Total Objects" | awk '{print $3}' || echo "0")
+            
+            if [ "$size" -gt 0 ] 2>/dev/null; then
+                size_mb=$((size / 1024 / 1024))
+                echo "     • $bucket: ${size_mb}MB, ${objects} objects"
+            else
+                echo "     • $bucket: Empty or access denied"
+            fi
+        done
+    else
+        echo "   No S3 buckets found or access denied"
+    fi
+    
+    echo ""
+}
+
 # Function to show optimization recommendations
 show_recommendations() {
     echo "💡 Cost Optimization Tips:"
@@ -127,9 +154,20 @@ show_recommendations() {
     echo "   • Monitor data transfer costs"
     echo ""
     
+    echo "🪣 S3 Cost Optimization:"
+    echo "   • Use S3 Intelligent Tiering for automatic cost optimization"
+    echo "   • Set lifecycle policies to transition old data to cheaper storage classes"
+    echo "   • Enable S3 Transfer Acceleration only when needed"
+    echo "   • Monitor cross-region data transfer costs"
+    echo "   • Use S3 Storage Class Analysis to optimize storage classes"
+    echo "   • Consider S3 One Zone-IA for non-critical data"
+    echo ""
+    
     echo "🔧 Quick Actions:"
     echo "   • Scale down ECS: aws ecs update-service --cluster hero365 --service backend --desired-count 1"
     echo "   • Check logs: aws logs describe-log-groups --query 'logGroups[?starts_with(logGroupName, \`/ecs/hero365\`)]'"
+    echo "   • List S3 buckets: aws s3 ls"
+    echo "   • S3 storage analysis: aws s3api get-bucket-location --bucket BUCKET_NAME"
     echo "   • View detailed costs: https://console.aws.amazon.com/billing/home#/bills"
     echo ""
 }
@@ -144,6 +182,7 @@ get_daily_costs
 check_budgets
 check_credits
 get_cost_forecast
+check_s3_usage
 show_recommendations
 
 echo "✅ Cost report complete!"

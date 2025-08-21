@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://test-hvac-90776720.hero365.ai/sitemap.xml

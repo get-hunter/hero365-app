@@ -1,0 +1,15 @@
+:root {
+  --primary-color: #2563eb;
+  --secondary-color: #64748b;
+  --accent-color: #10b981;
+  --background-color: #ffffff;
+  --text-color: #1f2937;
+  --border-color: #e5e7eb;
+  --heading-font: Inter;
+  --body-font: Inter;
+  --mono-font: Courier New;
+  --base-font-size: 1rem;
+  --line-height: 1.6;
+  --border-radius: 8px;
+  --shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

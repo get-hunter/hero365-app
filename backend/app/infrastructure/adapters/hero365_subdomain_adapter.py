@@ -67,7 +67,7 @@ class Hero365SubdomainAdapter(SubdomainHostingPort):
         build_path: str,
         subdomain: Optional[str] = None
     ) -> DeploymentResult:
-        """Deploy website to a hero365.ai subdomain via AWS services."""
+        """Deploy website to a hero365.ai subdomain using dedicated S3 bucket."""
         
         try:
             if not subdomain:
@@ -77,29 +77,30 @@ class Hero365SubdomainAdapter(SubdomainHostingPort):
                 raise ValueError("Subdomain is required for deployment")
             
             full_domain = f"{subdomain}.{self.main_domain}"
+            bucket_name = full_domain  # Use exact domain name as bucket name
             
-            logger.info(f"Deploying website to {full_domain}")
+            logger.info(f"Deploying website to {full_domain} using dedicated S3 bucket")
             
-            # 1. Upload website files to S3
-            upload_result = await self.upload_files_to_subdomain(build_path, subdomain)
+            # 1. Create and configure dedicated S3 bucket
+            bucket_result = await self.create_subdomain_bucket(bucket_name)
             
-            # 2. Configure DNS
+            # 2. Upload website files to dedicated bucket
+            upload_result = await self.upload_files_to_dedicated_bucket(build_path, bucket_name)
+            
+            # 3. Configure DNS to point to S3 website endpoint
             dns_result = await self.configure_subdomain_dns(subdomain)
             
-            # 3. Invalidate cache
-            invalidation_result = await self.invalidate_subdomain_cache(subdomain)
-            
-            # 4. Verify deployment
+            # 4. Verify deployment (optional, since no cache to invalidate)
             verification_result = await self.verify_subdomain_deployment(full_domain)
             
             return DeploymentResult(
                 success=True,
                 subdomain=subdomain,
                 full_domain=full_domain,
-                website_url=f"https://{full_domain}",
+                website_url=f"http://{full_domain}",  # S3 website hosting uses HTTP
                 upload_result=upload_result,
                 dns_configured=dns_result["success"],
-                cache_invalidated=invalidation_result["success"],
+                cache_invalidated=True,  # No cache to invalidate with direct S3
                 deployment_verified=verification_result["success"],
                 deployed_at=datetime.utcnow().isoformat()
             )
@@ -329,7 +330,8 @@ class Hero365SubdomainAdapter(SubdomainHostingPort):
             for file_path in files_to_upload:
                 # Calculate S3 key with subdomain prefix
                 relative_path = file_path.relative_to(build_dir)
-                s3_key = f"{subdomain}/{str(relative_path).replace('\\', '/')}"
+                relative_path_str = str(relative_path).replace('\\', '/')
+                s3_key = f"{subdomain}/{relative_path_str}"
                 
                 # Determine content type
                 content_type, _ = mimetypes.guess_type(str(file_path))
@@ -376,7 +378,8 @@ class Hero365SubdomainAdapter(SubdomainHostingPort):
         """Create DNS record for subdomain via Route53 API."""
         
         try:
-            # Create CNAME record pointing to CloudFront distribution
+            # Create CNAME record pointing to dedicated S3 bucket website endpoint
+            s3_website_endpoint = f"{subdomain}.{self.main_domain}.s3-website-us-east-1.amazonaws.com"
             change_batch = {
                 'Comment': f'Hero365 subdomain: {subdomain}',
                 'Changes': [
@@ -387,7 +390,7 @@ class Hero365SubdomainAdapter(SubdomainHostingPort):
                             'Type': 'CNAME',
                             'TTL': 300,
                             'ResourceRecords': [
-                                {'Value': self.cloudfront_domain}
+                                {'Value': s3_website_endpoint}
                             ]
                         }
                     }
@@ -527,3 +530,123 @@ class Hero365SubdomainAdapter(SubdomainHostingPort):
                 "success": True,
                 "warning": str(e)
             }
+    
+    async def create_subdomain_bucket(self, bucket_name: str) -> Dict[str, Any]:
+        """Create and configure a dedicated S3 bucket for subdomain website hosting."""
+        
+        try:
+            # Check if bucket already exists
+            try:
+                self.s3_client.head_bucket(Bucket=bucket_name)
+                logger.info(f"Bucket {bucket_name} already exists")
+            except ClientError as e:
+                if e.response['Error']['Code'] == '404':
+                    # Create bucket
+                    logger.info(f"Creating S3 bucket: {bucket_name}")
+                    if settings.AWS_REGION == 'us-east-1':
+                        self.s3_client.create_bucket(Bucket=bucket_name)
+                    else:
+                        self.s3_client.create_bucket(
+                            Bucket=bucket_name,
+                            CreateBucketConfiguration={'LocationConstraint': settings.AWS_REGION}
+                        )
+                else:
+                    raise e
+            
+            # Configure bucket for website hosting
+            self.s3_client.put_bucket_website(
+                Bucket=bucket_name,
+                WebsiteConfiguration={
+                    'IndexDocument': {'Suffix': 'index.html'},
+                    'ErrorDocument': {'Key': '404.html'}
+                }
+            )
+            
+            # Disable public access block
+            self.s3_client.put_public_access_block(
+                Bucket=bucket_name,
+                PublicAccessBlockConfiguration={
+                    'BlockPublicAcls': False,
+                    'IgnorePublicAcls': False,
+                    'BlockPublicPolicy': False,
+                    'RestrictPublicBuckets': False
+                }
+            )
+            
+            # Set bucket policy for public read access
+            import json
+            bucket_policy = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Sid": "PublicReadGetObject",
+                        "Effect": "Allow",
+                        "Principal": "*",
+                        "Action": "s3:GetObject",
+                        "Resource": f"arn:aws:s3:::{bucket_name}/*"
+                    }
+                ]
+            }
+            
+            self.s3_client.put_bucket_policy(
+                Bucket=bucket_name,
+                Policy=json.dumps(bucket_policy)
+            )
+            
+            logger.info(f"Successfully configured bucket {bucket_name} for website hosting")
+            return {"success": True, "bucket_name": bucket_name}
+            
+        except Exception as e:
+            logger.error(f"Failed to create/configure bucket {bucket_name}: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    async def upload_files_to_dedicated_bucket(self, build_path: str, bucket_name: str) -> Dict[str, Any]:
+        """Upload website files to dedicated S3 bucket."""
+        
+        try:
+            build_dir = Path(build_path)
+            if not build_dir.exists():
+                raise FileNotFoundError(f"Build directory not found: {build_path}")
+            
+            files_uploaded = 0
+            total_size = 0
+            
+            # Upload all files from build directory
+            for file_path in build_dir.rglob('*'):
+                if file_path.is_file():
+                    # Calculate relative path (no subdomain prefix needed)
+                    relative_path = file_path.relative_to(build_dir)
+                    s3_key = str(relative_path).replace('\\', '/')
+                    
+                    # Determine content type
+                    content_type, _ = mimetypes.guess_type(str(file_path))
+                    if not content_type:
+                        content_type = 'application/octet-stream'
+                    
+                    # Upload file
+                    self.s3_client.upload_file(
+                        str(file_path),
+                        bucket_name,
+                        s3_key,
+                        ExtraArgs={'ContentType': content_type}
+                    )
+                    
+                    files_uploaded += 1
+                    total_size += file_path.stat().st_size
+                    
+                    if files_uploaded % 10 == 0:
+                        logger.info(f"Uploaded {files_uploaded} files...")
+            
+            total_size_mb = total_size / (1024 * 1024)
+            logger.info(f"Successfully uploaded {files_uploaded} files ({total_size_mb:.2f} MB) to {bucket_name}")
+            
+            return {
+                "success": True,
+                "files_uploaded": files_uploaded,
+                "total_size_mb": total_size_mb,
+                "bucket_name": bucket_name
+            }
+            
+        except Exception as e:
+            logger.error(f"File upload failed: {str(e)}")
+            return {"success": False, "error": str(e)}

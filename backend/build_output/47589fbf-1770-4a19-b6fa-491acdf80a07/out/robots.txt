@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://test-electrical-3b0b40f0.hero365.ai/sitemap.xml

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://test-plumbing-7b8e02ab.hero365.ai/sitemap.xml
