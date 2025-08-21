@@ -34,9 +34,9 @@ async def get_current_user(
     supabase: SupabaseDep, token: TokenDep
 ) -> dict:
     """
-    Get current user from enhanced JWT token.
+    Get current user from business context JWT token.
     
-    Uses enhanced JWT tokens with business context for authentication.
+    Uses business context JWT tokens with business membership and role information for authentication.
     
     Returns:
         dict: User data containing id, email, business context, etc.
@@ -53,22 +53,22 @@ async def get_current_user(
         
         logger.info(f"get_current_user called with token: {token.credentials[:50]}...")
         
-        # Validate enhanced JWT token
-        logger.info("Validating enhanced JWT token")
-        enhanced_payload = await auth_facade.verify_enhanced_jwt_token(token.credentials)
+        # Validate business context JWT token
+        logger.info("Validating business context JWT token")
+        business_payload = await auth_facade.verify_business_context_token(token.credentials)
         
-        if not enhanced_payload:
-            logger.warning("Enhanced JWT token validation failed")
+        if not business_payload:
+            logger.warning("Business context JWT token validation failed")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        logger.info("Enhanced JWT token validated successfully")
+        logger.info("Business context JWT token validated successfully")
         
         # Get user ID from payload
-        user_id = enhanced_payload.get("sub") or enhanced_payload.get("user_id")
+        user_id = business_payload.get("sub") or business_payload.get("user_id")
         
         # Fetch user details from Supabase to get email and metadata
         try:
@@ -112,20 +112,20 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        # Extract user data from enhanced JWT payload with fetched user details
+        # Extract user data from business context JWT payload with fetched user details
         user_data = {
             "sub": user_id,
             "id": user_id,
             "email": user_email,
             "phone": user_phone,
             "user_metadata": user_metadata,
-            "current_business_id": enhanced_payload.get("current_business_id"),
-            "business_memberships": enhanced_payload.get("business_memberships", []),
+            "current_business_id": business_payload.get("current_business_id"),
+            "business_memberships": business_payload.get("business_memberships", []),
             "is_active": True,
-            "token_type": "enhanced_jwt"
+            "token_type": "business_context_jwt"
         }
         
-        logger.info(f"Successfully authenticated user via enhanced JWT: {user_data['sub']}, email: {user_data['email']}")
+        logger.info(f"Successfully authenticated user via business context JWT: {user_data['sub']}, email: {user_data['email']}")
         return user_data
         
     except HTTPException:

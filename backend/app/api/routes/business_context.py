@@ -251,7 +251,7 @@ async def refresh_business_context_token(request: Request) -> dict:
     
     try:
         # Create new token with current business context
-        new_token = await auth_facade.create_enhanced_jwt_token(user_id, current_business_id)
+        new_token = await auth_facade.create_business_context_token(user_id, current_business_id)
         
         logger.info(f"Refreshed business context token for user {user_id}")
         

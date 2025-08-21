@@ -26,8 +26,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
     """
     Authentication middleware for JWT token validation with business context support.
     
-    This middleware validates both legacy Supabase tokens and new enhanced JWT tokens
-    with business context information.
+    This middleware validates business context JWT tokens that contain 
+    business membership and role information.
     """
     
     def __init__(self, app, skip_paths: list = None):
@@ -128,22 +128,22 @@ class AuthMiddleware(BaseHTTPMiddleware):
     
     async def _validate_token(self, token: str) -> Optional[Dict[str, Any]]:
         """
-        Validate enhanced JWT token and return user information.
+        Validate business context JWT token and return user information.
         
         Args:
-            token: Enhanced JWT token to validate
+            token: Business context JWT token to validate
             
         Returns:
             User information dict if valid, None otherwise
         """
         try:
-            # Validate enhanced JWT token
-            enhanced_payload = await auth_facade.verify_enhanced_jwt_token(token)
-            if enhanced_payload:
-                logger.info("Enhanced JWT token validated successfully")
-                return enhanced_payload
+            # Validate business context JWT token
+            business_payload = await auth_facade.verify_business_context_token(token)
+            if business_payload:
+                logger.info("Business context JWT token validated successfully")
+                return business_payload
             
-            logger.warning("Enhanced JWT token validation failed")
+            logger.warning("Business context JWT token validation failed")
             return None
             
         except jwt.ExpiredSignatureError:

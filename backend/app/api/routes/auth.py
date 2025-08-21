@@ -60,6 +60,10 @@ class AuthResponse(BaseModel):
     user: dict
 
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
 @router.post("/auth/signup", response_model=Message)
 async def sign_up(signup_data: SignUpRequest) -> Message:
     """
@@ -127,8 +131,11 @@ async def sign_in(signin_data: SignInRequest) -> dict:
             user_metadata = auth_result.user.provider_metadata or {}
             onboarding_data = auth_facade.get_onboarding_data(user_metadata)
             
+            # Create business context JWT token with business membership information
+            business_access_token = await auth_facade.create_business_context_token(auth_result.user.id)
+            
             return {
-                "access_token": auth_result.token.access_token,
+                "access_token": business_access_token,
                 "refresh_token": auth_result.token.refresh_token,
                 "user": {
                     "id": auth_result.user.id,
@@ -170,8 +177,11 @@ async def sign_in_with_phone(signin_data: PhoneSignInRequest) -> dict:
             user_metadata = auth_result.user.provider_metadata or {}
             onboarding_data = auth_facade.get_onboarding_data(user_metadata)
             
+            # Create business context JWT token with business membership information
+            business_access_token = await auth_facade.create_business_context_token(auth_result.user.id)
+            
             return {
-                "access_token": auth_result.token.access_token,
+                "access_token": business_access_token,
                 "refresh_token": auth_result.token.refresh_token,
                 "user": {
                     "id": auth_result.user.id,
@@ -294,17 +304,20 @@ def sign_out() -> Message:
 
 
 @router.post("/auth/refresh")
-async def refresh_token(refresh_token: str) -> dict:
+async def refresh_token(request: RefreshTokenRequest) -> dict:
     """
     Refresh access token using refresh token
     """
     try:
         auth_service = get_container().get_auth_service()
-        auth_result = await auth_service.refresh_token(refresh_token)
+        auth_result = await auth_service.refresh_token(request.refresh_token)
         
-        if auth_result.success and auth_result.token:
+        if auth_result.success and auth_result.token and auth_result.user:
+            # Create business context JWT token with business membership information
+            business_access_token = await auth_facade.create_business_context_token(auth_result.user.id)
+            
             return {
-                "access_token": auth_result.token.access_token,
+                "access_token": business_access_token,
                 "refresh_token": auth_result.token.refresh_token,
                 "expires_in": getattr(auth_result.token, 'expires_in', 3600),
                 "token_type": "bearer"

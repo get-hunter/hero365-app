@@ -66,8 +66,8 @@ class AuthFacade:
             return user_data
         return None
 
-    async def create_enhanced_jwt_token(self, user_id: str, current_business_id: Optional[str] = None) -> str:
-        """Create an enhanced JWT token with business context."""
+    async def create_business_context_token(self, user_id: str, current_business_id: Optional[str] = None) -> str:
+        """Create a business context JWT token with business membership and role information."""
         # Get user's business memberships
         business_memberships = await self._get_user_business_memberships(user_id)
         
@@ -104,8 +104,8 @@ class AuthFacade:
         
         return token
 
-    async def verify_enhanced_jwt_token(self, token: str) -> Optional[Dict]:
-        """Verify enhanced JWT token and return decoded payload."""
+    async def verify_business_context_token(self, token: str) -> Optional[Dict]:
+        """Verify business context JWT token and return decoded payload."""
         try:
             payload = jwt.decode(
                 token,
@@ -151,7 +151,7 @@ class AuthFacade:
                 matching_business_id = original_id
                 break
         
-        return await self.create_enhanced_jwt_token(user_id, matching_business_id or new_business_id)
+        return await self.create_business_context_token(user_id, matching_business_id or new_business_id)
 
     async def _get_user_business_memberships(self, user_id: str) -> List[Dict[str, Any]]:
         """Get user's business memberships with roles and permissions."""
