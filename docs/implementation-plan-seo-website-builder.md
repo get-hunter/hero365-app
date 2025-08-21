@@ -15,12 +15,61 @@ Build an AI-powered website generation and SEO optimization platform that automa
 
 ### Technology Stack
 - **Frontend Generation**: Next.js 14+ (static export)
-- **AI Services**: OpenAI GPT-4 for content, embeddings for semantic search
+- **AI Services**: Configurable LLM providers (OpenAI GPT-4, Anthropic Claude, Google Gemini)
 - **CDN/Hosting**: Cloudflare Pages (integrated with domain) or AWS S3 + CloudFront
 - **Database**: Supabase (PostgreSQL) for templates, settings, analytics
 - **Background Jobs**: Celery/Redis for async processing
 - **APIs**: Google Business Profile API, Google Search Console API
 - **Domain Registration & CDN**: Cloudflare (single provider for domains, DNS, CDN, and DDoS protection)
+
+### Configurable AI Content Generation System
+
+The website builder supports multiple AI providers for content generation, allowing users to choose the best provider for their needs:
+
+#### Supported Providers
+1. **OpenAI GPT-4** - Versatile content generation with strong general capabilities
+2. **Anthropic Claude** - Excellent for code generation and detailed, structured content  
+3. **Google Gemini** - Advanced multimodal capabilities and competitive performance
+
+#### Provider Configuration
+```bash
+# Environment variables for provider selection
+CONTENT_GENERATION_PROVIDER=claude  # openai, claude, gemini
+CLAUDE_API_KEY=your_claude_api_key
+GEMINI_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=your_openai_api_key
+
+# Model-specific settings
+CLAUDE_CONTENT_MODEL=claude-3-5-sonnet-20241022
+OPENAI_CONTENT_MODEL=gpt-4
+GEMINI_CONTENT_MODEL=gemini-1.5-pro
+
+# Generation parameters
+CONTENT_MAX_TOKENS=4000
+CONTENT_TEMPERATURE=0.7
+```
+
+#### API Endpoints for Provider Management
+```python
+# Get available providers and their status
+GET /api/v1/websites/content-providers
+
+# Switch to a different provider
+POST /api/v1/websites/content-providers/switch
+{
+  "provider": "claude"
+}
+
+# Test a specific provider
+POST /api/v1/websites/content-providers/test/{provider}
+```
+
+#### Architecture Benefits
+- **Provider Independence**: Switch between AI providers without code changes
+- **Fallback Support**: Automatically fallback to alternative providers if primary fails
+- **Cost Optimization**: Choose providers based on cost, speed, or quality requirements
+- **A/B Testing**: Compare content quality across different providers
+- **Future-Proof**: Easy to add new AI providers as they become available
 
 ## Phase 1: Foundation (Week 1-2)
 
@@ -246,7 +295,160 @@ class WebsiteRepository(ABC):
         pass
 ```
 
-## Phase 2: Template System (Week 2-3)
+## Phase 2: Template System with Intake & Booking (Week 2-3)
+
+### 2.0 Intake and Booking System Integration
+
+All website templates include comprehensive lead capture and booking functionality:
+
+#### Lead Capture Components
+```typescript
+// website-builder/components/intake/ContactForm.tsx
+export const ContactForm = {
+  type: 'contact-form',
+  config: {
+    fields: [
+      { name: 'name', type: 'text', required: true, label: 'Full Name' },
+      { name: 'email', type: 'email', required: true, label: 'Email Address' },
+      { name: 'phone', type: 'tel', required: true, label: 'Phone Number' },
+      { name: 'service_type', type: 'select', required: true, label: 'Service Needed', 
+        options: 'DYNAMIC_TRADES' }, // Populated from business trades
+      { name: 'property_type', type: 'select', required: false, label: 'Property Type',
+        options: ['Residential', 'Commercial', 'Industrial'] },
+      { name: 'urgency', type: 'select', required: true, label: 'When do you need service?',
+        options: ['Emergency (ASAP)', 'Within 24 hours', 'Within a week', 'Within a month', 'Just planning'] },
+      { name: 'address', type: 'text', required: false, label: 'Service Address' },
+      { name: 'description', type: 'textarea', required: true, label: 'Describe your project or issue' },
+      { name: 'budget_range', type: 'select', required: false, label: 'Budget Range',
+        options: ['Under $500', '$500-$1,000', '$1,000-$5,000', '$5,000-$10,000', '$10,000+', 'Not sure'] },
+      { name: 'preferred_contact', type: 'radio', required: true, label: 'Preferred Contact Method',
+        options: ['Phone', 'Email', 'Text Message'] },
+      { name: 'best_time', type: 'select', required: false, label: 'Best Time to Contact',
+        options: ['Morning (8AM-12PM)', 'Afternoon (12PM-5PM)', 'Evening (5PM-8PM)', 'Anytime'] }
+    ],
+    integration: {
+      hero365_api: true, // Submit to Hero365 backend
+      email_notifications: true,
+      sms_notifications: true,
+      auto_responder: true
+    },
+    styling: {
+      theme: 'INHERIT_FROM_BRANDING',
+      layout: 'single_column',
+      button_style: 'primary',
+      validation_style: 'inline'
+    }
+  }
+};
+
+// website-builder/components/intake/QuickQuoteForm.tsx
+export const QuickQuoteForm = {
+  type: 'quick-quote',
+  config: {
+    title: 'Get Your Free Quote',
+    subtitle: 'Quick estimate in under 2 minutes',
+    fields: [
+      { name: 'name', type: 'text', required: true },
+      { name: 'phone', type: 'tel', required: true },
+      { name: 'service', type: 'select', required: true, options: 'DYNAMIC_TRADES' },
+      { name: 'description', type: 'textarea', required: true, placeholder: 'Brief description of work needed' }
+    ],
+    cta_text: 'Get Free Quote',
+    success_message: 'Thanks! We\'ll call you within 15 minutes during business hours.',
+    integration: {
+      priority: 'high', // High priority lead
+      auto_call_back: true, // Trigger callback within 15 minutes
+      create_estimate: true // Auto-create estimate in Hero365
+    }
+  }
+};
+
+// website-builder/components/intake/BookingWidget.tsx
+export const BookingWidget = {
+  type: 'booking-widget',
+  config: {
+    title: 'Schedule Your Service',
+    services: 'DYNAMIC_TRADES', // Populated from business trades
+    calendar_integration: {
+      provider: 'hero365_calendar', // Use Hero365's scheduling system
+      availability_window_days: 30,
+      buffer_time_minutes: 15,
+      min_advance_hours: 2
+    },
+    booking_fields: [
+      { name: 'service_type', type: 'select', required: true },
+      { name: 'duration_estimate', type: 'select', required: true,
+        options: ['30 minutes', '1 hour', '2 hours', '3+ hours', 'Full day'] },
+      { name: 'location', type: 'text', required: true, label: 'Service Address' },
+      { name: 'access_instructions', type: 'textarea', required: false, 
+        label: 'Access instructions (gate codes, parking, etc.)' },
+      { name: 'special_requirements', type: 'textarea', required: false,
+        label: 'Special requirements or equipment needed' }
+    ],
+    payment: {
+      require_deposit: false, // Can be enabled per business
+      deposit_percentage: 0,
+      payment_methods: ['cash', 'check', 'card_on_site']
+    }
+  }
+};
+```
+
+#### Emergency Service Components
+```typescript
+// website-builder/components/intake/EmergencyBanner.tsx
+export const EmergencyBanner = {
+  type: 'emergency-banner',
+  config: {
+    show_for_trades: ['plumbing', 'electrical', 'hvac', 'roofing'], // Emergency-prone trades
+    banner_text: '24/7 Emergency Service Available',
+    phone_number: 'BUSINESS_PHONE', // Auto-populated
+    cta_text: 'Call Now for Emergency Service',
+    styling: {
+      background_color: '#dc2626', // Red emergency color
+      text_color: '#ffffff',
+      position: 'sticky_top',
+      animation: 'pulse'
+    },
+    tracking: {
+      analytics_event: 'emergency_call_click',
+      conversion_goal: 'emergency_lead'
+    }
+  }
+};
+
+// website-builder/components/intake/CallToAction.tsx
+export const CallToAction = {
+  type: 'cta-section',
+  variants: {
+    primary: {
+      title: 'Ready to Get Started?',
+      subtitle: 'Contact us today for your free consultation and quote',
+      buttons: [
+        { text: 'Get Free Quote', action: 'open_quote_form', style: 'primary' },
+        { text: 'Call Now', action: 'call_business', style: 'secondary' },
+        { text: 'Schedule Service', action: 'open_booking', style: 'outline' }
+      ]
+    },
+    emergency: {
+      title: 'Need Emergency Service?',
+      subtitle: 'Available 24/7 for urgent repairs and emergencies',
+      buttons: [
+        { text: 'Call Emergency Line', action: 'call_emergency', style: 'emergency' },
+        { text: 'Text Us', action: 'sms_business', style: 'secondary' }
+      ]
+    },
+    consultation: {
+      title: 'Free Consultation Available',
+      subtitle: 'Let\'s discuss your project and provide expert recommendations',
+      buttons: [
+        { text: 'Schedule Consultation', action: 'open_booking', style: 'primary' },
+        { text: 'Learn More', action: 'scroll_to_services', style: 'outline' }
+      ]
+    }
+  }
+};
+```
 
 ### 2.1 Create Industry Templates
 
@@ -262,11 +464,30 @@ export const plumbingCommercialTemplate = {
       path: '/',
       name: 'Home',
       sections: [
-        { type: 'hero', config: { headline: 'Commercial Plumbing Experts' } },
-        { type: 'services', config: { featured: true } },
+        { type: 'emergency-banner', config: { show_for_emergency: true } },
+        { type: 'hero', config: { 
+          headline: 'Commercial Plumbing Experts',
+          subtitle: 'Professional plumbing services for businesses and commercial properties',
+          cta_buttons: [
+            { text: 'Get Free Quote', action: 'open_quote_form' },
+            { text: 'Emergency Service', action: 'call_emergency' }
+          ]
+        }},
+        { type: 'quick-quote', config: { 
+          title: 'Get Your Commercial Plumbing Quote',
+          priority: 'high'
+        }},
+        { type: 'services', config: { 
+          featured: true,
+          services: ['Pipe Repair', 'Water Heater Installation', 'Drain Cleaning', 'Backflow Prevention']
+        }},
         { type: 'certifications' },
         { type: 'testimonials', config: { count: 3 } },
-        { type: 'cta', config: { action: 'Get Quote' } }
+        { type: 'contact-form', config: {
+          title: 'Request Commercial Service',
+          fields: 'COMMERCIAL_FOCUSED' // Include commercial-specific fields
+        }},
+        { type: 'cta-section', config: { variant: 'primary' } }
       ]
     },
     {
@@ -275,13 +496,61 @@ export const plumbingCommercialTemplate = {
       sections: [
         { type: 'service-grid' },
         { type: 'process' },
+        { type: 'booking-widget', config: {
+          title: 'Schedule Commercial Service',
+          services: ['Maintenance', 'Repair', 'Installation', 'Emergency']
+        }},
         { type: 'faq' }
+      ]
+    },
+    {
+      path: '/emergency',
+      name: 'Emergency Service',
+      sections: [
+        { type: 'emergency-hero', config: {
+          headline: '24/7 Emergency Plumbing Service',
+          phone_prominent: true
+        }},
+        { type: 'emergency-contact-form', config: {
+          priority: 'emergency',
+          auto_call_back: true
+        }},
+        { type: 'emergency-services' },
+        { type: 'response-time-guarantee' }
+      ]
+    },
+    {
+      path: '/quote',
+      name: 'Get Quote',
+      sections: [
+        { type: 'quote-hero' },
+        { type: 'detailed-quote-form', config: {
+          include_project_photos: true,
+          include_timeline: true,
+          create_estimate: true
+        }},
+        { type: 'quote-process' },
+        { type: 'testimonials' }
       ]
     }
   ],
   seo: {
-    keywords: ['commercial plumbing', 'pipe repair', 'water heater installation'],
-    schema: ['LocalBusiness', 'PlumbingService']
+    keywords: ['commercial plumbing', 'pipe repair', 'water heater installation', 'emergency plumber'],
+    schema: ['LocalBusiness', 'PlumbingService'],
+    conversion_goals: ['quote_request', 'phone_call', 'booking', 'emergency_call']
+  },
+  intake_config: {
+    lead_routing: {
+      emergency: 'immediate_sms_and_call',
+      quote: 'create_estimate_and_notify',
+      booking: 'add_to_calendar_and_confirm',
+      general: 'add_to_crm_and_follow_up'
+    },
+    auto_responses: {
+      quote: 'Thank you for your quote request. We\'ll review your project and get back to you within 2 hours during business hours.',
+      booking: 'Your service appointment has been scheduled. You\'ll receive a confirmation email shortly.',
+      emergency: 'We\'ve received your emergency request. A technician will call you within 15 minutes.'
+    }
   }
 };
 
@@ -290,6 +559,21 @@ export const plumbingCommercialTemplate = {
 // - Security Systems, Landscaping, Roofing
 // - Kitchen Equipment, Water Treatment, Pool & Spa
 ```
+
+Commercial Trades Coverage
+
+| Trade | Template file | Exported constant |
+|---|---|---|
+| Mechanical | `website-builder/templates/commercial/mechanical.ts` | `mechanicalCommercialTemplate` |
+| Refrigeration | `website-builder/templates/commercial/refrigeration.ts` | `refrigerationCommercialTemplate` |
+| Plumbing | `website-builder/templates/commercial/plumbing.ts` | `plumbingCommercialTemplate` |
+| Electrical | `website-builder/templates/commercial/electrical.ts` | `electricalCommercialTemplate` |
+| Security Systems | `website-builder/templates/commercial/security-systems.ts` | `securitySystemsCommercialTemplate` |
+| Landscaping | `website-builder/templates/commercial/landscaping.ts` | `landscapingCommercialTemplate` |
+| Roofing | `website-builder/templates/commercial/roofing.ts` | `roofingCommercialTemplate` |
+| Kitchen Equipment | `website-builder/templates/commercial/kitchen-equipment.ts` | `kitchenEquipmentCommercialTemplate` |
+| Water Treatment | `website-builder/templates/commercial/water-treatment.ts` | `waterTreatmentCommercialTemplate` |
+| Pool & Spa | `website-builder/templates/commercial/pool-spa.ts` | `poolSpaCommercialTemplate` |
 
 #### Residential Trade Templates
 ```typescript
@@ -303,17 +587,141 @@ export const hvacResidentialTemplate = {
       path: '/',
       name: 'Home',
       sections: [
-        { type: 'hero', config: { headline: 'Your Comfort is Our Priority' } },
-        { type: 'services', config: { residential: true } },
-        { type: 'emergency-service' },
-        { type: 'reviews' },
-        { type: 'service-areas' }
+        { type: 'emergency-banner', config: { 
+          show_for_emergency: true,
+          message: '24/7 Emergency HVAC Service - No Overtime Charges'
+        }},
+        { type: 'hero', config: { 
+          headline: 'Your Comfort is Our Priority',
+          subtitle: 'Professional HVAC services for your home - heating, cooling, and air quality',
+          cta_buttons: [
+            { text: 'Schedule Service', action: 'open_booking' },
+            { text: 'Get Free Estimate', action: 'open_quote_form' }
+          ],
+          trust_indicators: ['Licensed & Insured', 'Same-Day Service', 'Free Estimates']
+        }},
+        { type: 'quick-quote', config: {
+          title: 'Get Your Free HVAC Estimate',
+          subtitle: 'No obligation, honest pricing',
+          fields: [
+            { name: 'service_type', options: ['Repair', 'Installation', 'Maintenance', 'Emergency'] },
+            { name: 'system_type', options: ['Central Air', 'Heat Pump', 'Furnace', 'Ductless', 'Not Sure'] },
+            { name: 'home_size', options: ['Under 1,000 sq ft', '1,000-2,000 sq ft', '2,000-3,000 sq ft', 'Over 3,000 sq ft'] }
+          ]
+        }},
+        { type: 'services', config: { 
+          residential: true,
+          featured_services: [
+            'AC Repair & Installation',
+            'Heating System Service', 
+            'Ductwork & Air Quality',
+            'Preventive Maintenance'
+          ]
+        }},
+        { type: 'booking-widget', config: {
+          title: 'Schedule Your HVAC Service',
+          subtitle: 'Choose a convenient time that works for you',
+          service_types: ['Repair', 'Maintenance', 'Installation', 'Consultation'],
+          show_pricing: true
+        }},
+        { type: 'emergency-service', config: {
+          title: '24/7 Emergency HVAC Service',
+          services: ['No Heat', 'No AC', 'System Breakdown', 'Gas Leaks'],
+          response_time: '1 hour or less'
+        }},
+        { type: 'reviews', config: { 
+          source: 'google_reviews',
+          count: 6,
+          show_rating: true
+        }},
+        { type: 'service-areas', config: {
+          title: 'Serving Your Neighborhood',
+          show_map: true
+        }},
+        { type: 'contact-form', config: {
+          title: 'Get In Touch',
+          subtitle: 'Questions about your HVAC system? We\'re here to help.',
+          fields: 'RESIDENTIAL_FOCUSED'
+        }}
+      ]
+    },
+    {
+      path: '/services',
+      name: 'Services',
+      sections: [
+        { type: 'service-grid' },
+        { type: 'pricing-guide' },
+        { type: 'booking-widget' },
+        { type: 'maintenance-plans' },
+        { type: 'warranties' }
+      ]
+    },
+    {
+      path: '/emergency',
+      name: 'Emergency Service',
+      sections: [
+        { type: 'emergency-hero', config: {
+          headline: 'HVAC Emergency? We\'re Here 24/7',
+          subtitle: 'Fast response, fair pricing, no overtime charges',
+          phone_prominent: true
+        }},
+        { type: 'emergency-contact-form', config: {
+          title: 'Emergency Service Request',
+          priority: 'emergency',
+          auto_call_back: true,
+          fields: [
+            { name: 'emergency_type', options: ['No Heat', 'No AC', 'Strange Noises', 'Gas Smell', 'Other'] },
+            { name: 'severity', options: ['Urgent (unsafe)', 'High (very uncomfortable)', 'Medium (uncomfortable)'] }
+          ]
+        }},
+        { type: 'emergency-services' },
+        { type: 'response-guarantee' }
+      ]
+    },
+    {
+      path: '/booking',
+      name: 'Schedule Service',
+      sections: [
+        { type: 'booking-hero' },
+        { type: 'service-booking-form', config: {
+          include_service_selection: true,
+          include_home_details: true,
+          include_preferred_technician: true,
+          payment_options: ['Pay after service', 'Pay online', 'Financing available']
+        }},
+        { type: 'what-to-expect' },
+        { type: 'technician-profiles' }
       ]
     }
   ],
   seo: {
-    keywords: ['hvac repair', 'air conditioning', 'heating services'],
-    schema: ['LocalBusiness', 'HVACBusiness']
+    keywords: ['hvac repair', 'air conditioning', 'heating services', 'furnace repair', 'ac installation'],
+    schema: ['LocalBusiness', 'HVACBusiness'],
+    conversion_goals: ['service_booking', 'quote_request', 'phone_call', 'emergency_call']
+  },
+  intake_config: {
+    lead_routing: {
+      emergency: 'immediate_dispatch_and_call',
+      booking: 'add_to_schedule_and_confirm',
+      quote: 'schedule_in_home_estimate',
+      maintenance: 'add_to_maintenance_schedule'
+    },
+    auto_responses: {
+      booking: 'Your HVAC service is scheduled! We\'ll send a confirmation with technician details and arrival window.',
+      quote: 'Thanks for your interest! We\'ll schedule a free in-home estimate at your convenience.',
+      emergency: 'Emergency request received. A technician will call you within 15 minutes and arrive within 1 hour.',
+      maintenance: 'Your maintenance service has been scheduled. We\'ll remind you before each visit.'
+    },
+    follow_up_sequences: {
+      quote_not_booked: [
+        { delay_hours: 24, message: 'Still thinking about your HVAC project? We\'re here to answer any questions.' },
+        { delay_hours: 168, message: 'Don\'t wait for your HVAC system to break down. Schedule your free estimate today.' }
+      ],
+      service_completed: [
+        { delay_hours: 24, message: 'How was your HVAC service? We\'d love your feedback.' },
+        { delay_hours: 2160, message: 'Time for your next HVAC maintenance! Schedule now for peak performance.' }
+      ]
+    }
   }
 };
 
@@ -322,6 +730,21 @@ export const hvacResidentialTemplate = {
 // - Roofing, Garage Door, Septic
 // - Pest Control, Irrigation, Painting
 ```
+
+Residential Trades Coverage
+
+| Trade | Template file | Exported constant |
+|---|---|---|
+| HVAC | `website-builder/templates/residential/hvac.ts` | `hvacResidentialTemplate` |
+| Plumbing | `website-builder/templates/residential/plumbing.ts` | `plumbingResidentialTemplate` |
+| Electrical | `website-builder/templates/residential/electrical.ts` | `electricalResidentialTemplate` |
+| Chimney | `website-builder/templates/residential/chimney.ts` | `chimneyResidentialTemplate` |
+| Roofing | `website-builder/templates/residential/roofing.ts` | `roofingResidentialTemplate` |
+| Garage Door | `website-builder/templates/residential/garage-door.ts` | `garageDoorResidentialTemplate` |
+| Septic | `website-builder/templates/residential/septic.ts` | `septicResidentialTemplate` |
+| Pest Control | `website-builder/templates/residential/pest-control.ts` | `pestControlResidentialTemplate` |
+| Irrigation | `website-builder/templates/residential/irrigation.ts` | `irrigationResidentialTemplate` |
+| Painting | `website-builder/templates/residential/painting.ts` | `paintingResidentialTemplate` |
 
 #### Multi-Trade Templates
 ```typescript

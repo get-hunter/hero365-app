@@ -115,6 +115,20 @@ class Settings(BaseSettings):
     DEEPGRAM_API_KEY: str | None = None
     CARTESIA_API_KEY: str | None = None
     
+    # AI Provider Configuration for Content Generation
+    CONTENT_GENERATION_PROVIDER: Literal["openai", "claude", "gemini"] = "openai"
+    CLAUDE_API_KEY: str | None = None
+    GEMINI_API_KEY: str | None = None
+    
+    # Content Generation Model Settings
+    OPENAI_CONTENT_MODEL: str = "gpt-4"
+    CLAUDE_CONTENT_MODEL: str = "claude-3-5-sonnet-20241022"
+    GEMINI_CONTENT_MODEL: str = "gemini-1.5-pro"
+    
+    # Content Generation Parameters
+    CONTENT_MAX_TOKENS: int = 4000
+    CONTENT_TEMPERATURE: float = 0.7
+    
     # Voice Agent Context & Memory Configuration
     REDIS_URL: str = "redis://localhost:6379"
     MEM0_API_KEY: str | None = None
@@ -129,6 +143,11 @@ class Settings(BaseSettings):
     VOICE_MAX_EXTENSION_MS: int = 5000   # Max milliseconds to wait for utterance extension
     VOICE_MIN_AUDIO_LENGTH_MS: int = 200 # Minimum audio length to process
     VOICE_ENABLE_PAUSE_PROCESSING: bool = True  # Enable send-on-pause optimization
+    
+    # Hero365 Subdomain Configuration
+    HERO365_CLOUDFRONT_DISTRIBUTION_ID: str | None = None
+    HERO365_ROUTE53_ZONE_ID: str | None = None
+    HERO365_CLOUDFRONT_DOMAIN: str = "d123456789.cloudfront.net"
     
     @computed_field  # type: ignore[prop-decorator]
     @property
