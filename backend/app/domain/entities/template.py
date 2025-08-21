@@ -46,6 +46,15 @@ class TemplateCategory(str, Enum):
     CUSTOM = "custom"
 
 
+class LayoutStyle(str, Enum):
+    """Visual layout styles for template differentiation."""
+    MODERN_MINIMAL = "modern_minimal"
+    CORPORATE_BOLD = "corporate_bold"
+    CREATIVE_SPLIT = "creative_split"
+    PROFESSIONAL = "professional"
+    ELEGANT_SIMPLE = "elegant_simple"
+
+
 class Template(BaseModel):
     """
     Unified template entity that supports all document types with flexible
@@ -487,3 +496,80 @@ class TemplateFactory:
             created_by=created_by,
             is_system=business_id is None
         )
+    
+    # Visual configuration helper methods for mobile app
+    @property
+    def layout_style(self) -> Optional[str]:
+        """Get layout style from visual configuration."""
+        return self.config.get("visual_config", {}).get("layout_style")
+    
+    @property
+    def visual_config(self) -> Dict[str, Any]:
+        """Get complete visual configuration for mobile app."""
+        return self.config.get("visual_config", {})
+    
+    @property
+    def enhanced_colors(self) -> Dict[str, str]:
+        """Get enhanced color configuration."""
+        visual_config = self.visual_config
+        base_colors = self.config.get("colors", {})
+        enhanced_colors = visual_config.get("enhanced_colors", {})
+        
+        # Merge base colors with enhanced colors
+        return {**base_colors, **enhanced_colors}
+    
+    @property
+    def header_style_config(self) -> Dict[str, Any]:
+        """Get header style configuration."""
+        return self.visual_config.get("header_style", {})
+    
+    @property
+    def layout_elements_config(self) -> Dict[str, Any]:
+        """Get layout elements configuration."""
+        return self.visual_config.get("layout_elements", {})
+    
+    @property
+    def visual_theme_config(self) -> Dict[str, Any]:
+        """Get visual theme configuration."""
+        return self.visual_config.get("visual_theme", {})
+    
+    def set_visual_config(self, visual_config: Dict[str, Any]) -> 'Template':
+        """Set complete visual configuration."""
+        config_updates = {"visual_config": visual_config}
+        return self.update_config(config_updates, merge=True)
+    
+    def get_mobile_template_data(self) -> Dict[str, Any]:
+        """Get template data optimized for mobile app consumption."""
+        return {
+            "id": str(self.id),
+            "name": self.name,
+            "template_type": self.template_type.value,
+            "category": self.category.value if self.category else None,
+            "layout_style": self.layout_style or self._detect_layout_style_from_name(),
+            "description": self.description,
+            "is_active": self.is_active,
+            "is_default": self.is_default,
+            "is_system": self.is_system,
+            "colors": self.enhanced_colors,
+            "header_style": self.header_style_config,
+            "layout_elements": self.layout_elements_config,
+            "visual_theme": self.visual_theme_config,
+            "typography": self.config.get("typography", {}),
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
+    
+    def _detect_layout_style_from_name(self) -> str:
+        """Detect layout style from template name for backward compatibility."""
+        name_lower = self.name.lower()
+        
+        if any(word in name_lower for word in ["emergency", "urgent", "24/7", "service"]):
+            return LayoutStyle.CREATIVE_SPLIT.value
+        elif any(word in name_lower for word in ["professional", "plumbing", "corporate", "business"]):
+            return LayoutStyle.CORPORATE_BOLD.value
+        elif any(word in name_lower for word in ["classic", "traditional", "elegant"]):
+            return LayoutStyle.ELEGANT_SIMPLE.value
+        elif any(word in name_lower for word in ["modern", "minimal", "clean", "simple"]):
+            return LayoutStyle.MODERN_MINIMAL.value
+        else:
+            return LayoutStyle.PROFESSIONAL.value

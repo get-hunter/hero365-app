@@ -65,6 +65,34 @@ SYSTEM_TEMPLATES = [
                 "body": {"font": "System", "size": 11, "weight": "regular"},
                 "caption": {"font": "System", "size": 9, "weight": "regular"}
             },
+            "visual_config": {
+                "layout_style": "professional",
+                "enhanced_colors": {
+                    "header_background": "#2563EB",
+                    "header_text": "#FFFFFF",
+                    "table_header": "#F1F5F9",
+                    "accent": "#F1F5F9"
+                },
+                "header_style": {
+                    "type": "standard",
+                    "height": "medium",
+                    "show_logo": True,
+                    "logo_position": "left",
+                    "show_border": True,
+                    "border_style": "solid"
+                },
+                "layout_elements": {
+                    "side_panel": {"enabled": False},
+                    "accent_bars": {"enabled": False},
+                    "spacing": {"sections": "normal", "elements": "normal"}
+                },
+                "visual_theme": {
+                    "border_radius": 4,
+                    "shadow_style": "subtle",
+                    "line_style": "solid",
+                    "table_style": "striped"
+                }
+            },
             "sections": {
                 "invoice_number": {"visible": True},
                 "dates": {"visible": True},

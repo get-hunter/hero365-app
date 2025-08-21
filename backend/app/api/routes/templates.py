@@ -50,6 +50,26 @@ class TemplateResponse(BaseModel):
     updated_by: Optional[str]
 
 
+class MobileTemplateResponse(BaseModel):
+    """Enhanced template response for mobile app with visual parameters."""
+    id: str
+    name: str
+    template_type: str
+    category: Optional[str]
+    layout_style: str
+    description: Optional[str]
+    is_active: bool
+    is_default: bool
+    is_system: bool
+    colors: Dict[str, str]
+    header_style: Dict[str, Any]
+    layout_elements: Dict[str, Any]
+    visual_theme: Dict[str, Any]
+    typography: Dict[str, Any]
+    created_at: str
+    updated_at: str
+
+
 class CreateTemplateRequest(BaseModel):
     """Create template request model."""
     name: str = Field(..., min_length=1, max_length=200)
@@ -527,6 +547,78 @@ async def get_template(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception as e:
         logger.error(f"Error getting template: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
+@router.get("/mobile/{template_type}", response_model=List[MobileTemplateResponse])
+async def get_mobile_templates(
+    template_type: str,
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    is_active: Optional[bool] = Query(True, description="Filter by active status"),
+    is_system: Optional[bool] = Query(None, description="Show only system templates"),
+    use_case: ManageTemplatesUseCase = Depends(get_manage_templates_use_case),
+    _: bool = Depends(require_view_projects_dep)
+):
+    """
+    Get templates optimized for mobile app with enhanced visual parameters.
+    
+    This endpoint returns templates with all visual configuration data needed
+    for mobile app thumbnail generation and template differentiation.
+    """
+    business_id = uuid.UUID(business_context["business_id"])
+    logger.info(f"Getting mobile templates for {template_type} - business {business_id}")
+    
+    try:
+        # Parse template type
+        try:
+            t_type = TemplateType(template_type.lower())
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid template type: {template_type}"
+            )
+        
+        # Get templates based on filters
+        if is_system:
+            templates = await use_case.get_system_templates(
+                template_type=t_type,
+                is_active=is_active
+            )
+        else:
+            templates = await use_case.get_business_templates(
+                business_id=business_id,
+                template_type=t_type,
+                is_active=is_active
+            )
+        
+        logger.info(f"Found {len(templates)} {template_type} templates for mobile")
+        
+        # Convert to mobile-optimized response
+        mobile_templates = []
+        for template in templates:
+            mobile_data = template.get_mobile_template_data()
+            mobile_templates.append(MobileTemplateResponse(**mobile_data))
+        
+        return mobile_templates
+        
+    except NotFoundError as e:
+        logger.warning(f"Templates not found: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except PermissionDeniedError as e:
+        logger.warning(f"Permission denied: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error getting mobile templates: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"

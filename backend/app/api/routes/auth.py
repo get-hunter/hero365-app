@@ -124,7 +124,7 @@ async def sign_in(signin_data: SignInRequest) -> dict:
         )
         
         if auth_result.success and auth_result.user and auth_result.token:
-            user_metadata = auth_result.user.metadata or {}
+            user_metadata = auth_result.user.provider_metadata or {}
             onboarding_data = auth_facade.get_onboarding_data(user_metadata)
             
             return {
@@ -167,7 +167,7 @@ async def sign_in_with_phone(signin_data: PhoneSignInRequest) -> dict:
         )
         
         if auth_result.success and auth_result.user and auth_result.token:
-            user_metadata = auth_result.user.metadata or {}
+            user_metadata = auth_result.user.provider_metadata or {}
             onboarding_data = auth_facade.get_onboarding_data(user_metadata)
             
             return {

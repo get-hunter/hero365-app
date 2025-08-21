@@ -436,6 +436,8 @@ import type {
   TemplatesUpdateTemplateResponse,
   TemplatesDeleteTemplateData,
   TemplatesDeleteTemplateResponse,
+  TemplatesGetMobileTemplatesData,
+  TemplatesGetMobileTemplatesResponse,
   TemplatesSetDefaultTemplateData,
   TemplatesSetDefaultTemplateResponse,
   TemplatesCloneTemplateData,
@@ -6122,6 +6124,38 @@ export class TemplatesService {
       url: "/api/v1/templates/{template_id}",
       path: {
         template_id: data.templateId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Mobile Templates
+   * Get templates optimized for mobile app with enhanced visual parameters.
+   *
+   * This endpoint returns templates with all visual configuration data needed
+   * for mobile app thumbnail generation and template differentiation.
+   * @param data The data for the request.
+   * @param data.templateType
+   * @param data.isActive Filter by active status
+   * @param data.isSystem Show only system templates
+   * @returns MobileTemplateResponse Successful Response
+   * @throws ApiError
+   */
+  public static getMobileTemplates(
+    data: TemplatesGetMobileTemplatesData,
+  ): CancelablePromise<TemplatesGetMobileTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/templates/mobile/{template_type}",
+      path: {
+        template_type: data.templateType,
+      },
+      query: {
+        is_active: data.isActive,
+        is_system: data.isSystem,
       },
       errors: {
         422: "Validation Error",

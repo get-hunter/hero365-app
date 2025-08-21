@@ -4241,6 +4241,38 @@ export type MobileDeviceInfo = {
 }
 
 /**
+ * Enhanced template response for mobile app with visual parameters.
+ */
+export type MobileTemplateResponse = {
+  id: string
+  name: string
+  template_type: string
+  category: string | null
+  layout_style: string
+  description: string | null
+  is_active: boolean
+  is_default: boolean
+  is_system: boolean
+  colors: {
+    [key: string]: string
+  }
+  header_style: {
+    [key: string]: unknown
+  }
+  layout_elements: {
+    [key: string]: unknown
+  }
+  visual_theme: {
+    [key: string]: unknown
+  }
+  typography: {
+    [key: string]: unknown
+  }
+  created_at: string
+  updated_at: string
+}
+
+/**
  * Network connection types
  */
 export type NetworkType = "wifi" | "cellular" | "unknown"
@@ -9050,6 +9082,20 @@ export type TemplatesDeleteTemplateData = {
 }
 
 export type TemplatesDeleteTemplateResponse = void
+
+export type TemplatesGetMobileTemplatesData = {
+  /**
+   * Filter by active status
+   */
+  isActive?: boolean | null
+  /**
+   * Show only system templates
+   */
+  isSystem?: boolean | null
+  templateType: string
+}
+
+export type TemplatesGetMobileTemplatesResponse = Array<MobileTemplateResponse>
 
 export type TemplatesSetDefaultTemplateData = {
   templateId: string
