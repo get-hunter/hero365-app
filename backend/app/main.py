@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 
 from app.api.main import api_router
+from app.api.public.main import public_router
 from app.api.middleware.middleware_manager import middleware_manager
 from app.core.config import settings
 
@@ -78,11 +79,15 @@ def create_application() -> FastAPI:
     # Add custom exception handlers
     application.add_exception_handler(RequestValidationError, validation_exception_handler)
 
+    # Include public API router BEFORE applying middleware (no authentication required)
+    logger.info("🌐 Including public API routes...")
+    application.include_router(public_router, prefix=settings.API_V1_STR)
+
     # Apply all middlewares using the middleware manager
     logger.info("🔧 Applying middleware stack...")
     middleware_manager.apply_all_middlewares(application)
 
-    # Include API router
+    # Include API router (with authentication required)
     logger.info("🛣️  Including API routes...")
     application.include_router(api_router, prefix=settings.API_V1_STR)
     

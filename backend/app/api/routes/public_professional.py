@@ -6,7 +6,7 @@ and availability for website integration. These endpoints are designed to be
 consumed by deployed professional websites.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Path, status
+from fastapi import APIRouter, HTTPException, Query, Path, status, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, HttpUrl
 from typing import Optional, List, Dict, Any
@@ -14,9 +14,25 @@ from datetime import datetime, date, time
 from uuid import UUID
 import logging
 
+from ...infrastructure.config.dependency_injection import get_container
+from ...domain.repositories.business_repository import BusinessRepository
+from ...domain.repositories.product_repository import ProductRepository
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/public/professional", tags=["Public Professional"])
+
+
+# Dependency injection
+def get_business_repository() -> BusinessRepository:
+    """Get business repository instance."""
+    container = get_container()
+    return container.business_repository()
+
+def get_product_repository() -> ProductRepository:
+    """Get product repository instance."""
+    container = get_container()
+    return container.product_repository()
 
 
 # Response Models

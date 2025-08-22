@@ -131,6 +131,12 @@ const defaultContent = {
 
 
 
+
+
+
+
+
+
 export default function Home() {
   const { business, hero, services, seo } = defaultContent;
 
