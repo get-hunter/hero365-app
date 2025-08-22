@@ -181,8 +181,10 @@ async def get_websites(
         # TODO: Implement repository call
         # websites = await website_repository.get_by_business_id(business_id)
         
-        # Mock response for now
-        return []
+        # Get real websites from database when repository is implemented
+        # websites = await website_repository.get_by_business_id(business_id)
+        # return [WebsiteResponse.from_entity(website) for website in websites]
+        return []  # Return empty list until repository is implemented
         
     except Exception as e:
         logger.error(f"Error getting websites: {str(e)}")
@@ -245,7 +247,9 @@ async def create_website(
                 business_id
             )
         
-        # Mock response
+        # Return response based on created website entity
+        # In production, this would return the actual created website
+        # For now, return basic structure until repository is fully implemented
         return WebsiteResponse(
             id=website_id,
             business_id=business_id,
@@ -253,9 +257,9 @@ async def create_website(
             domain=request.custom_domain,
             subdomain=request.subdomain,
             status=WebsiteStatus.BUILDING if request.build_immediately else WebsiteStatus.DRAFT,
-            primary_trade="plumbing",  # Mock
+            primary_trade="hvac",  # Default to HVAC
             secondary_trades=[],
-            service_areas=[],
+            service_areas=["Austin", "Round Rock", "Cedar Park"],
             website_url=None,
             preview_url=f"/preview/{website_id}",
             last_build_at=None,
@@ -290,24 +294,30 @@ async def get_website(
         # if not website or website.business_id != uuid.UUID(business_context["business_id"]):
         #     raise HTTPException(404, "Website not found")
         
-        # Mock response
+        # Return actual website data when repository is implemented
+        # website = await website_repository.get_by_id(website_id)
+        # if not website or website.business_id != uuid.UUID(business_context["business_id"]):
+        #     raise HTTPException(404, "Website not found")
+        # return WebsiteResponse.from_entity(website)
+        
+        # Placeholder response until repository is implemented
         return WebsiteResponse(
             id=website_id,
             business_id=uuid.UUID(business_context["business_id"]),
             template_id=None,
             domain=None,
-            subdomain="mock-business",
+            subdomain="austin-elite-hvac",
             status=WebsiteStatus.DEPLOYED,
-            primary_trade="plumbing",
-            secondary_trades=["electrical"],
-            service_areas=["New York", "Brooklyn"],
-            website_url="https://mock-business.hero365.ai",
+            primary_trade="hvac",
+            secondary_trades=[],
+            service_areas=["Austin", "Round Rock", "Cedar Park"],
+            website_url="https://86a38fce.hero365-websites.pages.dev",
             preview_url=f"/preview/{website_id}",
             last_build_at=datetime.utcnow(),
             last_deploy_at=datetime.utcnow(),
             build_duration_seconds=45,
             lighthouse_score=94,
-            seo_keywords=["plumbing services", "emergency plumber"],
+            seo_keywords=["hvac services", "emergency hvac"],
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )

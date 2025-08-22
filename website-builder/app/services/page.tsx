@@ -23,46 +23,65 @@ export default function ServicesPage() {
     keywords: ["hvac services austin", "ac repair", "heating installation", "hvac maintenance", "emergency hvac"]
   };
 
+  // Real services from database - injected by deployment script
   const services = [
     {
-      title: "Emergency AC Repair",
-      description: "24/7 emergency air conditioning repair throughout Austin metro. Fast response, expert diagnosis, and reliable repairs for all AC brands and models.",
-      price: "From $99",
-      features: ["Same-day service", "All major brands", "Parts warranty", "Upfront pricing"],
-      isPopular: true,
-      isEmergency: true
+        "title": "Duct Cleaning Service",
+        "description": "Professional duct cleaning and sanitization to improve air quality and system efficiency. Removes dust, debris, and allergens.",
+        "price": "From $299",
+        "features": [
+            "Professional service",
+            "Licensed & insured",
+            "3.0 hour service"
+        ],
+        "isPopular": false
     },
     {
-      title: "Heating System Service",
-      description: "Complete heating system repair and maintenance in Austin. Furnace repair, heat pump service, and emergency heating solutions.",
-      price: "From $89",
-      features: ["Safety inspection", "Energy efficiency check", "Emergency service", "All heating types"]
+        "title": "Emergency AC Repair",
+        "description": "24/7 rapid response for all AC breakdowns. Our certified technicians diagnose and fix AC issues quickly to restore your comfort.",
+        "price": "From $149",
+        "features": [
+            "Professional service",
+            "Licensed & insured",
+            "24/7 emergency available",
+            "1.5 hour service"
+        ],
+        "isPopular": true
     },
     {
-      title: "HVAC Installation",
-      description: "Professional HVAC system installation in Austin. Energy-efficient systems with expert installation and comprehensive warranties.",
-      price: "Free Quote",
-      features: ["Energy-efficient systems", "Professional installation", "10-year warranty", "Financing available"]
+        "title": "HVAC System Installation",
+        "description": "Complete HVAC system installation and replacement. Energy-efficient systems with professional installation and warranty.",
+        "price": "Free Quote",
+        "features": [
+            "Professional service",
+            "Licensed & insured",
+            "4.0 hour service"
+        ],
+        "isPopular": false
     },
     {
-      title: "Preventive Maintenance",
-      description: "Comprehensive HVAC maintenance plans for Austin homes and businesses. Extend system life and improve efficiency with regular service.",
-      price: "$25/month",
-      features: ["Bi-annual tune-ups", "Priority service", "20% off repairs", "Energy savings"]
+        "title": "Preventative Maintenance Plan",
+        "description": "Annual tune-ups to ensure optimal system performance and longevity. Includes filter changes, system cleaning, and efficiency checks.",
+        "price": "From $199",
+        "features": [
+            "Professional service",
+            "Licensed & insured",
+            "1.0 hour service"
+        ],
+        "isPopular": false
     },
     {
-      title: "Air Quality Solutions",
-      description: "Indoor air quality testing and improvement solutions. Air purifiers, humidity control, and duct cleaning services.",
-      price: "From $149",
-      features: ["Air quality testing", "Purification systems", "Humidity control", "Duct cleaning"]
-    },
-    {
-      title: "Ductwork Services",
-      description: "Professional ductwork installation, repair, and cleaning. Improve efficiency and air quality with proper ductwork.",
-      price: "Free Inspection",
-      features: ["Duct inspection", "Sealing & repair", "New installation", "Energy efficiency"]
+        "title": "Thermostat Installation",
+        "description": "Smart thermostat installation and setup. Includes programming and training on optimal usage for energy savings.",
+        "price": "Free Quote",
+        "features": [
+            "Professional service",
+            "Licensed & insured",
+            "2.0 hour service"
+        ],
+        "isPopular": false
     }
-  ];
+];
 
   const serviceCategories = [
     {

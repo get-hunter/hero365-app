@@ -15,6 +15,7 @@ from pathlib import Path
 from datetime import datetime
 import uuid
 import sys
+import requests
 
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -195,18 +196,128 @@ def create_test_business():
     }
 
 
-def generate_content_for_template(business):
-    """Generate content for the HVAC template."""
-    return {
-        "business": {
+async def fetch_real_services(business_id="a1b2c3d4-e5f6-7890-1234-567890abcdef"):
+    """Fetch real services from the API."""
+    try:
+        response = requests.get(f"http://localhost:8000/api/v1/public/professional/services/{business_id}")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"⚠️  API returned status {response.status_code}, using fallback")
+            return []
+    except Exception as e:
+        print(f"⚠️  Failed to fetch real services: {e}, using fallback")
+        return []
+
+
+async def fetch_real_business_profile(business_id="a1b2c3d4-e5f6-7890-1234-567890abcdef"):
+    """Fetch real business profile from the API."""
+    try:
+        response = requests.get(f"http://localhost:8000/api/v1/public/professional/profile/{business_id}")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"⚠️  API returned status {response.status_code}, using fallback")
+            return None
+    except Exception as e:
+        print(f"⚠️  Failed to fetch real profile: {e}, using fallback")
+        return None
+
+
+async def generate_content_for_template(business):
+    """Generate content for the HVAC template using real API data."""
+    
+    # Fetch real services from the API
+    print("   📡 Fetching real services from API...")
+    real_services = await fetch_real_services()
+    
+    # Fetch real business profile from API
+    print("   📡 Fetching real business profile from API...")
+    real_profile = await fetch_real_business_profile()
+    
+    # Use real profile data if available, otherwise fallback to business dict
+    if real_profile:
+        business_info = {
+            "name": real_profile.get("business_name", business["name"]),
+            "phone": real_profile.get("phone", business["phone_number"]),
+            "email": real_profile.get("email", business["business_email"]),
+            "address": real_profile.get("address", business["business_address"]),
+            "hours": "Mon-Fri 7AM-8PM, Sat-Sun 8AM-6PM, 24/7 Emergency Service",
+            "description": real_profile.get("description", business["description"]),
+            "serviceAreas": real_profile.get("service_areas", business["service_areas"])
+        }
+        print(f"   ✅ Using real business profile: {business_info['name']}")
+    else:
+        business_info = {
             "name": business["name"],
             "phone": business["phone_number"],
             "email": business["business_email"],
             "address": business["business_address"],
             "hours": "Mon-Fri 7AM-8PM, Sat-Sun 8AM-6PM, 24/7 Emergency Service",
-            "description": f"{business['name']} is Austin's premier HVAC service provider, delivering exceptional heating, cooling, and air quality solutions since 1999. Our NATE-certified technicians combine decades of experience with cutting-edge technology.",
-            "serviceAreas": business["service_areas"] + ["Lakeway", "Bee Cave", "Dripping Springs", "Manor", "Hutto"]
-        },
+            "description": business["description"],
+            "serviceAreas": business["service_areas"]
+        }
+        print("   ⚠️  Using fallback business profile")
+    
+    # Convert real services to website format
+    website_services = []
+    if real_services:
+        print(f"   ✅ Using {len(real_services)} real services from database")
+        for service in real_services:
+            # Format price
+            if service.get("requires_quote", False):
+                price = "Free Quote"
+            elif service.get("base_price"):
+                price = f"From ${service['base_price']:.0f}"
+            elif service.get("price_range_min"):
+                price = f"From ${service['price_range_min']:.0f}"
+            else:
+                price = "Contact for pricing"
+            
+            # Format features from service details
+            features = ["Professional service", "Licensed & insured"]
+            if service.get("is_emergency"):
+                features.append("24/7 emergency available")
+            if service.get("duration_minutes"):
+                hours = service["duration_minutes"] / 60
+                if hours < 1:
+                    features.append(f"{service['duration_minutes']} minute service")
+                else:
+                    features.append(f"{hours:.1f} hour service")
+            
+            website_services.append({
+                "title": service["name"],
+                "description": service["description"],
+                "price": price,
+                "features": features,
+                "isPopular": service.get("is_emergency", False)
+            })
+    else:
+        print("   ⚠️  No real services available, using template services")
+        website_services = [
+            {
+                "title": "Emergency HVAC Repair",
+                "description": "24/7 emergency heating and air conditioning repair throughout Austin metro.",
+                "price": "From $149",
+                "features": ["Same-day service", "All major brands", "Parts warranty", "Upfront pricing"],
+                "isPopular": True
+            },
+            {
+                "title": "HVAC System Installation", 
+                "description": "Complete HVAC system installation and replacement with energy-efficient solutions.",
+                "price": "Free Quote",
+                "features": ["Energy-efficient systems", "Financing available", "10-year warranty"]
+            },
+            {
+                "title": "Preventative Maintenance",
+                "description": "Preventive maintenance plans to keep your system running efficiently year-round.",
+                "price": "From $199",
+                "features": ["Bi-annual tune-ups", "Priority service", "20% off repairs"]
+            }
+        ]
+    
+    return {
+        "business": business_info,
         "hero": {
             "headline": "Austin's Most Trusted HVAC Experts",
             "subtitle": "24/7 Emergency Service • Same-Day Repairs • 100% Satisfaction Guaranteed • NATE Certified Technicians",
@@ -218,51 +329,27 @@ def generate_content_for_template(business):
             "showEmergencyBanner": True,
             "emergencyMessage": "🚨 HVAC Emergency? We're Available 24/7 - No Overtime Charges!"
         },
-        "services": [
-            {
-                "title": "Emergency AC Repair",
-                "description": "24/7 emergency air conditioning repair throughout Austin metro. Fast response, expert diagnosis, and reliable repairs for all AC brands and models.",
-                "price": "From $99",
-                "features": ["Same-day service", "All major brands", "Parts warranty", "Upfront pricing"],
-                "isPopular": True
-            },
-            {
-                "title": "Heating System Repair",
-                "description": "Expert furnace and heating system repair",
-                "price": "From $89",
-                "features": ["Safety inspection", "Energy efficiency check", "Emergency service"]
-            },
-            {
-                "title": "New HVAC Installation",
-                "description": "Complete HVAC system installation and replacement",
-                "price": "Free Quote",
-                "features": ["Energy-efficient systems", "Financing available", "10-year warranty"]
-            },
-            {
-                "title": "Maintenance Plans",
-                "description": "Preventive maintenance to keep your system running",
-                "price": "$25/month",
-                "features": ["Bi-annual tune-ups", "Priority service", "20% off repairs"]
-            }
-        ],
+        "services": website_services,
         "seo": {
-            "title": f"{business['name']} - Professional HVAC Services in Austin, TX | 24/7 Emergency Repair",
-            "description": f"Expert HVAC services in Austin, TX. 24/7 emergency AC & heating repair, installation, and maintenance. Licensed & insured NATE-certified technicians. Call {business['phone_number']} for same-day service and free estimates.",
+            "title": f"{business_info['name']} - Professional HVAC Services in Austin, TX | 24/7 Emergency Repair",
+            "description": f"Expert HVAC services in Austin, TX. 24/7 emergency AC & heating repair, installation, and maintenance. Licensed & insured NATE-certified technicians. Call {business_info['phone']} for same-day service and free estimates.",
             "keywords": ["hvac austin tx", "ac repair austin", "heating repair austin", "hvac installation austin", "emergency hvac austin", "austin hvac contractor", "nate certified hvac austin", "hvac maintenance austin"]
         }
     }
 
 
 def inject_content_into_template(content, website_builder_path):
-    """Inject the generated content into the Next.js template."""
+    """Inject the generated content into the Next.js template files."""
     
+    # Update main page
     template_file = website_builder_path / "app" / "page.tsx"
+    services_file = website_builder_path / "app" / "services" / "page.tsx"
     
     if not template_file.exists():
         print(f"❌ Template file not found: {template_file}")
         return False
     
-    # Read the template
+    # 1. Update main page template
     with open(template_file, 'r') as f:
         template_content = f.read()
     
@@ -277,7 +364,7 @@ def inject_content_into_template(content, website_builder_path):
     end_idx = template_content.find(end_marker)
     
     if start_idx == -1 or end_idx == -1:
-        print("❌ Could not find content markers in template")
+        print("❌ Could not find content markers in main template")
         return False
     
     # Find the end of the defaultContent object
@@ -300,11 +387,55 @@ def inject_content_into_template(content, website_builder_path):
         template_content[end_of_content:]
     )
     
-    # Write back
+    # Write back main page
     with open(template_file, 'w') as f:
         f.write(new_template)
     
-    print("✅ Content injected into template")
+    print("✅ Content injected into main page")
+    
+    # 2. Update services page
+    if services_file.exists():
+        with open(services_file, 'r') as f:
+            services_content = f.read()
+        
+        # Convert services to JavaScript array format
+        services_js = json.dumps(content.get('services', []), indent=4)
+        
+        # Find and replace the services array
+        services_start = "  // Real services from database - injected by deployment script"
+        services_end = "  ];"
+        
+        services_start_idx = services_content.find(services_start)
+        if services_start_idx != -1:
+            # Find the start of the services array
+            array_start = services_content.find("const services = [", services_start_idx)
+            if array_start != -1:
+                # Find the end of the array
+                array_end_idx = services_content.find(services_end, array_start)
+                if array_end_idx != -1:
+                    array_end_idx += len(services_end)
+                    
+                    # Replace the services array
+                    new_services_content = (
+                        services_content[:array_start] +
+                        f"const services = {services_js};" +
+                        services_content[array_end_idx:]
+                    )
+                    
+                    # Write back services page
+                    with open(services_file, 'w') as f:
+                        f.write(new_services_content)
+                    
+                    print("✅ Real services injected into services page")
+                else:
+                    print("⚠️  Could not find services array end in services page")
+            else:
+                print("⚠️  Could not find services array in services page")
+        else:
+            print("⚠️  Services page not found or incorrect format")
+    else:
+        print("⚠️  Services page file not found")
+    
     return True
 
 
@@ -363,21 +494,10 @@ def main():
     business = create_test_business()
     print(f"   Business: {business['name']}")
     
-    # 2. Generate content (check for real data first)
+    # 2. Generate content using real API data
     print("\n2. Generating content...")
-    
-    # Check if real content file exists (from test_real_data_deployment.py)
-    real_content_file = backend_path / "temp_website_content.json"
-    if real_content_file.exists():
-        print("   📊 Using real API data from temp_website_content.json")
-        import json
-        with open(real_content_file, 'r') as f:
-            content = json.load(f)
-        print(f"   ✅ Loaded real content with {len(content)} sections")
-    else:
-        print("   📝 Generating static template content...")
-        content = generate_content_for_template(business)
-        print(f"   Generated content for {len(content)} sections")
+    content = asyncio.run(generate_content_for_template(business))
+    print(f"   ✅ Generated content with {len(content.get('services', []))} services")
     
     # 3. Inject content
     print("\n3. Injecting content into template...")

@@ -16,11 +16,11 @@ import { Thermometer, Wind, Shield, Wrench } from 'lucide-react';
 const defaultContent = {
   "business": {
     "name": "Austin Elite HVAC",
-    "description": "Premier HVAC services for Austin homes and businesses. Specializing in energy-efficient installations, emergency repairs, and preventative maintenance.",
     "phone": "(512) 555-COOL",
     "email": "info@austinelitehvac.com",
     "address": "123 Main St",
     "hours": "Mon-Fri 7AM-8PM, Sat-Sun 8AM-6PM, 24/7 Emergency Service",
+    "description": "Premier HVAC services for Austin homes and businesses. Specializing in energy-efficient installations, emergency repairs, and preventative maintenance.",
     "serviceAreas": [
       "Austin",
       "Round Rock",
@@ -30,117 +30,109 @@ const defaultContent = {
     ]
   },
   "hero": {
-    "headline": "Austin Elite HVAC - Premier HVAC services for Austin homes and busines...",
-    "subtitle": "Serving Austin, Round Rock, Cedar Park with 10+ years of experience",
-    "cta_text": "Get Free Estimate",
-    "background_image": "/images/hvac-hero.jpg",
-    "phone": "(512) 555-COOL",
-    "rating": 4.8,
-    "reviews": 150
+    "headline": "Austin's Most Trusted HVAC Experts",
+    "subtitle": "24/7 Emergency Service \u2022 Same-Day Repairs \u2022 100% Satisfaction Guaranteed \u2022 NATE Certified Technicians",
+    "ctaButtons": [
+      {
+        "text": "Get Free Quote",
+        "action": "open_quote",
+        "style": "primary"
+      },
+      {
+        "text": "Call Now",
+        "action": "call",
+        "style": "secondary"
+      }
+    ],
+    "trustIndicators": [
+      "Licensed & Insured",
+      "25+ Years Experience",
+      "A+ BBB Rating",
+      "NATE Certified",
+      "5-Star Reviews"
+    ],
+    "showEmergencyBanner": true,
+    "emergencyMessage": "\ud83d\udea8 HVAC Emergency? We're Available 24/7 - No Overtime Charges!"
   },
   "services": [
     {
       "title": "Duct Cleaning Service",
       "description": "Professional duct cleaning and sanitization to improve air quality and system efficiency. Removes dust, debris, and allergens.",
-      "price": "From $299.0",
+      "price": "From $299",
       "features": [
-        "180 min service",
-        "Licensed professionals",
-        "Warranty included"
+        "Professional service",
+        "Licensed & insured",
+        "3.0 hour service"
       ],
-      "isEmergency": false,
       "isPopular": false
     },
     {
       "title": "Emergency AC Repair",
       "description": "24/7 rapid response for all AC breakdowns. Our certified technicians diagnose and fix AC issues quickly to restore your comfort.",
-      "price": "From $149.0",
+      "price": "From $149",
       "features": [
-        "90 min service",
-        "Licensed professionals",
-        "Warranty included"
+        "Professional service",
+        "Licensed & insured",
+        "24/7 emergency available",
+        "1.5 hour service"
       ],
-      "isEmergency": true,
       "isPopular": true
     },
     {
       "title": "HVAC System Installation",
       "description": "Complete HVAC system installation and replacement. Energy-efficient systems with professional installation and warranty.",
-      "price": "Free Estimate",
+      "price": "Free Quote",
       "features": [
-        "240 min service",
-        "Licensed professionals",
-        "Warranty included"
+        "Professional service",
+        "Licensed & insured",
+        "4.0 hour service"
       ],
-      "isEmergency": false,
       "isPopular": false
     },
     {
       "title": "Preventative Maintenance Plan",
       "description": "Annual tune-ups to ensure optimal system performance and longevity. Includes filter changes, system cleaning, and efficiency checks.",
-      "price": "From $199.0",
+      "price": "From $199",
       "features": [
-        "60 min service",
-        "Licensed professionals",
-        "Warranty included"
+        "Professional service",
+        "Licensed & insured",
+        "1.0 hour service"
       ],
-      "isEmergency": false,
       "isPopular": false
     },
     {
       "title": "Thermostat Installation",
       "description": "Smart thermostat installation and setup. Includes programming and training on optimal usage for energy savings.",
-      "price": "From $125.0",
+      "price": "Free Quote",
       "features": [
-        "120 min service",
-        "Licensed professionals",
-        "Warranty included"
+        "Professional service",
+        "Licensed & insured",
+        "2.0 hour service"
       ],
-      "isEmergency": false,
       "isPopular": false
     }
   ],
-  "products": {
-    "title": "Featured Products",
-    "subtitle": "High-quality products from trusted brands",
-    "products": [
-      {
-        "name": "Professional Equipment",
-        "description": "High-quality professional equipment",
-        "price": 1299.99,
-        "brand": "Professional Brand",
-        "in_stock": true,
-        "warranty": "5 year warranty"
-      }
-    ]
-  },
-  "contact": {
-    "business_name": "Austin Elite HVAC",
-    "phone": "(512) 555-COOL",
-    "email": "info@austinelitehvac.com",
-    "address": "123 Main St",
-    "service_areas": [
-      "Austin",
-      "Round Rock",
-      "Cedar Park",
-      "Pflugerville",
-      "Georgetown"
-    ],
-    "emergency_service": true,
-    "certifications": []
-  },
   "seo": {
-    "title": "Austin Elite HVAC - Professional HVAC Services in Austin",
-    "description": "Premier HVAC services for Austin homes and businesses. Specializing in energy-efficient installations, emergency repairs, and preventative maintenance. Serving Austin, Round Rock, Cedar Park, Pflugerville, Georgetown. 4.8 stars from 150 reviews.",
+    "title": "Austin Elite HVAC - Professional HVAC Services in Austin, TX | 24/7 Emergency Repair",
+    "description": "Expert HVAC services in Austin, TX. 24/7 emergency AC & heating repair, installation, and maintenance. Licensed & insured NATE-certified technicians. Call (512) 555-COOL for same-day service and free estimates.",
     "keywords": [
-      "hvac Austin",
-      "hvac repair",
-      "hvac installation",
-      "emergency hvac",
-      "austin elite hvac"
+      "hvac austin tx",
+      "ac repair austin",
+      "heating repair austin",
+      "hvac installation austin",
+      "emergency hvac austin",
+      "austin hvac contractor",
+      "nate certified hvac austin",
+      "hvac maintenance austin"
     ]
   }
 };
+
+
+
+
+
+
 
 
 

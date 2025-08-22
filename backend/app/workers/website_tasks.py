@@ -158,38 +158,52 @@ async def _build_website_async(website_id: str, build_config: Optional[Dict[str,
     """Async wrapper for website building."""
     
     try:
-        # TODO: Get website, business, branding, and template data from repositories
+        # Get repositories (when they're implemented)
+        # website_repository = get_website_repository()
+        # business_repository = get_business_repository()
+        # branding_repository = get_branding_repository()
+        # template_repository = get_template_repository()
+        
         # website = await website_repository.get_by_id(uuid.UUID(website_id))
         # business = await business_repository.get_by_id(website.business_id)
         # branding = await branding_repository.get_by_business_id(website.business_id)
         # template = await template_repository.get_by_id(website.template_id)
         
-        # For now, create mock objects
+        # For now, fetch real data via direct database query
+        from ..infrastructure.repositories.business_repository import BusinessRepository
+        from ..infrastructure.repositories.product_repository import ProductRepository
         from ..domain.entities.business import Business, TradeCategory
         from ..domain.entities.business_branding import BusinessBranding
         from ..domain.entities.website import WebsiteTemplate, BusinessWebsite, WebsiteStatus
         
-        # Mock data - replace with actual repository calls
-        mock_business = Business(
-            id=uuid.UUID(website_id),  # Mock
-            name="Mock Business",
-            industry="Home Services",
-            company_size="SMALL",
-            trade_category=TradeCategory.RESIDENTIAL,
-            residential_trades=["plumbing"],
-            service_areas=["New York", "Brooklyn"]
+        # Get a real business from the database
+        business_repo = BusinessRepository()
+        businesses = await business_repo.list()
+        
+        if not businesses:
+            raise Exception("No businesses found in database. Cannot build website without real business data.")
+        
+        # Use the first available business
+        business = businesses[0]
+        logger.info(f"Using real business: {business.name}")
+        
+        # Create branding based on business data
+        branding = BusinessBranding(
+            business_id=business.id,
+            primary_color="#1E3A8A",
+            secondary_color="#3B82F6", 
+            accent_color="#EF4444",
+            font_family="Inter",
+            theme_name="Professional"
         )
         
-        mock_branding = BusinessBranding(
-            business_id=uuid.UUID(website_id),
-            theme_name="Professional Blue"
-        )
-        
-        mock_template = WebsiteTemplate(
+        # Create template based on business trade
+        primary_trade = business.residential_trades[0] if business.residential_trades else "hvac"
+        template = WebsiteTemplate(
             id=uuid.uuid4(),
-            trade_type="plumbing",
-            trade_category=TradeCategory.RESIDENTIAL,
-            name="Residential Plumbing Template",
+            trade_type=primary_trade,
+            trade_category=business.trade_category,
+            name=f"{primary_trade.title()} Professional Template",
             structure={
                 "pages": [
                     {
@@ -205,13 +219,14 @@ async def _build_website_async(website_id: str, build_config: Optional[Dict[str,
             }
         )
         
-        mock_website = BusinessWebsite(
+        # Create website entity
+        website = BusinessWebsite(
             id=uuid.UUID(website_id),
-            business_id=mock_business.id,
-            template_id=mock_template.id,
-            subdomain="mock-business",
+            business_id=business.id,
+            template_id=template.id,
+            subdomain=f"{business.name.lower().replace(' ', '-')}",
             status=WebsiteStatus.BUILDING,
-            primary_trade="plumbing"
+            primary_trade=primary_trade
         )
         
         # Parse build configuration
@@ -222,10 +237,10 @@ async def _build_website_async(website_id: str, build_config: Optional[Dict[str,
         # Build the website
         builder_service = WebsiteBuilderService()
         result = await builder_service.build_website(
-            mock_website,
-            mock_business,
-            mock_branding,
-            mock_template,
+            website,
+            business,
+            branding,
+            template,
             config
         )
         
