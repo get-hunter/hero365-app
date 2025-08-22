@@ -315,7 +315,7 @@ class SupabaseBusinessRepository(BusinessRepository):
         # Helper function to safely handle JSONB fields that might be strings or already parsed
         def safe_json_parse(value, default=None):
             if value is None:
-                return default or []
+                return default
             if isinstance(value, (list, dict)):
                 return value  # Already parsed by Supabase
             if isinstance(value, str):

@@ -12,6 +12,7 @@ from datetime import datetime, date, time
 from uuid import UUID
 import uuid
 import logging
+from decimal import Decimal
 
 from ....infrastructure.config.dependency_injection import get_container, get_product_repository as get_product_repo_func
 from ....domain.repositories.business_repository import BusinessRepository
@@ -163,13 +164,13 @@ async def get_professional_profile(
             
             return ProfessionalProfile(**profile_data)
         
-        # If not found in database, return mock data for the specific business_id
-        return _get_mock_profile(business_id)
+        # If not found in database, return 404
+        raise HTTPException(status_code=404, detail="Professional profile not found")
         
     except Exception as e:
         logger.error(f"Error fetching professional profile {business_id}: {str(e)}")
-        # Return mock data on error
-        return _get_mock_profile(business_id)
+        # Return error response
+        raise HTTPException(status_code=404, detail="Professional profile not found")
 
 
 @router.get("/services/{business_id}", response_model=List[ServiceItem])
@@ -203,12 +204,12 @@ async def get_professional_services(
                         "category": _get_service_category_from_name(product.name),
                         "base_price": float(product.unit_price) if product.unit_price else None,
                         "price_range_min": float(product.unit_price) if product.unit_price else None,
-                        "price_range_max": float(product.unit_price * 1.5) if product.unit_price else None,  # Estimate range
+                        "price_range_max": float(product.unit_price * Decimal('1.5')) if product.unit_price else None,  # Estimate range
                         "pricing_unit": "service call" if "repair" in product.name.lower() else "service",
                         "duration_minutes": _estimate_service_duration(product.name),
                         "is_emergency": "emergency" in product.name.lower(),
                         "requires_quote": "installation" in product.name.lower() or "system" in product.name.lower(),
-                        "available": product.is_active,
+                        "available": product.is_active(),
                         "service_areas": ["Austin", "Round Rock", "Cedar Park", "Pflugerville"],  # Default areas
                         "keywords": _generate_service_keywords(product.name)
                     }
@@ -222,24 +223,14 @@ async def get_professional_services(
             if emergency_only:
                 service_items = [s for s in service_items if s.is_emergency]
             
-            if service_items:
-                return service_items
+            return service_items
         
-        # Fallback to mock data if no services found in database
-        services = _get_mock_services(business_id)
-        
-        # Apply filters to mock data
-        if category:
-            services = [s for s in services if s.category.lower() == category.lower()]
-        
-        if emergency_only:
-            services = [s for s in services if s.is_emergency]
-        
-        return services
+        # No services found in database
+        return []
         
     except Exception as e:
         logger.error(f"Error fetching services for {business_id}: {str(e)}")
-        return _get_mock_services(business_id)
+        return []
 
 
 @router.get("/products/{business_id}", response_model=List[ProductItem])
@@ -267,7 +258,7 @@ async def get_professional_products(
                 if hasattr(product, 'product_type') and str(product.product_type) == 'service':
                     continue
                     
-                if in_stock_only and not product.is_active:
+                if in_stock_only and not product.is_active():
                     continue
                 
                 if category and product.category_id != category:
@@ -283,7 +274,7 @@ async def get_professional_products(
                     "sku": product.sku or "",
                     "price": float(product.unit_price),
                     "msrp": None,  # TODO: Add MSRP field to product entity
-                    "in_stock": product.is_active,
+                    "in_stock": product.is_active(),
                     "stock_quantity": int(product.quantity_on_hand) if product.quantity_on_hand else 0,
                     "specifications": {},  # TODO: Add specifications field
                     "warranty_years": None,  # TODO: Add warranty field
@@ -294,12 +285,12 @@ async def get_professional_products(
             
             return product_items
         
-        # If no products found in database, return mock data
-        return _get_mock_products(business_id)
+        # No products found in database
+        return []
         
     except Exception as e:
         logger.error(f"Error fetching products for {business_id}: {str(e)}")
-        return _get_mock_products(business_id)
+        return []
 
 
 @router.get("/availability/{business_id}", response_model=List[AvailabilitySlot])
@@ -315,13 +306,13 @@ async def get_professional_availability(
     """
     
     try:
-        # For now, return mock availability data
         # TODO: Implement real database integration with calendar_events table
-        return _get_mock_availability(business_id, start_date, end_date)
+        # For now, return empty availability until calendar integration is implemented
+        return []
         
     except Exception as e:
         logger.error(f"Error fetching availability for {business_id}: {str(e)}")
-        return _get_mock_availability(business_id, start_date, end_date)
+        return []
 
 
 # Helper functions for service data mapping
@@ -380,285 +371,3 @@ def _generate_service_keywords(service_name: str) -> List[str]:
         keywords.extend(["thermostat", "smart thermostat", "temperature control"])
     
     return keywords
-
-
-# Mock data functions (fallback when database is empty or unavailable)
-def _get_mock_profile(business_id: str) -> ProfessionalProfile:
-    """Get mock profile data for testing."""
-    
-    # Different mock data based on business_id
-    if business_id == "a1b2c3d4-e5f6-7890-1234-567890abcdef":
-        return ProfessionalProfile(
-            business_id=business_id,
-            business_name="Austin Elite HVAC",
-            trade_type="hvac",
-            description="Premier HVAC services for Austin homes and businesses. Specializing in energy-efficient installations, emergency repairs, and preventative maintenance.",
-            phone="(512) 555-COOL",
-            email="info@austinelitehvac.com",
-            address="123 Main St, Austin, TX 78701",
-            website=HttpUrl("https://www.austinelitehvac.com"),
-            service_areas=["Austin", "Round Rock", "Cedar Park", "Pflugerville", "Georgetown"],
-            emergency_service=True,
-            years_in_business=15,
-            license_number="TACLA123456",
-            insurance_verified=True,
-            average_rating=4.9,
-            total_reviews=187,
-            certifications=["NATE Certified", "EPA Universal", "BBB A+ Rating"]
-        )
-    
-    # Default mock profile
-    return ProfessionalProfile(
-        business_id=business_id,
-        business_name="Professional Services",
-        trade_type="general",
-        description="Professional services with years of experience",
-        phone="(555) 123-4567",
-        email="info@professional.com",
-        address="123 Main St, City, State 12345",
-        service_areas=["Local Area"],
-        emergency_service=True,
-        years_in_business=10,
-        license_number="LICENSE123",
-        insurance_verified=True,
-        average_rating=4.8,
-        total_reviews=150,
-        certifications=["Licensed & Insured"]
-    )
-
-
-def _get_mock_services(business_id: str) -> List[ServiceItem]:
-    """Get mock services data for testing."""
-    
-    if business_id == "a1b2c3d4-e5f6-7890-1234-567890abcdef":
-        return [
-            ServiceItem(
-                id="emergency-ac-repair",
-                name="Emergency AC Repair",
-                description="24/7 rapid response for all AC breakdowns",
-                category="Repair",
-                base_price=149.0,
-                price_range_min=149.0,
-                price_range_max=599.0,
-                pricing_unit="service call",
-                duration_minutes=90,
-                is_emergency=True,
-                requires_quote=False,
-                available=True,
-                service_areas=["Austin", "Round Rock", "Cedar Park", "Pflugerville"],
-                keywords=["emergency ac repair", "air conditioning repair", "hvac emergency"]
-            ),
-            ServiceItem(
-                id="hvac-installation",
-                name="HVAC System Installation",
-                description="New energy-efficient HVAC system installation and replacement",
-                category="Installation",
-                base_price=None,
-                price_range_min=3000.0,
-                price_range_max=12000.0,
-                pricing_unit="complete system",
-                duration_minutes=240,
-                is_emergency=False,
-                requires_quote=True,
-                available=True,
-                service_areas=["Austin", "Round Rock", "Cedar Park", "Pflugerville"],
-                keywords=["hvac installation", "new ac system", "heating installation"]
-            ),
-            ServiceItem(
-                id="maintenance-plan",
-                name="Preventative Maintenance Plan",
-                description="Annual tune-ups to ensure optimal system performance and longevity",
-                category="Maintenance",
-                base_price=199.0,
-                price_range_min=199.0,
-                price_range_max=399.0,
-                pricing_unit="annual plan",
-                duration_minutes=60,
-                is_emergency=False,
-                requires_quote=False,
-                available=True,
-                service_areas=["Austin", "Round Rock", "Cedar Park", "Pflugerville"],
-                keywords=["hvac maintenance", "ac tune up", "preventive service"]
-            ),
-            ServiceItem(
-                id="duct-cleaning",
-                name="Duct Cleaning",
-                description="Improve air quality and system efficiency with professional duct cleaning",
-                category="Air Quality",
-                base_price=250.0,
-                price_range_min=250.0,
-                price_range_max=450.0,
-                pricing_unit="complete service",
-                duration_minutes=180,
-                is_emergency=False,
-                requires_quote=False,
-                available=True,
-                service_areas=["Austin", "Round Rock", "Cedar Park", "Pflugerville"],
-                keywords=["duct cleaning", "air quality", "hvac cleaning"]
-            )
-        ]
-    
-    # Default mock services
-    return [
-        ServiceItem(
-            id="general-service",
-            name="Professional Service",
-            description="High-quality professional service",
-            category="General",
-            base_price=99.0,
-            price_range_min=99.0,
-            price_range_max=299.0,
-            pricing_unit="service call",
-            duration_minutes=120,
-            is_emergency=False,
-            requires_quote=False,
-            available=True,
-            service_areas=["Local Area"],
-            keywords=["professional", "service", "quality"]
-        )
-    ]
-
-
-def _get_mock_products(business_id: str) -> List[ProductItem]:
-    """Get mock products data for testing."""
-    
-    if business_id == "a1b2c3d4-e5f6-7890-1234-567890abcdef":
-        return [
-            ProductItem(
-                id="smart-thermostat-ecobee",
-                name="Smart Thermostat (Ecobee)",
-                description="Energy-saving smart thermostat with remote control and voice integration",
-                category="Thermostats",
-                brand="Ecobee",
-                model="SmartThermostat",
-                sku="HVAC-THERM-001",
-                price=249.99,
-                msrp=299.99,
-                in_stock=True,
-                stock_quantity=15,
-                specifications={
-                    "features": "Wi-Fi, Voice Control, Room Sensors",
-                    "compatibility": "Most HVAC systems",
-                    "warranty": "3 years"
-                },
-                warranty_years=3,
-                energy_rating="ENERGY STAR Certified"
-            ),
-            ProductItem(
-                id="hepa-air-filter",
-                name="HEPA Air Filter (MERV 13)",
-                description="High-efficiency particulate air filter for superior air purification",
-                category="Air Filters",
-                brand="FilterBuy",
-                model="MERV 13",
-                sku="HVAC-FILT-001",
-                price=39.99,
-                msrp=49.99,
-                in_stock=True,
-                stock_quantity=100,
-                specifications={
-                    "size": "20x20x1",
-                    "merv_rating": "13",
-                    "efficiency": "99.97% at 0.3 microns"
-                },
-                warranty_years=1,
-                energy_rating="High Efficiency"
-            ),
-            ProductItem(
-                id="central-ac-unit-3ton",
-                name="Central AC Unit (3 Ton)",
-                description="Energy-efficient central air conditioning system for medium homes",
-                category="AC Units",
-                brand="Trane",
-                model="XR14",
-                sku="HVAC-AC-001",
-                price=2499.99,
-                msrp=2799.99,
-                in_stock=True,
-                stock_quantity=5,
-                specifications={
-                    "capacity": "3 tons",
-                    "seer": "14.5",
-                    "refrigerant": "R-410A"
-                },
-                warranty_years=10,
-                energy_rating="14.5 SEER"
-            )
-        ]
-    
-    # Default mock products
-    return [
-        ProductItem(
-            id="professional-equipment",
-            name="Professional Equipment",
-            description="High-quality professional equipment",
-            category="Equipment",
-            brand="Professional Brand",
-            model="Model 2024",
-            sku="PROF-001",
-            price=1299.99,
-            msrp=1499.99,
-            in_stock=True,
-            stock_quantity=10,
-            specifications={
-                "type": "Professional Grade",
-                "warranty": "5 years"
-            },
-            warranty_years=5,
-            energy_rating="Energy Star"
-        )
-    ]
-
-
-def _get_mock_availability(business_id: str, start_date: date, end_date: date) -> List[AvailabilitySlot]:
-    """Get mock availability data for testing."""
-    
-    from datetime import timedelta
-    
-    slots = []
-    current_date = start_date
-    
-    while current_date <= end_date:
-        # Skip weekends for simplicity
-        if current_date.weekday() < 5:  # Monday = 0, Friday = 4
-            # Add morning slots
-            slots.append(AvailabilitySlot(
-                slot_date=current_date,
-                start_time="09:00",
-                end_time="10:00",
-                slot_type="regular",
-                duration_minutes=60,
-                available=True
-            ))
-            
-            slots.append(AvailabilitySlot(
-                slot_date=current_date,
-                start_time="10:00",
-                end_time="11:00",
-                slot_type="regular",
-                duration_minutes=60,
-                available=True
-            ))
-            
-            # Add afternoon slots
-            slots.append(AvailabilitySlot(
-                slot_date=current_date,
-                start_time="14:00",
-                end_time="15:00",
-                slot_type="regular",
-                duration_minutes=60,
-                available=True
-            ))
-            
-            slots.append(AvailabilitySlot(
-                slot_date=current_date,
-                start_time="15:00",
-                end_time="16:00",
-                slot_type="regular",
-                duration_minutes=60,
-                available=True
-            ))
-        
-        current_date += timedelta(days=1)
-    
-    return slots

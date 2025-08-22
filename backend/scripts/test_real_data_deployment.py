@@ -56,6 +56,15 @@ async def test_real_data_deployment():
         
         # Generate enhanced content using the real data
         website_content = {
+            "business": {
+                "name": profile['business_name'],
+                "description": profile['description'],
+                "phone": profile['phone'],
+                "email": profile['email'],
+                "address": profile['address'],
+                "hours": "Mon-Fri 7AM-8PM, Sat-Sun 8AM-6PM, 24/7 Emergency Service",
+                "serviceAreas": profile['service_areas']
+            },
             "hero": {
                 "headline": f"{profile['business_name']} - {profile['description'][:50]}...",
                 "subtitle": f"Serving {', '.join(profile['service_areas'][:3])} with {profile['years_in_business']}+ years of experience",
@@ -65,24 +74,21 @@ async def test_real_data_deployment():
                 "rating": profile['average_rating'],
                 "reviews": profile['total_reviews']
             },
-            "services": {
-                "title": f"Our {profile['trade_type'].upper()} Services",
-                "subtitle": f"Professional {profile['trade_type']} services in {profile['service_areas'][0]}",
-                "services": [
-                    {
-                        "name": service['name'],
-                        "description": service['description'],
-                        "price": f"From ${service['base_price']}" if service['base_price'] else "Free Estimate",
-                        "features": [
-                            f"{service['duration_minutes']} min service" if service['duration_minutes'] else "Quick response",
-                            "Licensed professionals",
-                            "Warranty included"
-                        ],
-                        "emergency": service['is_emergency']
-                    }
-                    for service in services[:4]  # Limit to 4 services
-                ]
-            },
+            "services": [
+                {
+                    "title": service['name'],  # Changed from "name" to "title"
+                    "description": service['description'],
+                    "price": f"From ${service['base_price']}" if service['base_price'] else "Free Estimate",
+                    "features": [
+                        f"{service['duration_minutes']} min service" if service['duration_minutes'] else "Quick response",
+                        "Licensed professionals",
+                        "Warranty included"
+                    ],
+                    "isEmergency": service['is_emergency'],  # Changed from "emergency" to "isEmergency"
+                    "isPopular": service['name'] == "Emergency AC Repair"  # Mark emergency repair as popular
+                }
+                for service in services[:6]  # Include all services
+            ],
             "products": {
                 "title": "Featured Products",
                 "subtitle": "High-quality products from trusted brands",

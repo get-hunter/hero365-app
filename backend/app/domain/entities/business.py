@@ -8,7 +8,7 @@ import uuid
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, Field, field_validator, model_validator, UUID4
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from ..exceptions.domain_exceptions import DomainValidationError
 
@@ -79,7 +79,7 @@ class Business(BaseModel):
     regardless of how they are stored or presented.
     """
     
-    id: UUID4 = Field(default_factory=uuid.uuid4)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
     name: str = Field(..., min_length=1, max_length=255)
     industry: str = Field(..., min_length=1, max_length=100)
     company_size: CompanySize

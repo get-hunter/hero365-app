@@ -363,10 +363,21 @@ def main():
     business = create_test_business()
     print(f"   Business: {business['name']}")
     
-    # 2. Generate content
+    # 2. Generate content (check for real data first)
     print("\n2. Generating content...")
-    content = generate_content_for_template(business)
-    print(f"   Generated content for {len(content)} sections")
+    
+    # Check if real content file exists (from test_real_data_deployment.py)
+    real_content_file = backend_path / "temp_website_content.json"
+    if real_content_file.exists():
+        print("   📊 Using real API data from temp_website_content.json")
+        import json
+        with open(real_content_file, 'r') as f:
+            content = json.load(f)
+        print(f"   ✅ Loaded real content with {len(content)} sections")
+    else:
+        print("   📝 Generating static template content...")
+        content = generate_content_for_template(business)
+        print(f"   Generated content for {len(content)} sections")
     
     # 3. Inject content
     print("\n3. Injecting content into template...")
