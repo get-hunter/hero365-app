@@ -447,6 +447,16 @@ import type {
   UsersUpdateUserBusinessContextResponse,
   UtilsTestEmailData,
   UtilsTestEmailResponse,
+  WebsiteDeploymentDeployWebsiteData,
+  WebsiteDeploymentDeployWebsiteResponse,
+  WebsiteDeploymentGetDeploymentStatusData,
+  WebsiteDeploymentGetDeploymentStatusResponse,
+  WebsiteDeploymentListDeploymentsData,
+  WebsiteDeploymentListDeploymentsResponse,
+  WebsiteDeploymentCancelDeploymentData,
+  WebsiteDeploymentCancelDeploymentResponse,
+  WebsiteDeploymentPreviewWebsiteData,
+  WebsiteDeploymentPreviewWebsiteResponse,
 } from "./types.gen"
 
 export class ActivitiesService {
@@ -1080,7 +1090,7 @@ export class AuthService {
    * Refresh Token
    * Refresh access token using refresh token
    * @param data The data for the request.
-   * @param data.refreshToken
+   * @param data.requestBody
    * @returns unknown Successful Response
    * @throws ApiError
    */
@@ -1090,9 +1100,8 @@ export class AuthService {
     return __request(OpenAPI, {
       method: "POST",
       url: "/api/v1/auth/refresh",
-      query: {
-        refresh_token: data.refreshToken,
-      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },
@@ -6279,6 +6288,132 @@ export class UtilsService {
       query: {
         email_to: data.emailTo,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class WebsiteDeploymentService {
+  /**
+   * Deploy Website
+   * Deploy a professional website using AI-generated content and Next.js templates.
+   *
+   * This endpoint creates a complete professional website with:
+   * - AI-optimized content for SEO
+   * - Trade-specific templates
+   * - Responsive design
+   * - Professional components (reviews, service areas, etc.)
+   * - Automatic deployment to Cloudflare Pages
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns WebsiteDeploymentResponse Successful Response
+   * @throws ApiError
+   */
+  public static deployWebsite(
+    data: WebsiteDeploymentDeployWebsiteData,
+  ): CancelablePromise<WebsiteDeploymentDeployWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/api/v1/website-deployment/deploy",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Deployment Status
+   * Get the current status of a website deployment.
+   *
+   * Returns real-time status including progress, current step, and completion details.
+   * @param data The data for the request.
+   * @param data.deploymentId
+   * @returns DeploymentStatus Successful Response
+   * @throws ApiError
+   */
+  public static getDeploymentStatus(
+    data: WebsiteDeploymentGetDeploymentStatusData,
+  ): CancelablePromise<WebsiteDeploymentGetDeploymentStatusResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/api/v1/website-deployment/status/{deployment_id}",
+      path: {
+        deployment_id: data.deploymentId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Deployments
+   * List recent website deployments for the current user.
+   * @param data The data for the request.
+   * @param data.limit
+   * @returns DeploymentStatus Successful Response
+   * @throws ApiError
+   */
+  public static listDeployments(
+    data: WebsiteDeploymentListDeploymentsData = {},
+  ): CancelablePromise<WebsiteDeploymentListDeploymentsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/api/v1/website-deployment/deployments",
+      query: {
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Cancel Deployment
+   * Cancel a pending or in-progress deployment.
+   * @param data The data for the request.
+   * @param data.deploymentId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static cancelDeployment(
+    data: WebsiteDeploymentCancelDeploymentData,
+  ): CancelablePromise<WebsiteDeploymentCancelDeploymentResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/api/v1/website-deployment/deployments/{deployment_id}",
+      path: {
+        deployment_id: data.deploymentId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Preview Website
+   * Generate a preview of the website without deploying.
+   *
+   * Returns the generated content and template structure for preview purposes.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static previewWebsite(
+    data: WebsiteDeploymentPreviewWebsiteData,
+  ): CancelablePromise<WebsiteDeploymentPreviewWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/api/v1/website-deployment/preview",
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },

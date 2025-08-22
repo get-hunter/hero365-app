@@ -203,27 +203,27 @@ def generate_content_for_template(business):
             "phone": business["phone_number"],
             "email": business["business_email"],
             "address": business["business_address"],
-            "hours": "Mon-Fri 7AM-8PM, Sat-Sun 8AM-6PM",
-            "description": business["description"],
-            "serviceAreas": business["service_areas"]
+            "hours": "Mon-Fri 7AM-8PM, Sat-Sun 8AM-6PM, 24/7 Emergency Service",
+            "description": f"{business['name']} is Austin's premier HVAC service provider, delivering exceptional heating, cooling, and air quality solutions since 1999. Our NATE-certified technicians combine decades of experience with cutting-edge technology.",
+            "serviceAreas": business["service_areas"] + ["Lakeway", "Bee Cave", "Dripping Springs", "Manor", "Hutto"]
         },
         "hero": {
-            "headline": "Austin's Premier HVAC Experts",
-            "subtitle": "Fast, Reliable Service • Licensed & Insured • 100% Satisfaction Guaranteed",
+            "headline": "Austin's Most Trusted HVAC Experts",
+            "subtitle": "24/7 Emergency Service • Same-Day Repairs • 100% Satisfaction Guaranteed • NATE Certified Technicians",
             "ctaButtons": [
                 {"text": "Get Free Quote", "action": "open_quote", "style": "primary"},
                 {"text": "Call Now", "action": "call", "style": "secondary"}
             ],
-            "trustIndicators": ["Licensed & Insured", "25+ Years Experience", "A+ BBB Rating"],
+            "trustIndicators": ["Licensed & Insured", "25+ Years Experience", "A+ BBB Rating", "NATE Certified", "5-Star Reviews"],
             "showEmergencyBanner": True,
-            "emergencyMessage": "🚨 HVAC Emergency? We're Available 24/7 - Call Now!"
+            "emergencyMessage": "🚨 HVAC Emergency? We're Available 24/7 - No Overtime Charges!"
         },
         "services": [
             {
                 "title": "Emergency AC Repair",
-                "description": "24/7 emergency air conditioning repair service",
+                "description": "24/7 emergency air conditioning repair throughout Austin metro. Fast response, expert diagnosis, and reliable repairs for all AC brands and models.",
                 "price": "From $99",
-                "features": ["Same-day service", "All major brands", "Parts warranty"],
+                "features": ["Same-day service", "All major brands", "Parts warranty", "Upfront pricing"],
                 "isPopular": True
             },
             {
@@ -246,9 +246,9 @@ def generate_content_for_template(business):
             }
         ],
         "seo": {
-            "title": f"{business['name']} - HVAC Repair & Installation in Austin, TX",
-            "description": f"Professional HVAC services in Austin. Emergency AC repair, heating installation, and maintenance. Licensed & insured. Call {business['phone_number']} for same-day service.",
-            "keywords": ["hvac austin tx", "ac repair austin", "heating repair austin", "hvac installation", "emergency hvac"]
+            "title": f"{business['name']} - Professional HVAC Services in Austin, TX | 24/7 Emergency Repair",
+            "description": f"Expert HVAC services in Austin, TX. 24/7 emergency AC & heating repair, installation, and maintenance. Licensed & insured NATE-certified technicians. Call {business['phone_number']} for same-day service and free estimates.",
+            "keywords": ["hvac austin tx", "ac repair austin", "heating repair austin", "hvac installation austin", "emergency hvac austin", "austin hvac contractor", "nate certified hvac austin", "hvac maintenance austin"]
         }
     }
 

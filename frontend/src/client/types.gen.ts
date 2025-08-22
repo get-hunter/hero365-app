@@ -3037,6 +3037,24 @@ export type DashboardActivitiesResponse = {
 }
 
 /**
+ * Deployment status response.
+ */
+export type DeploymentStatus = {
+  deployment_id: string
+  status: string
+  /**
+   * Progress percentage
+   */
+  progress: number
+  /**
+   * Current deployment step
+   */
+  current_step: string
+  website_url?: string | null
+  error_message?: string | null
+}
+
+/**
  * Current device state
  */
 export type DeviceState = {
@@ -5516,6 +5534,10 @@ export type ReferralSourceSchema =
   | "app_store"
   | "other"
 
+export type RefreshTokenRequest = {
+  refresh_token: string
+}
+
 /**
  * Relationship status enumeration.
  */
@@ -6885,6 +6907,131 @@ export type VoiceSessionStatusResponse = {
 }
 
 /**
+ * Request model for website deployment.
+ */
+export type WebsiteDeploymentRequest = {
+  /**
+   * Business name
+   */
+  business_name: string
+  /**
+   * Primary trade (hvac, plumbing, electrical, etc.)
+   */
+  trade_type: string
+  /**
+   * Primary service location
+   */
+  location: string
+  /**
+   * Business phone number
+   */
+  phone_number: string
+  /**
+   * Business email address
+   */
+  email: string
+  /**
+   * Business address
+   */
+  address: string
+  /**
+   * Custom domain (optional)
+   */
+  custom_domain?: string | null
+  /**
+   * Template variant
+   */
+  template_variant?: string | null
+  /**
+   * SEO target keywords
+   */
+  target_keywords?: Array<string> | null
+  /**
+   * Additional service areas
+   */
+  service_areas?: Array<string> | null
+  /**
+   * Primary brand color
+   */
+  primary_color?: string | null
+  /**
+   * Secondary brand color
+   */
+  secondary_color?: string | null
+  /**
+   * Logo URL
+   */
+  logo_url?: string | null
+  /**
+   * Include reviews section
+   */
+  include_reviews?: boolean
+  /**
+   * Include service areas
+   */
+  include_service_areas?: boolean
+  /**
+   * Include about section
+   */
+  include_about?: boolean
+  /**
+   * Highlight emergency service
+   */
+  emergency_service?: boolean
+}
+
+/**
+ * Response model for website deployment.
+ */
+export type WebsiteDeploymentResponse = {
+  /**
+   * Unique deployment ID
+   */
+  deployment_id: string
+  /**
+   * Deployment status
+   */
+  status: string
+  /**
+   * Live website URL
+   */
+  website_url?: string | null
+  /**
+   * Preview URL
+   */
+  preview_url?: string | null
+  /**
+   * Build time in seconds
+   */
+  build_time?: number | null
+  /**
+   * Number of pages generated
+   */
+  pages_generated?: number | null
+  /**
+   * SEO optimization score
+   */
+  seo_score?: number | null
+  /**
+   * Number of content sections
+   */
+  content_sections?: number | null
+  /**
+   * SEO keywords optimized
+   */
+  keywords_optimized?: Array<string> | null
+  created_at?: string
+  /**
+   * Deployment completion time
+   */
+  deployed_at?: string | null
+  /**
+   * Error message if deployment failed
+   */
+  error_message?: string | null
+}
+
+/**
  * Working hours response.
  */
 export type WorkingHoursResponse = {
@@ -7218,7 +7365,7 @@ export type AuthOauthLoginResponse = {
 export type AuthSignOutResponse = Message
 
 export type AuthRefreshTokenData = {
-  refreshToken: string
+  requestBody: RefreshTokenRequest
 }
 
 export type AuthRefreshTokenResponse = {
@@ -9123,3 +9270,33 @@ export type UtilsTestEmailData = {
 }
 
 export type UtilsTestEmailResponse = Message
+
+export type WebsiteDeploymentDeployWebsiteData = {
+  requestBody: WebsiteDeploymentRequest
+}
+
+export type WebsiteDeploymentDeployWebsiteResponse = WebsiteDeploymentResponse
+
+export type WebsiteDeploymentGetDeploymentStatusData = {
+  deploymentId: string
+}
+
+export type WebsiteDeploymentGetDeploymentStatusResponse = DeploymentStatus
+
+export type WebsiteDeploymentListDeploymentsData = {
+  limit?: number
+}
+
+export type WebsiteDeploymentListDeploymentsResponse = Array<DeploymentStatus>
+
+export type WebsiteDeploymentCancelDeploymentData = {
+  deploymentId: string
+}
+
+export type WebsiteDeploymentCancelDeploymentResponse = unknown
+
+export type WebsiteDeploymentPreviewWebsiteData = {
+  requestBody: WebsiteDeploymentRequest
+}
+
+export type WebsiteDeploymentPreviewWebsiteResponse = unknown

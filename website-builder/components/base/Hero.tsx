@@ -44,7 +44,7 @@ export default function Hero({
       
       {/* Hero Section */}
       <div
-        className="relative min-h-[600px] flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50"
+        className="relative min-h-[700px] flex items-center justify-center bg-gradient-to-br from-blue-600 via-blue-700 to-green-600"
         style={{
           backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
           backgroundSize: 'cover',
@@ -52,17 +52,15 @@ export default function Hero({
         }}
       >
         {/* Overlay for better text readability */}
-        {backgroundImage && (
-          <div className="absolute inset-0 bg-black bg-opacity-50" />
-        )}
+        <div className="absolute inset-0 bg-black bg-opacity-30" />
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-gray-900">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white drop-shadow-lg">
             {headline}
           </h1>
           
           {subtitle && (
-            <p className="text-xl md:text-2xl mb-8 text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl mb-8 text-white drop-shadow-md max-w-3xl mx-auto">
               {subtitle}
             </p>
           )}
@@ -97,7 +95,7 @@ export default function Hero({
               {trustIndicators.map((indicator, index) => (
                 <span
                   key={index}
-                  className="bg-white px-4 py-2 rounded-full shadow-md text-sm font-medium text-gray-700"
+                  className="bg-white bg-opacity-95 px-6 py-3 rounded-full shadow-lg text-sm font-semibold text-gray-800 backdrop-blur-sm"
                 >
                   ✓ {indicator}
                 </span>
@@ -107,26 +105,35 @@ export default function Hero({
           
           {/* Business Info Bar */}
           {business && (
-            <div className="bg-white bg-opacity-95 rounded-lg shadow-xl p-6 max-w-4xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-700">
+            <div className="bg-white bg-opacity-95 rounded-xl shadow-2xl p-8 max-w-5xl mx-auto backdrop-blur-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-gray-700">
                 {business.phone && (
-                  <div className="flex items-center justify-center gap-2">
-                    <Phone className="w-5 h-5 text-blue-600" />
-                    <a href={`tel:${business.phone}`} className="font-semibold hover:text-blue-600">
-                      {business.phone}
-                    </a>
+                  <div className="flex items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg">
+                    <Phone className="w-6 h-6 text-blue-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Call Now</p>
+                      <a href={`tel:${business.phone}`} className="font-bold text-lg hover:text-blue-600 transition-colors">
+                        {business.phone}
+                      </a>
+                    </div>
                   </div>
                 )}
                 {business.address && (
-                  <div className="flex items-center justify-center gap-2">
-                    <MapPin className="w-5 h-5 text-green-600" />
-                    <span>{business.address}</span>
+                  <div className="flex items-center justify-center gap-3 p-4 bg-green-50 rounded-lg">
+                    <MapPin className="w-6 h-6 text-green-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Service Area</p>
+                      <span className="font-semibold">{business.address}</span>
+                    </div>
                   </div>
                 )}
                 {business.hours && (
-                  <div className="flex items-center justify-center gap-2">
-                    <Clock className="w-5 h-5 text-orange-600" />
-                    <span>{business.hours}</span>
+                  <div className="flex items-center justify-center gap-3 p-4 bg-orange-50 rounded-lg">
+                    <Clock className="w-6 h-6 text-orange-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Business Hours</p>
+                      <span className="font-semibold">{business.hours}</span>
+                    </div>
                   </div>
                 )}
               </div>
