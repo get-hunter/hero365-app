@@ -44,6 +44,13 @@ CREATE TABLE IF NOT EXISTS public.website_templates (
     )
 );
 
+-- Add missing column for system templates
+ALTER TABLE public.website_templates ADD COLUMN IF NOT EXISTS is_system_template BOOLEAN DEFAULT FALSE;
+
+-- Add missing columns for domain registrations
+ALTER TABLE public.domain_registrations ADD COLUMN IF NOT EXISTS seo_score INTEGER CHECK (seo_score >= 0 AND seo_score <= 100);
+ALTER TABLE public.domain_registrations ADD COLUMN IF NOT EXISTS seo_factors JSONB DEFAULT '{}'::JSONB;
+
 -- =====================================
 -- BUSINESS WEBSITES TABLE
 -- =====================================
@@ -495,84 +502,84 @@ CREATE TABLE IF NOT EXISTS public.website_build_jobs (
 -- =====================================
 
 -- Website Templates
-CREATE INDEX idx_website_templates_trade_type ON public.website_templates(trade_type);
-CREATE INDEX idx_website_templates_trade_category ON public.website_templates(trade_category);
-CREATE INDEX idx_website_templates_is_active ON public.website_templates(is_active) WHERE is_active = TRUE;
-CREATE INDEX idx_website_templates_is_multi_trade ON public.website_templates(is_multi_trade) WHERE is_multi_trade = TRUE;
-CREATE INDEX idx_website_templates_supported_trades ON public.website_templates USING GIN(supported_trades);
+CREATE INDEX IF NOT EXISTS idx_website_templates_trade_type ON public.website_templates(trade_type);
+CREATE INDEX IF NOT EXISTS idx_website_templates_trade_category ON public.website_templates(trade_category);
+CREATE INDEX IF NOT EXISTS idx_website_templates_is_active ON public.website_templates(is_active) WHERE is_active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_website_templates_is_multi_trade ON public.website_templates(is_multi_trade) WHERE is_multi_trade = TRUE;
+CREATE INDEX IF NOT EXISTS idx_website_templates_supported_trades ON public.website_templates USING GIN(supported_trades);
 
 -- Business Websites
-CREATE INDEX idx_business_websites_business_id ON public.business_websites(business_id);
-CREATE INDEX idx_business_websites_branding_id ON public.business_websites(branding_id);
-CREATE INDEX idx_business_websites_template_id ON public.business_websites(template_id);
-CREATE INDEX idx_business_websites_status ON public.business_websites(status);
-CREATE INDEX idx_business_websites_domain ON public.business_websites(domain) WHERE domain IS NOT NULL;
-CREATE INDEX idx_business_websites_primary_trade ON public.business_websites(primary_trade);
-CREATE INDEX idx_business_websites_service_areas ON public.business_websites USING GIN(service_areas);
+CREATE INDEX IF NOT EXISTS idx_business_websites_business_id ON public.business_websites(business_id);
+CREATE INDEX IF NOT EXISTS idx_business_websites_branding_id ON public.business_websites(branding_id);
+CREATE INDEX IF NOT EXISTS idx_business_websites_template_id ON public.business_websites(template_id);
+CREATE INDEX IF NOT EXISTS idx_business_websites_status ON public.business_websites(status);
+CREATE INDEX IF NOT EXISTS idx_business_websites_custom_domain ON public.business_websites(custom_domain) WHERE custom_domain IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_business_websites_primary_trade ON public.business_websites(primary_trade);
+CREATE INDEX IF NOT EXISTS idx_business_websites_service_areas ON public.business_websites USING GIN(service_areas);
 
 -- Domain Registrations
-CREATE INDEX idx_domain_registrations_business_id ON public.domain_registrations(business_id);
-CREATE INDEX idx_domain_registrations_website_id ON public.domain_registrations(website_id);
-CREATE INDEX idx_domain_registrations_domain ON public.domain_registrations(domain);
-CREATE INDEX idx_domain_registrations_status ON public.domain_registrations(status);
-CREATE INDEX idx_domain_registrations_expires_at ON public.domain_registrations(expires_at);
-CREATE INDEX idx_domain_registrations_provider ON public.domain_registrations(provider);
+CREATE INDEX IF NOT EXISTS idx_domain_registrations_business_id ON public.domain_registrations(business_id);
+CREATE INDEX IF NOT EXISTS idx_domain_registrations_website_id ON public.domain_registrations(website_id);
+CREATE INDEX IF NOT EXISTS idx_domain_registrations_domain ON public.domain_registrations(domain);
+CREATE INDEX IF NOT EXISTS idx_domain_registrations_status ON public.domain_registrations(status);
+CREATE INDEX IF NOT EXISTS idx_domain_registrations_expires_at ON public.domain_registrations(expires_at);
+CREATE INDEX IF NOT EXISTS idx_domain_registrations_provider ON public.domain_registrations(provider);
 
 -- Website Analytics
-CREATE INDEX idx_website_analytics_website_id ON public.website_analytics(website_id);
-CREATE INDEX idx_website_analytics_date ON public.website_analytics(date);
-CREATE INDEX idx_website_analytics_website_date ON public.website_analytics(website_id, date);
+CREATE INDEX IF NOT EXISTS idx_website_analytics_website_id ON public.website_analytics(website_id);
+CREATE INDEX IF NOT EXISTS idx_website_analytics_date ON public.website_analytics(date);
+CREATE INDEX IF NOT EXISTS idx_website_analytics_website_date ON public.website_analytics(website_id, date);
 
 -- SEO Keyword Tracking
-CREATE INDEX idx_seo_keyword_tracking_website_id ON public.seo_keyword_tracking(website_id);
-CREATE INDEX idx_seo_keyword_tracking_keyword ON public.seo_keyword_tracking(keyword);
-CREATE INDEX idx_seo_keyword_tracking_current_rank ON public.seo_keyword_tracking(current_rank);
-CREATE INDEX idx_seo_keyword_tracking_is_primary ON public.seo_keyword_tracking(is_primary_keyword) WHERE is_primary_keyword = TRUE;
-CREATE INDEX idx_seo_keyword_tracking_location ON public.seo_keyword_tracking(target_location);
+CREATE INDEX IF NOT EXISTS idx_seo_keyword_tracking_website_id ON public.seo_keyword_tracking(website_id);
+CREATE INDEX IF NOT EXISTS idx_seo_keyword_tracking_keyword ON public.seo_keyword_tracking(keyword);
+CREATE INDEX IF NOT EXISTS idx_seo_keyword_tracking_current_rank ON public.seo_keyword_tracking(current_rank);
+CREATE INDEX IF NOT EXISTS idx_seo_keyword_tracking_is_primary ON public.seo_keyword_tracking(is_primary_keyword) WHERE is_primary_keyword = TRUE;
+CREATE INDEX IF NOT EXISTS idx_seo_keyword_tracking_location ON public.seo_keyword_tracking(target_location);
 
 -- Google Business Profiles
-CREATE INDEX idx_google_business_profiles_business_id ON public.google_business_profiles(business_id);
-CREATE INDEX idx_google_business_profiles_website_id ON public.google_business_profiles(website_id);
-CREATE INDEX idx_google_business_profiles_sync_status ON public.google_business_profiles(sync_status);
-CREATE INDEX idx_google_business_profiles_last_sync ON public.google_business_profiles(last_sync_at);
+CREATE INDEX IF NOT EXISTS idx_google_business_profiles_business_id ON public.google_business_profiles(business_id);
+CREATE INDEX IF NOT EXISTS idx_google_business_profiles_website_id ON public.google_business_profiles(website_id);
+CREATE INDEX IF NOT EXISTS idx_google_business_profiles_sync_status ON public.google_business_profiles(sync_status);
+CREATE INDEX IF NOT EXISTS idx_google_business_profiles_last_sync ON public.google_business_profiles(last_sync_at);
 
 -- Website Build Jobs
-CREATE INDEX idx_website_build_jobs_website_id ON public.website_build_jobs(website_id);
-CREATE INDEX idx_website_build_jobs_status ON public.website_build_jobs(status);
-CREATE INDEX idx_website_build_jobs_job_type ON public.website_build_jobs(job_type);
-CREATE INDEX idx_website_build_jobs_priority ON public.website_build_jobs(priority, created_at);
-CREATE INDEX idx_website_build_jobs_created_at ON public.website_build_jobs(created_at);
+CREATE INDEX IF NOT EXISTS idx_website_build_jobs_website_id ON public.website_build_jobs(website_id);
+CREATE INDEX IF NOT EXISTS idx_website_build_jobs_status ON public.website_build_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_website_build_jobs_job_type ON public.website_build_jobs(job_type);
+CREATE INDEX IF NOT EXISTS idx_website_build_jobs_priority ON public.website_build_jobs(priority, created_at);
+CREATE INDEX IF NOT EXISTS idx_website_build_jobs_created_at ON public.website_build_jobs(created_at);
 
 -- Website Intake Forms
-CREATE INDEX idx_website_intake_forms_website_id ON public.website_intake_forms(website_id);
-CREATE INDEX idx_website_intake_forms_form_type ON public.website_intake_forms(form_type);
-CREATE INDEX idx_website_intake_forms_is_active ON public.website_intake_forms(is_active) WHERE is_active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_website_intake_forms_website_id ON public.website_intake_forms(website_id);
+CREATE INDEX IF NOT EXISTS idx_website_intake_forms_form_type ON public.website_intake_forms(form_type);
+CREATE INDEX IF NOT EXISTS idx_website_intake_forms_is_active ON public.website_intake_forms(is_active) WHERE is_active = TRUE;
 
 -- Website Form Submissions
-CREATE INDEX idx_website_form_submissions_website_id ON public.website_form_submissions(website_id);
-CREATE INDEX idx_website_form_submissions_form_id ON public.website_form_submissions(form_id);
-CREATE INDEX idx_website_form_submissions_business_id ON public.website_form_submissions(business_id);
-CREATE INDEX idx_website_form_submissions_lead_type ON public.website_form_submissions(lead_type);
-CREATE INDEX idx_website_form_submissions_priority ON public.website_form_submissions(priority_level);
-CREATE INDEX idx_website_form_submissions_status ON public.website_form_submissions(status);
-CREATE INDEX idx_website_form_submissions_submitted_at ON public.website_form_submissions(submitted_at);
-CREATE INDEX idx_website_form_submissions_contact_phone ON public.website_form_submissions(contact_phone);
-CREATE INDEX idx_website_form_submissions_contact_email ON public.website_form_submissions(contact_email);
+CREATE INDEX IF NOT EXISTS idx_website_form_submissions_website_id ON public.website_form_submissions(website_id);
+CREATE INDEX IF NOT EXISTS idx_website_form_submissions_form_id ON public.website_form_submissions(form_id);
+CREATE INDEX IF NOT EXISTS idx_website_form_submissions_business_id ON public.website_form_submissions(business_id);
+CREATE INDEX IF NOT EXISTS idx_website_form_submissions_lead_type ON public.website_form_submissions(lead_type);
+CREATE INDEX IF NOT EXISTS idx_website_form_submissions_priority ON public.website_form_submissions(priority_level);
+CREATE INDEX IF NOT EXISTS idx_website_form_submissions_status ON public.website_form_submissions(status);
+CREATE INDEX IF NOT EXISTS idx_website_form_submissions_submitted_at ON public.website_form_submissions(submitted_at);
+CREATE INDEX IF NOT EXISTS idx_website_form_submissions_contact_phone ON public.website_form_submissions(contact_phone);
+CREATE INDEX IF NOT EXISTS idx_website_form_submissions_contact_email ON public.website_form_submissions(contact_email);
 
 -- Website Booking Slots
-CREATE INDEX idx_website_booking_slots_website_id ON public.website_booking_slots(website_id);
-CREATE INDEX idx_website_booking_slots_business_id ON public.website_booking_slots(business_id);
-CREATE INDEX idx_website_booking_slots_appointment_date ON public.website_booking_slots(appointment_date);
-CREATE INDEX idx_website_booking_slots_status ON public.website_booking_slots(status);
-CREATE INDEX idx_website_booking_slots_customer_phone ON public.website_booking_slots(customer_phone);
-CREATE INDEX idx_website_booking_slots_service_type ON public.website_booking_slots(service_type);
+CREATE INDEX IF NOT EXISTS idx_website_booking_slots_website_id ON public.website_booking_slots(website_id);
+CREATE INDEX IF NOT EXISTS idx_website_booking_slots_business_id ON public.website_booking_slots(business_id);
+CREATE INDEX IF NOT EXISTS idx_website_booking_slots_appointment_date ON public.website_booking_slots(appointment_date);
+CREATE INDEX IF NOT EXISTS idx_website_booking_slots_status ON public.website_booking_slots(status);
+CREATE INDEX IF NOT EXISTS idx_website_booking_slots_customer_phone ON public.website_booking_slots(customer_phone);
+CREATE INDEX IF NOT EXISTS idx_website_booking_slots_service_type ON public.website_booking_slots(service_type);
 
 -- Website Conversion Tracking
-CREATE INDEX idx_website_conversion_tracking_website_id ON public.website_conversion_tracking(website_id);
-CREATE INDEX idx_website_conversion_tracking_event_type ON public.website_conversion_tracking(event_type);
-CREATE INDEX idx_website_conversion_tracking_event_timestamp ON public.website_conversion_tracking(event_timestamp);
-CREATE INDEX idx_website_conversion_tracking_traffic_source ON public.website_conversion_tracking(traffic_source);
-CREATE INDEX idx_website_conversion_tracking_visitor_id ON public.website_conversion_tracking(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_website_conversion_tracking_website_id ON public.website_conversion_tracking(website_id);
+CREATE INDEX IF NOT EXISTS idx_website_conversion_tracking_event_type ON public.website_conversion_tracking(event_type);
+CREATE INDEX IF NOT EXISTS idx_website_conversion_tracking_event_timestamp ON public.website_conversion_tracking(event_timestamp);
+CREATE INDEX IF NOT EXISTS idx_website_conversion_tracking_traffic_source ON public.website_conversion_tracking(traffic_source);
+CREATE INDEX IF NOT EXISTS idx_website_conversion_tracking_visitor_id ON public.website_conversion_tracking(visitor_id);
 
 -- =====================================
 -- ROW LEVEL SECURITY (RLS)
@@ -784,21 +791,27 @@ END;
 $$ language 'plpgsql';
 
 -- Apply updated_at triggers to all tables
+DROP TRIGGER IF EXISTS update_website_templates_updated_at ON public.website_templates;
 CREATE TRIGGER update_website_templates_updated_at BEFORE UPDATE ON public.website_templates
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_business_websites_updated_at ON public.business_websites;
 CREATE TRIGGER update_business_websites_updated_at BEFORE UPDATE ON public.business_websites
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_domain_registrations_updated_at ON public.domain_registrations;
 CREATE TRIGGER update_domain_registrations_updated_at BEFORE UPDATE ON public.domain_registrations
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_seo_keyword_tracking_updated_at ON public.seo_keyword_tracking;
 CREATE TRIGGER update_seo_keyword_tracking_updated_at BEFORE UPDATE ON public.seo_keyword_tracking
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_google_business_profiles_updated_at ON public.google_business_profiles;
 CREATE TRIGGER update_google_business_profiles_updated_at BEFORE UPDATE ON public.google_business_profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_website_build_jobs_updated_at ON public.website_build_jobs;
 CREATE TRIGGER update_website_build_jobs_updated_at BEFORE UPDATE ON public.website_build_jobs
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 

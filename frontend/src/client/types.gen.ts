@@ -751,6 +751,13 @@ export type AddressSchema = {
   country: string
 }
 
+export type AdoptServiceTemplateRequest = {
+  template_id: string
+  customizations?: {
+    [key: string]: unknown
+  } | null
+}
+
 /**
  * Schema for advance payment information.
  */
@@ -913,6 +920,36 @@ export type AvailabilityCheckResponse = {
 }
 
 /**
+ * Available time slot.
+ */
+export type AvailabilitySlot = {
+  /**
+   * Available date
+   */
+  slot_date: string
+  /**
+   * Start time (HH:MM format)
+   */
+  start_time: string
+  /**
+   * End time (HH:MM format)
+   */
+  end_time: string
+  /**
+   * Slot type (regular, emergency, consultation)
+   */
+  slot_type: string
+  /**
+   * Slot duration in minutes
+   */
+  duration_minutes: number
+  /**
+   * Slot is available
+   */
+  available?: boolean
+}
+
+/**
  * Request for available time slots.
  */
 export type AvailableTimeSlotRequest = {
@@ -1005,6 +1042,26 @@ export type Body_products_reserve_stock = {
    * Optional notes
    */
   notes?: string | null
+}
+
+/**
+ * Adopt multiple service templates at once (useful for onboarding).
+ */
+export type BulkAdoptServicesRequest = {
+  template_adoptions: Array<AdoptServiceTemplateRequest>
+  /**
+   * Business trade types for filtering
+   */
+  business_trade_types: Array<string>
+}
+
+/**
+ * Request for bulk catalog item line items.
+ */
+export type BulkCatalogRequest = {
+  items: Array<{
+    [key: string]: unknown
+  }>
 }
 
 /**
@@ -1324,6 +1381,50 @@ export type BusinessRoleSchema =
   | "viewer"
 
 /**
+ * Business-specific instance of a service.
+ */
+export type BusinessService = {
+  id: string
+  business_id: string
+  /**
+   * Template this service was created from
+   */
+  template_id?: string | null
+  category_id: string
+  name: string
+  description?: string | null
+  pricing_model: string
+  unit_price?: string | null
+  minimum_price?: string | null
+  unit_of_measure?: string
+  estimated_duration_hours?: string | null
+  markup_percentage?: string | null
+  cost_price?: string | null
+  is_active?: boolean
+  is_featured?: boolean
+  is_emergency?: boolean
+  requires_booking?: boolean
+  availability_schedule?: {
+    [key: string]: unknown
+  } | null
+  service_areas?: Array<string>
+  booking_settings?: {
+    [key: string]: unknown
+  }
+  warranty_terms?: string | null
+  terms_and_conditions?: string | null
+  custom_fields?: {
+    [key: string]: unknown
+  }
+  sort_order?: number
+  total_bookings?: number
+  average_rating?: string | null
+  last_booked_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
+/**
  * Response schema for business summary information.
  */
 export type BusinessSummaryResponse = {
@@ -1556,6 +1657,19 @@ export type CalendarPreferencesResponse = {
    * Calendar preferences
    */
   preferences?: CalendarPreferences | null
+}
+
+/**
+ * Line item data from catalog item (product or service).
+ */
+export type CatalogItemLineItem = {
+  id: string
+  name: string
+  description: string
+  unit_price: number
+  unit?: string
+  category?: string
+  item_type: string
 }
 
 /**
@@ -2584,6 +2698,25 @@ export type CreateCalendarEventRequest = {
   allows_emergency_override?: boolean
 }
 
+export type CreateCustomServiceRequest = {
+  category_id: string
+  name: string
+  description?: string | null
+  pricing_model: string
+  unit_price?: number | string | null
+  minimum_price?: number | string | null
+  unit_of_measure?: string
+  estimated_duration_hours?: number | string | null
+  is_emergency?: boolean
+  requires_booking?: boolean
+  service_areas?: Array<string>
+  warranty_terms?: string | null
+  terms_and_conditions?: string | null
+  custom_fields?: {
+    [key: string]: unknown
+  }
+}
+
 /**
  * Schema for creating estimates.
  */
@@ -2723,10 +2856,6 @@ export type CreateProductSchema = {
    */
   category_id?: string | null
   /**
-   * Pricing model
-   */
-  pricing_model?: string
-  /**
    * Base unit price
    */
   unit_price?: number | string
@@ -2734,10 +2863,6 @@ export type CreateProductSchema = {
    * Unit cost
    */
   cost_price?: number | string
-  /**
-   * Markup percentage over cost
-   */
-  markup_percentage?: number | string | null
   /**
    * Currency code
    */
@@ -4580,6 +4705,70 @@ export type ProcessPaymentSchema = {
 }
 
 /**
+ * Professional product information.
+ */
+export type ProductItem = {
+  /**
+   * Product ID
+   */
+  id: string
+  /**
+   * Product name
+   */
+  name: string
+  /**
+   * Product description
+   */
+  description: string
+  /**
+   * Product category
+   */
+  category: string
+  /**
+   * Product brand
+   */
+  brand?: string | null
+  /**
+   * Product model
+   */
+  model?: string | null
+  /**
+   * Product SKU
+   */
+  sku?: string | null
+  /**
+   * Product price
+   */
+  price: number
+  /**
+   * Manufacturer suggested retail price
+   */
+  msrp?: number | null
+  /**
+   * Product in stock
+   */
+  in_stock?: boolean
+  /**
+   * Current stock quantity
+   */
+  stock_quantity?: number
+  /**
+   * Product specifications
+   */
+  specifications?: {
+    [key: string]: string
+  }
+  /**
+   * Warranty period in years
+   */
+  warranty_years?: number | null
+  /**
+   * Energy efficiency rating
+   */
+  energy_rating?: string | null
+}
+
+/**
  * Schema for product list responses.
  */
 export type ProductListResponseSchema = {
@@ -4640,12 +4829,10 @@ export type ProductResponseSchema = {
   status_display: string
   category_id?: string | null
   category_name?: string | null
-  pricing_model: string
   unit_price: string
   currency: string
   unit_cost: string
   average_cost: string
-  markup_percentage?: string | null
   margin_percentage?: string | null
   track_inventory: boolean
   quantity_on_hand?: string
@@ -4792,6 +4979,76 @@ export type ProductSupplierSchema = {
   minimum_order_quantity?: string | null
   is_preferred?: boolean
   last_order_date?: string | null
+}
+
+/**
+ * Professional profile information.
+ */
+export type ProfessionalProfile = {
+  /**
+   * Business ID
+   */
+  business_id: string
+  /**
+   * Business name
+   */
+  business_name: string
+  /**
+   * Primary trade type
+   */
+  trade_type: string
+  /**
+   * Business description
+   */
+  description: string
+  /**
+   * Business phone
+   */
+  phone: string
+  /**
+   * Business email
+   */
+  email: string
+  /**
+   * Business address
+   */
+  address: string
+  /**
+   * Business website
+   */
+  website?: string | null
+  /**
+   * Service areas
+   */
+  service_areas?: Array<string>
+  /**
+   * 24/7 emergency service available
+   */
+  emergency_service?: boolean
+  /**
+   * Years in business
+   */
+  years_in_business?: number | null
+  /**
+   * License number
+   */
+  license_number?: string | null
+  /**
+   * Insurance verified
+   */
+  insurance_verified?: boolean
+  /**
+   * Average customer rating
+   */
+  average_rating?: number | null
+  /**
+   * Total number of reviews
+   */
+  total_reviews?: number | null
+  /**
+   * Professional certifications
+   */
+  certifications?: Array<string>
 }
 
 /**
@@ -5757,6 +6014,174 @@ export type SendOTPRequest = {
 }
 
 /**
+ * Standardized service category across trades.
+ */
+export type ServiceCategory = {
+  id: string
+  name: string
+  description?: string | null
+  slug: string
+  /**
+   * Trade types this category applies to
+   */
+  trade_types: Array<string>
+  /**
+   * Type: equipment, service_type, specialization
+   */
+  category_type: string
+  /**
+   * Lucide icon name
+   */
+  icon?: string | null
+  parent_id?: string | null
+  sort_order?: number
+  is_active?: boolean
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * Service category with its associated services.
+ */
+export type ServiceCategoryWithServices = {
+  id: string
+  name: string
+  description?: string | null
+  slug: string
+  /**
+   * Trade types this category applies to
+   */
+  trade_types: Array<string>
+  /**
+   * Type: equipment, service_type, specialization
+   */
+  category_type: string
+  /**
+   * Lucide icon name
+   */
+  icon?: string | null
+  parent_id?: string | null
+  sort_order?: number
+  is_active?: boolean
+  created_at: string
+  updated_at: string
+  services?: Array<BusinessService>
+  service_count?: number
+}
+
+/**
+ * Professional service information.
+ */
+export type ServiceItem = {
+  /**
+   * Service ID
+   */
+  id: string
+  /**
+   * Service name
+   */
+  name: string
+  /**
+   * Service description
+   */
+  description: string
+  /**
+   * Service category
+   */
+  category: string
+  /**
+   * Base price
+   */
+  base_price?: number | null
+  /**
+   * Minimum price
+   */
+  price_range_min?: number | null
+  /**
+   * Maximum price
+   */
+  price_range_max?: number | null
+  /**
+   * Pricing unit
+   */
+  pricing_unit?: string
+  /**
+   * Estimated duration
+   */
+  duration_minutes?: number | null
+  /**
+   * Emergency service available
+   */
+  is_emergency?: boolean
+  /**
+   * Requires custom quote
+   */
+  requires_quote?: boolean
+  /**
+   * Currently available
+   */
+  available?: boolean
+  /**
+   * Service areas
+   */
+  service_areas?: Array<string>
+  /**
+   * SEO keywords
+   */
+  keywords?: Array<string>
+}
+
+/**
+ * Pre-defined industry-standard service template.
+ */
+export type ServiceTemplate = {
+  id: string
+  category_id: string
+  name: string
+  description: string
+  /**
+   * Which trades typically offer this service
+   */
+  trade_types: Array<string>
+  /**
+   * product, service, maintenance_plan, emergency
+   */
+  service_type: string
+  /**
+   * fixed, hourly, per_unit, quote_required, tiered
+   */
+  pricing_model: string
+  default_unit_price?: string | null
+  price_range_min?: string | null
+  price_range_max?: string | null
+  unit_of_measure?: string
+  estimated_duration_hours?: string | null
+  tags?: Array<string>
+  /**
+   * Most businesses in this trade offer this
+   */
+  is_common?: boolean
+  is_emergency?: boolean
+  requires_license?: boolean
+  /**
+   * basic, intermediate, advanced, expert
+   */
+  skill_level?: string | null
+  prerequisites?: Array<string>
+  upsell_templates?: Array<string>
+  seasonal_demand?: {
+    [key: string]: unknown
+  } | null
+  metadata?: {
+    [key: string]: unknown
+  }
+  usage_count?: number
+  is_active?: boolean
+  created_at: string
+  updated_at: string
+}
+
+/**
  * Update session state from mobile app
  */
 export type SessionStateUpdate = {
@@ -6537,7 +6962,6 @@ export type UpdateProductSchema = {
   category_id?: string | null
   unit_price?: number | string | null
   cost_price?: number | string | null
-  markup_percentage?: number | string | null
   track_inventory?: boolean | null
   reorder_point?: number | string | null
   reorder_quantity?: number | string | null
@@ -6911,6 +7335,10 @@ export type VoiceSessionStatusResponse = {
  */
 export type WebsiteDeploymentRequest = {
   /**
+   * Business ID (if deploying for existing business)
+   */
+  business_id?: string | null
+  /**
    * Business name
    */
   business_name: string
@@ -6934,6 +7362,22 @@ export type WebsiteDeploymentRequest = {
    * Business address
    */
   address: string
+  /**
+   * Use real business data from Hero365 APIs
+   */
+  use_real_data?: boolean
+  /**
+   * Fetch real services data
+   */
+  fetch_services?: boolean
+  /**
+   * Fetch real products data
+   */
+  fetch_products?: boolean
+  /**
+   * Fetch real availability data
+   */
+  fetch_availability?: boolean
   /**
    * Custom domain (optional)
    */
@@ -8061,6 +8505,76 @@ export type IntelligentSchedulingGetCalendarPreferencesData = {
 export type IntelligentSchedulingGetCalendarPreferencesResponse =
   CalendarPreferences
 
+export type InvoiceHelpersGetLineItemFromCatalogData = {
+  itemId: string
+  /**
+   * Type: 'product' or 'service'
+   */
+  itemType: string
+}
+
+export type InvoiceHelpersGetLineItemFromCatalogResponse = CatalogItemLineItem
+
+export type InvoiceHelpersGetLineItemFromCatalog1Data = {
+  itemId: string
+  /**
+   * Type: 'product' or 'service'
+   */
+  itemType: string
+}
+
+export type InvoiceHelpersGetLineItemFromCatalog1Response = CatalogItemLineItem
+
+export type InvoiceHelpersGetBulkLineItemsFromCatalogData = {
+  requestBody: BulkCatalogRequest
+}
+
+export type InvoiceHelpersGetBulkLineItemsFromCatalogResponse =
+  Array<CatalogItemLineItem>
+
+export type InvoiceHelpersGetBulkLineItemsFromCatalog1Data = {
+  requestBody: BulkCatalogRequest
+}
+
+export type InvoiceHelpersGetBulkLineItemsFromCatalog1Response =
+  Array<CatalogItemLineItem>
+
+export type InvoiceHelpersSearchCatalogForInvoiceData = {
+  /**
+   * Filter by type
+   */
+  itemType?: string
+  /**
+   * Limit results
+   */
+  limit?: number
+  /**
+   * Search term
+   */
+  query: string
+}
+
+export type InvoiceHelpersSearchCatalogForInvoiceResponse =
+  Array<CatalogItemLineItem>
+
+export type InvoiceHelpersSearchCatalogForInvoice1Data = {
+  /**
+   * Filter by type
+   */
+  itemType?: string
+  /**
+   * Limit results
+   */
+  limit?: number
+  /**
+   * Search term
+   */
+  query: string
+}
+
+export type InvoiceHelpersSearchCatalogForInvoice1Response =
+  Array<CatalogItemLineItem>
+
 export type CreateInvoiceNoSlashData = {
   requestBody: CreateInvoiceSchema
 }
@@ -8896,6 +9410,70 @@ export type ProjectsRemoveJobFromProject1Data = {
 
 export type ProjectsRemoveJobFromProject1Response = ProjectActionResponse
 
+export type PublicProfessionalGetProfessionalProfileData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type PublicProfessionalGetProfessionalProfileResponse =
+  ProfessionalProfile
+
+export type PublicProfessionalGetProfessionalServicesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Filter by service category
+   */
+  category?: string | null
+  /**
+   * Show only emergency services
+   */
+  emergencyOnly?: boolean
+}
+
+export type PublicProfessionalGetProfessionalServicesResponse =
+  Array<ServiceItem>
+
+export type PublicProfessionalGetProfessionalProductsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Filter by product category
+   */
+  category?: string | null
+  /**
+   * Show only in-stock products
+   */
+  inStockOnly?: boolean
+}
+
+export type PublicProfessionalGetProfessionalProductsResponse =
+  Array<ProductItem>
+
+export type PublicProfessionalGetProfessionalAvailabilityData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * End date for availability
+   */
+  endDate: string
+  /**
+   * Start date for availability
+   */
+  startDate: string
+}
+
+export type PublicProfessionalGetProfessionalAvailabilityResponse =
+  Array<AvailabilitySlot>
+
 export type PurchaseOrdersCreatePurchaseOrderData = {
   requestBody: CreatePurchaseOrderSchema
 }
@@ -9012,6 +9590,228 @@ export type PurchaseOrdersGetPendingReceiptOrdersData = {
 
 export type PurchaseOrdersGetPendingReceiptOrdersResponse =
   PurchaseOrderListResponseSchema
+
+export type ServiceDiscoveryListCategoriesData = {
+  tradeType?: string
+}
+
+export type ServiceDiscoveryListCategoriesResponse = Array<ServiceCategory>
+
+export type ServiceDiscoveryListCategories1Data = {
+  tradeType?: string
+}
+
+export type ServiceDiscoveryListCategories1Response = Array<ServiceCategory>
+
+export type ServiceDiscoveryGetCategoryData = {
+  categoryId: string
+}
+
+export type ServiceDiscoveryGetCategoryResponse = ServiceCategory
+
+export type ServiceDiscoveryGetCategory1Data = {
+  categoryId: string
+}
+
+export type ServiceDiscoveryGetCategory1Response = ServiceCategory
+
+export type ServiceDiscoveryListTemplatesData = {
+  categoryId?: string
+  isCommon?: boolean
+  tradeType?: string
+}
+
+export type ServiceDiscoveryListTemplatesResponse = Array<ServiceTemplate>
+
+export type ServiceDiscoveryListTemplates1Data = {
+  categoryId?: string
+  isCommon?: boolean
+  tradeType?: string
+}
+
+export type ServiceDiscoveryListTemplates1Response = Array<ServiceTemplate>
+
+export type ServiceDiscoveryGetTemplateData = {
+  templateId: string
+}
+
+export type ServiceDiscoveryGetTemplateResponse = ServiceTemplate
+
+export type ServiceDiscoveryGetTemplate1Data = {
+  templateId: string
+}
+
+export type ServiceDiscoveryGetTemplate1Response = ServiceTemplate
+
+export type ServiceDiscoveryGetCommonTemplatesForTradeData = {
+  tradeType: string
+}
+
+export type ServiceDiscoveryGetCommonTemplatesForTradeResponse =
+  Array<ServiceTemplate>
+
+export type ServiceDiscoveryGetCommonTemplatesForTrade1Data = {
+  tradeType: string
+}
+
+export type ServiceDiscoveryGetCommonTemplatesForTrade1Response =
+  Array<ServiceTemplate>
+
+export type ServiceDiscoveryGetTemplatesByCategoryData = {
+  categoryId: string
+  tradeType?: string
+}
+
+export type ServiceDiscoveryGetTemplatesByCategoryResponse =
+  Array<ServiceTemplate>
+
+export type ServiceDiscoveryGetTemplatesByCategory1Data = {
+  categoryId: string
+  tradeType?: string
+}
+
+export type ServiceDiscoveryGetTemplatesByCategory1Response =
+  Array<ServiceTemplate>
+
+export type ServicesListServicesData = {
+  /**
+   * Filter by category
+   */
+  categoryId?: string
+  /**
+   * Include template information
+   */
+  includeTemplate?: boolean
+  /**
+   * Filter by active status
+   */
+  isActive?: boolean
+  /**
+   * Filter by featured status
+   */
+  isFeatured?: boolean
+}
+
+export type ServicesListServicesResponse = Array<BusinessService>
+
+export type ServicesListServices1Data = {
+  /**
+   * Filter by category
+   */
+  categoryId?: string
+  /**
+   * Include template information
+   */
+  includeTemplate?: boolean
+  /**
+   * Filter by active status
+   */
+  isActive?: boolean
+  /**
+   * Filter by featured status
+   */
+  isFeatured?: boolean
+}
+
+export type ServicesListServices1Response = Array<BusinessService>
+
+export type ServicesGetServiceData = {
+  serviceId: string
+}
+
+export type ServicesGetServiceResponse = BusinessService
+
+export type ServicesGetService1Data = {
+  serviceId: string
+}
+
+export type ServicesGetService1Response = BusinessService
+
+export type ServicesUpdateServiceData = {
+  requestBody: {
+    [key: string]: unknown
+  }
+  serviceId: string
+}
+
+export type ServicesUpdateServiceResponse = BusinessService
+
+export type ServicesUpdateService1Data = {
+  requestBody: {
+    [key: string]: unknown
+  }
+  serviceId: string
+}
+
+export type ServicesUpdateService1Response = BusinessService
+
+export type ServicesDeleteServiceData = {
+  serviceId: string
+}
+
+export type ServicesDeleteServiceResponse = unknown
+
+export type ServicesDeleteService1Data = {
+  serviceId: string
+}
+
+export type ServicesDeleteService1Response = unknown
+
+export type ServicesAdoptTemplateData = {
+  requestBody: AdoptServiceTemplateRequest
+}
+
+export type ServicesAdoptTemplateResponse = BusinessService
+
+export type ServicesAdoptTemplate1Data = {
+  requestBody: AdoptServiceTemplateRequest
+}
+
+export type ServicesAdoptTemplate1Response = BusinessService
+
+export type ServicesCreateCustomServiceData = {
+  requestBody: CreateCustomServiceRequest
+}
+
+export type ServicesCreateCustomServiceResponse = BusinessService
+
+export type ServicesCreateCustomService1Data = {
+  requestBody: CreateCustomServiceRequest
+}
+
+export type ServicesCreateCustomService1Response = BusinessService
+
+export type ServicesBulkAdoptServicesData = {
+  requestBody: BulkAdoptServicesRequest
+}
+
+export type ServicesBulkAdoptServicesResponse = Array<BusinessService>
+
+export type ServicesBulkAdoptServices1Data = {
+  requestBody: BulkAdoptServicesRequest
+}
+
+export type ServicesBulkAdoptServices1Response = Array<BusinessService>
+
+export type ServicesGetCategoriesWithServicesData = {
+  /**
+   * Filter by trade types
+   */
+  tradeTypes?: Array<string>
+}
+
+export type ServicesGetCategoriesWithServicesResponse =
+  Array<ServiceCategoryWithServices>
+
+export type ServicesGetCategoriesWithServices1Data = {
+  /**
+   * Filter by trade types
+   */
+  tradeTypes?: Array<string>
+}
+
+export type ServicesGetCategoriesWithServices1Response =
+  Array<ServiceCategoryWithServices>
 
 export type SuppliersCreateSupplierData = {
   requestBody: CreateSupplierSchema

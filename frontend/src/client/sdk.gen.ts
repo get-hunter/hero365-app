@@ -197,6 +197,18 @@ import type {
   IntelligentSchedulingUpdateCalendarPreferencesResponse,
   IntelligentSchedulingGetCalendarPreferencesData,
   IntelligentSchedulingGetCalendarPreferencesResponse,
+  InvoiceHelpersGetLineItemFromCatalogData,
+  InvoiceHelpersGetLineItemFromCatalogResponse,
+  InvoiceHelpersGetLineItemFromCatalog1Data,
+  InvoiceHelpersGetLineItemFromCatalog1Response,
+  InvoiceHelpersGetBulkLineItemsFromCatalogData,
+  InvoiceHelpersGetBulkLineItemsFromCatalogResponse,
+  InvoiceHelpersGetBulkLineItemsFromCatalog1Data,
+  InvoiceHelpersGetBulkLineItemsFromCatalog1Response,
+  InvoiceHelpersSearchCatalogForInvoiceData,
+  InvoiceHelpersSearchCatalogForInvoiceResponse,
+  InvoiceHelpersSearchCatalogForInvoice1Data,
+  InvoiceHelpersSearchCatalogForInvoice1Response,
   CreateInvoiceNoSlashData,
   CreateInvoiceNoSlashResponse,
   ListInvoicesNoSlashData,
@@ -380,6 +392,14 @@ import type {
   ProjectsRemoveJobFromProjectResponse,
   ProjectsRemoveJobFromProject1Data,
   ProjectsRemoveJobFromProject1Response,
+  PublicProfessionalGetProfessionalProfileData,
+  PublicProfessionalGetProfessionalProfileResponse,
+  PublicProfessionalGetProfessionalServicesData,
+  PublicProfessionalGetProfessionalServicesResponse,
+  PublicProfessionalGetProfessionalProductsData,
+  PublicProfessionalGetProfessionalProductsResponse,
+  PublicProfessionalGetProfessionalAvailabilityData,
+  PublicProfessionalGetProfessionalAvailabilityResponse,
   PurchaseOrdersCreatePurchaseOrderData,
   PurchaseOrdersCreatePurchaseOrderResponse,
   PurchaseOrdersListPurchaseOrdersData,
@@ -398,6 +418,62 @@ import type {
   PurchaseOrdersGetPendingApprovalOrdersResponse,
   PurchaseOrdersGetPendingReceiptOrdersData,
   PurchaseOrdersGetPendingReceiptOrdersResponse,
+  ServiceDiscoveryListCategoriesData,
+  ServiceDiscoveryListCategoriesResponse,
+  ServiceDiscoveryListCategories1Data,
+  ServiceDiscoveryListCategories1Response,
+  ServiceDiscoveryGetCategoryData,
+  ServiceDiscoveryGetCategoryResponse,
+  ServiceDiscoveryGetCategory1Data,
+  ServiceDiscoveryGetCategory1Response,
+  ServiceDiscoveryListTemplatesData,
+  ServiceDiscoveryListTemplatesResponse,
+  ServiceDiscoveryListTemplates1Data,
+  ServiceDiscoveryListTemplates1Response,
+  ServiceDiscoveryGetTemplateData,
+  ServiceDiscoveryGetTemplateResponse,
+  ServiceDiscoveryGetTemplate1Data,
+  ServiceDiscoveryGetTemplate1Response,
+  ServiceDiscoveryGetCommonTemplatesForTradeData,
+  ServiceDiscoveryGetCommonTemplatesForTradeResponse,
+  ServiceDiscoveryGetCommonTemplatesForTrade1Data,
+  ServiceDiscoveryGetCommonTemplatesForTrade1Response,
+  ServiceDiscoveryGetTemplatesByCategoryData,
+  ServiceDiscoveryGetTemplatesByCategoryResponse,
+  ServiceDiscoveryGetTemplatesByCategory1Data,
+  ServiceDiscoveryGetTemplatesByCategory1Response,
+  ServicesListServicesData,
+  ServicesListServicesResponse,
+  ServicesListServices1Data,
+  ServicesListServices1Response,
+  ServicesGetServiceData,
+  ServicesGetServiceResponse,
+  ServicesGetService1Data,
+  ServicesGetService1Response,
+  ServicesUpdateServiceData,
+  ServicesUpdateServiceResponse,
+  ServicesUpdateService1Data,
+  ServicesUpdateService1Response,
+  ServicesDeleteServiceData,
+  ServicesDeleteServiceResponse,
+  ServicesDeleteService1Data,
+  ServicesDeleteService1Response,
+  ServicesAdoptTemplateData,
+  ServicesAdoptTemplateResponse,
+  ServicesAdoptTemplate1Data,
+  ServicesAdoptTemplate1Response,
+  ServicesCreateCustomServiceData,
+  ServicesCreateCustomServiceResponse,
+  ServicesCreateCustomService1Data,
+  ServicesCreateCustomService1Response,
+  ServicesBulkAdoptServicesData,
+  ServicesBulkAdoptServicesResponse,
+  ServicesBulkAdoptServices1Data,
+  ServicesBulkAdoptServices1Response,
+  ServicesGetCategoriesWithServicesData,
+  ServicesGetCategoriesWithServicesResponse,
+  ServicesGetCategoriesWithServices1Data,
+  ServicesGetCategoriesWithServices1Response,
   SuppliersCreateSupplierData,
   SuppliersCreateSupplierResponse,
   SuppliersListSuppliersData,
@@ -3029,6 +3105,176 @@ export class IntelligentSchedulingService {
   }
 }
 
+export class InvoiceHelpersService {
+  /**
+   * Get Line Item From Catalog
+   * Get line item data for a specific catalog item (product or service).
+   *
+   * This endpoint fetches current pricing and details from the catalog
+   * and formats them ready for invoice line items.
+   * @param data The data for the request.
+   * @param data.itemId
+   * @param data.itemType Type: 'product' or 'service'
+   * @returns CatalogItemLineItem Successful Response
+   * @throws ApiError
+   */
+  public static getLineItemFromCatalog(
+    data: InvoiceHelpersGetLineItemFromCatalogData,
+  ): CancelablePromise<InvoiceHelpersGetLineItemFromCatalogResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/invoice-helpers/catalog-items/{item_id}/line-item",
+      path: {
+        item_id: data.itemId,
+      },
+      query: {
+        item_type: data.itemType,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Line Item From Catalog
+   * Get line item data for a specific catalog item (product or service).
+   *
+   * This endpoint fetches current pricing and details from the catalog
+   * and formats them ready for invoice line items.
+   * @param data The data for the request.
+   * @param data.itemId
+   * @param data.itemType Type: 'product' or 'service'
+   * @returns CatalogItemLineItem Successful Response
+   * @throws ApiError
+   */
+  public static getLineItemFromCatalog1(
+    data: InvoiceHelpersGetLineItemFromCatalog1Data,
+  ): CancelablePromise<InvoiceHelpersGetLineItemFromCatalog1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/invoice-helpers/catalog-items/{item_id}/line-item",
+      path: {
+        item_id: data.itemId,
+      },
+      query: {
+        item_type: data.itemType,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Bulk Line Items From Catalog
+   * Get line item data for multiple catalog items at once.
+   *
+   * Useful for quickly adding multiple products/services to an invoice.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns CatalogItemLineItem Successful Response
+   * @throws ApiError
+   */
+  public static getBulkLineItemsFromCatalog(
+    data: InvoiceHelpersGetBulkLineItemsFromCatalogData,
+  ): CancelablePromise<InvoiceHelpersGetBulkLineItemsFromCatalogResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/invoice-helpers/catalog-items/bulk-line-items",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Bulk Line Items From Catalog
+   * Get line item data for multiple catalog items at once.
+   *
+   * Useful for quickly adding multiple products/services to an invoice.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns CatalogItemLineItem Successful Response
+   * @throws ApiError
+   */
+  public static getBulkLineItemsFromCatalog1(
+    data: InvoiceHelpersGetBulkLineItemsFromCatalog1Data,
+  ): CancelablePromise<InvoiceHelpersGetBulkLineItemsFromCatalog1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/invoice-helpers/catalog-items/bulk-line-items",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search Catalog For Invoice
+   * Search products and services for adding to invoices.
+   *
+   * Returns combined results from both product and service catalogs
+   * formatted ready for invoice line items.
+   * @param data The data for the request.
+   * @param data.query Search term
+   * @param data.itemType Filter by type
+   * @param data.limit Limit results
+   * @returns CatalogItemLineItem Successful Response
+   * @throws ApiError
+   */
+  public static searchCatalogForInvoice(
+    data: InvoiceHelpersSearchCatalogForInvoiceData,
+  ): CancelablePromise<InvoiceHelpersSearchCatalogForInvoiceResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/invoice-helpers/catalog/search",
+      query: {
+        query: data.query,
+        item_type: data.itemType,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search Catalog For Invoice
+   * Search products and services for adding to invoices.
+   *
+   * Returns combined results from both product and service catalogs
+   * formatted ready for invoice line items.
+   * @param data The data for the request.
+   * @param data.query Search term
+   * @param data.itemType Filter by type
+   * @param data.limit Limit results
+   * @returns CatalogItemLineItem Successful Response
+   * @throws ApiError
+   */
+  public static searchCatalogForInvoice1(
+    data: InvoiceHelpersSearchCatalogForInvoice1Data,
+  ): CancelablePromise<InvoiceHelpersSearchCatalogForInvoice1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/invoice-helpers/catalog/search",
+      query: {
+        query: data.query,
+        item_type: data.itemType,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class InvoicesService {
   /**
    * Create Invoice
@@ -5403,6 +5649,127 @@ export class ProjectsService {
   }
 }
 
+export class PublicProfessionalService {
+  /**
+   * Get Professional Profile
+   * Get complete professional profile information.
+   *
+   * Returns business details, contact information, service areas, and credentials.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns ProfessionalProfile Successful Response
+   * @throws ApiError
+   */
+  public static getProfessionalProfile(
+    data: PublicProfessionalGetProfessionalProfileData,
+  ): CancelablePromise<PublicProfessionalGetProfessionalProfileResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/profile/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Professional Services
+   * Get professional services offered by a business.
+   *
+   * Returns list of services with pricing and availability information.
+   * Uses the new business_services table from service template system.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.category Filter by service category
+   * @param data.emergencyOnly Show only emergency services
+   * @returns ServiceItem Successful Response
+   * @throws ApiError
+   */
+  public static getProfessionalServices(
+    data: PublicProfessionalGetProfessionalServicesData,
+  ): CancelablePromise<PublicProfessionalGetProfessionalServicesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/services/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        category: data.category,
+        emergency_only: data.emergencyOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Professional Products
+   * Get professional products sold by a business.
+   *
+   * Returns list of products with pricing and availability information.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.category Filter by product category
+   * @param data.inStockOnly Show only in-stock products
+   * @returns ProductItem Successful Response
+   * @throws ApiError
+   */
+  public static getProfessionalProducts(
+    data: PublicProfessionalGetProfessionalProductsData,
+  ): CancelablePromise<PublicProfessionalGetProfessionalProductsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/products/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        category: data.category,
+        in_stock_only: data.inStockOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Professional Availability
+   * Get professional availability for a date range.
+   *
+   * Returns available time slots for booking appointments.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.startDate Start date for availability
+   * @param data.endDate End date for availability
+   * @returns AvailabilitySlot Successful Response
+   * @throws ApiError
+   */
+  public static getProfessionalAvailability(
+    data: PublicProfessionalGetProfessionalAvailabilityData,
+  ): CancelablePromise<PublicProfessionalGetProfessionalAvailabilityResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/availability/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        start_date: data.startDate,
+        end_date: data.endDate,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class PurchaseOrdersService {
   /**
    * Create Purchase Order
@@ -5630,6 +5997,716 @@ export class PurchaseOrdersService {
         page: data.page,
         page_size: data.pageSize,
         overdue_only: data.overdueOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class ServiceDiscoveryService {
+  /**
+   * List Categories
+   * Get all available service categories.
+   *
+   * Used for business onboarding and service discovery.
+   * @param data The data for the request.
+   * @param data.tradeType
+   * @returns ServiceCategory Successful Response
+   * @throws ApiError
+   */
+  public static listCategories(
+    data: ServiceDiscoveryListCategoriesData = {},
+  ): CancelablePromise<ServiceDiscoveryListCategoriesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/service-templates/categories",
+      query: {
+        trade_type: data.tradeType,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Categories
+   * Get all available service categories.
+   *
+   * Used for business onboarding and service discovery.
+   * @param data The data for the request.
+   * @param data.tradeType
+   * @returns ServiceCategory Successful Response
+   * @throws ApiError
+   */
+  public static listCategories1(
+    data: ServiceDiscoveryListCategories1Data = {},
+  ): CancelablePromise<ServiceDiscoveryListCategories1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/service-templates/categories",
+      query: {
+        trade_type: data.tradeType,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Category
+   * Get details of a specific service category.
+   * @param data The data for the request.
+   * @param data.categoryId
+   * @returns ServiceCategory Successful Response
+   * @throws ApiError
+   */
+  public static getCategory(
+    data: ServiceDiscoveryGetCategoryData,
+  ): CancelablePromise<ServiceDiscoveryGetCategoryResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/service-templates/categories/{category_id}",
+      path: {
+        category_id: data.categoryId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Category
+   * Get details of a specific service category.
+   * @param data The data for the request.
+   * @param data.categoryId
+   * @returns ServiceCategory Successful Response
+   * @throws ApiError
+   */
+  public static getCategory1(
+    data: ServiceDiscoveryGetCategory1Data,
+  ): CancelablePromise<ServiceDiscoveryGetCategory1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/service-templates/categories/{category_id}",
+      path: {
+        category_id: data.categoryId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Templates
+   * Get available service templates for discovery and adoption.
+   *
+   * Used by businesses to browse and adopt standard services.
+   * @param data The data for the request.
+   * @param data.categoryId
+   * @param data.tradeType
+   * @param data.isCommon
+   * @returns ServiceTemplate Successful Response
+   * @throws ApiError
+   */
+  public static listTemplates(
+    data: ServiceDiscoveryListTemplatesData = {},
+  ): CancelablePromise<ServiceDiscoveryListTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/service-templates/templates",
+      query: {
+        category_id: data.categoryId,
+        trade_type: data.tradeType,
+        is_common: data.isCommon,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Templates
+   * Get available service templates for discovery and adoption.
+   *
+   * Used by businesses to browse and adopt standard services.
+   * @param data The data for the request.
+   * @param data.categoryId
+   * @param data.tradeType
+   * @param data.isCommon
+   * @returns ServiceTemplate Successful Response
+   * @throws ApiError
+   */
+  public static listTemplates1(
+    data: ServiceDiscoveryListTemplates1Data = {},
+  ): CancelablePromise<ServiceDiscoveryListTemplates1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/service-templates/templates",
+      query: {
+        category_id: data.categoryId,
+        trade_type: data.tradeType,
+        is_common: data.isCommon,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Template
+   * Get detailed information about a specific service template.
+   * @param data The data for the request.
+   * @param data.templateId
+   * @returns ServiceTemplate Successful Response
+   * @throws ApiError
+   */
+  public static getTemplate(
+    data: ServiceDiscoveryGetTemplateData,
+  ): CancelablePromise<ServiceDiscoveryGetTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/service-templates/templates/{template_id}",
+      path: {
+        template_id: data.templateId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Template
+   * Get detailed information about a specific service template.
+   * @param data The data for the request.
+   * @param data.templateId
+   * @returns ServiceTemplate Successful Response
+   * @throws ApiError
+   */
+  public static getTemplate1(
+    data: ServiceDiscoveryGetTemplate1Data,
+  ): CancelablePromise<ServiceDiscoveryGetTemplate1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/service-templates/templates/{template_id}",
+      path: {
+        template_id: data.templateId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Common Templates For Trade
+   * Get the most commonly adopted service templates for a specific trade.
+   *
+   * Perfect for business onboarding to quickly set up standard services.
+   * @param data The data for the request.
+   * @param data.tradeType
+   * @returns ServiceTemplate Successful Response
+   * @throws ApiError
+   */
+  public static getCommonTemplatesForTrade(
+    data: ServiceDiscoveryGetCommonTemplatesForTradeData,
+  ): CancelablePromise<ServiceDiscoveryGetCommonTemplatesForTradeResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/service-templates/templates/common/{trade_type}",
+      path: {
+        trade_type: data.tradeType,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Common Templates For Trade
+   * Get the most commonly adopted service templates for a specific trade.
+   *
+   * Perfect for business onboarding to quickly set up standard services.
+   * @param data The data for the request.
+   * @param data.tradeType
+   * @returns ServiceTemplate Successful Response
+   * @throws ApiError
+   */
+  public static getCommonTemplatesForTrade1(
+    data: ServiceDiscoveryGetCommonTemplatesForTrade1Data,
+  ): CancelablePromise<ServiceDiscoveryGetCommonTemplatesForTrade1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/service-templates/templates/common/{trade_type}",
+      path: {
+        trade_type: data.tradeType,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Templates By Category
+   * Get all service templates in a specific category.
+   * @param data The data for the request.
+   * @param data.categoryId
+   * @param data.tradeType
+   * @returns ServiceTemplate Successful Response
+   * @throws ApiError
+   */
+  public static getTemplatesByCategory(
+    data: ServiceDiscoveryGetTemplatesByCategoryData,
+  ): CancelablePromise<ServiceDiscoveryGetTemplatesByCategoryResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/service-templates/categories/{category_id}/templates",
+      path: {
+        category_id: data.categoryId,
+      },
+      query: {
+        trade_type: data.tradeType,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Templates By Category
+   * Get all service templates in a specific category.
+   * @param data The data for the request.
+   * @param data.categoryId
+   * @param data.tradeType
+   * @returns ServiceTemplate Successful Response
+   * @throws ApiError
+   */
+  public static getTemplatesByCategory1(
+    data: ServiceDiscoveryGetTemplatesByCategory1Data,
+  ): CancelablePromise<ServiceDiscoveryGetTemplatesByCategory1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/service-templates/categories/{category_id}/templates",
+      path: {
+        category_id: data.categoryId,
+      },
+      query: {
+        trade_type: data.tradeType,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class ServicesService {
+  /**
+   * List Services
+   * List all services for a business.
+   *
+   * This replaces the old products endpoint for service listings.
+   * @param data The data for the request.
+   * @param data.categoryId Filter by category
+   * @param data.isActive Filter by active status
+   * @param data.isFeatured Filter by featured status
+   * @param data.includeTemplate Include template information
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static listServices(
+    data: ServicesListServicesData = {},
+  ): CancelablePromise<ServicesListServicesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/services",
+      query: {
+        category_id: data.categoryId,
+        is_active: data.isActive,
+        is_featured: data.isFeatured,
+        include_template: data.includeTemplate,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Services
+   * List all services for a business.
+   *
+   * This replaces the old products endpoint for service listings.
+   * @param data The data for the request.
+   * @param data.categoryId Filter by category
+   * @param data.isActive Filter by active status
+   * @param data.isFeatured Filter by featured status
+   * @param data.includeTemplate Include template information
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static listServices1(
+    data: ServicesListServices1Data = {},
+  ): CancelablePromise<ServicesListServices1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/services",
+      query: {
+        category_id: data.categoryId,
+        is_active: data.isActive,
+        is_featured: data.isFeatured,
+        include_template: data.includeTemplate,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Service
+   * Get detailed information about a specific business service.
+   * @param data The data for the request.
+   * @param data.serviceId
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static getService(
+    data: ServicesGetServiceData,
+  ): CancelablePromise<ServicesGetServiceResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/services/{service_id}",
+      path: {
+        service_id: data.serviceId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Service
+   * Get detailed information about a specific business service.
+   * @param data The data for the request.
+   * @param data.serviceId
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static getService1(
+    data: ServicesGetService1Data,
+  ): CancelablePromise<ServicesGetService1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/services/{service_id}",
+      path: {
+        service_id: data.serviceId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Service
+   * Update an existing business service.
+   * @param data The data for the request.
+   * @param data.serviceId
+   * @param data.requestBody
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static updateService(
+    data: ServicesUpdateServiceData,
+  ): CancelablePromise<ServicesUpdateServiceResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/services/{service_id}",
+      path: {
+        service_id: data.serviceId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Service
+   * Update an existing business service.
+   * @param data The data for the request.
+   * @param data.serviceId
+   * @param data.requestBody
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static updateService1(
+    data: ServicesUpdateService1Data,
+  ): CancelablePromise<ServicesUpdateService1Response> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/services/{service_id}",
+      path: {
+        service_id: data.serviceId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Service
+   * Delete a business service.
+   * @param data The data for the request.
+   * @param data.serviceId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static deleteService(
+    data: ServicesDeleteServiceData,
+  ): CancelablePromise<ServicesDeleteServiceResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/services/{service_id}",
+      path: {
+        service_id: data.serviceId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Service
+   * Delete a business service.
+   * @param data The data for the request.
+   * @param data.serviceId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static deleteService1(
+    data: ServicesDeleteService1Data,
+  ): CancelablePromise<ServicesDeleteService1Response> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/services/{service_id}",
+      path: {
+        service_id: data.serviceId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Adopt Template
+   * Adopt a service template with optional customizations.
+   *
+   * This is the primary way businesses add new services to their catalog.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static adoptTemplate(
+    data: ServicesAdoptTemplateData,
+  ): CancelablePromise<ServicesAdoptTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/services/adopt-template",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Adopt Template
+   * Adopt a service template with optional customizations.
+   *
+   * This is the primary way businesses add new services to their catalog.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static adoptTemplate1(
+    data: ServicesAdoptTemplate1Data,
+  ): CancelablePromise<ServicesAdoptTemplate1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/services/adopt-template",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Custom Service
+   * Create a completely custom service (not from a template).
+   *
+   * Use this when businesses need services not covered by templates.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static createCustomService(
+    data: ServicesCreateCustomServiceData,
+  ): CancelablePromise<ServicesCreateCustomServiceResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/services/custom",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Custom Service
+   * Create a completely custom service (not from a template).
+   *
+   * Use this when businesses need services not covered by templates.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static createCustomService1(
+    data: ServicesCreateCustomService1Data,
+  ): CancelablePromise<ServicesCreateCustomService1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/services/custom",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Bulk Adopt Services
+   * Adopt multiple service templates at once.
+   *
+   * Useful for business onboarding to quickly set up common services.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static bulkAdoptServices(
+    data: ServicesBulkAdoptServicesData,
+  ): CancelablePromise<ServicesBulkAdoptServicesResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/services/bulk-adopt",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Bulk Adopt Services
+   * Adopt multiple service templates at once.
+   *
+   * Useful for business onboarding to quickly set up common services.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static bulkAdoptServices1(
+    data: ServicesBulkAdoptServices1Data,
+  ): CancelablePromise<ServicesBulkAdoptServices1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/services/bulk-adopt",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Categories With Services
+   * Get service categories with their associated services for a business.
+   *
+   * This endpoint is specifically designed for website generation to create
+   * dynamic navigation and service pages.
+   * @param data The data for the request.
+   * @param data.tradeTypes Filter by trade types
+   * @returns ServiceCategoryWithServices Successful Response
+   * @throws ApiError
+   */
+  public static getCategoriesWithServices(
+    data: ServicesGetCategoriesWithServicesData = {},
+  ): CancelablePromise<ServicesGetCategoriesWithServicesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/services/categories-with-services",
+      query: {
+        trade_types: data.tradeTypes,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Categories With Services
+   * Get service categories with their associated services for a business.
+   *
+   * This endpoint is specifically designed for website generation to create
+   * dynamic navigation and service pages.
+   * @param data The data for the request.
+   * @param data.tradeTypes Filter by trade types
+   * @returns ServiceCategoryWithServices Successful Response
+   * @throws ApiError
+   */
+  public static getCategoriesWithServices1(
+    data: ServicesGetCategoriesWithServices1Data = {},
+  ): CancelablePromise<ServicesGetCategoriesWithServices1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/services/categories-with-services",
+      query: {
+        trade_types: data.tradeTypes,
       },
       errors: {
         422: "Validation Error",
@@ -6316,7 +7393,7 @@ export class WebsiteDeploymentService {
   ): CancelablePromise<WebsiteDeploymentDeployWebsiteResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/api/v1/website-deployment/deploy",
+      url: "/api/v1/website-deployment/deploy",
       body: data.requestBody,
       mediaType: "application/json",
       errors: {
@@ -6340,7 +7417,7 @@ export class WebsiteDeploymentService {
   ): CancelablePromise<WebsiteDeploymentGetDeploymentStatusResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/api/v1/website-deployment/status/{deployment_id}",
+      url: "/api/v1/website-deployment/status/{deployment_id}",
       path: {
         deployment_id: data.deploymentId,
       },
@@ -6363,7 +7440,7 @@ export class WebsiteDeploymentService {
   ): CancelablePromise<WebsiteDeploymentListDeploymentsResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/api/v1/website-deployment/deployments",
+      url: "/api/v1/website-deployment/deployments",
       query: {
         limit: data.limit,
       },
@@ -6386,7 +7463,7 @@ export class WebsiteDeploymentService {
   ): CancelablePromise<WebsiteDeploymentCancelDeploymentResponse> {
     return __request(OpenAPI, {
       method: "DELETE",
-      url: "/api/v1/api/v1/website-deployment/deployments/{deployment_id}",
+      url: "/api/v1/website-deployment/deployments/{deployment_id}",
       path: {
         deployment_id: data.deploymentId,
       },
@@ -6411,7 +7488,7 @@ export class WebsiteDeploymentService {
   ): CancelablePromise<WebsiteDeploymentPreviewWebsiteResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/api/v1/website-deployment/preview",
+      url: "/api/v1/website-deployment/preview",
       body: data.requestBody,
       mediaType: "application/json",
       errors: {

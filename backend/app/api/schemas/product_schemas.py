@@ -74,10 +74,8 @@ class CreateProductSchema(BaseModel):
     category_id: Optional[uuid.UUID] = Field(None, description="Product category identifier")
     
     # Pricing and costs
-    pricing_model: str = Field("fixed", description="Pricing model")
     unit_price: Decimal = Field(default=Decimal('0'), ge=0, description="Base unit price")
     cost_price: Decimal = Field(default=Decimal('0'), ge=0, description="Unit cost")
-    markup_percentage: Optional[Decimal] = Field(None, ge=0, description="Markup percentage over cost")
     currency: str = Field("USD", pattern="^[A-Z]{3}$", description="Currency code")
     
     # Inventory settings
@@ -134,7 +132,6 @@ class UpdateProductSchema(BaseModel):
     # Pricing and costs
     unit_price: Optional[Decimal] = Field(None, ge=0)
     cost_price: Optional[Decimal] = Field(None, ge=0)
-    markup_percentage: Optional[Decimal] = Field(None, ge=0)
     
     # Inventory settings
     track_inventory: Optional[bool] = None
@@ -185,13 +182,11 @@ class ProductResponseSchema(BaseModel):
     category_id: Optional[uuid.UUID] = None
     category_name: Optional[str] = None
     
-    # Pricing and costs
-    pricing_model: str
+    # Pricing and costs  
     unit_price: Decimal
     currency: str
     unit_cost: Decimal
     average_cost: Decimal
-    markup_percentage: Optional[Decimal] = None
     margin_percentage: Optional[Decimal] = None
     
     # Inventory quantities

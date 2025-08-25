@@ -7,7 +7,7 @@
 -- =====================================
 -- CREATE BUSINESS TEMPLATE PREFERENCES TABLE
 -- =====================================
-CREATE TABLE public.business_template_preferences (
+CREATE TABLE IF NOT EXISTS public.business_template_preferences (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
     template_id UUID NOT NULL REFERENCES public.templates(id) ON DELETE CASCADE,
@@ -21,9 +21,9 @@ CREATE TABLE public.business_template_preferences (
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_business_template_preferences_business_id ON public.business_template_preferences(business_id);
-CREATE INDEX idx_business_template_preferences_template_id ON public.business_template_preferences(template_id);
-CREATE INDEX idx_business_template_preferences_default ON public.business_template_preferences(business_id, template_type, is_default) WHERE is_default = TRUE;
+CREATE INDEX IF NOT EXISTS idx_business_template_preferences_business_id ON public.business_template_preferences(business_id);
+CREATE INDEX IF NOT EXISTS idx_business_template_preferences_template_id ON public.business_template_preferences(template_id);
+CREATE INDEX IF NOT EXISTS idx_business_template_preferences_default ON public.business_template_preferences(business_id, template_type, is_default) WHERE is_default = TRUE;
 
 -- =====================================
 -- CREATE IMPROVED SET DEFAULT FUNCTION
@@ -83,6 +83,7 @@ $$ LANGUAGE plpgsql;
 -- =====================================
 -- CREATE IMPROVED GET DEFAULT FUNCTION
 -- =====================================
+DROP FUNCTION IF EXISTS get_default_template_v2(UUID, VARCHAR);
 CREATE OR REPLACE FUNCTION get_default_template_v2(
     p_business_id UUID,
     p_template_type VARCHAR
@@ -200,6 +201,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_business_template_preferences_updated_at ON public.business_template_preferences;
 CREATE TRIGGER update_business_template_preferences_updated_at
     BEFORE UPDATE ON public.business_template_preferences
     FOR EACH ROW

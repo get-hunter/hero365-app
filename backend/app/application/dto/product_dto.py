@@ -11,7 +11,7 @@ from decimal import Decimal
 from pydantic import BaseModel, Field
 
 from app.domain.entities.product_enums.enums import ProductType, ProductStatus, CostingMethod
-from app.domain.shared.enums import PricingModel, UnitOfMeasure
+from app.domain.shared.enums import UnitOfMeasure
 from app.domain.value_objects.address import Address
 
 
@@ -95,10 +95,8 @@ class CreateProductDTO(BaseModel):
     category_id: Optional[uuid.UUID] = None
     
     # Pricing
-    pricing_model: PricingModel = PricingModel.FIXED
     unit_price: Decimal = Decimal('0')
     cost_price: Decimal = Decimal('0')
-    markup_percentage: Optional[Decimal] = None
     
     # Physical attributes
     unit_of_measure: UnitOfMeasure = UnitOfMeasure.EACH
@@ -137,7 +135,6 @@ class UpdateProductDTO(BaseModel):
     unit_price: Optional[Decimal] = None
     cost_price: Optional[Decimal] = None
     minimum_price: Optional[Decimal] = None
-    markup_percentage: Optional[Decimal] = None
     
     # Physical attributes
     weight: Optional[Decimal] = None
@@ -186,10 +183,8 @@ class ProductDTO(BaseModel):
     category_id: Optional[uuid.UUID] = None
     
     # Pricing
-    pricing_model: PricingModel = PricingModel.FIXED
     unit_price: Decimal = Decimal('0')
     cost_price: Decimal = Decimal('0')
-    markup_percentage: Optional[Decimal] = None
     
     # Physical attributes
     unit_of_measure: UnitOfMeasure = UnitOfMeasure.EACH
@@ -250,10 +245,8 @@ class ProductDTO(BaseModel):
             product_type=product.product_type,
             status=product.status,
             category_id=getattr(product, 'category_id', None),
-            pricing_model=product.pricing_model,
             unit_price=product.unit_price,
             cost_price=getattr(product, 'cost_price', product.unit_cost),
-            markup_percentage=product.markup_percentage,
             unit_of_measure=product.unit_of_measure,
             weight=product.weight,
             dimensions=product.dimensions,

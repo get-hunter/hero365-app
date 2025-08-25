@@ -50,15 +50,20 @@ class ProfessionalDataService:
         category: Optional[str] = None,
         emergency_only: bool = False
     ) -> List[Dict[str, Any]]:
-        """Fetch professional services."""
+        """Fetch professional services using the new service template system."""
         
-        url = f"{self.base_url}/api/v1/public/professional/services/{business_id}"
-        params = {}
+        # Use the new service template API endpoint
+        url = f"{self.base_url}/service-templates/business/{business_id}/services"
+        params = {
+            "is_active": True,
+            "include_template": True
+        }
         
         if category:
-            params["category"] = category
+            # TODO: Map category name to category_id if needed
+            params["category_name"] = category
         if emergency_only:
-            params["emergency_only"] = emergency_only
+            params["is_emergency"] = emergency_only
         
         try:
             async with aiohttp.ClientSession(timeout=self.timeout) as session:

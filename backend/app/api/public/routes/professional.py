@@ -177,51 +177,62 @@ async def get_professional_profile(
 async def get_professional_services(
     business_id: str = Path(..., description="Business ID"),
     category: Optional[str] = Query(None, description="Filter by service category"),
-    emergency_only: bool = Query(False, description="Show only emergency services"),
-    product_repo: ProductRepository = Depends(get_product_repository)
+    emergency_only: bool = Query(False, description="Show only emergency services")
 ):
     """
     Get professional services offered by a business.
     
     Returns list of services with pricing and availability information.
+    Uses the new business_services table from service template system.
     """
     
     try:
-        # Fetch services from database (services are stored as products with product_type='service')
-        all_products = await product_repo.list_by_business(uuid.UUID(business_id))
+        # TODO: Replace with proper service template repository dependency injection
+        # For now, use direct database query via supabase
+        from ....core.db import get_supabase_client
+        supabase = get_supabase_client()
         
-        if all_products:
-            # Filter for services only and convert to ServiceItem models
+        # Build query
+        query = supabase.table("business_services").select(
+            "id, name, description, pricing_model, unit_price, minimum_price, "
+            "is_emergency, is_active, service_categories(name)"
+        ).eq("business_id", business_id).eq("is_active", True)
+        
+        # Apply filters
+        if category:
+            # Join with categories to filter by name
+            query = query.eq("service_categories.name", category)
+        
+        if emergency_only:
+            query = query.eq("is_emergency", True)
+        
+        result = query.execute()
+        
+        if result.data:
+            # Convert business_services to ServiceItem models
             service_items = []
-            for product in all_products:
-                # Only include products that are services
-                if hasattr(product, 'product_type') and str(product.product_type) == 'service':
-                    # Map product fields to service fields
-                    service_data = {
-                        "id": str(product.id),
-                        "name": product.name,
-                        "description": product.description or "",
-                        "category": _get_service_category_from_name(product.name),
-                        "base_price": float(product.unit_price) if product.unit_price else None,
-                        "price_range_min": float(product.unit_price) if product.unit_price else None,
-                        "price_range_max": float(product.unit_price * Decimal('1.5')) if product.unit_price else None,  # Estimate range
-                        "pricing_unit": "service call" if "repair" in product.name.lower() else "service",
-                        "duration_minutes": _estimate_service_duration(product.name),
-                        "is_emergency": "emergency" in product.name.lower(),
-                        "requires_quote": "installation" in product.name.lower() or "system" in product.name.lower(),
-                        "available": product.is_active(),
-                        "service_areas": ["Austin", "Round Rock", "Cedar Park", "Pflugerville"],  # Default areas
-                        "keywords": _generate_service_keywords(product.name)
-                    }
-                    
-                    service_items.append(ServiceItem(**service_data))
-            
-            # Apply filters
-            if category:
-                service_items = [s for s in service_items if s.category.lower() == category.lower()]
-            
-            if emergency_only:
-                service_items = [s for s in service_items if s.is_emergency]
+            for service in result.data:
+                # Map business_service fields to ServiceItem fields
+                category_name = service.get("service_categories", {}).get("name", "General") if service.get("service_categories") else "General"
+                
+                service_data = {
+                    "id": str(service["id"]),
+                    "name": service["name"],
+                    "description": service.get("description", ""),
+                    "category": category_name,
+                    "base_price": float(service["unit_price"]) if service.get("unit_price") else None,
+                    "price_range_min": float(service["minimum_price"]) if service.get("minimum_price") else float(service["unit_price"]) if service.get("unit_price") else None,
+                    "price_range_max": float(service["unit_price"]) if service.get("unit_price") else None,
+                    "pricing_unit": "service" if service["pricing_model"] == "fixed" else service.get("pricing_model", "service"),
+                    "duration_minutes": 60,  # Default duration, TODO: use estimated_duration_hours from service
+                    "is_emergency": service.get("is_emergency", False),
+                    "requires_quote": service["pricing_model"] == "quote_required",
+                    "available": service.get("is_active", True),
+                    "service_areas": [],  # TODO: get from business or service data
+                    "keywords": service["name"].lower().split()  # Simple keyword extraction
+                }
+                
+                service_items.append(ServiceItem(**service_data))
             
             return service_items
         

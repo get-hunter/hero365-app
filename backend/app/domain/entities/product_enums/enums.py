@@ -9,22 +9,16 @@ from enum import Enum
 
 
 class ProductType(str, Enum):
-    """Product type enumeration for inventory management."""
+    """Product type enumeration for physical inventory management only."""
     PRODUCT = "product"           # Physical inventory item
-    SERVICE = "service"           # Labor/time-based service  
-    BUNDLE = "bundle"            # Product + service packages
-    SUBSCRIPTION = "subscription" # Recurring services
-    MAINTENANCE_PLAN = "maintenance_plan"
-    DIGITAL = "digital"          # Software, licenses, etc.
+    BUNDLE = "bundle"            # Multiple physical products bundled together
+    DIGITAL = "digital"          # Software, licenses, subscriptions, etc.
     
     def get_display(self) -> str:
         """Get human-readable display name."""
         display_map = {
             self.PRODUCT: "Product",
-            self.SERVICE: "Service",
-            self.BUNDLE: "Bundle",
-            self.SUBSCRIPTION: "Subscription",
-            self.MAINTENANCE_PLAN: "Maintenance Plan",
+            self.BUNDLE: "Bundle", 
             self.DIGITAL: "Digital"
         }
         return display_map.get(self, self.value.title())
