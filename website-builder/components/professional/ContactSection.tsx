@@ -106,7 +106,7 @@ export default function ContactSection({ business, locations }: ContactSectionPr
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Select a service...</option>
-                    {business.trades.map((trade) => (
+                    {(business.trades || []).map((trade) => (
                       <option key={trade} value={trade}>
                         {trade.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </option>

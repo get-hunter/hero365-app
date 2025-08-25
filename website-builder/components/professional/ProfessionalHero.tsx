@@ -1,8 +1,11 @@
+'use client';
+
 import React from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Phone, Star, Award, Shield } from 'lucide-react';
+import { Phone, Star, Award, Shield, Calendar } from 'lucide-react';
 import { BusinessData, Rating, PromoOffer } from '../../lib/data-loader';
+import { BookingCTAButton } from '../booking/BookingWidgetProvider';
 
 interface ProfessionalHeroProps {
   business: BusinessData;
@@ -73,12 +76,16 @@ export default function ProfessionalHero({ business, ratings, promos }: Professi
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 text-lg">
+              <BookingCTAButton 
+                size="lg" 
+                className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 text-lg"
+              >
+                <Calendar className="w-5 h-5 mr-2" />
+                Book Appointment Online
+              </BookingCTAButton>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-900 px-8 py-4 text-lg">
                 <Phone className="w-5 h-5 mr-2" />
                 {business.phone_number || 'Call Now'}
-              </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-900 px-8 py-4 text-lg">
-                Get Free Estimate
               </Button>
             </div>
 

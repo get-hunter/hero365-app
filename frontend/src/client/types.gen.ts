@@ -915,6 +915,70 @@ export type app__api__schemas__contact_schemas__MessageResponse = {
 }
 
 /**
+ * Individual time slot option.
+ */
+export type app__api__schemas__scheduling_schemas__TimeSlot = {
+  /**
+   * Unique slot identifier
+   */
+  slot_id: string
+  /**
+   * Slot start time
+   */
+  start_time: string
+  /**
+   * Slot end time
+   */
+  end_time: string
+  /**
+   * Available technicians for this slot
+   */
+  available_technicians: Array<{
+    [key: string]: unknown
+  }>
+  /**
+   * Confidence in slot availability
+   */
+  confidence_score: number
+  /**
+   * Estimated travel time to location
+   */
+  estimated_travel_time_minutes: number
+  /**
+   * Pricing information for this slot
+   */
+  pricing_info?: {
+    [key: string]: unknown
+  } | null
+  /**
+   * Weather conditions impact
+   */
+  weather_impact?: {
+    [key: string]: unknown
+  } | null
+  /**
+   * Overall slot quality score
+   */
+  slot_quality_score: number
+  /**
+   * Additional notes about this slot
+   */
+  notes?: string | null
+}
+
+/**
+ * Available time slot for booking
+ */
+export type app__domain__entities__booking__TimeSlot = {
+  start_time: string
+  end_time: string
+  available_technicians?: Array<string>
+  capacity?: number
+  booked_count?: number
+  price?: string | null
+}
+
+/**
  * Request DTO for dynamic website generation.
  */
 export type app__domain__entities__website_template__DynamicWebsiteRequest = {
@@ -1056,6 +1120,40 @@ export type AvailabilityCheckResponse = {
 }
 
 /**
+ * Request for available time slots
+ */
+export type AvailabilityRequest = {
+  business_id: string
+  service_id: string
+  start_date: string
+  end_date?: string | null
+  preferred_times?: {
+    [key: string]: string
+  } | null
+  customer_address?: string | null
+  customer_coordinates?: [number, number] | null
+  preferred_technician_id?: string | null
+  exclude_technician_ids?: Array<string>
+}
+
+/**
+ * Response with available time slots
+ */
+export type AvailabilityResponse = {
+  business_id: string
+  service_id: string
+  service_name: string
+  available_dates?: {
+    [key: string]: Array<app__domain__entities__booking__TimeSlot>
+  }
+  total_slots?: number
+  earliest_available?: string | null
+  latest_available?: string | null
+  estimated_duration_minutes: number
+  base_price?: string | null
+}
+
+/**
  * Available time slot.
  */
 export type AvailabilitySlot = {
@@ -1134,7 +1232,7 @@ export type AvailableTimeSlotsResponse = {
   /**
    * List of available time slots
    */
-  available_slots: Array<TimeSlot>
+  available_slots: Array<app__api__schemas__scheduling_schemas__TimeSlot>
   /**
    * Total number of slots found
    */
@@ -1205,6 +1303,149 @@ export type Body_products_reserve_stock = {
    */
   notes?: string | null
 }
+
+/**
+ * Customer booking/appointment
+ */
+export type Booking = {
+  id?: string | null
+  business_id: string
+  booking_number?: string | null
+  service_id: string
+  service_name: string
+  estimated_duration_minutes: number
+  requested_at: string
+  scheduled_at?: string | null
+  completed_at?: string | null
+  primary_technician_id?: string | null
+  additional_technicians?: Array<string>
+  customer_name: string
+  customer_email?: string | null
+  customer_phone: string
+  service_address: string
+  service_city?: string | null
+  service_state?: string | null
+  service_zip?: string | null
+  service_coordinates?: [number, number] | null
+  problem_description?: string | null
+  special_instructions?: string | null
+  access_instructions?: string | null
+  quoted_price?: string | null
+  final_price?: string | null
+  status?: BookingStatus
+  cancellation_reason?: string | null
+  cancelled_by?: string | null
+  cancelled_at?: string | null
+  preferred_contact_method?: ContactMethod
+  sms_consent?: boolean
+  email_consent?: boolean
+  source?: BookingSource
+  user_agent?: string | null
+  ip_address?: string | null
+  idempotency_key?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+/**
+ * Request to cancel a booking
+ */
+export type BookingCancellationRequest = {
+  booking_id: string
+  reason: string
+  cancelled_by: string
+  refund_amount?: number | string | null
+  notify_customer?: boolean
+}
+
+/**
+ * Request to confirm a booking
+ */
+export type BookingConfirmationRequest = {
+  booking_id: string
+  scheduled_at?: string | null
+  assigned_technician_id?: string | null
+  notes?: string | null
+}
+
+/**
+ * Response for booking list queries
+ */
+export type BookingListResponse = {
+  bookings: Array<Booking>
+  total_count: number
+  page?: number
+  page_size?: number
+  has_next?: boolean
+  has_previous?: boolean
+}
+
+/**
+ * Customer booking request
+ */
+export type BookingRequest = {
+  business_id: string
+  service_id: string
+  requested_at: string
+  customer_name: string
+  customer_email?: string | null
+  customer_phone: string
+  service_address: string
+  service_city?: string | null
+  service_state?: string | null
+  service_zip?: string | null
+  problem_description?: string | null
+  special_instructions?: string | null
+  access_instructions?: string | null
+  preferred_contact_method?: ContactMethod
+  sms_consent?: boolean
+  email_consent?: boolean
+  source?: BookingSource
+  user_agent?: string | null
+  ip_address?: string | null
+  idempotency_key?: string | null
+}
+
+/**
+ * Request to reschedule a booking
+ */
+export type BookingRescheduleRequest = {
+  booking_id: string
+  new_scheduled_at: string
+  reason?: string | null
+  notify_customer?: boolean
+}
+
+/**
+ * Response for booking operations
+ */
+export type BookingResponse = {
+  booking: Booking
+  message: string
+  next_steps?: Array<string>
+  estimated_arrival_time?: string | null
+  technician_info?: {
+    [key: string]: unknown
+  } | null
+  payment_info?: {
+    [key: string]: unknown
+  } | null
+}
+
+export type BookingSource =
+  | "website"
+  | "phone"
+  | "mobile_app"
+  | "referral"
+  | "walk_in"
+
+export type BookingStatus =
+  | "pending"
+  | "confirmed"
+  | "in_progress"
+  | "completed"
+  | "cancelled"
+  | "no_show"
 
 /**
  * Website build statuses.
@@ -2300,6 +2541,8 @@ export type ContactListResponse = {
    */
   has_previous: boolean
 }
+
+export type ContactMethod = "phone" | "email" | "sms"
 
 /**
  * Contact priority enumeration.
@@ -7214,58 +7457,6 @@ export type TimeOffType =
   | "unpaid"
 
 /**
- * Individual time slot option.
- */
-export type TimeSlot = {
-  /**
-   * Unique slot identifier
-   */
-  slot_id: string
-  /**
-   * Slot start time
-   */
-  start_time: string
-  /**
-   * Slot end time
-   */
-  end_time: string
-  /**
-   * Available technicians for this slot
-   */
-  available_technicians: Array<{
-    [key: string]: unknown
-  }>
-  /**
-   * Confidence in slot availability
-   */
-  confidence_score: number
-  /**
-   * Estimated travel time to location
-   */
-  estimated_travel_time_minutes: number
-  /**
-   * Pricing information for this slot
-   */
-  pricing_info?: {
-    [key: string]: unknown
-  } | null
-  /**
-   * Weather conditions impact
-   */
-  weather_impact?: {
-    [key: string]: unknown
-  } | null
-  /**
-   * Overall slot quality score
-   */
-  slot_quality_score: number
-  /**
-   * Additional notes about this slot
-   */
-  notes?: string | null
-}
-
-/**
  * Request to book a specific time slot.
  */
 export type TimeSlotBookingRequest = {
@@ -7314,7 +7505,7 @@ export type TimeSlotBookingResponse = {
   /**
    * Confirmed time slot details
    */
-  scheduled_slot: TimeSlot
+  scheduled_slot: app__api__schemas__scheduling_schemas__TimeSlot
   /**
    * Assigned technician information
    */
@@ -8363,6 +8554,120 @@ export type AuthRevokeUserTokensData = {
 export type AuthRevokeUserTokensResponse = {
   [key: string]: unknown
 }
+
+export type BookingsGetAvailabilityData = {
+  requestBody: AvailabilityRequest
+}
+
+export type BookingsGetAvailabilityResponse = AvailabilityResponse
+
+export type BookingsGetNextAvailableSlotData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Preferred date (defaults to today)
+   */
+  preferredDate?: string | null
+  /**
+   * Service ID
+   */
+  serviceId: string
+}
+
+export type BookingsGetNextAvailableSlotResponse = unknown
+
+export type BookingsCreateBookingData = {
+  /**
+   * Auto-confirm if slot is available
+   */
+  autoConfirm?: boolean
+  requestBody: BookingRequest
+}
+
+export type BookingsCreateBookingResponse = BookingResponse
+
+export type BookingsGetBookingData = {
+  bookingId: string
+}
+
+export type BookingsGetBookingResponse = Booking
+
+export type BookingsRescheduleBookingData = {
+  bookingId: string
+  requestBody: BookingRescheduleRequest
+}
+
+export type BookingsRescheduleBookingResponse = BookingResponse
+
+export type BookingsCancelBookingData = {
+  bookingId: string
+  requestBody: BookingCancellationRequest
+}
+
+export type BookingsCancelBookingResponse = BookingResponse
+
+export type BookingsConfirmBookingData = {
+  bookingId: string
+  requestBody: BookingConfirmationRequest
+}
+
+export type BookingsConfirmBookingResponse = BookingResponse
+
+export type BookingsGetBusinessBookingsData = {
+  businessId: string
+  /**
+   * Filter bookings until this date
+   */
+  endDate?: string | null
+  /**
+   * Page number
+   */
+  page?: number
+  /**
+   * Items per page
+   */
+  pageSize?: number
+  /**
+   * Filter bookings from this date
+   */
+  startDate?: string | null
+  /**
+   * Filter by booking status
+   */
+  status?: BookingStatus | null
+}
+
+export type BookingsGetBusinessBookingsResponse = BookingListResponse
+
+export type BookingsUpdateBookingStatusData = {
+  bookingId: string
+  newStatus: BookingStatus
+  reason?: string | null
+}
+
+export type BookingsUpdateBookingStatusResponse = unknown
+
+export type BookingsBookingHealthCheckResponse = unknown
+
+export type BookingsHandlePaymentConfirmationData = {
+  bookingId: string
+  requestBody: {
+    [key: string]: unknown
+  }
+}
+
+export type BookingsHandlePaymentConfirmationResponse = unknown
+
+export type BookingsHandleTechnicianLocationUpdateData = {
+  bookingId: string
+  requestBody: {
+    [key: string]: unknown
+  }
+}
+
+export type BookingsHandleTechnicianLocationUpdateResponse = unknown
 
 export type BusinessContextGetCurrentBusinessContextResponse =
   BusinessContextInfoResponse

@@ -211,6 +211,39 @@ class ConfigurationError(ApplicationException):
         super().__init__(message, "CONFIGURATION_ERROR")
 
 
+class ServiceNotFoundError(ApplicationException):
+    """Raised when a service is not found."""
+    
+    def __init__(self, service_id: str):
+        message = f"Service not found: {service_id}"
+        super().__init__(message, "SERVICE_NOT_FOUND")
+        self.service_id = service_id
+
+
+class ConflictError(ApplicationException):
+    """Raised when there is a conflict with the current state."""
+    
+    def __init__(self, message: str):
+        super().__init__(message, "CONFLICT_ERROR")
+
+
+class NotFoundError(ApplicationException):
+    """Generic not found error."""
+    
+    def __init__(self, resource_type: str, identifier: str):
+        message = f"{resource_type} not found: {identifier}"
+        super().__init__(message, "NOT_FOUND")
+        self.resource_type = resource_type
+        self.identifier = identifier
+
+
+class ValidationError(ApplicationException):
+    """Raised when validation fails."""
+    
+    def __init__(self, message: str):
+        super().__init__(message, "VALIDATION_ERROR")
+
+
 # Aliases for backwards compatibility
 ApplicationError = ApplicationException
 BusinessLogicViolationError = BusinessLogicError  # Alias for consistency 

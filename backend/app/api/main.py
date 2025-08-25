@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import auth, businesses, users, utils, business_context, middleware_health, contacts, jobs, projects, activities, scheduling, estimates, invoices, templates, products, suppliers, purchase_orders, mobile_voice, website_deployment, service_templates, service_discovery, invoice_helpers, dynamic_website_deployment, website_templates
+from app.api.routes import auth, businesses, users, utils, business_context, middleware_health, contacts, jobs, projects, activities, scheduling, estimates, invoices, templates, products, suppliers, purchase_orders, mobile_voice, website_deployment, service_templates, service_discovery, invoice_helpers, dynamic_website_deployment, website_templates, bookings
 from app.core.config import settings
 
 api_router = APIRouter()
@@ -28,4 +28,5 @@ api_router.include_router(mobile_voice.router, tags=["Mobile Voice Integration"]
 api_router.include_router(website_deployment.router, tags=["Website Deployment"], include_in_schema=True)
 api_router.include_router(dynamic_website_deployment.router, tags=["Dynamic Website Deployment"], include_in_schema=True)
 api_router.include_router(website_templates.router, tags=["Website Templates"], include_in_schema=True)
+api_router.include_router(bookings.router, tags=["Bookings"], include_in_schema=True)
 # Public professional endpoints moved to /api/v1/public/professional

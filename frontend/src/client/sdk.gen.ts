@@ -61,6 +61,29 @@ import type {
   AuthGoogleSignInResponse,
   AuthRevokeUserTokensData,
   AuthRevokeUserTokensResponse,
+  BookingsGetAvailabilityData,
+  BookingsGetAvailabilityResponse,
+  BookingsGetNextAvailableSlotData,
+  BookingsGetNextAvailableSlotResponse,
+  BookingsCreateBookingData,
+  BookingsCreateBookingResponse,
+  BookingsGetBookingData,
+  BookingsGetBookingResponse,
+  BookingsRescheduleBookingData,
+  BookingsRescheduleBookingResponse,
+  BookingsCancelBookingData,
+  BookingsCancelBookingResponse,
+  BookingsConfirmBookingData,
+  BookingsConfirmBookingResponse,
+  BookingsGetBusinessBookingsData,
+  BookingsGetBusinessBookingsResponse,
+  BookingsUpdateBookingStatusData,
+  BookingsUpdateBookingStatusResponse,
+  BookingsBookingHealthCheckResponse,
+  BookingsHandlePaymentConfirmationData,
+  BookingsHandlePaymentConfirmationResponse,
+  BookingsHandleTechnicianLocationUpdateData,
+  BookingsHandleTechnicianLocationUpdateResponse,
   BusinessContextGetCurrentBusinessContextResponse,
   BusinessContextSwitchBusinessContextData,
   BusinessContextSwitchBusinessContextResponse,
@@ -1288,6 +1311,342 @@ export class AuthService {
       path: {
         user_id: data.userId,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class BookingsService {
+  /**
+   * Get Availability
+   * Get available time slots for booking a service
+   *
+   * This endpoint is public to allow customers to check availability
+   * before creating an account or booking.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns AvailabilityResponse Successful Response
+   * @throws ApiError
+   */
+  public static getAvailability(
+    data: BookingsGetAvailabilityData,
+  ): CancelablePromise<BookingsGetAvailabilityResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/availability",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Next Available Slot
+   * Get the next available time slot for a service
+   *
+   * Useful for "Book Now" buttons that need to show the earliest available time.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.serviceId Service ID
+   * @param data.preferredDate Preferred date (defaults to today)
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getNextAvailableSlot(
+    data: BookingsGetNextAvailableSlotData,
+  ): CancelablePromise<BookingsGetNextAvailableSlotResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/bookings/availability/next-slot",
+      query: {
+        business_id: data.businessId,
+        service_id: data.serviceId,
+        preferred_date: data.preferredDate,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Booking
+   * Create a new booking request
+   *
+   * This endpoint is public to allow customers to book services.
+   * The booking will be created in pending status and require confirmation
+   * unless auto_confirm is True and the slot is available.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @param data.autoConfirm Auto-confirm if slot is available
+   * @returns BookingResponse Successful Response
+   * @throws ApiError
+   */
+  public static createBooking(
+    data: BookingsCreateBookingData,
+  ): CancelablePromise<BookingsCreateBookingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/",
+      query: {
+        auto_confirm: data.autoConfirm,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Booking
+   * Get booking details by ID
+   *
+   * This endpoint is public to allow customers to check their booking status
+   * using the booking ID (no authentication required).
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @returns Booking Successful Response
+   * @throws ApiError
+   */
+  public static getBooking(
+    data: BookingsGetBookingData,
+  ): CancelablePromise<BookingsGetBookingResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/bookings/{booking_id}",
+      path: {
+        booking_id: data.bookingId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Reschedule Booking
+   * Reschedule an existing booking
+   *
+   * Customers can reschedule their bookings if done with sufficient notice.
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @param data.requestBody
+   * @returns BookingResponse Successful Response
+   * @throws ApiError
+   */
+  public static rescheduleBooking(
+    data: BookingsRescheduleBookingData,
+  ): CancelablePromise<BookingsRescheduleBookingResponse> {
+    return __request(OpenAPI, {
+      method: "PATCH",
+      url: "/api/v1/bookings/{booking_id}/reschedule",
+      path: {
+        booking_id: data.bookingId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Cancel Booking
+   * Cancel an existing booking
+   *
+   * Customers can cancel their bookings. Cancellation fees may apply
+   * for short notice cancellations.
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @param data.requestBody
+   * @returns BookingResponse Successful Response
+   * @throws ApiError
+   */
+  public static cancelBooking(
+    data: BookingsCancelBookingData,
+  ): CancelablePromise<BookingsCancelBookingResponse> {
+    return __request(OpenAPI, {
+      method: "PATCH",
+      url: "/api/v1/bookings/{booking_id}/cancel",
+      path: {
+        booking_id: data.bookingId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Confirm Booking
+   * Confirm a pending booking (Business users only)
+   *
+   * Business users can confirm pending bookings and assign technicians.
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @param data.requestBody
+   * @returns BookingResponse Successful Response
+   * @throws ApiError
+   */
+  public static confirmBooking(
+    data: BookingsConfirmBookingData,
+  ): CancelablePromise<BookingsConfirmBookingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/{booking_id}/confirm",
+      path: {
+        booking_id: data.bookingId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Business Bookings
+   * Get bookings for a business (Business users only)
+   *
+   * Returns paginated list of bookings with optional filters.
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.status Filter by booking status
+   * @param data.startDate Filter bookings from this date
+   * @param data.endDate Filter bookings until this date
+   * @param data.page Page number
+   * @param data.pageSize Items per page
+   * @returns BookingListResponse Successful Response
+   * @throws ApiError
+   */
+  public static getBusinessBookings(
+    data: BookingsGetBusinessBookingsData,
+  ): CancelablePromise<BookingsGetBusinessBookingsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/bookings/business/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        status: data.status,
+        start_date: data.startDate,
+        end_date: data.endDate,
+        page: data.page,
+        page_size: data.pageSize,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Booking Status
+   * Update booking status (Admin only)
+   *
+   * Allows admins to manually update booking status for operational needs.
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @param data.newStatus
+   * @param data.reason
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static updateBookingStatus(
+    data: BookingsUpdateBookingStatusData,
+  ): CancelablePromise<BookingsUpdateBookingStatusResponse> {
+    return __request(OpenAPI, {
+      method: "PATCH",
+      url: "/api/v1/bookings/{booking_id}/status",
+      path: {
+        booking_id: data.bookingId,
+      },
+      query: {
+        new_status: data.newStatus,
+        reason: data.reason,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Booking Health Check
+   * Health check endpoint for booking service
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static bookingHealthCheck(): CancelablePromise<BookingsBookingHealthCheckResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/bookings/health",
+    })
+  }
+
+  /**
+   * Handle Payment Confirmation
+   * Handle payment confirmation webhook
+   *
+   * This endpoint would be called by payment processors to confirm
+   * that payment has been received for a booking.
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static handlePaymentConfirmation(
+    data: BookingsHandlePaymentConfirmationData,
+  ): CancelablePromise<BookingsHandlePaymentConfirmationResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/webhooks/payment-confirmed",
+      query: {
+        booking_id: data.bookingId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Handle Technician Location Update
+   * Handle technician location updates
+   *
+   * This endpoint would receive real-time location updates from
+   * technicians to provide ETA updates to customers.
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static handleTechnicianLocationUpdate(
+    data: BookingsHandleTechnicianLocationUpdateData,
+  ): CancelablePromise<BookingsHandleTechnicianLocationUpdateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/webhooks/technician-location",
+      query: {
+        booking_id: data.bookingId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },

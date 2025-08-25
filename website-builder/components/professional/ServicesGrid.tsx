@@ -1,9 +1,12 @@
+'use client';
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { ArrowRight, Wrench, Zap, Droplets, Thermometer, Shield, Home } from 'lucide-react';
+import { ArrowRight, Wrench, Zap, Droplets, Thermometer, Shield, Home, Calendar } from 'lucide-react';
 import { ServiceCategory } from '../../lib/data-loader';
+import { BookingCTAButton } from '../booking/BookingWidgetProvider';
 
 interface ServicesGridProps {
   serviceCategories: ServiceCategory[];
@@ -94,14 +97,23 @@ export default function ServicesGrid({ serviceCategories, businessName }: Servic
                     </div>
                   )}
                   
-                  {/* CTA Button */}
-                  <Button 
-                    className="w-full group-hover:bg-blue-600 transition-colors" 
-                    variant="outline"
-                  >
-                    Learn More
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
+                  {/* CTA Buttons */}
+                  <div className="space-y-2">
+                    <BookingCTAButton 
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      serviceId={category.name.toLowerCase().replace(/\s+/g, '-')}
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Book {category.name}
+                    </BookingCTAButton>
+                    <Button 
+                      className="w-full group-hover:bg-blue-600 transition-colors" 
+                      variant="outline"
+                    >
+                      Learn More
+                      <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -118,11 +130,16 @@ export default function ServicesGrid({ serviceCategories, businessName }: Servic
               Don't wait when you have an emergency. Our certified technicians are standing by to help.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-red-600 hover:bg-gray-100 px-8">
-                Call Emergency Line
-              </Button>
+              <BookingCTAButton 
+                size="lg" 
+                className="bg-white text-red-600 hover:bg-gray-100 px-8"
+                serviceId="emergency-repair"
+              >
+                <Calendar className="w-5 h-5 mr-2" />
+                Book Emergency Service
+              </BookingCTAButton>
               <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-red-600 px-8">
-                Request Callback
+                Call Emergency Line
               </Button>
             </div>
           </div>
