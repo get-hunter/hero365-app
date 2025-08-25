@@ -167,6 +167,50 @@ class BusinessRuleViolationError(ApplicationException):
         self.rule = rule
 
 
+# Website Template Specific Exceptions
+
+class BusinessNotFoundError(NotFoundError):
+    """Raised when a business is not found."""
+    
+    def __init__(self, business_id: str):
+        super().__init__("Business", business_id)
+
+
+class DataCompositionError(ApplicationException):
+    """Raised when data composition fails for template generation."""
+    
+    def __init__(self, message: str):
+        super().__init__(message, "DATA_COMPOSITION_ERROR")
+
+
+class BuildError(ApplicationException):
+    """Raised when website build process fails."""
+    
+    def __init__(self, message: str):
+        super().__init__(message, "BUILD_ERROR")
+
+
+class DeploymentError(ApplicationException):
+    """Raised when website deployment fails."""
+    
+    def __init__(self, message: str):
+        super().__init__(message, "DEPLOYMENT_ERROR")
+
+
+class TemplateNotFoundError(NotFoundError):
+    """Raised when a template is not found."""
+    
+    def __init__(self, template_name: str):
+        super().__init__("Template", template_name)
+
+
+class ConfigurationError(ApplicationException):
+    """Raised when configuration is invalid or missing."""
+    
+    def __init__(self, message: str):
+        super().__init__(message, "CONFIGURATION_ERROR")
+
+
 # Aliases for backwards compatibility
 ApplicationError = ApplicationException
 BusinessLogicViolationError = BusinessLogicError  # Alias for consistency 

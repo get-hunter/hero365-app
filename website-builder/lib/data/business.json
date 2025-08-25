@@ -1,0 +1,26 @@
+{
+  "id": "test-business-123",
+  "name": "Professional HVAC Services",
+  "description": "Expert heating, cooling, and ventilation services with over 25 years of experience. Licensed, insured, and committed to customer satisfaction.",
+  "phone_number": "(555) 123-HVAC",
+  "business_email": "info@professionalhvac.com",
+  "website": "https://professionalhvac.com",
+  "logo_url": null,
+  "address": "123 Main Street",
+  "city": "Austin",
+  "state": "TX",
+  "zip_code": "78701",
+  "trades": ["hvac", "heating", "cooling"],
+  "service_areas": ["Austin", "Round Rock", "Cedar Park", "Georgetown", "Pflugerville", "Leander"],
+  "business_hours": {
+    "monday": "8:00 AM - 6:00 PM",
+    "tuesday": "8:00 AM - 6:00 PM",
+    "wednesday": "8:00 AM - 6:00 PM",
+    "thursday": "8:00 AM - 6:00 PM",
+    "friday": "8:00 AM - 6:00 PM",
+    "saturday": "9:00 AM - 4:00 PM",
+    "sunday": "Emergency Only"
+  },
+  "primary_trade": "hvac",
+  "seo_keywords": ["hvac austin", "heating repair", "air conditioning", "hvac contractor", "ac repair austin", "heating installation"]
+}

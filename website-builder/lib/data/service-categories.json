@@ -1,0 +1,42 @@
+[
+  {
+    "id": "hvac-repair",
+    "name": "HVAC Repair",
+    "description": "Expert repair services for all heating and cooling systems",
+    "icon_name": "hvac",
+    "slug": "hvac-repair",
+    "services_count": 8,
+    "is_featured": true,
+    "sort_order": 1
+  },
+  {
+    "id": "heating-installation",
+    "name": "Heating Installation",
+    "description": "Professional installation of furnaces, heat pumps, and heating systems",
+    "icon_name": "heating",
+    "slug": "heating-installation",
+    "services_count": 5,
+    "is_featured": true,
+    "sort_order": 2
+  },
+  {
+    "id": "air-conditioning",
+    "name": "Air Conditioning",
+    "description": "Complete AC services including installation, repair, and maintenance",
+    "icon_name": "cooling",
+    "slug": "air-conditioning",
+    "services_count": 6,
+    "is_featured": true,
+    "sort_order": 3
+  },
+  {
+    "id": "maintenance",
+    "name": "Preventive Maintenance",
+    "description": "Regular maintenance to keep your HVAC system running efficiently",
+    "icon_name": "general",
+    "slug": "maintenance",
+    "services_count": 4,
+    "is_featured": false,
+    "sort_order": 4
+  }
+]

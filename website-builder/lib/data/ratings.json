@@ -1,0 +1,29 @@
+[
+  {
+    "platform": "google",
+    "rating": 4.8,
+    "review_count": 247,
+    "display_name": "Google Reviews",
+    "logo_url": null,
+    "profile_url": "https://google.com/business/reviews",
+    "is_featured": true
+  },
+  {
+    "platform": "yelp",
+    "rating": 4.6,
+    "review_count": 89,
+    "display_name": "Yelp",
+    "logo_url": null,
+    "profile_url": "https://yelp.com/biz/professional-hvac",
+    "is_featured": true
+  },
+  {
+    "platform": "bbb",
+    "rating": 4.9,
+    "review_count": 34,
+    "display_name": "Better Business Bureau",
+    "logo_url": null,
+    "profile_url": "https://bbb.org/business/professional-hvac",
+    "is_featured": true
+  }
+]

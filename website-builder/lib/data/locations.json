@@ -1,0 +1,18 @@
+[
+  {
+    "id": "main-location",
+    "name": "Austin Headquarters",
+    "address": "123 Main Street, Austin, TX 78701",
+    "city": "Austin",
+    "state": "TX",
+    "zip_code": "78701",
+    "latitude": 30.2672,
+    "longitude": -97.7431,
+    "service_radius_miles": 50,
+    "location_type": "headquarters",
+    "is_primary": true,
+    "services_offered": ["hvac", "heating", "cooling", "maintenance"],
+    "trades_covered": ["hvac"],
+    "page_slug": "austin"
+  }
+]

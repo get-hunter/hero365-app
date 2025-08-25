@@ -539,6 +539,16 @@ import type {
   WebsiteDeploymentCancelDeploymentResponse,
   WebsiteDeploymentPreviewWebsiteData,
   WebsiteDeploymentPreviewWebsiteResponse,
+  WebsiteTemplatesPreviewWebsiteTemplateData,
+  WebsiteTemplatesPreviewWebsiteTemplateResponse,
+  WebsiteTemplatesGenerateWebsiteData,
+  WebsiteTemplatesGenerateWebsiteResponse,
+  WebsiteTemplatesDeployWebsiteData,
+  WebsiteTemplatesDeployWebsiteResponse,
+  WebsiteTemplatesGetDeploymentStatusData,
+  WebsiteTemplatesGetDeploymentStatusResponse,
+  WebsiteTemplatesDeleteDeploymentData,
+  WebsiteTemplatesDeleteDeploymentResponse,
 } from "./types.gen"
 
 export class ActivitiesService {
@@ -7480,7 +7490,7 @@ export class WebsiteDeploymentService {
    * - Automatic deployment to Cloudflare Pages
    * @param data The data for the request.
    * @param data.requestBody
-   * @returns WebsiteDeploymentResponse Successful Response
+   * @returns app__api__routes__website_deployment__WebsiteDeploymentResponse Successful Response
    * @throws ApiError
    */
   public static deployWebsite(
@@ -7586,6 +7596,132 @@ export class WebsiteDeploymentService {
       url: "/api/v1/website-deployment/preview",
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class WebsiteTemplatesService {
+  /**
+   * Preview Website Template
+   * Preview website template data without generating or deploying.
+   *
+   * Returns composed template properties that would be used for generation.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns TemplateProps Successful Response
+   * @throws ApiError
+   */
+  public static previewWebsiteTemplate(
+    data: WebsiteTemplatesPreviewWebsiteTemplateData,
+  ): CancelablePromise<WebsiteTemplatesPreviewWebsiteTemplateResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/website-templates/preview",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Generate Website
+   * Generate website artifacts and build static site.
+   *
+   * Creates a build job and returns job ID for status tracking.
+   * The actual build happens in the background.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns WebsiteGenerationResponse Successful Response
+   * @throws ApiError
+   */
+  public static generateWebsite(
+    data: WebsiteTemplatesGenerateWebsiteData,
+  ): CancelablePromise<WebsiteTemplatesGenerateWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/website-templates/generate",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Deploy Website
+   * Generate and deploy website to Cloudflare Pages.
+   *
+   * This is a full end-to-end operation that composes data, builds the site,
+   * and deploys to Cloudflare Pages.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns app__domain__entities__website_template__WebsiteDeploymentResponse Successful Response
+   * @throws ApiError
+   */
+  public static deployWebsite(
+    data: WebsiteTemplatesDeployWebsiteData,
+  ): CancelablePromise<WebsiteTemplatesDeployWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/website-templates/deploy",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Deployment Status
+   * Get deployment status and details.
+   *
+   * Returns current status, deployment URL, and performance metrics if available.
+   * @param data The data for the request.
+   * @param data.jobId
+   * @returns app__domain__entities__website_template__WebsiteDeploymentResponse Successful Response
+   * @throws ApiError
+   */
+  public static getDeploymentStatus(
+    data: WebsiteTemplatesGetDeploymentStatusData,
+  ): CancelablePromise<WebsiteTemplatesGetDeploymentStatusResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/website-templates/status/{job_id}",
+      path: {
+        job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Deployment
+   * Delete a website deployment.
+   *
+   * Removes the Cloudflare Pages project and marks the deployment as cancelled.
+   * @param data The data for the request.
+   * @param data.deploymentId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static deleteDeployment(
+    data: WebsiteTemplatesDeleteDeploymentData,
+  ): CancelablePromise<WebsiteTemplatesDeleteDeploymentResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/website-templates/deployments/{deployment_id}",
+      path: {
+        deployment_id: data.deploymentId,
+      },
       errors: {
         422: "Validation Error",
       },

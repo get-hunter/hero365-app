@@ -1,0 +1,35 @@
+[
+  {
+    "id": "testimonial-1",
+    "quote": "Professional HVAC Services saved the day when our AC went out during the summer heat wave. They came out the same day and had us cool again within hours. Excellent service and fair pricing!",
+    "rating": 5,
+    "customer_name": "Sarah M.",
+    "customer_location": "Austin, TX",
+    "service_performed": "AC Repair",
+    "service_date": "2024-07-15",
+    "is_featured": true,
+    "is_verified": true
+  },
+  {
+    "id": "testimonial-2", 
+    "quote": "We've been using Professional HVAC for our maintenance needs for over 3 years. They're always on time, professional, and do quality work. Highly recommend!",
+    "rating": 5,
+    "customer_name": "Mike R.",
+    "customer_location": "Round Rock, TX",
+    "service_performed": "HVAC Maintenance",
+    "service_date": "2024-06-20",
+    "is_featured": true,
+    "is_verified": true
+  },
+  {
+    "id": "testimonial-3",
+    "quote": "Had a new furnace installed and couldn't be happier with the work. The team was knowledgeable, clean, and completed the job on schedule. Great experience overall.",
+    "rating": 4.8,
+    "customer_name": "Jennifer L.",
+    "customer_location": "Cedar Park, TX", 
+    "service_performed": "Furnace Installation",
+    "service_date": "2024-05-10",
+    "is_featured": true,
+    "is_verified": true
+  }
+]

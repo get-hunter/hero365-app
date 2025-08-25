@@ -1,0 +1,42 @@
+{
+  "routes": [
+    {
+      "path": "/",
+      "name": "Home",
+      "title": "Professional HVAC Services - Expert Heating & Cooling"
+    },
+    {
+      "path": "/about",
+      "name": "About",
+      "title": "About Professional HVAC Services"
+    },
+    {
+      "path": "/services",
+      "name": "Services", 
+      "title": "HVAC Services - Professional HVAC Services"
+    },
+    {
+      "path": "/contact",
+      "name": "Contact",
+      "title": "Contact Professional HVAC Services"
+    },
+    {
+      "path": "/services/hvac-repair",
+      "name": "HVAC Repair",
+      "title": "HVAC Repair Services - Professional HVAC Services"
+    },
+    {
+      "path": "/services/heating-installation", 
+      "name": "Heating Installation",
+      "title": "Heating Installation Services - Professional HVAC Services"
+    },
+    {
+      "path": "/services/air-conditioning",
+      "name": "Air Conditioning",
+      "title": "Air Conditioning Services - Professional HVAC Services"
+    }
+  ],
+  "generated_at": "2025-02-07T13:10:00.000Z",
+  "template_name": "professional",
+  "business_name": "Professional HVAC Services"
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "id": "winter-special",
+    "title": "Winter Heating Special",
+    "subtitle": "Get your heating system ready for winter",
+    "description": "Complete heating system tune-up and inspection",
+    "offer_type": "fixed_amount",
+    "price_label": "Starting at $89",
+    "badge_text": "Limited Time",
+    "cta_text": "Schedule Now",
+    "cta_link": "/contact",
+    "placement": "hero_banner",
+    "priority": 10,
+    "is_featured": true
+  },
+  {
+    "id": "new-customer",
+    "title": "New Customer Discount",
+    "subtitle": "Save on your first service call",
+    "description": "Special pricing for first-time customers",
+    "offer_type": "percentage_discount",
+    "price_label": "Save 20%",
+    "badge_text": "New Customers",
+    "cta_text": "Get Discount",
+    "cta_link": "/contact",
+    "placement": "hero_banner",
+    "priority": 8,
+    "is_featured": true
+  }
+]
