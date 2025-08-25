@@ -124,6 +124,12 @@ import type {
   ContactsGetContactInteractionsResponse,
   ContactsUpdateContactStatusData,
   ContactsUpdateContactStatusResponse,
+  DynamicWebsiteDeploymentCheckWebsiteGenerationReadinessResponse,
+  DynamicWebsiteDeploymentGenerateWebsiteStructureResponse,
+  DynamicWebsiteDeploymentDeployDynamicWebsiteData,
+  DynamicWebsiteDeploymentDeployDynamicWebsiteResponse,
+  DynamicWebsiteDeploymentGetDeploymentStatusData,
+  DynamicWebsiteDeploymentGetDeploymentStatusResponse,
   CreateEstimateNoSlashData,
   CreateEstimateNoSlashResponse,
   ListEstimatesNoSlashData,
@@ -2152,6 +2158,95 @@ export class ContactsService {
       },
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class DynamicWebsiteDeploymentService {
+  /**
+   * Check Website Generation Readiness
+   * Check if a business is ready for website generation.
+   *
+   * This endpoint validates that the business has sufficient services
+   * and provides recommendations for improving website generation readiness.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static checkWebsiteGenerationReadiness(): CancelablePromise<DynamicWebsiteDeploymentCheckWebsiteGenerationReadinessResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/dynamic-websites/readiness-check",
+    })
+  }
+
+  /**
+   * Generate Website Structure
+   * Generate website structure preview based on business services.
+   *
+   * This endpoint analyzes the business's service categories and generates
+   * a complete website structure without actually building the site.
+   * Useful for previewing what the website will look like.
+   *
+   * IMPORTANT: Only generates websites for businesses with actual service offerings.
+   * @returns WebsiteStructureResponse Successful Response
+   * @throws ApiError
+   */
+  public static generateWebsiteStructure(): CancelablePromise<DynamicWebsiteDeploymentGenerateWebsiteStructureResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/dynamic-websites/generate-structure",
+    })
+  }
+
+  /**
+   * Deploy Dynamic Website
+   * Deploy a dynamic website with personalized content based on service categories.
+   *
+   * This creates a complete professional website with:
+   * - Dynamic navigation based on service categories
+   * - Individual pages for each service category
+   * - SEO-optimized content
+   * - Service-specific call-to-actions
+   * - Professional design and layout
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns DynamicWebsiteResponse Successful Response
+   * @throws ApiError
+   */
+  public static deployDynamicWebsite(
+    data: DynamicWebsiteDeploymentDeployDynamicWebsiteData,
+  ): CancelablePromise<DynamicWebsiteDeploymentDeployDynamicWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/dynamic-websites/deploy",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Deployment Status
+   * Get the status of a dynamic website deployment.
+   * @param data The data for the request.
+   * @param data.deploymentId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getDeploymentStatus(
+    data: DynamicWebsiteDeploymentGetDeploymentStatusData,
+  ): CancelablePromise<DynamicWebsiteDeploymentGetDeploymentStatusResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/dynamic-websites/status/{deployment_id}",
+      path: {
+        deployment_id: data.deploymentId,
+      },
       errors: {
         422: "Validation Error",
       },

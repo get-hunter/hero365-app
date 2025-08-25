@@ -3262,6 +3262,78 @@ export type DisruptionType =
   | "equipment_failure"
 
 /**
+ * Request model for dynamic website deployment.
+ */
+export type DynamicWebsiteRequest = {
+  /**
+   * Template variant to use
+   */
+  template_variant?: string
+  /**
+   * Custom domain (optional)
+   */
+  custom_domain?: string | null
+  /**
+   * Primary brand color
+   */
+  primary_color?: string | null
+  /**
+   * Secondary brand color
+   */
+  secondary_color?: string | null
+  /**
+   * Logo URL
+   */
+  logo_url?: string | null
+  /**
+   * Include reviews section
+   */
+  include_reviews?: boolean
+  /**
+   * Include service areas
+   */
+  include_service_areas?: boolean
+  /**
+   * Include about section
+   */
+  include_about?: boolean
+  /**
+   * Show emergency service banner
+   */
+  enable_emergency_banner?: boolean
+  /**
+   * Enable advanced SEO features
+   */
+  enable_seo_optimization?: boolean
+  /**
+   * Include JSON-LD schema markup
+   */
+  enable_schema_markup?: boolean
+  /**
+   * Enable performance optimizations
+   */
+  enable_performance_optimization?: boolean
+}
+
+/**
+ * Response model for dynamic website deployment.
+ */
+export type DynamicWebsiteResponse = {
+  deployment_id: string
+  status: string
+  website_url?: string | null
+  preview_url?: string | null
+  total_pages: number
+  service_categories: number
+  navigation_items: number
+  build_started_at: string
+  estimated_completion?: string | null
+  content_summary: {
+    [key: string]: unknown
+  }
+}
+
+/**
  * Schema for estimate action responses.
  */
 export type EstimateActionResponse = {
@@ -7476,6 +7548,37 @@ export type WebsiteDeploymentResponse = {
 }
 
 /**
+ * Response model for website structure preview.
+ */
+export type WebsiteStructureResponse = {
+  business_info: {
+    [key: string]: unknown
+  }
+  navigation_menu: Array<{
+    [key: string]: unknown
+  }>
+  service_categories: Array<{
+    [key: string]: unknown
+  }>
+  seo_data: {
+    [key: string]: unknown
+  }
+  estimated_pages: number
+  promotional_offers: Array<{
+    [key: string]: unknown
+  }>
+  trust_signals: {
+    [key: string]: unknown
+  }
+  service_areas: Array<{
+    [key: string]: unknown
+  }>
+  certifications: Array<{
+    [key: string]: unknown
+  }>
+}
+
+/**
  * Working hours response.
  */
 export type WorkingHoursResponse = {
@@ -8126,6 +8229,25 @@ export type ContactsUpdateContactStatusData = {
 }
 
 export type ContactsUpdateContactStatusResponse = ContactStatusUpdateResponse
+
+export type DynamicWebsiteDeploymentCheckWebsiteGenerationReadinessResponse =
+  unknown
+
+export type DynamicWebsiteDeploymentGenerateWebsiteStructureResponse =
+  WebsiteStructureResponse
+
+export type DynamicWebsiteDeploymentDeployDynamicWebsiteData = {
+  requestBody: DynamicWebsiteRequest
+}
+
+export type DynamicWebsiteDeploymentDeployDynamicWebsiteResponse =
+  DynamicWebsiteResponse
+
+export type DynamicWebsiteDeploymentGetDeploymentStatusData = {
+  deploymentId: string
+}
+
+export type DynamicWebsiteDeploymentGetDeploymentStatusResponse = unknown
 
 export type CreateEstimateNoSlashData = {
   requestBody: CreateEstimateSchema

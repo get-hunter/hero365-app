@@ -56,60 +56,36 @@ const defaultContent = {
   },
   "services": [
     {
-      "title": "Duct Cleaning Service",
-      "description": "Professional duct cleaning and sanitization to improve air quality and system efficiency. Removes dust, debris, and allergens.",
-      "price": "From $299",
-      "features": [
-        "Professional service",
-        "Licensed & insured",
-        "3.0 hour service"
-      ],
-      "isPopular": false
-    },
-    {
-      "title": "Emergency AC Repair",
-      "description": "24/7 rapid response for all AC breakdowns. Our certified technicians diagnose and fix AC issues quickly to restore your comfort.",
+      "title": "Emergency HVAC Repair",
+      "description": "24/7 emergency heating and air conditioning repair throughout Austin metro.",
       "price": "From $149",
       "features": [
-        "Professional service",
-        "Licensed & insured",
-        "24/7 emergency available",
-        "1.5 hour service"
+        "Same-day service",
+        "All major brands",
+        "Parts warranty",
+        "Upfront pricing"
       ],
       "isPopular": true
     },
     {
       "title": "HVAC System Installation",
-      "description": "Complete HVAC system installation and replacement. Energy-efficient systems with professional installation and warranty.",
+      "description": "Complete HVAC system installation and replacement with energy-efficient solutions.",
       "price": "Free Quote",
       "features": [
-        "Professional service",
-        "Licensed & insured",
-        "4.0 hour service"
-      ],
-      "isPopular": false
+        "Energy-efficient systems",
+        "Financing available",
+        "10-year warranty"
+      ]
     },
     {
-      "title": "Preventative Maintenance Plan",
-      "description": "Annual tune-ups to ensure optimal system performance and longevity. Includes filter changes, system cleaning, and efficiency checks.",
+      "title": "Preventative Maintenance",
+      "description": "Preventive maintenance plans to keep your system running efficiently year-round.",
       "price": "From $199",
       "features": [
-        "Professional service",
-        "Licensed & insured",
-        "1.0 hour service"
-      ],
-      "isPopular": false
-    },
-    {
-      "title": "Thermostat Installation",
-      "description": "Smart thermostat installation and setup. Includes programming and training on optimal usage for energy savings.",
-      "price": "Free Quote",
-      "features": [
-        "Professional service",
-        "Licensed & insured",
-        "2.0 hour service"
-      ],
-      "isPopular": false
+        "Bi-annual tune-ups",
+        "Priority service",
+        "20% off repairs"
+      ]
     }
   ],
   "seo": {
@@ -127,6 +103,12 @@ const defaultContent = {
     ]
   }
 };
+
+
+
+
+
+
 
 
 

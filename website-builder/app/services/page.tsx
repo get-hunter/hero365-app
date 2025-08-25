@@ -26,97 +26,74 @@ export default function ServicesPage() {
     // Real services from database - injected by deployment script
   const services = [
     {
-        "title": "Duct Cleaning Service",
-        "description": "Professional duct cleaning and sanitization to improve air quality and system efficiency. Removes dust, debris, and allergens.",
-        "price": "From $299",
-        "features": [
-            "Professional service",
-            "Licensed & insured",
-            "3.0 hour service"
-        ],
-        "isPopular": false
-    },
-    {
-        "title": "Emergency AC Repair",
-        "description": "24/7 rapid response for all AC breakdowns. Our certified technicians diagnose and fix AC issues quickly to restore your comfort.",
+        "title": "Emergency HVAC Repair",
+        "description": "24/7 emergency heating and air conditioning repair throughout Austin metro.",
         "price": "From $149",
         "features": [
-            "Professional service",
-            "Licensed & insured",
-            "24/7 emergency available",
-            "1.5 hour service"
+            "Same-day service",
+            "All major brands",
+            "Parts warranty",
+            "Upfront pricing"
         ],
         "isPopular": true
     },
     {
         "title": "HVAC System Installation",
-        "description": "Complete HVAC system installation and replacement. Energy-efficient systems with professional installation and warranty.",
+        "description": "Complete HVAC system installation and replacement with energy-efficient solutions.",
         "price": "Free Quote",
         "features": [
-            "Professional service",
-            "Licensed & insured",
-            "4.0 hour service"
-        ],
-        "isPopular": false
+            "Energy-efficient systems",
+            "Financing available",
+            "10-year warranty"
+        ]
     },
     {
-        "title": "Preventative Maintenance Plan",
-        "description": "Annual tune-ups to ensure optimal system performance and longevity. Includes filter changes, system cleaning, and efficiency checks.",
+        "title": "Preventative Maintenance",
+        "description": "Preventive maintenance plans to keep your system running efficiently year-round.",
         "price": "From $199",
         "features": [
-            "Professional service",
-            "Licensed & insured",
-            "1.0 hour service"
-        ],
-        "isPopular": false
-    },
-    {
-        "title": "Thermostat Installation",
-        "description": "Smart thermostat installation and setup. Includes programming and training on optimal usage for energy savings.",
-        "price": "Free Quote",
-        "features": [
-            "Professional service",
-            "Licensed & insured",
-            "2.0 hour service"
-        ],
-        "isPopular": false
+            "Bi-annual tune-ups",
+            "Priority service",
+            "20% off repairs"
+        ]
     }
 ];
 
+  // Service icons mapping
   const serviceIcons = {
-    'Emergency AC Repair': <Thermometer className="w-6 h-6" />,
-    'Heating System Service': <Wind className="w-6 h-6" />,
-    'HVAC Installation': <Shield className="w-6 h-6" />,
-    'Preventive Maintenance': <Wrench className="w-6 h-6" />,
-    'Air Quality Solutions': <Wind className="w-6 h-6" />,
-    'Ductwork Services': <CheckCircle className="w-6 h-6" />
+    "Emergency HVAC Repair": <Wrench className="h-8 w-8" />,
+    "HVAC System Installation": <Thermometer className="h-8 w-8" />,
+    "Preventative Maintenance": <Shield className="h-8 w-8" />,
+    "Emergency AC Repair": <Wind className="h-8 w-8" />,
+    "Heating System Repair": <Thermometer className="h-8 w-8" />,
+    "Complete HVAC Installation": <CheckCircle className="h-8 w-8" />
   };
 
-  // Service categories - defined after services to avoid deployment script override
+  // Service categories for overview section
   const serviceCategories = [
     {
-      name: "Emergency Services",
-      description: "24/7 emergency HVAC repair and service",
-      services: services.filter(s => s.isPopular), // Use popular services as emergency
-      icon: <Clock className="w-8 h-8" />
+      name: "Emergency Repairs",
+      description: "24/7 emergency HVAC repairs with same-day service",
+      icon: <Wrench className="h-12 w-12" />,
+      services: services.filter(s => s.title.includes("Emergency"))
     },
     {
-      name: "Repair Services", 
-      description: "Professional HVAC repair and troubleshooting",
-      services: services.filter(s => s.title.includes("Repair") || s.title.includes("Maintenance")),
-      icon: <Wrench className="w-8 h-8" />
+      name: "System Installation", 
+      description: "Complete HVAC system installation and replacement",
+      icon: <CheckCircle className="h-12 w-12" />,
+      services: services.filter(s => s.title.includes("Installation"))
     },
     {
-      name: "Installation Services",
-      description: "New HVAC system installation and replacement", 
-      services: services.filter(s => s.title.includes("Installation")),
-      icon: <Shield className="w-8 h-8" />
+      name: "Maintenance Plans",
+      description: "Preventive maintenance to keep your system efficient",
+      icon: <Shield className="h-12 w-12" />,
+      services: services.filter(s => s.title.includes("Maintenance"))
     },
     {
-      name: "Maintenance Services",
-      description: "Preventive maintenance and tune-up services",
-      services: services.filter(s => s.title.includes("Cleaning") || s.title.includes("Thermostat")),
-      icon: <CheckCircle className="w-8 h-8" />
+      name: "Seasonal Services",
+      description: "Heating and cooling services for all seasons",
+      icon: <Thermometer className="h-12 w-12" />,
+      services: services.filter(s => s.title.includes("Heating") || s.title.includes("Cooling"))
     }
   ];
 

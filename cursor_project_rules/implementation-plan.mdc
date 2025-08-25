@@ -1,246 +1,238 @@
-# Hero365 Hybrid Search Implementation Plan
+## Website Generator + Cloudflare Deployment: Implementation Plan (Trackable)
 
-## Overview
-Implement hybrid search capabilities using pgvector extension in Supabase to provide AI agents with better context through semantic similarity and relationship verification.
-
-## Phase 1: Vector Database Foundation
-
-### Step 1.1: Enable pgvector Extension
-- [ ] Create migration to enable pgvector extension in Supabase
-- [ ] Test extension availability and vector operations
-- [ ] Validate vector indexing capabilities
-
-### Step 1.2: Create Entity Embeddings Table
-- [ ] Design `entity_embeddings` table schema with:
-  - `id` (UUID primary key)
-  - `entity_type` (enum: contact, job, estimate, invoice, product, project)
-  - `entity_id` (UUID reference to actual entity)
-  - `business_id` (UUID for multi-tenancy)
-  - `embedding` (vector(1536) for OpenAI embeddings)
-  - `content_hash` (text for change detection)
-  - `created_at`, `updated_at` timestamps
-- [ ] Create indexes for performance optimization
-- [ ] Create enum type for entity types
-
-### Step 1.3: Relationship Verification Functions
-- [ ] Create database functions to verify business relationships:
-  - `verify_contact_relationships(contact_id, related_ids[])`
-  - `verify_job_relationships(job_id, related_ids[])`
-  - `verify_estimate_relationships(estimate_id, related_ids[])`
-  - `verify_product_relationships(product_id, related_ids[])`
-- [ ] Create unified relationship checker function
-- [ ] Test relationship verification with sample data
-
-## Phase 2: Embedding Management Infrastructure
-
-### Step 2.1: External Embedding Service
-- [ ] Create `EmbeddingService` interface in application/ports/
-- [ ] Implement OpenAI embeddings adapter in infrastructure/external_services/
-- [ ] Add embedding generation for text content
-- [ ] Add batch embedding processing capabilities
-- [ ] Configure embedding model settings (text-embedding-3-small)
-
-### Step 2.2: Content Extraction Layer
-- [ ] Create content extraction functions for each entity type:
-  - Contact: name, email, phone, address, notes
-  - Job: title, description, status, address
-  - Estimate: title, description, items, total
-  - Invoice: similar to estimate
-  - Product: name, description, category, specifications
-  - Project: name, description, scope
-- [ ] Implement content change detection using hashing
-- [ ] Create unified content extractor interface
-
-### Step 2.3: Embedding Repository
-- [ ] Create `HybridSearchRepository` interface in domain/repositories/
-- [ ] Implement Supabase-based repository in infrastructure/database/repositories/
-- [ ] Add methods for:
-  - `store_embedding(entity_type, entity_id, content, business_id)`
-  - `update_embedding(entity_type, entity_id, content)`
-  - `search_similar(query_embedding, entity_types[], limit, threshold)`
-  - `verify_relationships(entity_type, entity_id, related_results[])`
-- [ ] Add error handling and logging
-
-## Phase 3: Search Engine Core
-
-### Step 3.1: Hybrid Search Use Case
-- [ ] Create `HybridSearchUseCase` in application/use_cases/
-- [ ] Implement search logic combining:
-  - Text-based search (existing ilike queries)
-  - Vector similarity search
-  - Relationship verification
-  - Business context filtering
-- [ ] Add search result ranking and scoring
-- [ ] Implement search result aggregation
-
-### Step 3.2: Search API Layer
-- [ ] Create search schemas in api/schemas/search_schemas.py
-- [ ] Add search route in api/routes/search.py
-- [ ] Implement search endpoints:
-  - `POST /search/hybrid` - unified search across entities
-  - `POST /search/similar/{entity_type}/{entity_id}` - find similar entities
-  - `POST /search/related/{entity_type}/{entity_id}` - find related entities
-- [ ] Add input validation and error handling
-
-### Step 3.3: Search Integration Service
-- [ ] Create `SearchIntegrationService` in application/services/
-- [ ] Implement search context building for agents
-- [ ] Add search result formatting for different contexts
-- [ ] Create search history and analytics tracking
-
-## Phase 4: Agent Integration
-
-### Step 4.1: Enhanced Agent Tools
-- [ ] Update `Hero365Tools` class to include hybrid search capabilities
-- [ ] Add new tool methods:
-  - `hybrid_search_entities(query, entity_types, limit)`
-  - `find_similar_entities(entity_type, entity_id, limit)`
-  - `verify_entity_relationships(entity_type, entity_id, related_ids)`
-- [ ] Update existing tools to use hybrid search when appropriate
-- [ ] Add context enrichment for search results
-
-### Step 4.2: Agent Context Enhancement
-- [ ] Update `ContextManager` to use hybrid search for context building
-- [ ] Implement smart context loading based on conversation history
-- [ ] Add proactive context suggestions for agents
-- [ ] Create context relevance scoring
-
-### Step 4.3: Specialized Agent Updates
-- [ ] Update `ContactAgent` to use hybrid search for contact discovery
-- [ ] Update `JobAgent` to find related jobs, estimates, and contacts
-- [ ] Update `EstimateAgent` to find similar estimates and related entities
-- [ ] Update `InvoiceAgent` to leverage payment history and related data
-- [ ] Add cross-agent context sharing capabilities
-
-## Phase 5: Background Processing
-
-### Step 5.1: Embedding Sync System
-- [ ] Create background task system for embedding generation
-- [ ] Implement entity change detection triggers
-- [ ] Add batch processing for existing entity embeddings
-- [ ] Create embedding refresh scheduling
-- [ ] Add error handling and retry mechanisms
-
-
-### Step 5.2: Data Migration
-- [ ] Create migration script for existing entities
-- [ ] Implement progressive embedding generation
-- [ ] Add data validation and integrity checks
-- [ ] Create rollback procedures
-
-## Phase 6: Testing and Optimization
-
-### Step 6.1: Unit Testing
-- [ ] Create tests for embedding service
-- [ ] Test hybrid search repository
-- [ ] Test search use cases
-- [ ] Test agent tool integration
-- [ ] Add performance benchmarks
-
-### Step 6.2: Integration Testing
-- [ ] Test end-to-end search workflows
-- [ ] Test agent interactions with search
-- [ ] Test multi-entity search scenarios
-- [ ] Test relationship verification accuracy
-- [ ] Test search performance under load
-
-### Step 6.3: Performance Optimization
-- [ ] Optimize vector search queries
-- [ ] Implement search result caching
-- [ ] Add index optimization
-- [ ] Implement query optimization
-- [ ] Add connection pooling for search operations
-
-## Phase 7: Documentation and Deployment
-
-### Step 7.1: API Documentation
-- [ ] Generate OpenAPI documentation for search endpoints
-- [ ] Create mobile app integration guide
-- [ ] Document search query patterns
-- [ ] Add search best practices guide
-
-### Step 7.2: Deployment Preparation
-- [ ] Update environment configurations
-- [ ] Add production migration scripts
-- [ ] Create deployment checklist
-- [ ] Add monitoring setup
-
-### Step 7.3: Feature Rollout
-- [ ] Implement feature flags for gradual rollout
-- [ ] Create A/B testing framework
-- [ ] Add performance monitoring
-- [ ] Plan user training materials
-
-## Success Metrics
-
-### Technical Metrics
-- [ ] Search response time < 200ms for 95% of queries
-- [ ] Vector similarity accuracy > 85%
-- [ ] Relationship verification accuracy > 95%
-- [ ] Search result relevance score > 0.8
-
-### Business Metrics
-- [ ] Agent response accuracy improvement > 30%
-- [ ] User task completion time reduction > 25%
-- [ ] Cross-entity discovery rate > 40%
-- [ ] Search-driven action success rate > 80%
-
-## Risk Mitigation
-
-### Technical Risks
-- [ ] Vector index performance degradation - mitigation: implement index optimization
-- [ ] Embedding cost escalation - mitigation: implement caching and batch processing
-- [ ] Search latency issues - mitigation: implement query optimization and caching
-- [ ] Data consistency issues - mitigation: implement robust sync mechanisms
-
-### Business Risks
-- [ ] Agent context confusion - mitigation: implement strict relationship verification
-- [ ] Search result irrelevance - mitigation: implement relevance scoring and feedback
-- [ ] System complexity increase - mitigation: maintain clean architecture boundaries
-- [ ] Migration complexity - mitigation: implement progressive rollout strategy
-
-## Next Steps
-1. Start with Phase 1.1 - Enable pgvector extension
-2. Progress through phases sequentially
-3. Test thoroughly at each phase
-4. Maintain existing functionality during implementation
-5. Document all changes and decisions
+Guideline: After completing each task, replace Status with "Done" and add a two-line summary under Notes.
 
 ---
 
-## Implementation Log
-*Track completion of each step with "Done" status and brief summary*
+### 0) Governance, Environments, and Conventions
+- Task: Establish working conventions (this document) and logging discipline
+  - Status: Pending
+  - Acceptance: This doc used as the single source of truth; every step updated with Done + 2-line summary
+  - Notes:
+- Task: Verify env files exist and secrets are available
+  - Status: Pending
+  - Steps:
+    - Ensure `/environments/.env` and `/environments/production.env` exist with required backend, Supabase, and Cloudflare secrets
+    - Confirm `CLOUDFLARE_API_TOKEN` and account details are stored securely for CI use
+  - Acceptance: Local backend runs; Wrangler can authenticate non-interactively in CI
+  - Notes:
+- Task: Confirm we follow clean architecture boundaries
+  - Status: Pending
+  - Acceptance: New services added in `backend/app/application/services`, Pydantic DTOs in `domain`, adapters in `infrastructure`
+  - Notes:
 
-### Phase 1: Vector Database Foundation
-- Step 1.1: Enable pgvector Extension - **Done**
-- Step 1.2: Create Entity Embeddings Table - **Done**
-- Step 1.3: Relationship Verification Functions - **Done**
+---
 
-### Phase 2: Embedding Management Infrastructure
-- Step 2.1: External Embedding Service - **Done**
-- Step 2.2: Content Extraction Layer - **Done**
-- Step 2.3: Embedding Repository - **Done**
+### 1) Supabase Schema (Data Model for Template-Driven Sites)
+- Task: Define template-driven content model tables
+  - Status: Pending
+  - Steps:
+    - Confirm/extend existing migrations in `supabase/migrations/` for:
+      - `businesses` (branding, contacts, support hours)
+      - `service_categories`, `services` (residential/commercial flags, featured)
+      - `promos_offers` (title, subtitle, price/label, badges, CTA, start/end, placement)
+      - `ratings_snapshot` (platform, rating, count, last_synced_at)
+      - `awards_certifications` (name, logo_url, order)
+      - `oem_partnerships` (name, logo_url, link_url, order)
+      - `locations` (primary city, service areas)
+      - `testimonials` (source, quote, author, rating)
+      - `website_deployments` (business_id, template, project_name, deploy_url, lighthouse_json, status)
+    - Create a new migration if needed
+  - Acceptance: `npx supabase db push` applies locally; tables match DTOs below
+  - Notes:
+- Task: Data sync jobs for ratings (Phase 2)
+  - Status: Pending
+  - Acceptance: Nightly sync blueprint written; execution can be added later
+  - Notes:
 
-### Phase 3: Search Engine Core
-- Step 3.1: Hybrid Search Use Case - **Pending**
-- Step 3.2: Search API Layer - **Pending**
-- Step 3.3: Search Integration Service - **Pending**
+---
 
-### Phase 4: Agent Integration
-- Step 4.1: Enhanced Agent Tools - **Pending**
-- Step 4.2: Agent Context Enhancement - **Pending**
-- Step 4.3: Specialized Agent Updates - **Pending**
+### 2) Backend API (FastAPI)
+- Task: Define Pydantic DTOs (request/response)
+  - Status: Pending
+  - Files:
+    - `backend/app/domain/entities/website_template.py` (TemplateProps, BusinessProps, ServiceCategoryProps, Promo, Rating, Award, Partnership)
+    - `backend/app/api/routes/dynamic_website_deployment.py` (or new route group `website_templates.py`)
+  - Acceptance: DTOs cover all props required by the builder; mypy passes; unit tests in `tests/api`
+  - Notes:
+- Task: Implement endpoints
+  - Status: Pending
+  - Endpoints:
+    - POST `/website-templates/preview` → returns composed `TemplateProps` without persisting
+    - POST `/website-templates/generate` → writes a build job row and artifacts for builder
+    - POST `/website-templates/deploy` → builds SSG and deploys to Cloudflare Pages (returns URL)
+    - GET `/website-templates/status/{job_id}` → returns logs, deployment URL, Lighthouse scores
+  - Acceptance: Happy-path tested locally with `uv run`/`uvicorn`; OpenAPI reflects endpoints
+  - Notes:
+- Task: Application services
+  - Status: Pending
+  - Services:
+    - `TemplateCompositionService` (fetch data from Supabase, compose DTOs)
+    - `StaticSiteBuilderService` (emit JSON artifacts, route manifest, run Next.js build)
+    - `CloudflarePagesDeploymentService` (create/update project, deploy via Wrangler or API)
+  - Acceptance: Each service tested in isolation (unit) and in one e2e smoke
+  - Notes:
+- Task: OpenAPI + client generation
+  - Status: Pending
+  - Steps:
+    - Run `/backend/scripts/generate-openapi.sh` to update openapi.json
+    - If applicable, regenerate mobile client (Swift) and website-builder client (TS)
+  - Acceptance: New endpoints present; clients compile without type errors
+  - Notes:
 
-### Phase 5: Background Processing
-- Step 5.1: Embedding Sync System - **Pending**
-- Step 5.2: Data Migration - **Pending**
+---
 
-### Phase 6: Testing and Optimization
-- Step 6.1: Unit Testing - **Pending**
-- Step 6.2: Integration Testing - **Pending**
-- Step 6.3: Performance Optimization - **Pending**
+### 3) Website Builder (Next.js + Tailwind + shadcn/ui)
+- Task: Project foundation
+  - Status: Pending
+  - Steps:
+    - Next.js 15 App Router with `output: 'export'`, Tailwind v3, PostCSS, autoprefixer
+    - shadcn/ui installed for Buttons, Cards, Badges, Sheet, Accordion, Carousel, Tabs, Dialog
+    - Theme tokens (colors, radii, spacing) configurable per-business
+  - Acceptance: `npm run build` yields fully static `out/`
+  - Notes:
+- Task: Template fuse-professional v1 (components)
+  - Status: Pending
+  - Components (replicate [fuseservice.com](https://fuseservice.com/)):
+    - Global: Topbar (city, 24/7 phone), Header/Nav (mega menu), Sticky CTA rail, Footer
+    - Home: Hero, Promo Carousel, Trust Strip, Services Grid, Why-Us Features, Reviews Snapshot, Partnerships strip, Service Areas grid
+    - Inner pages: Category listing, Service detail (+FAQs), Reviews, Rebates, Financing, About, Contact/Booking (with SMS consent block)
+  - Acceptance: All components accept typed props from DTOs; Storybook (optional) showcases variants
+  - Notes:
+- Task: Data contract and SSG
+  - Status: Pending
+  - Steps:
+    - In `website-builder/lib/types/`, mirror backend DTOs in TS
+    - Write artifact loader to consume `/lib/data/*.json` generated by backend
+    - Implement `getStaticPaths`-like route generation via a manifest file for:
+      - `/`, `/about`, `/contact`, `/reviews`, `/rebates`, `/financing`
+      - `/services/[category]` and `/services/[category]/[slug]`
+      - `/locations/[city]`
+  - Acceptance: Full site statically exported; routes match manifest
+  - Notes:
+- Task: Forms (Contact/Booking)
+  - Status: Pending
+  - Steps:
+    - UI with validation; SMS consent disclaimer; post to FastAPI endpoint
+    - Turnstile (Cloudflare) or hCaptcha integration; rate limiting server-side
+  - Acceptance: Submissions reach backend and persist; basic spam controls in place
+  - Notes:
 
-### Phase 7: Documentation and Deployment
-- Step 7.1: API Documentation - **Pending**
-- Step 7.2: Deployment Preparation - **Pending**
-- Step 7.3: Feature Rollout - **Pending**
+---
+
+### 4) Deployment Pipeline (Cloudflare Pages)
+- Task: Non-interactive deploy flow (CI + local)
+  - Status: Pending
+  - Steps:
+    - Wrangler auth via API token in CI; store token as secret
+    - Project naming convention `hero365-{business_slug}` (per-tenant) or a multi-tenant single project (Phase 2)
+    - CLI: `wrangler pages deploy out --project-name <project>`
+  - Acceptance: One-click deploy from backend endpoint; URL persisted in Supabase
+  - Notes:
+- Task: Custom domains (optional Phase 2)
+  - Status: Pending
+  - Steps: Map domain → Pages project; manage DNS via Cloudflare API adapter already present in repo
+  - Acceptance: Domain shows site; HTTPS ok
+  - Notes:
+- Task: Observability
+  - Status: Pending
+  - Steps: Store deployment id/url; run Lighthouse CI post-deploy; save JSON and scores
+  - Acceptance: Scores saved ≥ target thresholds (Perf ≥ 90, A11y ≥ 95, SEO ≥ 95)
+  - Notes:
+
+---
+
+### 5) SEO, Accessibility, and Performance
+- Task: SEO foundations
+  - Status: Pending
+  - Steps: Per-page meta, canonical, robots, sitemap.xml, JSON-LD (LocalBusiness, Service, Product)
+  - Acceptance: Pages validate in Google Rich Results test
+  - Notes:
+- Task: Accessibility
+  - Status: Pending
+  - Steps: Semantic landmarks, keyboard focus, aria labels; color contrast checks
+  - Acceptance: A11y score ≥ 95; axe clean on templates
+  - Notes:
+- Task: Performance
+  - Status: Pending
+  - Steps: Pre-size images, lazy loading where needed, minimize CLS; static export only
+  - Acceptance: Lighthouse Perf ≥ 90 on Cloudflare Pages
+  - Notes:
+
+---
+
+### 6) Testing & QA
+- Task: Unit & Integration Tests
+  - Status: Pending
+  - Backend: DTO tests; service composition; endpoint tests (FastAPI TestClient)
+  - Frontend: Component render tests; route generation integrity
+  - Acceptance: CI green on push
+  - Notes:
+- Task: E2E + Visual
+  - Status: Pending
+  - Steps: Playwright flows (nav, CTAs, forms); visual snapshots of key sections
+  - Acceptance: Baselines approved; PRs must not regress
+  - Notes:
+- Task: Post-Deploy Validation
+  - Status: Pending
+  - Steps: Synthetic checks for homepage and contact submit
+  - Acceptance: Health checks pass
+  - Notes:
+
+---
+
+### 7) Rollout & Milestones
+- Milestone 1 (Week 1):
+  - Schema ready; DTOs ready; Template skeleton (global layout, hero, promo, trust, services grid, footer)
+  - One demo business SSG → deployed on Cloudflare Pages from backend endpoint
+  - Acceptance: Public URL; basic content; working nav and CTAs
+  - Status: Pending
+  - Notes:
+- Milestone 2 (Week 2):
+  - Category + Service pages; Reviews; Warranty/Financing pages; Locations; Contact form (with consent)
+  - Acceptance: Full site skeleton complete for one business
+  - Status: Pending
+  - Notes:
+- Milestone 3 (Week 3):
+  - Partnerships, awards; SEO JSON-LD; A11y; Lighthouse CI; admin endpoints for generate/deploy; nightly rating sync blueprint
+  - Acceptance: Scores ≥ targets; end-to-end deploy via API
+  - Status: Pending
+  - Notes:
+- Milestone 4 (Week 4):
+  - Multi-tenant support; optional custom domain; documentation for ops and mobile client integration
+  - Acceptance: Second business live; docs published
+  - Status: Pending
+  - Notes:
+
+---
+
+### 8) Commands & Routines (Reference)
+- Backend run (local):
+  - `uv run uvicorn app.api.main:app --reload`
+- OpenAPI regeneration:
+  - `bash backend/scripts/generate-openapi.sh`
+- Supabase migrations:
+  - `npx supabase db push`
+- Builder (local):
+  - `npm ci && npm run build` (Next.js → `out/`)
+- Deploy (manual):
+  - `wrangler pages deploy out --project-name hero365-<slug>`
+
+---
+
+### 9) Risks & Mitigations
+- Risk: Ratings/platform logos use third-party IP
+  - Mitigation: Use public review counts via platform APIs where allowed; store snapshots; use permitted logos
+- Risk: Overfitting to Fuse
+  - Mitigation: Keep template configurable; avoid content lock-in; design generic components
+- Risk: CI token leakage
+  - Mitigation: Store secrets in CI vault; minimize scopes
+
+---
+
+### 10) Definition of Done (Project)
+- One-click API from backend creates, builds, and deploys a site for a business to Cloudflare Pages
+- Site structure replicates key Fuse conversion patterns ([fuseservice.com](https://fuseservice.com/))
+- Lighthouse: Perf ≥ 90, A11y ≥ 95, SEO ≥ 95
+- SSG-only export; zero runtime dependencies
+- Documentation and this plan updated with "Done" notes for each task
