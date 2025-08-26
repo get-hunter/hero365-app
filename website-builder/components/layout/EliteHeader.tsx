@@ -125,13 +125,9 @@ export default function EliteHeader({
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="border-white text-white hover:bg-white hover:text-gray-900 text-xs px-3 py-1"
-            >
+            <button className="px-3 py-1 text-xs border border-white text-white hover:bg-white hover:text-gray-900 rounded transition-colors font-medium">
               Get a Quote Now
-            </Button>
+            </button>
             <BookingCTAButton 
               size="sm"
               className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1"
@@ -214,9 +210,9 @@ export default function EliteHeader({
                             <p className="text-sm text-gray-600">Our experts are here to help</p>
                           </div>
                           <div className="flex space-x-3">
-                            <Button variant="outline" size="sm">
+                            <button className="px-3 py-1 text-sm border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors">
                               Call {phone}
-                            </Button>
+                            </button>
                             <BookingCTAButton size="sm">
                               Book Consultation
                             </BookingCTAButton>
@@ -273,9 +269,9 @@ export default function EliteHeader({
                 <Phone className="w-4 h-4 mr-2" />
                 {phone}
               </a>
-              <Button variant="outline">
+              <button className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors font-medium">
                 Get Quote
-              </Button>
+              </button>
               <BookingCTAButton>
                 Book Now
               </BookingCTAButton>
@@ -351,9 +347,9 @@ export default function EliteHeader({
                   {phone}
                 </a>
                 <div className="flex space-x-3">
-                  <Button variant="outline" className="flex-1">
+                  <button className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors font-medium">
                     Get Quote
-                  </Button>
+                  </button>
                   <BookingCTAButton className="flex-1">
                     Book Now
                   </BookingCTAButton>

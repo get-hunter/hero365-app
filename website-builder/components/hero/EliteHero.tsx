@@ -97,14 +97,10 @@ export default function EliteHero({
                 </Badge>
               )}
             </div>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="border-white text-white hover:bg-white hover:text-green-700"
-            >
+            <button className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium border-2 border-white text-white hover:bg-white hover:text-green-700 rounded-md transition-colors duration-200">
               {featuredPromotion.ctaText || "More Details"}
               <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
+            </button>
           </div>
         </div>
       )}
@@ -177,17 +173,13 @@ export default function EliteHero({
                   <Calendar className="w-5 h-5 mr-2" />
                   Book Service Online
                 </BookingCTAButton>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="border-white text-white hover:bg-white hover:text-blue-900 px-8 py-4 text-lg font-semibold"
-                  asChild
+                <a 
+                  href={`tel:${phone}`}
+                  className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold border-2 border-white text-white hover:bg-white hover:text-blue-900 rounded-md transition-colors duration-200"
                 >
-                  <a href={`tel:${phone}`}>
-                    <Phone className="w-5 h-5 mr-2" />
-                    Call {phone}
-                  </a>
-                </Button>
+                  <Phone className="w-5 h-5 mr-2" />
+                  Call {phone}
+                </a>
               </div>
 
               {/* Additional Promotions */}
@@ -243,8 +235,7 @@ export default function EliteHero({
                         <div className="text-orange-300 font-bold">{service.price}</div>
                         <BookingCTAButton 
                           size="sm" 
-                          variant="outline"
-                          className="mt-1 border-white/30 text-white hover:bg-white hover:text-blue-900"
+                          className="mt-1 bg-white/20 border border-white/30 text-white hover:bg-white hover:text-blue-900 backdrop-blur-sm"
                         >
                           Book Now
                         </BookingCTAButton>
@@ -257,13 +248,10 @@ export default function EliteHero({
                   <p className="text-blue-200 text-sm mb-3">
                     Same-day service available • Licensed & Insured • 100% Satisfaction Guaranteed
                   </p>
-                  <Button 
-                    variant="outline" 
-                    className="border-white text-white hover:bg-white hover:text-blue-900"
-                  >
+                  <button className="inline-flex items-center justify-center px-6 py-2 border-2 border-white text-white hover:bg-white hover:text-blue-900 rounded-md transition-colors duration-200 font-medium">
                     View All Services
                     <ArrowRight className="ml-2 w-4 h-4" />
-                  </Button>
+                  </button>
                 </div>
               </div>
             </div>

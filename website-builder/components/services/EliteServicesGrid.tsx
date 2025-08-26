@@ -352,16 +352,12 @@ export default function EliteServicesGrid({
               >
                 Book Emergency Service
               </BookingCTAButton>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="border-white text-white hover:bg-white hover:text-red-600 px-8 font-semibold"
-                asChild
+              <a 
+                href={`tel:${phone}`}
+                className="inline-flex items-center justify-center px-8 py-3 text-lg font-semibold border-2 border-white text-white hover:bg-white hover:text-red-600 rounded-md transition-colors duration-200"
               >
-                <a href={`tel:${phone}`}>
-                  Call Emergency Line: {phone}
-                </a>
-              </Button>
+                Call Emergency Line: {phone}
+              </a>
             </div>
           </div>
         </div>
