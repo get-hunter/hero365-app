@@ -5,9 +5,7 @@
  * Configured with business ID via environment variables during deployment
  */
 
-'use client';
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React from 'react';
 import EliteHeader from '../components/layout/EliteHeader';
 import EliteHero from '../components/hero/EliteHero';
 import EliteServicesGrid from '../components/services/EliteServicesGrid';
@@ -20,136 +18,119 @@ import { professionalApi, ProfessionalProfile, ServiceItem } from '../lib/api/pr
 import { BookableService } from '../lib/types/booking';
 import { getBusinessConfig } from '../lib/config/api-config';
 
-export default function HomePage() {
+async function loadBusinessData(businessId: string) {
+  try {
+    console.log('🔄 [SERVER] Loading business data for:', businessId);
+    console.log('🔄 [SERVER] Environment:', process.env.NODE_ENV);
+    
+    // Make direct API calls to the backend (server-to-server)
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    console.log('🔄 [SERVER] Backend URL:', backendUrl);
+    
+    const [profileResponse, servicesResponse] = await Promise.all([
+      fetch(`${backendUrl}/api/v1/public/professional/profile/${businessId}`, {
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      fetch(`${backendUrl}/api/v1/public/professional/services/${businessId}`, {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    ]);
+    
+    let profile = null;
+    let services = [];
+    
+    if (profileResponse.ok) {
+      profile = await profileResponse.json();
+      console.log('✅ [SERVER] Profile loaded:', profile.business_name);
+    }
+    
+    if (servicesResponse.ok) {
+      services = await servicesResponse.json();
+      console.log('✅ [SERVER] Services loaded:', services.length, 'items');
+    }
+    
+    return { profile, services };
+  } catch (error) {
+    console.error('⚠️ [SERVER] Failed to load business data:', error);
+    return { profile: null, services: [] };
+  }
+}
+
+export default async function HomePage() {
   const businessConfig = getBusinessConfig();
-  
-  // Use configured business ID
   const businessId = businessConfig.defaultBusinessId;
   
-  // Initialize with fallback data immediately
-  const [profile, setProfile] = useState<ProfessionalProfile | null>(() => {
-    // Create fallback profile from environment variables
-    return {
-      business_id: businessConfig.defaultBusinessId,
-      business_name: businessConfig.defaultBusinessName,
-      trade_type: 'hvac',
-      description: 'Premier HVAC services for homes and businesses. Specializing in energy-efficient installations, emergency repairs, and preventative maintenance.',
-      phone: businessConfig.defaultBusinessPhone,
-      email: businessConfig.defaultBusinessEmail,
-      address: '123 Main St',
-      website: 'https://www.example.com',
-      service_areas: ['Local Area'],
-      emergency_service: true,
-      years_in_business: 10,
-      license_number: 'Licensed & Insured',
-      insurance_verified: true,
-      average_rating: 4.8,
-      total_reviews: 150,
-      certifications: []
-    };
-  });
-  const [services, setServices] = useState<ServiceItem[]>([]);
-  const [loading, setLoading] = useState(false); // Start with false since we have fallback data
-  const [error, setError] = useState<string | null>(null);
-
-  // Load business data in background (non-blocking)
-  useEffect(() => {
-    async function loadBusinessData() {
-      try {
-        console.log('🔄 [DEBUG] Starting background API load...');
-        
-        // Small delay to ensure Next.js server is ready
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Load profile and services in parallel
-        const [profileData, servicesData] = await Promise.all([
-          professionalApi.getProfessionalProfile(businessId),
-          professionalApi.getProfessionalServices(businessId)
-        ]);
-
-        console.log('✅ [DEBUG] Successfully loaded real data, updating UI');
-        setProfile(profileData);
-        setServices(servicesData);
-        setError(null); // Clear any previous errors
-      } catch (err) {
-        console.error('⚠️ [DEBUG] API load failed, keeping fallback data:', err);
-        
-        // Show error for debugging but don't block the UI
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        const errorType = err instanceof Error ? err.constructor.name : 'Unknown';
-        setError(`Background API Error: ${errorType} - ${errorMessage}`);
-        
-        // Keep the fallback profile that was set in useState
-        console.log('✅ [DEBUG] Continuing with fallback profile');
-      }
-    }
-
-    if (businessId) {
-      loadBusinessData();
-    }
-  }, [businessId]);
+  // Load business data server-side
+  const { profile: serverProfile, services: serverServices } = await loadBusinessData(businessId);
+  
+  // Use server data if available, otherwise fallback
+  const profile = serverProfile || {
+    business_id: businessConfig.defaultBusinessId,
+    business_name: businessConfig.defaultBusinessName,
+    trade_type: 'hvac',
+    description: 'Premier HVAC services for homes and businesses. Specializing in energy-efficient installations, emergency repairs, and preventative maintenance.',
+    phone: businessConfig.defaultBusinessPhone,
+    email: businessConfig.defaultBusinessEmail,
+    address: '123 Main St',
+    website: 'https://www.example.com',
+    service_areas: ['Local Area'],
+    emergency_service: true,
+    years_in_business: 10,
+    license_number: 'Licensed & Insured',
+    insurance_verified: true,
+    average_rating: 4.8,
+    total_reviews: 150,
+    certifications: []
+  };
+  
+  const services = serverServices || [];
+  const error = serverProfile ? null : 'Using fallback data - backend not available';
 
   // Convert services to bookable format
-  const bookableServices: BookableService[] = useMemo(() => {
-    return services.map(service => ({
-      id: service.id,
-      business_id: businessId,
-      name: service.name,
-      category: service.category,
-      description: service.description,
-      is_bookable: true,
-      requires_site_visit: true,
-      estimated_duration_minutes: service.duration_minutes || 90,
-      min_duration_minutes: service.duration_minutes ? Math.max(30, service.duration_minutes - 30) : 60,
-      max_duration_minutes: service.duration_minutes ? service.duration_minutes + 30 : 120,
-      base_price: service.base_price || 0,
-      price_type: service.requires_quote ? 'quote' as const : 'fixed' as const,
-      required_skills: [],
-      min_technicians: 1,
-      max_technicians: 1,
-      min_lead_time_hours: service.is_emergency ? 1 : 4,
-      max_advance_days: 60,
-      is_emergency_service: service.is_emergency,
-      is_active: service.available,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }));
-  }, [services, businessId]);
+  const bookableServices: BookableService[] = services.map(service => ({
+    id: service.id,
+    business_id: businessId,
+    name: service.name,
+    category: service.category,
+    description: service.description,
+    is_bookable: true,
+    requires_site_visit: true,
+    estimated_duration_minutes: service.duration_minutes || 90,
+    min_duration_minutes: service.duration_minutes ? Math.max(30, service.duration_minutes - 30) : 60,
+    max_duration_minutes: service.duration_minutes ? service.duration_minutes + 30 : 120,
+    base_price: service.base_price || 0,
+    price_type: service.requires_quote ? 'quote' as const : 'fixed' as const,
+    required_skills: [],
+    min_technicians: 1,
+    max_technicians: 1,
+    min_lead_time_hours: service.is_emergency ? 1 : 4,
+    max_advance_days: 60,
+    is_emergency_service: service.is_emergency,
+    is_active: service.available,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }));
 
   // Generate dynamic content based on real business profile
-  const generatedContent = useMemo(() => {
-    if (!profile) return null;
+  const generatedContent = !profile ? null : {
+    businessName: profile.business_name,
+    tagline: `Professional ${profile.trade_type} Services`,
+    description: profile.description,
+    phone: profile.phone,
+    email: profile.email,
+    address: profile.address,
+    serviceAreas: profile.service_areas,
+    emergencyService: profile.emergency_service,
+    yearsInBusiness: profile.years_in_business,
+    licenseNumber: profile.license_number,
+    insuranceVerified: profile.insurance_verified,
+    averageRating: profile.average_rating,
+    totalReviews: profile.total_reviews,
+    certifications: profile.certifications,
+    website: profile.website
+  };
 
-    return {
-      businessName: profile.business_name,
-      tagline: `Professional ${profile.trade_type} Services`,
-      description: profile.description,
-      phone: profile.phone,
-      email: profile.email,
-      address: profile.address,
-      serviceAreas: profile.service_areas,
-      emergencyService: profile.emergency_service,
-      yearsInBusiness: profile.years_in_business,
-      licenseNumber: profile.license_number,
-      insuranceVerified: profile.insurance_verified,
-      averageRating: profile.average_rating,
-      totalReviews: profile.total_reviews,
-      certifications: profile.certifications,
-      website: profile.website
-    };
-  }, [profile]);
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading professional profile...</p>
-        </div>
-      </div>
-    );
-  }
 
   // Error state - show fallback content with default configuration
   if (error || !profile || !generatedContent) {
@@ -201,31 +182,30 @@ export default function HomePage() {
         <div className="min-h-screen bg-white">
           {/* Header */}
           <EliteHeader 
-            companyName={fallbackContent.businessName}
-            companyPhone={fallbackContent.phone}
-            location={fallbackContent.serviceAreas[0]}
-            emergencyService={fallbackContent.emergencyService}
+            businessName={fallbackContent.businessName}
+            city={fallbackContent.serviceAreas[0] || 'Local Area'}
+            state={'TX'}
+            phone={fallbackContent.phone}
+            supportHours={'24/7'}
           />
       
       {/* Hero Section */}
           <EliteHero 
             businessName={fallbackContent.businessName}
-            tagline={fallbackContent.tagline}
-            description={fallbackContent.description}
+            headline={`Professional ${fallbackContent.businessName} Services`}
+            subheadline={fallbackContent.tagline}
+            city={fallbackContent.serviceAreas[0] || 'Local Area'}
             phone={fallbackContent.phone}
-            serviceAreas={fallbackContent.serviceAreas}
-            emergencyService={fallbackContent.emergencyService}
-            yearsInBusiness={fallbackContent.yearsInBusiness}
-            licenseNumber={fallbackContent.licenseNumber}
             averageRating={fallbackContent.averageRating}
             totalReviews={fallbackContent.totalReviews}
+            emergencyMessage={fallbackContent.emergencyService ? '24/7 Emergency Service Available' : undefined}
             promotions={[]}
           />
 
           {/* Services Grid */}
           <EliteServicesGrid 
-            services={fallbackServices}
-            emergencyService={fallbackContent.emergencyService}
+            businessName={fallbackContent.businessName}
+            city={fallbackContent.serviceAreas[0] || 'Local Area'}
             phone={fallbackContent.phone}
           />
 
@@ -276,7 +256,7 @@ export default function HomePage() {
 
           {/* Error message for development */}
           {error && (
-            <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg max-w-sm">
+            <div className="fixed bottom-4 right-4 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded shadow-lg max-w-sm">
               <strong className="font-bold">Development Notice:</strong>
               <span className="block sm:inline"> {error}</span>
             </div>
@@ -297,42 +277,30 @@ export default function HomePage() {
       <div className="min-h-screen bg-white">
         {/* Header */}
         <EliteHeader 
-          companyName={generatedContent.businessName}
-          companyPhone={generatedContent.phone}
-          location={generatedContent.serviceAreas[0] || generatedContent.address}
-          emergencyService={generatedContent.emergencyService}
+          businessName={generatedContent.businessName}
+          city={generatedContent.serviceAreas[0] || 'Austin'}
+          state={'TX'}
+          phone={generatedContent.phone}
+          supportHours={'24/7'}
         />
 
         {/* Hero Section */}
         <EliteHero 
           businessName={generatedContent.businessName}
-          tagline={generatedContent.tagline}
-          description={generatedContent.description}
+          headline={`Professional ${generatedContent.businessName} Services`}
+          subheadline={generatedContent.tagline}
+          city={generatedContent.serviceAreas[0] || 'Austin'}
           phone={generatedContent.phone}
-          serviceAreas={generatedContent.serviceAreas}
-          emergencyService={generatedContent.emergencyService}
-          yearsInBusiness={generatedContent.yearsInBusiness}
-          licenseNumber={generatedContent.licenseNumber}
           averageRating={generatedContent.averageRating}
           totalReviews={generatedContent.totalReviews}
+          emergencyMessage={generatedContent.emergencyService ? '24/7 Emergency Service Available' : undefined}
           promotions={[]}
         />
 
         {/* Services Grid */}
         <EliteServicesGrid 
-          services={services.map(service => ({
-            name: service.name,
-            description: service.description,
-            icon: getServiceIcon(service.category),
-            features: getServiceFeatures(service),
-            isEmergency: service.is_emergency,
-            priceRange: service.price_range_min && service.price_range_max 
-              ? `$${service.price_range_min} - $${service.price_range_max}`
-              : service.base_price 
-                ? `Starting at $${service.base_price}`
-                : 'Contact for pricing'
-          }))}
-          emergencyService={generatedContent.emergencyService}
+          businessName={generatedContent.businessName}
+          city={generatedContent.serviceAreas[0] || 'Austin'}
           phone={generatedContent.phone}
         />
 
@@ -385,42 +353,3 @@ export default function HomePage() {
   );
 }
 
-// Helper functions
-function getServiceIcon(category: string): string {
-  const iconMap: Record<string, string> = {
-    'HVAC': '🌡️',
-    'Plumbing': '🔧',
-    'Electrical': '⚡',
-    'Repair': '🛠️',
-    'Installation': '🔨',
-    'Maintenance': '⚙️',
-    'Emergency': '🚨',
-    'Air Quality': '💨',
-    'Controls': '🎛️'
-  };
-  return iconMap[category] || '🔧';
-}
-
-function getServiceFeatures(service: ServiceItem): string[] {
-  const features = [];
-  
-  if (service.is_emergency) {
-    features.push('24/7 Emergency Service');
-  }
-  
-  if (service.duration_minutes) {
-    features.push(`${service.duration_minutes} min service`);
-  }
-  
-  if (service.requires_quote) {
-    features.push('Custom Quote');
-  } else if (service.base_price) {
-    features.push(`Starting at $${service.base_price}`);
-  }
-  
-  if (service.available) {
-    features.push('Available Now');
-  }
-  
-  return features.length > 0 ? features : ['Professional Service', 'Licensed & Insured', 'Satisfaction Guaranteed'];
-}

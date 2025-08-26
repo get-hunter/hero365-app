@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .loading { background: #fff3cd; border-color: #ffeaa7; }
+    </style>
+</head>
+<body>
+    <h1>Hero365 API Integration Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(message, type = 'loading') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+            return div;
+        }
+        
+        async function testApiIntegration() {
+            const businessId = 'a1b2c3d4-e5f6-7890-1234-567890abcdef';
+            
+            // Test 1: Profile API
+            const profileResult = addResult('🔄 Testing Profile API...', 'loading');
+            try {
+                const profileResponse = await fetch(`/api/professional/${businessId}`);
+                if (!profileResponse.ok) {
+                    throw new Error(`HTTP ${profileResponse.status}: ${profileResponse.statusText}`);
+                }
+                const profileData = await profileResponse.json();
+                profileResult.className = 'result success';
+                profileResult.innerHTML = `✅ Profile API Success: ${profileData.business_name} | Phone: ${profileData.phone}`;
+            } catch (error) {
+                profileResult.className = 'result error';
+                profileResult.innerHTML = `❌ Profile API Failed: ${error.message}`;
+            }
+            
+            // Test 2: Services API
+            const servicesResult = addResult('🔄 Testing Services API...', 'loading');
+            try {
+                const servicesResponse = await fetch(`/api/professional/${businessId}/services`);
+                if (!servicesResponse.ok) {
+                    throw new Error(`HTTP ${servicesResponse.status}: ${servicesResponse.statusText}`);
+                }
+                const servicesData = await servicesResponse.json();
+                servicesResult.className = 'result success';
+                servicesResult.innerHTML = `✅ Services API Success: ${servicesData.length} services found`;
+            } catch (error) {
+                servicesResult.className = 'result error';
+                servicesResult.innerHTML = `❌ Services API Failed: ${error.message}`;
+            }
+            
+            // Test 3: Frontend Integration Test
+            const integrationResult = addResult('🔄 Testing Frontend Integration...', 'loading');
+            try {
+                // Simulate the same call the frontend makes
+                const testResponse = await fetch(`/api/professional/${businessId}`);
+                const testData = await testResponse.json();
+                
+                // Check if data matches expected format
+                if (testData.business_name && testData.phone && testData.email) {
+                    integrationResult.className = 'result success';
+                    integrationResult.innerHTML = `✅ Integration Test Success: All required fields present<br>
+                        Business: ${testData.business_name}<br>
+                        Phone: ${testData.phone}<br>
+                        Email: ${testData.email}<br>
+                        Trade: ${testData.trade_type}`;
+                } else {
+                    throw new Error('Missing required fields in response');
+                }
+            } catch (error) {
+                integrationResult.className = 'result error';
+                integrationResult.innerHTML = `❌ Integration Test Failed: ${error.message}`;
+            }
+            
+            // Test 4: Check if main website loads
+            const websiteResult = addResult('🔄 Testing Main Website...', 'loading');
+            try {
+                const websiteResponse = await fetch('/');
+                if (websiteResponse.ok) {
+                    const websiteHtml = await websiteResponse.text();
+                    if (websiteHtml.includes('Austin Elite HVAC') || websiteHtml.includes('Elite HVAC Services')) {
+                        websiteResult.className = 'result success';
+                        websiteResult.innerHTML = '✅ Main Website: Loading successfully with business data';
+                    } else {
+                        websiteResult.className = 'result error';
+                        websiteResult.innerHTML = '❌ Main Website: Loading but business data not visible in HTML';
+                    }
+                } else {
+                    throw new Error(`Website returned ${websiteResponse.status}`);
+                }
+            } catch (error) {
+                websiteResult.className = 'result error';
+                websiteResult.innerHTML = `❌ Main Website Failed: ${error.message}`;
+            }
+        }
+        
+        // Run tests when page loads
+        testApiIntegration();
+    </script>
+</body>
+</html>

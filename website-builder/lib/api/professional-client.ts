@@ -80,54 +80,29 @@ export class ProfessionalApiClient {
     // Use server-side proxy to avoid browser CORS/connectivity issues
     const url = `/api/professional/${businessId}`;
     
-    console.log('🔍 [DEBUG] Using server-side proxy:');
-    console.log('  - Proxy URL:', url);
-    console.log('  - Business ID:', businessId);
+    console.log('🔍 [DEBUG] Fetching profile via proxy:', url);
     
-    // Retry mechanism for timing issues
-    const maxRetries = 3;
-    let lastError: Error | null = null;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`🔄 [DEBUG] Attempt ${attempt}/${maxRetries}`);
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        });
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    });
 
-        console.log('✅ [DEBUG] Proxy response:', response.status, response.statusText);
+    console.log('✅ [DEBUG] Proxy response:', response.status, response.statusText);
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Professional profile not found');
-          }
-          const error = await response.json().catch(() => ({ error: 'Failed to get professional profile' }));
-          throw new Error(error.error || 'Failed to get professional profile');
-        }
-
-        const data = await response.json();
-        console.log('✅ [DEBUG] Profile data received:', data.business_name);
-        return data;
-        
-      } catch (error) {
-        lastError = error as Error;
-        console.error(`❌ [DEBUG] Attempt ${attempt} failed:`, lastError.message);
-        
-        if (attempt < maxRetries) {
-          const delay = attempt * 1000; // 1s, 2s delay
-          console.log(`⏳ [DEBUG] Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Professional profile not found');
       }
+      const error = await response.json().catch(() => ({ error: 'Failed to get professional profile' }));
+      throw new Error(error.error || 'Failed to get professional profile');
     }
-    
-    console.error('❌ [DEBUG] All retry attempts failed');
-    throw lastError || new Error('Failed to fetch professional profile');
+
+    const data = await response.json();
+    console.log('✅ [DEBUG] Profile data received:', data.business_name);
+    return data;
   }
 
   /**

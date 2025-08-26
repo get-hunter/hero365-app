@@ -17,12 +17,12 @@
         "voiceAgent": false,
         "bookingWidget": true
       },
-      "business": {
-        "defaultBusinessId": "123e4567-e89b-12d3-a456-426614174000",
-        "defaultBusinessName": "Elite HVAC Services",
-        "defaultBusinessPhone": "+1-555-123-4567",
-        "defaultBusinessEmail": "contact@elitehvac.com"
-      }
+                  "business": {
+                "defaultBusinessId": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+                "defaultBusinessName": "Austin Elite HVAC",
+                "defaultBusinessPhone": "+1-555-123-4567",
+                "defaultBusinessEmail": "contact@austinelitehvac.com"
+            }
     },
     "staging": {
       "name": "Staging",
