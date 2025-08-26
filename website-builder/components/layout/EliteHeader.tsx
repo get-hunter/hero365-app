@@ -240,6 +240,11 @@ export default function EliteHeader({
                 )}
               </div>
 
+              {/* Products Link */}
+              <a href="/products" className="text-gray-700 hover:text-gray-900 font-medium py-2">
+                Products
+              </a>
+
               {/* Company Dropdown */}
               <div 
                 className="relative"
@@ -326,6 +331,9 @@ export default function EliteHeader({
                     </div>
                   ))}
                 </div>
+                <a href="/products" className="block text-gray-700 font-medium">
+                  Products
+                </a>
                 <div>
                   <div className="text-gray-900 font-semibold mb-2">Company</div>
                   <div className="ml-4 space-y-1">

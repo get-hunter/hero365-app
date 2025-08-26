@@ -5064,6 +5064,142 @@ export type LocationUpdateRequest = {
 }
 
 /**
+ * Membership plan benefit.
+ */
+export type MembershipBenefit = {
+  /**
+   * Benefit ID
+   */
+  id: string
+  /**
+   * Benefit title
+   */
+  title: string
+  /**
+   * Benefit description
+   */
+  description: string
+  /**
+   * Icon name for UI
+   */
+  icon?: string | null
+  /**
+   * Benefit value (e.g., '15%', '$69 value')
+   */
+  value?: string | null
+  /**
+   * Whether this benefit should be highlighted
+   */
+  is_highlighted?: boolean
+  /**
+   * Display order
+   */
+  sort_order?: number
+}
+
+/**
+ * Customer membership plan.
+ */
+export type MembershipPlan = {
+  /**
+   * Plan ID
+   */
+  id: string
+  /**
+   * Plan name
+   */
+  name: string
+  /**
+   * Plan type (residential, commercial, premium)
+   */
+  plan_type: string
+  /**
+   * Plan description
+   */
+  description: string
+  /**
+   * Marketing tagline
+   */
+  tagline?: string | null
+  /**
+   * Monthly price
+   */
+  price_monthly?: number | null
+  /**
+   * Yearly price
+   */
+  price_yearly?: number | null
+  /**
+   * Annual savings amount
+   */
+  yearly_savings?: number | null
+  /**
+   * One-time setup fee
+   */
+  setup_fee?: number | null
+  /**
+   * Service discount percentage
+   */
+  discount_percentage?: number
+  /**
+   * Priority scheduling
+   */
+  priority_service?: boolean
+  /**
+   * Extended warranty coverage
+   */
+  extended_warranty?: boolean
+  /**
+   * Maintenance visits included
+   */
+  maintenance_included?: boolean
+  /**
+   * 24/7 emergency response
+   */
+  emergency_response?: boolean
+  /**
+   * Free diagnostic calls
+   */
+  free_diagnostics?: boolean
+  /**
+   * Number of annual tune-ups
+   */
+  annual_tune_ups?: number
+  /**
+   * Plan is active
+   */
+  is_active?: boolean
+  /**
+   * Plan is featured/popular
+   */
+  is_featured?: boolean
+  /**
+   * Popular badge text
+   */
+  popular_badge?: string | null
+  /**
+   * UI color scheme
+   */
+  color_scheme?: string | null
+  /**
+   * Display order
+   */
+  sort_order?: number
+  /**
+   * Contract length in months
+   */
+  contract_length_months?: number | null
+  /**
+   * Cancellation policy
+   */
+  cancellation_policy?: string | null
+  /**
+   * Plan benefits
+   */
+  benefits?: Array<MembershipBenefit>
+}
+
+/**
  * Generic message response (legacy compatibility).
  */
 export type Message = {
@@ -5560,6 +5696,88 @@ export type PredictiveInsight = {
 }
 
 /**
+ * Detailed pricing breakdown for product + installation.
+ */
+export type PricingBreakdown = {
+  /**
+   * Product unit price
+   */
+  product_unit_price: number
+  /**
+   * Installation base price
+   */
+  installation_base_price: number
+  /**
+   * Quantity
+   */
+  quantity?: number
+  /**
+   * Product subtotal
+   */
+  product_subtotal: number
+  /**
+   * Installation subtotal
+   */
+  installation_subtotal: number
+  /**
+   * Subtotal before discounts
+   */
+  subtotal_before_discounts: number
+  /**
+   * Applied membership type
+   */
+  membership_type?: string | null
+  /**
+   * Product discount amount
+   */
+  product_discount_amount?: number
+  /**
+   * Installation discount amount
+   */
+  installation_discount_amount?: number
+  /**
+   * Total discount amount
+   */
+  total_discount_amount?: number
+  /**
+   * Bundle discount savings
+   */
+  bundle_savings?: number
+  /**
+   * Subtotal after discounts
+   */
+  subtotal_after_discounts: number
+  /**
+   * Tax rate applied
+   */
+  tax_rate?: number
+  /**
+   * Tax amount
+   */
+  tax_amount?: number
+  /**
+   * Final total amount
+   */
+  total_amount: number
+  /**
+   * Total amount saved
+   */
+  total_savings?: number
+  /**
+   * Percentage saved
+   */
+  savings_percentage?: number
+  /**
+   * Formatted display price
+   */
+  formatted_display_price: string
+  /**
+   * Price display type
+   */
+  price_display_type?: string
+}
+
+/**
  * Schema for processing payments.
  */
 export type ProcessPaymentSchema = {
@@ -5569,6 +5787,196 @@ export type ProcessPaymentSchema = {
   transaction_id?: string | null
   notes?: string | null
   payment_date?: string | null
+}
+
+/**
+ * Product catalog item with installation options.
+ */
+export type ProductCatalogItem = {
+  /**
+   * Product ID
+   */
+  id: string
+  /**
+   * Product name
+   */
+  name: string
+  /**
+   * Product SKU
+   */
+  sku: string
+  /**
+   * Product description
+   */
+  description?: string | null
+  /**
+   * Detailed product description
+   */
+  long_description?: string | null
+  /**
+   * Product unit price
+   */
+  unit_price: number
+  /**
+   * Price display type
+   */
+  price_display?: string
+  /**
+   * Product category
+   */
+  category_name?: string | null
+  /**
+   * Product brand
+   */
+  brand?: string | null
+  /**
+   * Warranty period
+   */
+  warranty_years?: number | null
+  /**
+   * Energy efficiency rating
+   */
+  energy_efficiency_rating?: string | null
+  /**
+   * Requires professional installation
+   */
+  requires_professional_install?: boolean
+  /**
+   * Installation complexity level
+   */
+  install_complexity?: string
+  /**
+   * Installation time estimate
+   */
+  installation_time_estimate?: string | null
+  /**
+   * Main product image
+   */
+  featured_image_url?: string | null
+  /**
+   * Product gallery images
+   */
+  gallery_images?: Array<string>
+  /**
+   * Key product features
+   */
+  product_highlights?: Array<string>
+  /**
+   * Technical specifications
+   */
+  technical_specs?: {
+    [key: string]: unknown
+  }
+  /**
+   * SEO title
+   */
+  meta_title?: string | null
+  /**
+   * SEO description
+   */
+  meta_description?: string | null
+  /**
+   * URL slug
+   */
+  slug?: string | null
+  /**
+   * Product is active
+   */
+  is_active?: boolean
+  /**
+   * Product is featured
+   */
+  is_featured?: boolean
+  /**
+   * Current stock level
+   */
+  current_stock?: number | null
+  /**
+   * Available installation options
+   */
+  installation_options?: Array<ProductInstallationOption>
+}
+
+/**
+ * Product category with products.
+ */
+export type ProductCategory = {
+  /**
+   * Category ID
+   */
+  id: string
+  /**
+   * Category name
+   */
+  name: string
+  /**
+   * Category description
+   */
+  description?: string | null
+  /**
+   * Number of products in category
+   */
+  product_count?: number
+  /**
+   * Display order
+   */
+  sort_order?: number
+}
+
+/**
+ * Product installation option with pricing.
+ */
+export type ProductInstallationOption = {
+  /**
+   * Installation option ID
+   */
+  id: string
+  /**
+   * Installation option name
+   */
+  option_name: string
+  /**
+   * Installation description
+   */
+  description?: string | null
+  /**
+   * Base installation price
+   */
+  base_install_price: number
+  /**
+   * Residential member price
+   */
+  residential_install_price?: number | null
+  /**
+   * Commercial member price
+   */
+  commercial_install_price?: number | null
+  /**
+   * Premium member price
+   */
+  premium_install_price?: number | null
+  /**
+   * Estimated installation time
+   */
+  estimated_duration_hours?: number | null
+  /**
+   * Complexity multiplier
+   */
+  complexity_multiplier?: number
+  /**
+   * Default installation option
+   */
+  is_default?: boolean
+  /**
+   * Installation requirements
+   */
+  requirements?: {
+    [key: string]: unknown
+  }
+  /**
+   * What's included
+   */
+  included_in_install?: Array<string>
 }
 
 /**
@@ -7260,6 +7668,94 @@ export type ServiceItem = {
    * SEO keywords
    */
   keywords?: Array<string>
+}
+
+/**
+ * Service pricing with membership discounts.
+ */
+export type ServicePricing = {
+  /**
+   * Pricing ID
+   */
+  id: string
+  /**
+   * Service name
+   */
+  service_name: string
+  /**
+   * Service category
+   */
+  service_category: string
+  /**
+   * Base service price
+   */
+  base_price: number
+  /**
+   * Price display type (from, fixed, quote_required, free)
+   */
+  price_display?: string
+  /**
+   * Residential member price
+   */
+  residential_member_price?: number | null
+  /**
+   * Commercial member price
+   */
+  commercial_member_price?: number | null
+  /**
+   * Premium member price
+   */
+  premium_member_price?: number | null
+  /**
+   * Service description
+   */
+  description?: string | null
+  /**
+   * What's included in service
+   */
+  includes?: Array<string>
+  /**
+   * Estimated duration
+   */
+  duration_estimate?: string | null
+  /**
+   * Minimum labor charge
+   */
+  minimum_labor_fee?: number | null
+  /**
+   * Height surcharge may apply
+   */
+  height_surcharge?: boolean
+  /**
+   * Additional technician fee may apply
+   */
+  additional_tech_fee?: boolean
+  /**
+   * Parts are charged separately
+   */
+  parts_separate?: boolean
+  /**
+   * Service pricing is active
+   */
+  is_active?: boolean
+  /**
+   * Display order
+   */
+  sort_order?: number
+}
+
+/**
+ * Service pricing grouped by category.
+ */
+export type ServicePricingCategory = {
+  /**
+   * Category name
+   */
+  category: string
+  /**
+   * Services in this category
+   */
+  services?: Array<ServicePricing>
 }
 
 /**
@@ -10788,6 +11284,107 @@ export type PublicProfessionalGetProfessionalAvailabilityData = {
 
 export type PublicProfessionalGetProfessionalAvailabilityResponse =
   Array<AvailabilitySlot>
+
+export type PublicProfessionalGetMembershipPlansData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type PublicProfessionalGetMembershipPlansResponse = Array<MembershipPlan>
+
+export type PublicProfessionalGetServicePricingData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Filter by service category
+   */
+  category?: string | null
+}
+
+export type PublicProfessionalGetServicePricingResponse =
+  Array<ServicePricingCategory>
+
+export type PublicProfessionalGetProductCatalogData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Filter by category
+   */
+  category?: string | null
+  /**
+   * Show only featured products
+   */
+  featuredOnly?: boolean
+  /**
+   * Maximum number of products to return
+   */
+  limit?: number
+  /**
+   * Offset for pagination
+   */
+  offset?: number
+  /**
+   * Search products by name or description
+   */
+  search?: string | null
+}
+
+export type PublicProfessionalGetProductCatalogResponse =
+  Array<ProductCatalogItem>
+
+export type PublicProfessionalGetProductCategoriesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type PublicProfessionalGetProductCategoriesResponse =
+  Array<ProductCategory>
+
+export type PublicProfessionalGetProductDetailsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Product ID
+   */
+  productId: string
+}
+
+export type PublicProfessionalGetProductDetailsResponse = ProductCatalogItem
+
+export type PublicProfessionalCalculateProductPricingData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Installation option ID
+   */
+  installationOptionId?: string | null
+  /**
+   * Membership type (residential, commercial, premium)
+   */
+  membershipType?: string | null
+  /**
+   * Product ID
+   */
+  productId: string
+  /**
+   * Quantity
+   */
+  quantity?: number
+}
+
+export type PublicProfessionalCalculateProductPricingResponse = PricingBreakdown
 
 export type PurchaseOrdersCreatePurchaseOrderData = {
   requestBody: CreatePurchaseOrderSchema

@@ -27,17 +27,21 @@ async function loadBusinessData(businessId: string) {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
     console.log('🔄 [SERVER] Backend URL:', backendUrl);
     
-    const [profileResponse, servicesResponse] = await Promise.all([
+    const [profileResponse, servicesResponse, productsResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/professional/profile/${businessId}`, {
         headers: { 'Content-Type': 'application/json' }
       }),
       fetch(`${backendUrl}/api/v1/public/professional/services/${businessId}`, {
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      fetch(`${backendUrl}/api/v1/public/professional/product-catalog/${businessId}?featured_only=true&limit=6`, {
         headers: { 'Content-Type': 'application/json' }
       })
     ]);
     
     let profile = null;
     let services = [];
+    let products = [];
     
     if (profileResponse.ok) {
       profile = await profileResponse.json();
@@ -48,11 +52,16 @@ async function loadBusinessData(businessId: string) {
       services = await servicesResponse.json();
       console.log('✅ [SERVER] Services loaded:', services.length, 'items');
     }
+
+    if (productsResponse.ok) {
+      products = await productsResponse.json();
+      console.log('✅ [SERVER] Products loaded:', products.length, 'items');
+    }
     
-    return { profile, services };
+    return { profile, services, products };
   } catch (error) {
     console.error('⚠️ [SERVER] Failed to load business data:', error);
-    return { profile: null, services: [] };
+    return { profile: null, services: [], products: [] };
   }
 }
 
@@ -61,7 +70,7 @@ export default async function HomePage() {
   const businessId = businessConfig.defaultBusinessId;
   
   // Load business data server-side
-  const { profile: serverProfile, services: serverServices } = await loadBusinessData(businessId);
+  const { profile: serverProfile, services: serverServices, products: serverProducts } = await loadBusinessData(businessId);
   
   // Use server data if available, otherwise fallback
   const profile = serverProfile || {
@@ -303,6 +312,153 @@ export default async function HomePage() {
           city={generatedContent.serviceAreas[0] || 'Austin'}
           phone={generatedContent.phone}
         />
+
+        {/* Products Showcase */}
+        {serverProducts && serverProducts.length > 0 && (
+          <div className="py-16 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                  Professional Equipment & Installation
+                </h2>
+                <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-6">
+                  Shop professional-grade equipment with expert installation services. 
+                  Get instant pricing with membership discounts and bundle savings.
+                </p>
+                <div className="flex justify-center">
+                  <a 
+                    href="/products"
+                    className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Shop All Products
+                    <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {serverProducts.slice(0, 3).map((product: any) => (
+                  <div key={product.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                    <div className="relative">
+                      <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg bg-gray-200">
+                        {product.featured_image_url ? (
+                          <img
+                            src={product.featured_image_url}
+                            alt={product.name}
+                            className="h-48 w-full object-cover object-center"
+                          />
+                        ) : (
+                          <div className="h-48 w-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                            <svg className="h-12 w-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h6m-6 4h6m-2 4h2" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      {product.is_featured && (
+                        <div className="absolute top-2 left-2">
+                          <span className="px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded">
+                            FEATURED
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2 overflow-hidden" style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical'
+                      }}>
+                        {product.name}
+                      </h3>
+                      {product.description && (
+                        <p className="text-gray-600 text-sm mb-4 overflow-hidden" style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical'
+                        }}>
+                          {product.description}
+                        </p>
+                      )}
+
+                      {/* Product Highlights */}
+                      {product.product_highlights && product.product_highlights.length > 0 && (
+                        <div className="mb-4">
+                          <ul className="text-sm text-gray-600 space-y-1">
+                            {product.product_highlights.slice(0, 2).map((highlight: string, index: number) => (
+                              <li key={index} className="flex items-center">
+                                <svg className="h-3 w-3 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                {highlight}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Pricing */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <span className="text-lg font-bold text-gray-900">
+                            ${product.unit_price.toLocaleString()}
+                          </span>
+                          {product.requires_professional_install && (
+                            <div className="text-xs text-blue-600 mt-1">
+                              + Professional Installation
+                            </div>
+                          )}
+                        </div>
+                        {product.warranty_years && (
+                          <div className="text-xs text-green-600">
+                            {product.warranty_years} yr warranty
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Button */}
+                      <a
+                        href={`/products/${product.id}`}
+                        className="block w-full text-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        View Details & Pricing
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom CTA */}
+              <div className="text-center mt-12">
+                <div className="bg-blue-50 rounded-lg p-6 inline-block">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Need Help Choosing the Right Product?
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Our experts can help you select the perfect equipment for your needs.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <a 
+                      href={`tel:${generatedContent.phone}`}
+                      className="px-6 py-2 bg-white border border-blue-300 text-blue-700 font-medium rounded-lg hover:bg-blue-50 transition-colors"
+                    >
+                      Call {generatedContent.phone}
+                    </a>
+                    <a 
+                      href="/products"
+                      className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Browse All Products
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Trust & Rating Display */}
         <TrustRatingDisplay 

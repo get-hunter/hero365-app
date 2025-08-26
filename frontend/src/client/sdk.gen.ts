@@ -431,6 +431,18 @@ import type {
   PublicProfessionalGetProfessionalProductsResponse,
   PublicProfessionalGetProfessionalAvailabilityData,
   PublicProfessionalGetProfessionalAvailabilityResponse,
+  PublicProfessionalGetMembershipPlansData,
+  PublicProfessionalGetMembershipPlansResponse,
+  PublicProfessionalGetServicePricingData,
+  PublicProfessionalGetServicePricingResponse,
+  PublicProfessionalGetProductCatalogData,
+  PublicProfessionalGetProductCatalogResponse,
+  PublicProfessionalGetProductCategoriesData,
+  PublicProfessionalGetProductCategoriesResponse,
+  PublicProfessionalGetProductDetailsData,
+  PublicProfessionalGetProductDetailsResponse,
+  PublicProfessionalCalculateProductPricingData,
+  PublicProfessionalCalculateProductPricingResponse,
   PurchaseOrdersCreatePurchaseOrderData,
   PurchaseOrdersCreatePurchaseOrderResponse,
   PurchaseOrdersListPurchaseOrdersData,
@@ -6273,6 +6285,186 @@ export class PublicProfessionalService {
       query: {
         start_date: data.startDate,
         end_date: data.endDate,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Membership Plans
+   * Get customer membership plans for a business.
+   *
+   * Returns list of available membership plans with benefits and pricing.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns MembershipPlan Successful Response
+   * @throws ApiError
+   */
+  public static getMembershipPlans(
+    data: PublicProfessionalGetMembershipPlansData,
+  ): CancelablePromise<PublicProfessionalGetMembershipPlansResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/membership-plans/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Service Pricing
+   * Get service pricing with membership discounts for a business.
+   *
+   * Returns service pricing organized by category with member pricing.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.category Filter by service category
+   * @returns ServicePricingCategory Successful Response
+   * @throws ApiError
+   */
+  public static getServicePricing(
+    data: PublicProfessionalGetServicePricingData,
+  ): CancelablePromise<PublicProfessionalGetServicePricingResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/service-pricing/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        category: data.category,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Product Catalog
+   * Get product catalog with installation options for e-commerce display.
+   *
+   * Returns products that are available for website display with their installation options
+   * and pricing information for different membership tiers.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.category Filter by category
+   * @param data.search Search products by name or description
+   * @param data.featuredOnly Show only featured products
+   * @param data.limit Maximum number of products to return
+   * @param data.offset Offset for pagination
+   * @returns ProductCatalogItem Successful Response
+   * @throws ApiError
+   */
+  public static getProductCatalog(
+    data: PublicProfessionalGetProductCatalogData,
+  ): CancelablePromise<PublicProfessionalGetProductCatalogResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/product-catalog/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        category: data.category,
+        search: data.search,
+        featured_only: data.featuredOnly,
+        limit: data.limit,
+        offset: data.offset,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Product Categories
+   * Get product categories for a business.
+   *
+   * Returns list of product categories with product counts for navigation.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns ProductCategory Successful Response
+   * @throws ApiError
+   */
+  public static getProductCategories(
+    data: PublicProfessionalGetProductCategoriesData,
+  ): CancelablePromise<PublicProfessionalGetProductCategoriesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/product-categories/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Product Details
+   * Get detailed product information with installation options.
+   *
+   * Returns complete product details for product detail page display.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.productId Product ID
+   * @returns ProductCatalogItem Successful Response
+   * @throws ApiError
+   */
+  public static getProductDetails(
+    data: PublicProfessionalGetProductDetailsData,
+  ): CancelablePromise<PublicProfessionalGetProductDetailsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/product/{business_id}/{product_id}",
+      path: {
+        business_id: data.businessId,
+        product_id: data.productId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Calculate Product Pricing
+   * Calculate detailed pricing for product + installation combination.
+   *
+   * Returns comprehensive pricing breakdown including membership discounts,
+   * bundle savings, tax calculations, and formatted display pricing.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.productId Product ID
+   * @param data.installationOptionId Installation option ID
+   * @param data.quantity Quantity
+   * @param data.membershipType Membership type (residential, commercial, premium)
+   * @returns PricingBreakdown Successful Response
+   * @throws ApiError
+   */
+  public static calculateProductPricing(
+    data: PublicProfessionalCalculateProductPricingData,
+  ): CancelablePromise<PublicProfessionalCalculateProductPricingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/public/professional/product-pricing/{business_id}/{product_id}",
+      path: {
+        business_id: data.businessId,
+        product_id: data.productId,
+      },
+      query: {
+        installation_option_id: data.installationOptionId,
+        quantity: data.quantity,
+        membership_type: data.membershipType,
       },
       errors: {
         422: "Validation Error",
