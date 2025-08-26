@@ -8,8 +8,8 @@ interface CustomerReviewsProps {
   testimonials: Testimonial[];
 }
 
-export default function CustomerReviews({ testimonials }: CustomerReviewsProps) {
-  if (testimonials.length === 0) return null;
+export default function CustomerReviews({ testimonials = [] }: CustomerReviewsProps) {
+  if (!testimonials || testimonials.length === 0) return null;
 
   // Get featured testimonials first, then sort by rating
   const featuredTestimonials = testimonials

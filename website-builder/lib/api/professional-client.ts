@@ -77,22 +77,57 @@ export class ProfessionalApiClient {
    * Get professional profile information
    */
   async getProfessionalProfile(businessId: string): Promise<ProfessionalProfile> {
-    const url = buildPublicApiUrl(`professional/profile/${businessId}`);
+    // Use server-side proxy to avoid browser CORS/connectivity issues
+    const url = `/api/professional/${businessId}`;
     
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: getDefaultHeaders(),
-    });
+    console.log('🔍 [DEBUG] Using server-side proxy:');
+    console.log('  - Proxy URL:', url);
+    console.log('  - Business ID:', businessId);
+    
+    // Retry mechanism for timing issues
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 [DEBUG] Attempt ${attempt}/${maxRetries}`);
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        });
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('Professional profile not found');
+        console.log('✅ [DEBUG] Proxy response:', response.status, response.statusText);
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('Professional profile not found');
+          }
+          const error = await response.json().catch(() => ({ error: 'Failed to get professional profile' }));
+          throw new Error(error.error || 'Failed to get professional profile');
+        }
+
+        const data = await response.json();
+        console.log('✅ [DEBUG] Profile data received:', data.business_name);
+        return data;
+        
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`❌ [DEBUG] Attempt ${attempt} failed:`, lastError.message);
+        
+        if (attempt < maxRetries) {
+          const delay = attempt * 1000; // 1s, 2s delay
+          console.log(`⏳ [DEBUG] Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
-      const error = await response.json().catch(() => ({ detail: 'Failed to get professional profile' }));
-      throw new Error(error.detail || 'Failed to get professional profile');
     }
-
-    return response.json();
+    
+    console.error('❌ [DEBUG] All retry attempts failed');
+    throw lastError || new Error('Failed to fetch professional profile');
   }
 
   /**
@@ -113,22 +148,31 @@ export class ProfessionalApiClient {
       params.append('emergency_only', 'true');
     }
 
-    const url = buildPublicApiUrl(`professional/services/${businessId}${params.toString() ? '?' + params.toString() : ''}`);
+    // Use server-side proxy to avoid browser CORS/connectivity issues
+    const url = `/api/professional/${businessId}/services${params.toString() ? '?' + params.toString() : ''}`;
+    
+    console.log('🔍 [DEBUG] Fetching services via proxy:', url);
     
     const response = await fetch(url, {
       method: 'GET',
-      headers: getDefaultHeaders(),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
     });
 
     if (!response.ok) {
       if (response.status === 404) {
+        console.log('⚠️ [DEBUG] No services found, returning empty array');
         return []; // No services found
       }
-      const error = await response.json().catch(() => ({ detail: 'Failed to get professional services' }));
-      throw new Error(error.detail || 'Failed to get professional services');
+      const error = await response.json().catch(() => ({ error: 'Failed to get professional services' }));
+      throw new Error(error.error || 'Failed to get professional services');
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('✅ [DEBUG] Services data received:', data.length, 'items');
+    return data;
   }
 
   /**

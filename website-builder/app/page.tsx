@@ -26,17 +26,40 @@ export default function HomePage() {
   // Use configured business ID
   const businessId = businessConfig.defaultBusinessId;
   
-  const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
+  // Initialize with fallback data immediately
+  const [profile, setProfile] = useState<ProfessionalProfile | null>(() => {
+    // Create fallback profile from environment variables
+    return {
+      business_id: businessConfig.defaultBusinessId,
+      business_name: businessConfig.defaultBusinessName,
+      trade_type: 'hvac',
+      description: 'Premier HVAC services for homes and businesses. Specializing in energy-efficient installations, emergency repairs, and preventative maintenance.',
+      phone: businessConfig.defaultBusinessPhone,
+      email: businessConfig.defaultBusinessEmail,
+      address: '123 Main St',
+      website: 'https://www.example.com',
+      service_areas: ['Local Area'],
+      emergency_service: true,
+      years_in_business: 10,
+      license_number: 'Licensed & Insured',
+      insurance_verified: true,
+      average_rating: 4.8,
+      total_reviews: 150,
+      certifications: []
+    };
+  });
   const [services, setServices] = useState<ServiceItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start with false since we have fallback data
   const [error, setError] = useState<string | null>(null);
 
-  // Load business data
+  // Load business data in background (non-blocking)
   useEffect(() => {
     async function loadBusinessData() {
       try {
-        setLoading(true);
-        setError(null);
+        console.log('🔄 [DEBUG] Starting background API load...');
+        
+        // Small delay to ensure Next.js server is ready
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Load profile and services in parallel
         const [profileData, servicesData] = await Promise.all([
@@ -44,15 +67,20 @@ export default function HomePage() {
           professionalApi.getProfessionalServices(businessId)
         ]);
 
+        console.log('✅ [DEBUG] Successfully loaded real data, updating UI');
         setProfile(profileData);
         setServices(servicesData);
+        setError(null); // Clear any previous errors
       } catch (err) {
-        console.error('Error loading business data:', err);
-        console.log('Using fallback content since API is not available');
-        setError('API not available - using fallback content');
-        // Don't set profile to null, let it fall through to fallback content
-      } finally {
-        setLoading(false);
+        console.error('⚠️ [DEBUG] API load failed, keeping fallback data:', err);
+        
+        // Show error for debugging but don't block the UI
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        const errorType = err instanceof Error ? err.constructor.name : 'Unknown';
+        setError(`Background API Error: ${errorType} - ${errorMessage}`);
+        
+        // Keep the fallback profile that was set in useState
+        console.log('✅ [DEBUG] Continuing with fallback profile');
       }
     }
 
@@ -162,7 +190,7 @@ export default function HomePage() {
       }
     ];
 
-    return (
+  return (
       <BookingWidgetProvider
         businessId={businessId}
         companyName={fallbackContent.businessName}
@@ -178,8 +206,8 @@ export default function HomePage() {
             location={fallbackContent.serviceAreas[0]}
             emergencyService={fallbackContent.emergencyService}
           />
-
-          {/* Hero Section */}
+      
+      {/* Hero Section */}
           <EliteHero 
             businessName={fallbackContent.businessName}
             tagline={fallbackContent.tagline}
@@ -220,22 +248,30 @@ export default function HomePage() {
 
           {/* Contact Section */}
           <ContactSection 
-            businessName={fallbackContent.businessName}
-            phone={fallbackContent.phone}
-            email={fallbackContent.email}
-            address={fallbackContent.address}
-            serviceAreas={fallbackContent.serviceAreas}
-            emergencyService={fallbackContent.emergencyService}
+            business={{
+              name: fallbackContent.businessName,
+              phone: fallbackContent.phone,
+              email: fallbackContent.email,
+              address: fallbackContent.address,
+              service_areas: fallbackContent.serviceAreas,
+              emergency_service: fallbackContent.emergencyService
+            }}
+            locations={[]}
           />
 
           {/* Footer */}
           <ProfessionalFooter 
-            companyName={fallbackContent.businessName}
-            phone={fallbackContent.phone}
-            email={fallbackContent.email}
-            address={fallbackContent.address}
-            licenseNumber={fallbackContent.licenseNumber}
-            website={fallbackContent.website}
+            business={{
+              name: fallbackContent.businessName,
+              phone: fallbackContent.phone,
+              email: fallbackContent.email,
+              address: fallbackContent.address,
+              license_number: fallbackContent.licenseNumber,
+              website: fallbackContent.website,
+              service_areas: fallbackContent.serviceAreas
+            }}
+            serviceCategories={[]}
+            locations={[]}
           />
 
           {/* Error message for development */}
@@ -319,22 +355,30 @@ export default function HomePage() {
 
         {/* Contact Section */}
         <ContactSection 
-          businessName={generatedContent.businessName}
-          phone={generatedContent.phone}
-          email={generatedContent.email}
-          address={generatedContent.address}
-          serviceAreas={generatedContent.serviceAreas}
-          emergencyService={generatedContent.emergencyService}
+          business={{
+            name: generatedContent.businessName,
+            phone: generatedContent.phone,
+            email: generatedContent.email,
+            address: generatedContent.address,
+            service_areas: generatedContent.serviceAreas,
+            emergency_service: generatedContent.emergencyService
+          }}
+          locations={[]}
         />
 
         {/* Footer */}
         <ProfessionalFooter 
-          companyName={generatedContent.businessName}
-          phone={generatedContent.phone}
-          email={generatedContent.email}
-          address={generatedContent.address}
-          licenseNumber={generatedContent.licenseNumber}
-          website={generatedContent.website}
+          business={{
+            name: generatedContent.businessName,
+            phone: generatedContent.phone,
+            email: generatedContent.email,
+            address: generatedContent.address,
+            license_number: generatedContent.licenseNumber,
+            website: generatedContent.website,
+            service_areas: generatedContent.serviceAreas
+          }}
+          serviceCategories={[]}
+          locations={[]}
         />
       </div>
     </BookingWidgetProvider>

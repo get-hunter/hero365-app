@@ -9,7 +9,7 @@ interface ContactSectionProps {
   locations: Location[];
 }
 
-export default function ContactSection({ business, locations }: ContactSectionProps) {
+export default function ContactSection({ business, locations = [] }: ContactSectionProps) {
   const primaryLocation = locations.find(l => l.is_primary) || locations[0];
 
   return (
@@ -247,7 +247,7 @@ export default function ContactSection({ business, locations }: ContactSectionPr
             </Card>
 
             {/* Service Areas */}
-            {business.service_areas.length > 0 && (
+            {business.service_areas && business.service_areas.length > 0 && (
               <Card className="shadow-lg">
                 <CardContent className="p-8">
                   <h3 className="text-xl font-bold text-gray-900 mb-4">

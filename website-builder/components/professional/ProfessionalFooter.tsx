@@ -8,7 +8,7 @@ interface ProfessionalFooterProps {
   locations: Location[];
 }
 
-export default function ProfessionalFooter({ business, serviceCategories, locations }: ProfessionalFooterProps) {
+export default function ProfessionalFooter({ business, serviceCategories = [], locations = [] }: ProfessionalFooterProps) {
   const primaryLocation = locations.find(l => l.is_primary) || locations[0];
   const currentYear = new Date().getFullYear();
 
@@ -101,12 +101,12 @@ export default function ProfessionalFooter({ business, serviceCategories, locati
           <div>
             <h4 className="text-lg font-semibold mb-6">Service Areas</h4>
             <ul className="space-y-3">
-              {business.service_areas.slice(0, 6).map((area, index) => (
+              {business.service_areas && business.service_areas.slice(0, 6).map((area, index) => (
                 <li key={index}>
                   <span className="text-gray-300">{area}</span>
                 </li>
               ))}
-              {business.service_areas.length > 6 && (
+              {business.service_areas && business.service_areas.length > 6 && (
                 <li>
                   <a 
                     href="/service-areas"

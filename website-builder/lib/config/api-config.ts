@@ -187,7 +187,15 @@ export function getCurrentBusinessId(): string {
 export function buildApiUrl(endpoint: string): string {
   const config = getApiConfig();
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-  return `${config.baseUrl}/${cleanEndpoint}`;
+  const fullUrl = `${config.baseUrl}/${cleanEndpoint}`;
+  console.log('🔧 [DEBUG] buildApiUrl:', { 
+    baseUrl: config.baseUrl, 
+    endpoint, 
+    cleanEndpoint, 
+    fullUrl,
+    environment: config.environment 
+  });
+  return fullUrl;
 }
 
 /**
@@ -195,7 +203,9 @@ export function buildApiUrl(endpoint: string): string {
  */
 export function buildPublicApiUrl(endpoint: string): string {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-  return buildApiUrl(`public/${cleanEndpoint}`);
+  const fullUrl = buildApiUrl(`public/${cleanEndpoint}`);
+  console.log('🔧 [DEBUG] buildPublicApiUrl:', { endpoint, cleanEndpoint, fullUrl });
+  return fullUrl;
 }
 
 /**

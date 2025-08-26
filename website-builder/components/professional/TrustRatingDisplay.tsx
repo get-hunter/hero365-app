@@ -8,8 +8,8 @@ interface TrustRatingDisplayProps {
   ratings: Rating[];
 }
 
-export default function TrustRatingDisplay({ ratings }: TrustRatingDisplayProps) {
-  if (ratings.length === 0) return null;
+export default function TrustRatingDisplay({ ratings = [] }: TrustRatingDisplayProps) {
+  if (!ratings || ratings.length === 0) return null;
 
   // Get featured ratings first, then sort by rating
   const sortedRatings = [...ratings]
