@@ -1,0 +1,44 @@
+{
+  "businessId": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+  "environment": "development",
+  "businessData": {
+    "business_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+    "business_name": "Austin Elite HVAC",
+    "trade_type": "hvac",
+    "description": "Premier HVAC services for Austin homes and businesses. Specializing in energy-efficient installations, emergency repairs, and preventative maintenance.",
+    "phone": "(512) 555-COOL",
+    "email": "info@austinelitehvac.com",
+    "address": "123 Main St",
+    "website": "https://www.austinelitehvac.com/",
+    "service_areas": [
+      "Austin",
+      "Round Rock",
+      "Cedar Park",
+      "Pflugerville",
+      "Georgetown"
+    ],
+    "emergency_service": true,
+    "years_in_business": 10,
+    "license_number": "TACLA123456",
+    "insurance_verified": true,
+    "average_rating": 4.8,
+    "total_reviews": 150,
+    "certifications": []
+  },
+  "apiConfig": {
+    "baseUrl": "http://localhost:8000",
+    "timeout": 30000,
+    "retries": 1
+  },
+  "websiteConfig": {
+    "baseUrl": "http://localhost:3001"
+  },
+  "features": {
+    "analytics": false,
+    "errorReporting": false,
+    "debugMode": true,
+    "voiceAgent": false,
+    "bookingWidget": true
+  },
+  "generatedAt": "2025-08-26T10:47:15.962Z"
+}

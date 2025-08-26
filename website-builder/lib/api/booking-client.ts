@@ -13,23 +13,23 @@ import {
   BookableService,
   TimeSlot
 } from '../types/booking';
+import { getApiConfig, buildAuthApiUrl, getDefaultHeaders } from '../config/api-config';
 
 export class BookingApiClient {
-  private baseUrl: string;
+  private config = getApiConfig();
   
-  constructor(baseUrl: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000') {
-    this.baseUrl = baseUrl;
+  constructor() {
+    // Configuration is now handled centrally
   }
 
   /**
    * Get available time slots for a service
    */
   async getAvailability(request: AvailabilityRequest): Promise<AvailabilityResponse> {
-    const response = await fetch(`${this.baseUrl}/api/v1/bookings/availability`, {
+    const url = buildAuthApiUrl('bookings/availability');
+    const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getDefaultHeaders(),
       body: JSON.stringify(request),
     });
 
@@ -58,8 +58,10 @@ export class BookingApiClient {
       params.append('preferred_date', preferredDate);
     }
 
-    const response = await fetch(`${this.baseUrl}/api/v1/bookings/availability/next-slot?${params}`, {
+    const url = buildAuthApiUrl(`bookings/availability/next-slot?${params}`);
+    const response = await fetch(url, {
       method: 'GET',
+      headers: getDefaultHeaders(),
     });
 
     if (!response.ok) {
@@ -79,13 +81,12 @@ export class BookingApiClient {
       params.append('auto_confirm', 'true');
     }
 
-    const url = `${this.baseUrl}/api/v1/bookings${params.toString() ? '?' + params.toString() : ''}`;
+    const endpoint = `bookings${params.toString() ? '?' + params.toString() : ''}`;
+    const url = buildAuthApiUrl(endpoint);
     
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getDefaultHeaders(),
       body: JSON.stringify(request),
     });
 

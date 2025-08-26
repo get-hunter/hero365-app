@@ -1122,7 +1122,7 @@ export type AvailabilityCheckResponse = {
 /**
  * Request for available time slots
  */
-export type AvailabilityRequest = {
+export type AvailabilityRequest_Input = {
   business_id: string
   service_id: string
   start_date: string
@@ -1134,6 +1134,188 @@ export type AvailabilityRequest = {
   customer_coordinates?: [number, number] | null
   preferred_technician_id?: string | null
   exclude_technician_ids?: Array<string>
+}
+
+/**
+ * Complete availability request model
+ */
+export type AvailabilityRequest_Output = {
+  /**
+   * Contact person name
+   */
+  contact_name: string
+  /**
+   * Phone in E.164 format (+1234567890)
+   */
+  phone_e164?: string | null
+  /**
+   * Email address
+   */
+  email?: string | null
+  /**
+   * Requested postal code
+   */
+  postal_code: string
+  /**
+   * Country code
+   */
+  country_code?: string
+  /**
+   * City name
+   */
+  city?: string | null
+  /**
+   * State/Province
+   */
+  region?: string | null
+  /**
+   * Service category (HVAC, Plumbing, etc.)
+   */
+  service_category?: string | null
+  /**
+   * Specific service type
+   */
+  service_type?: string | null
+  /**
+   * Urgency level
+   */
+  urgency_level?: string
+  /**
+   * Preferred contact method
+   */
+  preferred_contact_method?: string
+  /**
+   * Additional details
+   */
+  notes?: string | null
+  /**
+   * Request UUID
+   */
+  id: string
+  /**
+   * Business UUID
+   */
+  business_id: string
+  /**
+   * Request status
+   */
+  status: string
+  /**
+   * Request source
+   */
+  source: string
+  /**
+   * Referrer URL
+   */
+  referrer_url?: string | null
+  /**
+   * User agent string
+   */
+  user_agent?: string | null
+  /**
+   * When contact was attempted
+   */
+  contacted_at?: string | null
+  /**
+   * When converted to booking
+   */
+  converted_at?: string | null
+  /**
+   * Creation timestamp
+   */
+  created_at: string
+  /**
+   * Last update timestamp
+   */
+  updated_at: string
+}
+
+/**
+ * Availability request creation model
+ */
+export type AvailabilityRequestCreate = {
+  /**
+   * Contact person name
+   */
+  contact_name: string
+  /**
+   * Phone in E.164 format (+1234567890)
+   */
+  phone_e164?: string | null
+  /**
+   * Email address
+   */
+  email?: string | null
+  /**
+   * Requested postal code
+   */
+  postal_code: string
+  /**
+   * Country code
+   */
+  country_code?: string
+  /**
+   * City name
+   */
+  city?: string | null
+  /**
+   * State/Province
+   */
+  region?: string | null
+  /**
+   * Service category (HVAC, Plumbing, etc.)
+   */
+  service_category?: string | null
+  /**
+   * Specific service type
+   */
+  service_type?: string | null
+  /**
+   * Urgency level
+   */
+  urgency_level?: string
+  /**
+   * Preferred contact method
+   */
+  preferred_contact_method?: string
+  /**
+   * Additional details
+   */
+  notes?: string | null
+  /**
+   * Business UUID
+   */
+  business_id: string
+  /**
+   * Request source
+   */
+  source?: string
+  /**
+   * Referrer URL
+   */
+  referrer_url?: string | null
+  /**
+   * User agent string
+   */
+  user_agent?: string | null
+}
+
+/**
+ * Response for availability request creation
+ */
+export type AvailabilityRequestResponse = {
+  /**
+   * Whether request was created
+   */
+  created: boolean
+  /**
+   * Request UUID
+   */
+  id: string
+  /**
+   * Success message
+   */
+  message?: string
 }
 
 /**
@@ -1302,6 +1484,13 @@ export type Body_products_reserve_stock = {
    * Optional notes
    */
   notes?: string | null
+}
+
+export type Body_Service_Areas_import_service_areas_csv = {
+  /**
+   * CSV file with service areas
+   */
+  file: Blob | File
 }
 
 /**
@@ -4980,6 +5169,52 @@ export type NextInvoiceNumberSchema = {
 }
 
 /**
+ * Normalized location information
+ */
+export type NormalizedLocation = {
+  /**
+   * Normalized postal code
+   */
+  postal_code: string
+  /**
+   * Country code
+   */
+  country_code: string
+  /**
+   * City name
+   */
+  city?: string | null
+  /**
+   * State/Province
+   */
+  region?: string | null
+  /**
+   * IANA timezone
+   */
+  timezone: string
+  /**
+   * Dispatch fee in cents
+   */
+  dispatch_fee_cents?: number
+  /**
+   * Minimum response time
+   */
+  min_response_time_hours: number
+  /**
+   * Maximum response time
+   */
+  max_response_time_hours: number
+  /**
+   * Emergency services available
+   */
+  emergency_available: boolean
+  /**
+   * Regular services available
+   */
+  regular_available: boolean
+}
+
+/**
  * Schema for OAuth sign-in response.
  */
 export type OAuthSignInResponse = {
@@ -6669,6 +6904,204 @@ export type SchedulingOptimizationResponse = {
 
 export type SendOTPRequest = {
   phone: string
+}
+
+/**
+ * Complete service area model with database fields
+ */
+export type ServiceArea = {
+  /**
+   * Postal/ZIP code
+   */
+  postal_code: string
+  /**
+   * ISO 3166-1 alpha-2 country code
+   */
+  country_code: string
+  /**
+   * City name
+   */
+  city?: string | null
+  /**
+   * State/Province
+   */
+  region?: string | null
+  /**
+   * IANA timezone identifier
+   */
+  timezone?: string
+  /**
+   * Whether this service area is active
+   */
+  is_active?: boolean
+  /**
+   * Dispatch fee in cents
+   */
+  dispatch_fee_cents?: number
+  /**
+   * Minimum response time in hours
+   */
+  min_response_time_hours?: number
+  /**
+   * Maximum response time in hours
+   */
+  max_response_time_hours?: number
+  /**
+   * Emergency services available
+   */
+  emergency_services_available?: boolean
+  /**
+   * Regular services available
+   */
+  regular_services_available?: boolean
+  /**
+   * Additional notes
+   */
+  notes?: string | null
+  /**
+   * Service area UUID
+   */
+  id: string
+  /**
+   * Business UUID
+   */
+  business_id: string
+  /**
+   * Creation timestamp
+   */
+  created_at: string
+  /**
+   * Last update timestamp
+   */
+  updated_at: string
+}
+
+/**
+ * Base service area model
+ */
+export type ServiceAreaBase = {
+  /**
+   * Postal/ZIP code
+   */
+  postal_code: string
+  /**
+   * ISO 3166-1 alpha-2 country code
+   */
+  country_code: string
+  /**
+   * City name
+   */
+  city?: string | null
+  /**
+   * State/Province
+   */
+  region?: string | null
+  /**
+   * IANA timezone identifier
+   */
+  timezone?: string
+  /**
+   * Whether this service area is active
+   */
+  is_active?: boolean
+  /**
+   * Dispatch fee in cents
+   */
+  dispatch_fee_cents?: number
+  /**
+   * Minimum response time in hours
+   */
+  min_response_time_hours?: number
+  /**
+   * Maximum response time in hours
+   */
+  max_response_time_hours?: number
+  /**
+   * Emergency services available
+   */
+  emergency_services_available?: boolean
+  /**
+   * Regular services available
+   */
+  regular_services_available?: boolean
+  /**
+   * Additional notes
+   */
+  notes?: string | null
+}
+
+/**
+ * Bulk upsert request for service areas
+ */
+export type ServiceAreaBulkUpsert = {
+  /**
+   * Business UUID
+   */
+  business_id: string
+  /**
+   * Service areas to upsert
+   */
+  areas: Array<ServiceAreaBase>
+}
+
+/**
+ * Response for service area check
+ */
+export type ServiceAreaCheckResponse = {
+  /**
+   * Whether the postal code is supported
+   */
+  supported: boolean
+  /**
+   * Normalized location data
+   */
+  normalized?: NormalizedLocation | null
+  /**
+   * Nearby service areas
+   */
+  suggestions?: Array<ServiceAreaSuggestion> | null
+  /**
+   * Human-readable message
+   */
+  message?: string | null
+}
+
+/**
+ * Suggested nearby service area
+ */
+export type ServiceAreaSuggestion = {
+  /**
+   * Postal code
+   */
+  postal_code: string
+  /**
+   * City name
+   */
+  city?: string | null
+  /**
+   * State/Province
+   */
+  region?: string | null
+  /**
+   * Distance estimate (e.g., 'nearby', '10 miles')
+   */
+  distance_estimate: string
+}
+
+/**
+ * Service area update model
+ */
+export type ServiceAreaUpdate = {
+  city?: string | null
+  region?: string | null
+  timezone?: string | null
+  is_active?: boolean | null
+  dispatch_fee_cents?: number | null
+  min_response_time_hours?: number | null
+  max_response_time_hours?: number | null
+  emergency_services_available?: boolean | null
+  regular_services_available?: boolean | null
+  notes?: string | null
 }
 
 /**
@@ -8556,7 +8989,7 @@ export type AuthRevokeUserTokensResponse = {
 }
 
 export type BookingsGetAvailabilityData = {
-  requestBody: AvailabilityRequest
+  requestBody: AvailabilityRequest_Input
 }
 
 export type BookingsGetAvailabilityResponse = AvailabilityResponse
@@ -10436,6 +10869,127 @@ export type PurchaseOrdersGetPendingReceiptOrdersData = {
 
 export type PurchaseOrdersGetPendingReceiptOrdersResponse =
   PurchaseOrderListResponseSchema
+
+export type ServiceAreasCheckServiceAreaSupportData = {
+  /**
+   * Business UUID
+   */
+  businessId: string
+  /**
+   * Country code (ISO 3166-1 alpha-2)
+   */
+  countryCode?: string
+  /**
+   * Postal/ZIP code to check
+   */
+  postalCode: string
+}
+
+export type ServiceAreasCheckServiceAreaSupportResponse =
+  ServiceAreaCheckResponse
+
+export type ServiceAreasCreateAvailabilityRequestData = {
+  requestBody: AvailabilityRequestCreate
+}
+
+export type ServiceAreasCreateAvailabilityRequestResponse =
+  AvailabilityRequestResponse
+
+export type ServiceAreasGetServiceAreasData = {
+  /**
+   * Business UUID
+   */
+  businessId: string
+  /**
+   * Number of results to return
+   */
+  limit?: number
+  /**
+   * Number of results to skip
+   */
+  offset?: number
+  /**
+   * Search query
+   */
+  q?: string | null
+}
+
+export type ServiceAreasGetServiceAreasResponse = Array<ServiceArea>
+
+export type ServiceAreasBulkUpsertServiceAreasData = {
+  requestBody: ServiceAreaBulkUpsert
+}
+
+export type ServiceAreasBulkUpsertServiceAreasResponse = unknown
+
+export type ServiceAreasUpdateServiceAreaData = {
+  areaId: string
+  requestBody: ServiceAreaUpdate
+}
+
+export type ServiceAreasUpdateServiceAreaResponse = ServiceArea
+
+export type ServiceAreasDeleteServiceAreaData = {
+  areaId: string
+}
+
+export type ServiceAreasDeleteServiceAreaResponse = unknown
+
+export type ServiceAreasImportServiceAreasCsvData = {
+  /**
+   * Business UUID
+   */
+  businessId: string
+  formData: Body_Service_Areas_import_service_areas_csv
+}
+
+export type ServiceAreasImportServiceAreasCsvResponse = unknown
+
+export type ServiceAreasExportServiceAreasCsvData = {
+  /**
+   * Business UUID
+   */
+  businessId: string
+}
+
+export type ServiceAreasExportServiceAreasCsvResponse = unknown
+
+export type ServiceAreasGetAvailabilityRequestsData = {
+  /**
+   * Business UUID
+   */
+  businessId: string
+  /**
+   * Number of results to return
+   */
+  limit?: number
+  /**
+   * Number of results to skip
+   */
+  offset?: number
+  /**
+   * Filter by status
+   */
+  status?: string | null
+}
+
+export type ServiceAreasGetAvailabilityRequestsResponse =
+  Array<AvailabilityRequest_Output>
+
+export type ServiceAreasUpdateAvailabilityRequestStatusData = {
+  /**
+   * Optional notes
+   */
+  notes?: string | null
+  requestId: string
+  /**
+   * New status
+   */
+  status: string
+}
+
+export type ServiceAreasUpdateAvailabilityRequestStatusResponse =
+  AvailabilityRequest_Output
 
 export type ServiceDiscoveryListCategoriesData = {
   tradeType?: string

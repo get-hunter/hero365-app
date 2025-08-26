@@ -8,7 +8,9 @@
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { X } from 'lucide-react';
-import EmbeddableBookingWidget, { BookingWidgetLauncher } from './EmbeddableBookingWidget';
+import BookingWizard from './BookingWizard';
+import BookingErrorBoundary from './BookingErrorBoundary';
+import { BookingWidgetLauncher } from './EmbeddableBookingWidget';
 import { BookableService, Booking } from '../../lib/types/booking';
 
 interface BookingWidgetContextType {
@@ -154,24 +156,36 @@ export function BookingWidgetProvider({
               </button>
               
               <div className="flex-1 overflow-y-auto">
-                <EmbeddableBookingWidget
-                  businessId={businessId}
-                  services={filteredServices}
-                  mode="inline"
-                  theme="light"
-                  primaryColor={primaryColor}
-                  companyName={companyName}
-                  companyLogo={companyLogo}
-                  companyPhone={companyPhone}
-                  companyEmail={companyEmail}
-                  showHeader={true}
-                  showFooter={true}
-                  allowMinimize={false}
-                  onBookingComplete={handleBookingComplete}
-                  onBookingError={handleBookingError}
-                  onWidgetClose={closeBookingWidget}
-                  className="border-0 shadow-none rounded-none md:rounded-xl"
-                />
+                <BookingErrorBoundary
+                  businessName={companyName}
+                  businessPhone={companyPhone}
+                  businessEmail={companyEmail}
+                  onReset={() => {
+                    // Reset the booking widget state
+                    closeBookingWidget();
+                    setTimeout(() => openBookingWidget(), 100);
+                  }}
+                  onGoBack={closeBookingWidget}
+                >
+                  <BookingWizard
+                    businessId={businessId}
+                    businessName={companyName}
+                    businessPhone={companyPhone}
+                    businessEmail={companyEmail}
+                    services={filteredServices.map(service => ({
+                      id: service.id,
+                      name: service.name,
+                      category: service.category || 'General',
+                      description: service.description,
+                      duration_minutes: service.duration_minutes,
+                      price_cents: service.price_cents,
+                      is_emergency: service.is_emergency || false
+                    }))}
+                    onClose={closeBookingWidget}
+                    onComplete={handleBookingComplete}
+                    className="h-full"
+                  />
+                </BookingErrorBoundary>
               </div>
             </div>
           </div>

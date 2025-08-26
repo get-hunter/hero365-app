@@ -447,6 +447,26 @@ import type {
   PurchaseOrdersGetPendingApprovalOrdersResponse,
   PurchaseOrdersGetPendingReceiptOrdersData,
   PurchaseOrdersGetPendingReceiptOrdersResponse,
+  ServiceAreasCheckServiceAreaSupportData,
+  ServiceAreasCheckServiceAreaSupportResponse,
+  ServiceAreasCreateAvailabilityRequestData,
+  ServiceAreasCreateAvailabilityRequestResponse,
+  ServiceAreasGetServiceAreasData,
+  ServiceAreasGetServiceAreasResponse,
+  ServiceAreasBulkUpsertServiceAreasData,
+  ServiceAreasBulkUpsertServiceAreasResponse,
+  ServiceAreasUpdateServiceAreaData,
+  ServiceAreasUpdateServiceAreaResponse,
+  ServiceAreasDeleteServiceAreaData,
+  ServiceAreasDeleteServiceAreaResponse,
+  ServiceAreasImportServiceAreasCsvData,
+  ServiceAreasImportServiceAreasCsvResponse,
+  ServiceAreasExportServiceAreasCsvData,
+  ServiceAreasExportServiceAreasCsvResponse,
+  ServiceAreasGetAvailabilityRequestsData,
+  ServiceAreasGetAvailabilityRequestsResponse,
+  ServiceAreasUpdateAvailabilityRequestStatusData,
+  ServiceAreasUpdateAvailabilityRequestStatusResponse,
   ServiceDiscoveryListCategoriesData,
   ServiceDiscoveryListCategoriesResponse,
   ServiceDiscoveryListCategories1Data,
@@ -6461,6 +6481,285 @@ export class PurchaseOrdersService {
         page: data.page,
         page_size: data.pageSize,
         overdue_only: data.overdueOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class ServiceAreasService {
+  /**
+   * Check Service Area Support
+   * Check if a postal code is supported by a business.
+   *
+   * This endpoint is public and used by the booking widget to validate
+   * service areas before allowing users to proceed with booking.
+   * @param data The data for the request.
+   * @param data.businessId Business UUID
+   * @param data.postalCode Postal/ZIP code to check
+   * @param data.countryCode Country code (ISO 3166-1 alpha-2)
+   * @returns ServiceAreaCheckResponse Successful Response
+   * @throws ApiError
+   */
+  public static checkServiceAreaSupport(
+    data: ServiceAreasCheckServiceAreaSupportData,
+  ): CancelablePromise<ServiceAreasCheckServiceAreaSupportResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/service-areas/check",
+      query: {
+        business_id: data.businessId,
+        postal_code: data.postalCode,
+        country_code: data.countryCode,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Availability Request
+   * Create an availability request for unsupported postal codes.
+   *
+   * This endpoint allows users to request service in areas where
+   * the business doesn't currently operate.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns AvailabilityRequestResponse Successful Response
+   * @throws ApiError
+   */
+  public static createAvailabilityRequest(
+    data: ServiceAreasCreateAvailabilityRequestData,
+  ): CancelablePromise<ServiceAreasCreateAvailabilityRequestResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/public/availability/request",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Service Areas
+   * Get service areas for a business.
+   *
+   * Supports search by postal code, city, or region.
+   * @param data The data for the request.
+   * @param data.businessId Business UUID
+   * @param data.q Search query
+   * @param data.limit Number of results to return
+   * @param data.offset Number of results to skip
+   * @returns ServiceArea Successful Response
+   * @throws ApiError
+   */
+  public static getServiceAreas(
+    data: ServiceAreasGetServiceAreasData,
+  ): CancelablePromise<ServiceAreasGetServiceAreasResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/pro/service-areas",
+      query: {
+        business_id: data.businessId,
+        q: data.q,
+        limit: data.limit,
+        offset: data.offset,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Bulk Upsert Service Areas
+   * Bulk create or update service areas.
+   *
+   * This endpoint allows businesses to efficiently manage large numbers
+   * of service areas. Existing areas are updated, new ones are created.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static bulkUpsertServiceAreas(
+    data: ServiceAreasBulkUpsertServiceAreasData,
+  ): CancelablePromise<ServiceAreasBulkUpsertServiceAreasResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/pro/service-areas/bulk-upsert",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Service Area
+   * Update a specific service area.
+   * @param data The data for the request.
+   * @param data.areaId
+   * @param data.requestBody
+   * @returns ServiceArea Successful Response
+   * @throws ApiError
+   */
+  public static updateServiceArea(
+    data: ServiceAreasUpdateServiceAreaData,
+  ): CancelablePromise<ServiceAreasUpdateServiceAreaResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/pro/service-areas/{area_id}",
+      path: {
+        area_id: data.areaId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Service Area
+   * Delete a service area.
+   * @param data The data for the request.
+   * @param data.areaId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static deleteServiceArea(
+    data: ServiceAreasDeleteServiceAreaData,
+  ): CancelablePromise<ServiceAreasDeleteServiceAreaResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/pro/service-areas/{area_id}",
+      path: {
+        area_id: data.areaId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Import Service Areas Csv
+   * Import service areas from CSV file.
+   *
+   * Expected CSV format:
+   * postal_code,country_code,city,region,timezone,is_active
+   * 78701,US,Austin,TX,America/Chicago,true
+   * 78702,US,Austin,TX,America/Chicago,true
+   * @param data The data for the request.
+   * @param data.businessId Business UUID
+   * @param data.formData
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static importServiceAreasCsv(
+    data: ServiceAreasImportServiceAreasCsvData,
+  ): CancelablePromise<ServiceAreasImportServiceAreasCsvResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/pro/service-areas/import",
+      query: {
+        business_id: data.businessId,
+      },
+      formData: data.formData,
+      mediaType: "multipart/form-data",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Export Service Areas Csv
+   * Export service areas as CSV file.
+   * @param data The data for the request.
+   * @param data.businessId Business UUID
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static exportServiceAreasCsv(
+    data: ServiceAreasExportServiceAreasCsvData,
+  ): CancelablePromise<ServiceAreasExportServiceAreasCsvResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/pro/service-areas/export.csv",
+      query: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Availability Requests
+   * Get availability requests for a business.
+   *
+   * These are requests from potential customers in areas where
+   * the business doesn't currently provide service.
+   * @param data The data for the request.
+   * @param data.businessId Business UUID
+   * @param data.status Filter by status
+   * @param data.limit Number of results to return
+   * @param data.offset Number of results to skip
+   * @returns AvailabilityRequest_Output Successful Response
+   * @throws ApiError
+   */
+  public static getAvailabilityRequests(
+    data: ServiceAreasGetAvailabilityRequestsData,
+  ): CancelablePromise<ServiceAreasGetAvailabilityRequestsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/pro/availability-requests",
+      query: {
+        business_id: data.businessId,
+        status: data.status,
+        limit: data.limit,
+        offset: data.offset,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Availability Request Status
+   * Update the status of an availability request.
+   *
+   * Valid statuses: new, contacted, scheduled, converted, declined
+   * @param data The data for the request.
+   * @param data.requestId
+   * @param data.status New status
+   * @param data.notes Optional notes
+   * @returns AvailabilityRequest_Output Successful Response
+   * @throws ApiError
+   */
+  public static updateAvailabilityRequestStatus(
+    data: ServiceAreasUpdateAvailabilityRequestStatusData,
+  ): CancelablePromise<ServiceAreasUpdateAvailabilityRequestStatusResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/pro/availability-requests/{request_id}/status",
+      path: {
+        request_id: data.requestId,
+      },
+      query: {
+        status: data.status,
+        notes: data.notes,
       },
       errors: {
         422: "Validation Error",

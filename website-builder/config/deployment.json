@@ -1,0 +1,106 @@
+{
+  "environments": {
+    "development": {
+      "name": "Development",
+      "api": {
+        "baseUrl": "http://localhost:8000",
+        "timeout": 30000,
+        "retries": 1
+      },
+      "website": {
+        "baseUrl": "http://localhost:3001"
+      },
+      "features": {
+        "analytics": false,
+        "errorReporting": false,
+        "debugMode": true,
+        "voiceAgent": false,
+        "bookingWidget": true
+      },
+      "business": {
+        "defaultBusinessId": "123e4567-e89b-12d3-a456-426614174000",
+        "defaultBusinessName": "Elite HVAC Services",
+        "defaultBusinessPhone": "+1-555-123-4567",
+        "defaultBusinessEmail": "contact@elitehvac.com"
+      }
+    },
+    "staging": {
+      "name": "Staging",
+      "api": {
+        "baseUrl": "https://api-staging.hero365.ai",
+        "timeout": 20000,
+        "retries": 2
+      },
+      "website": {
+        "baseUrl": "https://staging.hero365.ai"
+      },
+      "features": {
+        "analytics": true,
+        "errorReporting": true,
+        "debugMode": true,
+        "voiceAgent": true,
+        "bookingWidget": true
+      },
+      "business": {
+        "defaultBusinessId": "staging-business-id",
+        "defaultBusinessName": "Staging HVAC Services",
+        "defaultBusinessPhone": "+1-555-STAGING",
+        "defaultBusinessEmail": "staging@hero365.ai"
+      }
+    },
+    "production": {
+      "name": "Production",
+      "api": {
+        "baseUrl": "https://api.hero365.ai",
+        "timeout": 15000,
+        "retries": 3
+      },
+      "website": {
+        "baseUrl": "https://hero365.ai"
+      },
+      "features": {
+        "analytics": true,
+        "errorReporting": true,
+        "debugMode": false,
+        "voiceAgent": true,
+        "bookingWidget": true
+      },
+      "business": {
+        "defaultBusinessId": "production-business-id",
+        "defaultBusinessName": "Hero365 Professional Services",
+        "defaultBusinessPhone": "+1-800-HERO365",
+        "defaultBusinessEmail": "support@hero365.ai"
+      }
+    }
+  },
+  "domains": {
+    "development": [
+      "localhost",
+      "127.0.0.1",
+      "192.168.*"
+    ],
+    "staging": [
+      "staging.hero365.ai",
+      "dev.hero365.ai",
+      "preview.hero365.ai",
+      "*.pages.dev"
+    ],
+    "production": [
+      "hero365.ai",
+      "www.hero365.ai",
+      "app.hero365.ai"
+    ]
+  },
+  "apiEndpoints": {
+    "public": {
+      "serviceAreas": "/public/service-areas",
+      "availability": "/public/availability",
+      "professionalProfile": "/public/professional/profile"
+    },
+    "authenticated": {
+      "bookings": "/bookings",
+      "businesses": "/businesses",
+      "users": "/users"
+    }
+  }
+}
