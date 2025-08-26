@@ -44,6 +44,7 @@ export default function EliteHeader({
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Handle scroll effect
   useEffect(() => {
@@ -53,6 +54,22 @@ export default function EliteHeader({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Improved hover handlers with delay
+  const handleMouseEnter = (dropdown: string) => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
+    }
+    setActiveDropdown(dropdown);
+  };
+
+  const handleMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setActiveDropdown(null);
+    }, 150); // 150ms delay before closing
+    setHoverTimeout(timeout);
+  };
 
   // Service categories for mega menu
   const serviceCategories: ServiceCategory[] = [
@@ -150,34 +167,33 @@ export default function EliteHeader({
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center">
-              {logo ? (
-                <img src={logo} alt={businessName} className="h-10 w-auto" />
-              ) : (
-                <div className="text-2xl font-bold" style={{ color: primaryColor }}>
-                  {businessName}
-                </div>
-              )}
+              <a href="/" className="flex items-center">
+                {logo ? (
+                  <img src={logo} alt={businessName} className="h-10 w-auto" />
+                ) : (
+                  <div className="text-2xl font-bold" style={{ color: primaryColor }}>
+                    {businessName}
+                  </div>
+                )}
+              </a>
             </div>
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-8">
-              <a href="/" className="text-gray-700 hover:text-gray-900 font-medium">
-                Home
-              </a>
               
               {/* Services Mega Menu */}
               <div 
                 className="relative"
-                onMouseEnter={() => setActiveDropdown('services')}
-                onMouseLeave={() => setActiveDropdown(null)}
+                onMouseEnter={() => handleMouseEnter('services')}
+                onMouseLeave={handleMouseLeave}
               >
-                <button className="flex items-center text-gray-700 hover:text-gray-900 font-medium">
+                <button className="flex items-center text-gray-700 hover:text-gray-900 font-medium py-2">
                   Services
                   <ChevronDown className="ml-1 h-4 w-4" />
                 </button>
                 
                 {activeDropdown === 'services' && (
-                  <div className="absolute top-full left-0 mt-2 w-screen max-w-4xl bg-white shadow-xl border rounded-lg z-50">
+                  <div className="absolute top-full left-0 mt-0 w-screen max-w-4xl bg-white shadow-xl border rounded-lg z-50">
                     <div className="p-6">
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                         {serviceCategories.map((category) => (
@@ -210,12 +226,12 @@ export default function EliteHeader({
                             <p className="text-sm text-gray-600">Our experts are here to help</p>
                           </div>
                           <div className="flex space-x-3">
-                            <button className="px-3 py-1 text-sm border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors">
+                            <a 
+                              href={`tel:${phone}`}
+                              className="px-3 py-1 text-sm border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                            >
                               Call {phone}
-                            </button>
-                            <BookingCTAButton size="sm">
-                              Book Consultation
-                            </BookingCTAButton>
+                            </a>
                           </div>
                         </div>
                       </div>
@@ -227,16 +243,16 @@ export default function EliteHeader({
               {/* Company Dropdown */}
               <div 
                 className="relative"
-                onMouseEnter={() => setActiveDropdown('company')}
-                onMouseLeave={() => setActiveDropdown(null)}
+                onMouseEnter={() => handleMouseEnter('company')}
+                onMouseLeave={handleMouseLeave}
               >
-                <button className="flex items-center text-gray-700 hover:text-gray-900 font-medium">
+                <button className="flex items-center text-gray-700 hover:text-gray-900 font-medium py-2">
                   Company
                   <ChevronDown className="ml-1 h-4 w-4" />
                 </button>
                 
                 {activeDropdown === 'company' && (
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-white shadow-xl border rounded-lg z-50">
+                  <div className="absolute top-full left-0 mt-0 w-64 bg-white shadow-xl border rounded-lg z-50">
                     <div className="py-2">
                       {companyLinks.map((link) => (
                         <a
@@ -269,9 +285,6 @@ export default function EliteHeader({
                 <Phone className="w-4 h-4 mr-2" />
                 {phone}
               </a>
-              <button className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors font-medium">
-                Get Quote
-              </button>
               <BookingCTAButton>
                 Book Now
               </BookingCTAButton>
@@ -296,9 +309,6 @@ export default function EliteHeader({
           <div className="lg:hidden bg-white border-t border-gray-200">
             <div className="px-4 py-6 space-y-6">
               <div className="space-y-4">
-                <a href="/" className="block text-gray-700 font-medium">
-                  Home
-                </a>
                 <div>
                   <div className="text-gray-900 font-semibold mb-2">Services</div>
                   {serviceCategories.map((category) => (
@@ -347,9 +357,6 @@ export default function EliteHeader({
                   {phone}
                 </a>
                 <div className="flex space-x-3">
-                  <button className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors font-medium">
-                    Get Quote
-                  </button>
                   <BookingCTAButton className="flex-1">
                     Book Now
                   </BookingCTAButton>

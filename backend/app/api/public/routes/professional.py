@@ -114,6 +114,16 @@ class ProductItem(BaseModel):
     energy_rating: Optional[str] = Field(None, description="Energy efficiency rating")
 
 
+class ServiceCategory(BaseModel):
+    """Service category with services."""
+    
+    id: str = Field(..., description="Category ID")
+    name: str = Field(..., description="Category name")
+    slug: str = Field(..., description="Category slug")
+    description: Optional[str] = Field(None, description="Category description")
+    services: List[ServiceItem] = Field(default_factory=list, description="Services in this category")
+
+
 class AvailabilitySlot(BaseModel):
     """Available time slot."""
     
@@ -128,8 +138,7 @@ class AvailabilitySlot(BaseModel):
 # API Endpoints
 @router.get("/profile/{business_id}", response_model=ProfessionalProfile)
 async def get_professional_profile(
-    business_id: str = Path(..., description="Business ID"),
-    business_repo: BusinessRepository = Depends(get_business_repository)
+    business_id: str = Path(..., description="Business ID")
 ):
     """
     Get complete professional profile information.
@@ -138,24 +147,30 @@ async def get_professional_profile(
     """
     
     try:
-        # Try to fetch business from database
-        business = await business_repo.get_by_id(uuid.UUID(business_id))
+        # Use direct database query to avoid repository issues
+        from ....core.db import get_supabase_client
+        supabase = get_supabase_client()
         
-        if business:
-            # Convert business entity to response model
+        # Fetch business from database
+        result = supabase.table("businesses").select("*").eq("id", business_id).eq("is_active", True).execute()
+        
+        if result.data and len(result.data) > 0:
+            business = result.data[0]
+            
+            # Convert business data to response model
             profile_data = {
-                "business_id": str(business.id),
-                "business_name": business.name,
-                "trade_type": business.industry.lower() if business.industry else "general",
-                "description": business.description or f"Professional {business.industry} services",
-                "phone": business.phone_number or "",
-                "email": business.business_email or "",
-                "address": business.business_address or "",
-                "website": business.website,
-                "service_areas": business.service_areas or [],
+                "business_id": str(business["id"]),
+                "business_name": business["name"],
+                "trade_type": business["industry"].lower() if business.get("industry") else "general",
+                "description": business.get("description") or f"Professional {business.get('industry', 'service')} provider",
+                "phone": business.get("phone_number") or "",
+                "email": business.get("business_email") or "",
+                "address": business.get("business_address") or "",
+                "website": business.get("website"),
+                "service_areas": business.get("service_areas") or [],
                 "emergency_service": True,  # Default for now
                 "years_in_business": 10,  # Default for now
-                "license_number": business.business_license,
+                "license_number": business.get("business_license"),
                 "insurance_verified": True,  # Default for now
                 "average_rating": 4.8,  # Default for now
                 "total_reviews": 150,  # Default for now
@@ -192,19 +207,23 @@ async def get_professional_services(
         from ....core.db import get_supabase_client
         supabase = get_supabase_client()
         
-        # Build query
+        # Build query with proper join syntax
         query = supabase.table("business_services").select(
             "id, name, description, pricing_model, unit_price, minimum_price, "
-            "is_emergency, is_active, service_categories(name)"
+            "estimated_duration_hours, is_emergency, is_active, sort_order, "
+            "service_categories!inner(id, name, slug)"
         ).eq("business_id", business_id).eq("is_active", True)
         
         # Apply filters
         if category:
-            # Join with categories to filter by name
+            # Filter by category name
             query = query.eq("service_categories.name", category)
         
         if emergency_only:
             query = query.eq("is_emergency", True)
+        
+        # Order by sort_order and name
+        query = query.order("sort_order").order("name")
         
         result = query.execute()
         
@@ -213,7 +232,12 @@ async def get_professional_services(
             service_items = []
             for service in result.data:
                 # Map business_service fields to ServiceItem fields
-                category_name = service.get("service_categories", {}).get("name", "General") if service.get("service_categories") else "General"
+                category_info = service.get("service_categories", {})
+                category_name = category_info.get("name", "General") if category_info else "General"
+                
+                # Calculate duration in minutes
+                duration_hours = service.get("estimated_duration_hours", 1.0)
+                duration_minutes = int(duration_hours * 60) if duration_hours else 60
                 
                 service_data = {
                     "id": str(service["id"]),
@@ -224,7 +248,7 @@ async def get_professional_services(
                     "price_range_min": float(service["minimum_price"]) if service.get("minimum_price") else float(service["unit_price"]) if service.get("unit_price") else None,
                     "price_range_max": float(service["unit_price"]) if service.get("unit_price") else None,
                     "pricing_unit": "service" if service["pricing_model"] == "fixed" else service.get("pricing_model", "service"),
-                    "duration_minutes": 60,  # Default duration, TODO: use estimated_duration_hours from service
+                    "duration_minutes": duration_minutes,
                     "is_emergency": service.get("is_emergency", False),
                     "requires_quote": service["pricing_model"] == "quote_required",
                     "available": service.get("is_active", True),
@@ -241,6 +265,90 @@ async def get_professional_services(
         
     except Exception as e:
         logger.error(f"Error fetching services for {business_id}: {str(e)}")
+        return []
+
+
+@router.get("/service-categories/{business_id}", response_model=List[ServiceCategory])
+async def get_professional_service_categories(
+    business_id: str = Path(..., description="Business ID")
+):
+    """
+    Get professional service categories with their services grouped.
+    
+    Returns service categories with services organized for website navigation and menus.
+    """
+    
+    try:
+        from ....core.db import get_supabase_client
+        supabase = get_supabase_client()
+        
+        # First get all services for this business with categories
+        services_query = supabase.table("business_services").select(
+            "id, name, description, pricing_model, unit_price, minimum_price, "
+            "estimated_duration_hours, is_emergency, is_active, sort_order, "
+            "service_categories!inner(id, name, slug, description)"
+        ).eq("business_id", business_id).eq("is_active", True).order("sort_order").order("name")
+        
+        services_result = services_query.execute()
+        
+        if not services_result.data:
+            return []
+        
+        # Group services by category
+        categories_dict = {}
+        
+        for service in services_result.data:
+            category_info = service.get("service_categories", {})
+            category_id = category_info.get("id")
+            category_name = category_info.get("name", "General")
+            category_slug = category_info.get("slug", "general")
+            category_description = category_info.get("description", "")
+            
+            if category_id not in categories_dict:
+                categories_dict[category_id] = {
+                    "id": str(category_id),
+                    "name": category_name,
+                    "slug": category_slug,
+                    "description": category_description,
+                    "services": []
+                }
+            
+            # Calculate duration in minutes
+            duration_hours = service.get("estimated_duration_hours", 1.0)
+            duration_minutes = int(duration_hours * 60) if duration_hours else 60
+            
+            # Create service item
+            service_item = ServiceItem(
+                id=str(service["id"]),
+                name=service["name"],
+                description=service.get("description", ""),
+                category=category_name,
+                base_price=float(service["unit_price"]) if service.get("unit_price") else None,
+                price_range_min=float(service["minimum_price"]) if service.get("minimum_price") else float(service["unit_price"]) if service.get("unit_price") else None,
+                price_range_max=float(service["unit_price"]) if service.get("unit_price") else None,
+                pricing_unit="service" if service["pricing_model"] == "fixed" else service.get("pricing_model", "service"),
+                duration_minutes=duration_minutes,
+                is_emergency=service.get("is_emergency", False),
+                requires_quote=service["pricing_model"] == "quote_required",
+                available=service.get("is_active", True),
+                service_areas=[],
+                keywords=service["name"].lower().split()
+            )
+            
+            categories_dict[category_id]["services"].append(service_item)
+        
+        # Convert to list of ServiceCategory objects
+        service_categories = []
+        for category_data in categories_dict.values():
+            service_categories.append(ServiceCategory(**category_data))
+        
+        # Sort categories by name
+        service_categories.sort(key=lambda x: x.name)
+        
+        return service_categories
+        
+    except Exception as e:
+        logger.error(f"Error fetching service categories for {business_id}: {str(e)}")
         return []
 
 

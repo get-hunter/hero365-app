@@ -425,6 +425,8 @@ import type {
   PublicProfessionalGetProfessionalProfileResponse,
   PublicProfessionalGetProfessionalServicesData,
   PublicProfessionalGetProfessionalServicesResponse,
+  PublicProfessionalGetProfessionalServiceCategoriesData,
+  PublicProfessionalGetProfessionalServiceCategoriesResponse,
   PublicProfessionalGetProfessionalProductsData,
   PublicProfessionalGetProfessionalProductsResponse,
   PublicProfessionalGetProfessionalAvailabilityData,
@@ -6192,6 +6194,31 @@ export class PublicProfessionalService {
   }
 
   /**
+   * Get Professional Service Categories
+   * Get professional service categories with their services grouped.
+   *
+   * Returns service categories with services organized for website navigation and menus.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns app__api__public__routes__professional__ServiceCategory Successful Response
+   * @throws ApiError
+   */
+  public static getProfessionalServiceCategories(
+    data: PublicProfessionalGetProfessionalServiceCategoriesData,
+  ): CancelablePromise<PublicProfessionalGetProfessionalServiceCategoriesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/service-categories/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Get Professional Products
    * Get professional products sold by a business.
    *
@@ -6776,7 +6803,7 @@ export class ServiceDiscoveryService {
    * Used for business onboarding and service discovery.
    * @param data The data for the request.
    * @param data.tradeType
-   * @returns ServiceCategory Successful Response
+   * @returns app__domain__service_templates__models__ServiceCategory Successful Response
    * @throws ApiError
    */
   public static listCategories(
@@ -6801,7 +6828,7 @@ export class ServiceDiscoveryService {
    * Used for business onboarding and service discovery.
    * @param data The data for the request.
    * @param data.tradeType
-   * @returns ServiceCategory Successful Response
+   * @returns app__domain__service_templates__models__ServiceCategory Successful Response
    * @throws ApiError
    */
   public static listCategories1(
@@ -6824,7 +6851,7 @@ export class ServiceDiscoveryService {
    * Get details of a specific service category.
    * @param data The data for the request.
    * @param data.categoryId
-   * @returns ServiceCategory Successful Response
+   * @returns app__domain__service_templates__models__ServiceCategory Successful Response
    * @throws ApiError
    */
   public static getCategory(
@@ -6847,7 +6874,7 @@ export class ServiceDiscoveryService {
    * Get details of a specific service category.
    * @param data The data for the request.
    * @param data.categoryId
-   * @returns ServiceCategory Successful Response
+   * @returns app__domain__service_templates__models__ServiceCategory Successful Response
    * @throws ApiError
    */
   public static getCategory1(

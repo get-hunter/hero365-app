@@ -781,6 +781,32 @@ export type AdvancePaymentSchema_Output = {
 }
 
 /**
+ * Service category with services.
+ */
+export type app__api__public__routes__professional__ServiceCategory = {
+  /**
+   * Category ID
+   */
+  id: string
+  /**
+   * Category name
+   */
+  name: string
+  /**
+   * Category slug
+   */
+  slug: string
+  /**
+   * Category description
+   */
+  description?: string | null
+  /**
+   * Services in this category
+   */
+  services?: Array<ServiceItem>
+}
+
+/**
  * Request model for dynamic website deployment.
  */
 export type app__api__routes__dynamic_website_deployment__DynamicWebsiteRequest =
@@ -1007,6 +1033,33 @@ export type app__domain__entities__website_template__WebsiteDeploymentResponse =
       [key: string]: number
     } | null
   }
+
+/**
+ * Standardized service category across trades.
+ */
+export type app__domain__service_templates__models__ServiceCategory = {
+  id: string
+  name: string
+  description?: string | null
+  slug: string
+  /**
+   * Trade types this category applies to
+   */
+  trade_types: Array<string>
+  /**
+   * Type: equipment, service_type, specialization
+   */
+  category_type: string
+  /**
+   * Lucide icon name
+   */
+  icon?: string | null
+  parent_id?: string | null
+  sort_order?: number
+  is_active?: boolean
+  created_at: string
+  updated_at: string
+}
 
 /**
  * Schema for Apple Sign-In with ID token from iOS app.
@@ -7105,33 +7158,6 @@ export type ServiceAreaUpdate = {
 }
 
 /**
- * Standardized service category across trades.
- */
-export type ServiceCategory = {
-  id: string
-  name: string
-  description?: string | null
-  slug: string
-  /**
-   * Trade types this category applies to
-   */
-  trade_types: Array<string>
-  /**
-   * Type: equipment, service_type, specialization
-   */
-  category_type: string
-  /**
-   * Lucide icon name
-   */
-  icon?: string | null
-  parent_id?: string | null
-  sort_order?: number
-  is_active?: boolean
-  created_at: string
-  updated_at: string
-}
-
-/**
  * Service category properties for template rendering.
  */
 export type ServiceCategoryProps = {
@@ -10717,6 +10743,16 @@ export type PublicProfessionalGetProfessionalServicesData = {
 export type PublicProfessionalGetProfessionalServicesResponse =
   Array<ServiceItem>
 
+export type PublicProfessionalGetProfessionalServiceCategoriesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type PublicProfessionalGetProfessionalServiceCategoriesResponse =
+  Array<app__api__public__routes__professional__ServiceCategory>
+
 export type PublicProfessionalGetProfessionalProductsData = {
   /**
    * Business ID
@@ -10995,25 +11031,29 @@ export type ServiceDiscoveryListCategoriesData = {
   tradeType?: string
 }
 
-export type ServiceDiscoveryListCategoriesResponse = Array<ServiceCategory>
+export type ServiceDiscoveryListCategoriesResponse =
+  Array<app__domain__service_templates__models__ServiceCategory>
 
 export type ServiceDiscoveryListCategories1Data = {
   tradeType?: string
 }
 
-export type ServiceDiscoveryListCategories1Response = Array<ServiceCategory>
+export type ServiceDiscoveryListCategories1Response =
+  Array<app__domain__service_templates__models__ServiceCategory>
 
 export type ServiceDiscoveryGetCategoryData = {
   categoryId: string
 }
 
-export type ServiceDiscoveryGetCategoryResponse = ServiceCategory
+export type ServiceDiscoveryGetCategoryResponse =
+  app__domain__service_templates__models__ServiceCategory
 
 export type ServiceDiscoveryGetCategory1Data = {
   categoryId: string
 }
 
-export type ServiceDiscoveryGetCategory1Response = ServiceCategory
+export type ServiceDiscoveryGetCategory1Response =
+  app__domain__service_templates__models__ServiceCategory
 
 export type ServiceDiscoveryListTemplatesData = {
   categoryId?: string

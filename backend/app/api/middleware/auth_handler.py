@@ -97,7 +97,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if path in self.skip_paths:
             return True
         
-        # Check path prefixes
+        # Check path prefixes from skip_paths (for paths ending with /)
+        for skip_path in self.skip_paths:
+            if skip_path.endswith("/") and path.startswith(skip_path):
+                return True
+        
+        # Check hardcoded prefixes for static assets
         skip_prefixes = ["/docs", "/redoc", "/static", "/assets"]
         if any(path.startswith(prefix) for prefix in skip_prefixes):
             return True
@@ -209,7 +214,12 @@ class RequireAuthMiddleware(BaseHTTPMiddleware):
         if path in self.skip_paths:
             return True
         
-        # Check path prefixes
+        # Check path prefixes from skip_paths (for paths ending with /)
+        for skip_path in self.skip_paths:
+            if skip_path.endswith("/") and path.startswith(skip_path):
+                return True
+        
+        # Check hardcoded prefixes for static assets
         skip_prefixes = ["/docs", "/redoc", "/static", "/assets"]
         if any(path.startswith(prefix) for prefix in skip_prefixes):
             return True

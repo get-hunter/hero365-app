@@ -48,17 +48,6 @@ export default function EliteHero({
 
   return (
     <div className="relative">
-      {/* Emergency Banner */}
-      {emergencyMessage && (
-        <div className="bg-red-600 text-white py-2 px-4">
-          <div className="max-w-7xl mx-auto text-center">
-            <p className="text-sm font-medium">
-              🚨 {emergencyMessage}
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Enhanced Promotional Banner System */}
       <PromotionalBannerSystem
         promotions={enhancedPromotions}

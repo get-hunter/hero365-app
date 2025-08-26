@@ -52,6 +52,9 @@ class MiddlewareConfig:
             f"{self.api_v1_str}/auth/google/signin",
             f"{self.api_v1_str}/auth/password-recovery",
             f"{self.api_v1_str}/auth/refresh",
+            f"{self.api_v1_str}/public/professional/",
+            f"{self.api_v1_str}/public/service-areas/",
+            f"{self.api_v1_str}/public/availability/",
         ]
     
     @property
@@ -63,6 +66,9 @@ class MiddlewareConfig:
             f"{self.api_v1_str}/business-context/",
             f"{self.api_v1_str}/businesses/me",  # User needs to discover their businesses
             f"{self.api_v1_str}/businesses/debug",  # Debug endpoint for testing
+            f"{self.api_v1_str}/public/professional/",
+            f"{self.api_v1_str}/public/service-areas/",
+            f"{self.api_v1_str}/public/availability/",
         ]
     
     @property
