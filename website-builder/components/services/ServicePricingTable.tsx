@@ -45,7 +45,8 @@ export default function ServicePricingTable({
     }
   };
 
-  const formatPrice = (price: number, display: ServicePricing['price_display']) => {
+  const formatPrice = (price: number | null | undefined, display: ServicePricing['price_display']) => {
+    if (price === null || price === undefined) return 'Quote Required';
     if (price === 0) return 'FREE';
     if (display === 'quote_required') return 'Quote Required';
     if (display === 'free') return 'FREE';
@@ -60,8 +61,8 @@ export default function ServicePricingTable({
     return display === 'from' ? `from ${formattedPrice}` : formattedPrice;
   };
 
-  const calculateSavings = (basePrice: number, memberPrice?: number) => {
-    if (!memberPrice || memberPrice >= basePrice) return 0;
+  const calculateSavings = (basePrice: number | null | undefined, memberPrice?: number | null) => {
+    if (!basePrice || !memberPrice || memberPrice >= basePrice) return 0;
     return basePrice - memberPrice;
   };
 
@@ -167,7 +168,7 @@ export default function ServicePricingTable({
                         {formatPrice(service.base_price, service.price_display)}
                       </span>
                       
-                      {service.minimum_labor_fee && service.base_price > 0 && (
+                      {service.minimum_labor_fee && service.base_price && service.base_price > 0 && (
                         <div className="text-xs text-gray-500 mt-1">
                           Minimum labor fee: ${service.minimum_labor_fee}
                         </div>

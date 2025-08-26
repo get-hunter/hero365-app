@@ -135,6 +135,96 @@ class AvailabilitySlot(BaseModel):
     available: bool = Field(True, description="Slot is available")
 
 
+class MembershipBenefit(BaseModel):
+    """Membership plan benefit."""
+    
+    id: str = Field(..., description="Benefit ID")
+    title: str = Field(..., description="Benefit title")
+    description: str = Field(..., description="Benefit description")
+    icon: Optional[str] = Field(None, description="Icon name for UI")
+    value: Optional[str] = Field(None, description="Benefit value (e.g., '15%', '$69 value')")
+    is_highlighted: bool = Field(False, description="Whether this benefit should be highlighted")
+    sort_order: int = Field(0, description="Display order")
+
+
+class MembershipPlan(BaseModel):
+    """Customer membership plan."""
+    
+    id: str = Field(..., description="Plan ID")
+    name: str = Field(..., description="Plan name")
+    plan_type: str = Field(..., description="Plan type (residential, commercial, premium)")
+    description: str = Field(..., description="Plan description")
+    tagline: Optional[str] = Field(None, description="Marketing tagline")
+    
+    # Pricing
+    price_monthly: Optional[float] = Field(None, description="Monthly price")
+    price_yearly: Optional[float] = Field(None, description="Yearly price")
+    yearly_savings: Optional[float] = Field(None, description="Annual savings amount")
+    setup_fee: Optional[float] = Field(None, description="One-time setup fee")
+    
+    # Service benefits
+    discount_percentage: int = Field(0, description="Service discount percentage")
+    priority_service: bool = Field(False, description="Priority scheduling")
+    extended_warranty: bool = Field(False, description="Extended warranty coverage")
+    maintenance_included: bool = Field(False, description="Maintenance visits included")
+    emergency_response: bool = Field(False, description="24/7 emergency response")
+    free_diagnostics: bool = Field(False, description="Free diagnostic calls")
+    annual_tune_ups: int = Field(0, description="Number of annual tune-ups")
+    
+    # Display
+    is_active: bool = Field(True, description="Plan is active")
+    is_featured: bool = Field(False, description="Plan is featured/popular")
+    popular_badge: Optional[str] = Field(None, description="Popular badge text")
+    color_scheme: Optional[str] = Field(None, description="UI color scheme")
+    sort_order: int = Field(0, description="Display order")
+    
+    # Terms
+    contract_length_months: Optional[int] = Field(None, description="Contract length in months")
+    cancellation_policy: Optional[str] = Field(None, description="Cancellation policy")
+    
+    # Benefits list
+    benefits: List[MembershipBenefit] = Field(default_factory=list, description="Plan benefits")
+
+
+class ServicePricing(BaseModel):
+    """Service pricing with membership discounts."""
+    
+    id: str = Field(..., description="Pricing ID")
+    service_name: str = Field(..., description="Service name")
+    service_category: str = Field(..., description="Service category")
+    
+    # Base pricing
+    base_price: float = Field(..., description="Base service price")
+    price_display: str = Field("fixed", description="Price display type (from, fixed, quote_required, free)")
+    
+    # Member pricing
+    residential_member_price: Optional[float] = Field(None, description="Residential member price")
+    commercial_member_price: Optional[float] = Field(None, description="Commercial member price")
+    premium_member_price: Optional[float] = Field(None, description="Premium member price")
+    
+    # Service details
+    description: Optional[str] = Field(None, description="Service description")
+    includes: List[str] = Field(default_factory=list, description="What's included in service")
+    duration_estimate: Optional[str] = Field(None, description="Estimated duration")
+    minimum_labor_fee: Optional[float] = Field(None, description="Minimum labor charge")
+    
+    # Service conditions
+    height_surcharge: bool = Field(False, description="Height surcharge may apply")
+    additional_tech_fee: bool = Field(False, description="Additional technician fee may apply")
+    parts_separate: bool = Field(False, description="Parts are charged separately")
+    
+    # Display
+    is_active: bool = Field(True, description="Service pricing is active")
+    sort_order: int = Field(0, description="Display order")
+
+
+class ServicePricingCategory(BaseModel):
+    """Service pricing grouped by category."""
+    
+    category: str = Field(..., description="Category name")
+    services: List[ServicePricing] = Field(default_factory=list, description="Services in this category")
+
+
 # API Endpoints
 @router.get("/profile/{business_id}", response_model=ProfessionalProfile)
 async def get_professional_profile(
@@ -431,6 +521,166 @@ async def get_professional_availability(
         
     except Exception as e:
         logger.error(f"Error fetching availability for {business_id}: {str(e)}")
+        return []
+
+
+@router.get("/membership-plans/{business_id}", response_model=List[MembershipPlan])
+async def get_membership_plans(
+    business_id: str = Path(..., description="Business ID")
+):
+    """
+    Get customer membership plans for a business.
+    
+    Returns list of available membership plans with benefits and pricing.
+    """
+    
+    try:
+        from ....core.db import get_supabase_client
+        supabase = get_supabase_client()
+        
+        # Fetch membership plans with benefits
+        plans_query = supabase.table("customer_membership_plans").select(
+            "*, customer_membership_benefits(*)"
+        ).eq("business_id", business_id).eq("is_active", True).order("sort_order")
+        
+        plans_result = plans_query.execute()
+        
+        if not plans_result.data:
+            return []
+        
+        membership_plans = []
+        for plan in plans_result.data:
+            # Convert benefits
+            benefits = []
+            for benefit in plan.get("customer_membership_benefits", []):
+                benefits.append(MembershipBenefit(
+                    id=str(benefit["id"]),
+                    title=benefit["title"],
+                    description=benefit.get("description", ""),
+                    icon=benefit.get("icon"),
+                    value=benefit.get("value"),
+                    is_highlighted=benefit.get("is_highlighted", False),
+                    sort_order=benefit.get("sort_order", 0)
+                ))
+            
+            # Sort benefits by sort_order
+            benefits.sort(key=lambda x: x.sort_order)
+            
+            # Convert plan
+            membership_plan = MembershipPlan(
+                id=str(plan["id"]),
+                name=plan["name"],
+                plan_type=plan["plan_type"],
+                description=plan.get("description", ""),
+                tagline=plan.get("tagline"),
+                price_monthly=float(plan["price_monthly"]) if plan.get("price_monthly") else None,
+                price_yearly=float(plan["price_yearly"]) if plan.get("price_yearly") else None,
+                yearly_savings=float(plan["yearly_savings"]) if plan.get("yearly_savings") else None,
+                setup_fee=float(plan["setup_fee"]) if plan.get("setup_fee") else None,
+                discount_percentage=plan.get("discount_percentage", 0),
+                priority_service=plan.get("priority_service", False),
+                extended_warranty=plan.get("extended_warranty", False),
+                maintenance_included=plan.get("maintenance_included", False),
+                emergency_response=plan.get("emergency_response", False),
+                free_diagnostics=plan.get("free_diagnostics", False),
+                annual_tune_ups=plan.get("annual_tune_ups", 0),
+                is_active=plan.get("is_active", True),
+                is_featured=plan.get("is_featured", False),
+                popular_badge=plan.get("popular_badge"),
+                color_scheme=plan.get("color_scheme"),
+                sort_order=plan.get("sort_order", 0),
+                contract_length_months=plan.get("contract_length_months"),
+                cancellation_policy=plan.get("cancellation_policy"),
+                benefits=benefits
+            )
+            
+            membership_plans.append(membership_plan)
+        
+        return membership_plans
+        
+    except Exception as e:
+        logger.error(f"Error fetching membership plans for {business_id}: {str(e)}")
+        return []
+
+
+@router.get("/service-pricing/{business_id}", response_model=List[ServicePricingCategory])
+async def get_service_pricing(
+    business_id: str = Path(..., description="Business ID"),
+    category: Optional[str] = Query(None, description="Filter by service category")
+):
+    """
+    Get service pricing with membership discounts for a business.
+    
+    Returns service pricing organized by category with member pricing.
+    """
+    
+    try:
+        from ....core.db import get_supabase_client
+        supabase = get_supabase_client()
+        
+        # Build query
+        query = supabase.table("service_membership_pricing").select("*").eq("business_id", business_id).eq("is_active", True)
+        
+        # Apply category filter
+        if category:
+            query = query.eq("service_category", category)
+        
+        query = query.order("service_category").order("sort_order").order("service_name")
+        
+        result = query.execute()
+        
+        if not result.data:
+            return []
+        
+        # Group by category
+        categories_dict = {}
+        
+        for service_pricing in result.data:
+            service_category = service_pricing["service_category"]
+            
+            if service_category not in categories_dict:
+                categories_dict[service_category] = []
+            
+            # Convert includes array
+            includes = service_pricing.get("includes", []) or []
+            
+            pricing = ServicePricing(
+                id=str(service_pricing["id"]),
+                service_name=service_pricing["service_name"],
+                service_category=service_category,
+                base_price=float(service_pricing["base_price"]),
+                price_display=service_pricing["price_display"],
+                residential_member_price=float(service_pricing["residential_member_price"]) if service_pricing.get("residential_member_price") else None,
+                commercial_member_price=float(service_pricing["commercial_member_price"]) if service_pricing.get("commercial_member_price") else None,
+                premium_member_price=float(service_pricing["premium_member_price"]) if service_pricing.get("premium_member_price") else None,
+                description=service_pricing.get("description"),
+                includes=includes,
+                duration_estimate=service_pricing.get("duration_estimate"),
+                minimum_labor_fee=float(service_pricing["minimum_labor_fee"]) if service_pricing.get("minimum_labor_fee") else None,
+                height_surcharge=service_pricing.get("height_surcharge", False),
+                additional_tech_fee=service_pricing.get("additional_tech_fee", False),
+                parts_separate=service_pricing.get("parts_separate", False),
+                is_active=service_pricing.get("is_active", True),
+                sort_order=service_pricing.get("sort_order", 0)
+            )
+            
+            categories_dict[service_category].append(pricing)
+        
+        # Convert to ServicePricingCategory objects
+        pricing_categories = []
+        for category_name, services in categories_dict.items():
+            pricing_categories.append(ServicePricingCategory(
+                category=category_name,
+                services=services
+            ))
+        
+        # Sort categories by name
+        pricing_categories.sort(key=lambda x: x.category)
+        
+        return pricing_categories
+        
+    except Exception as e:
+        logger.error(f"Error fetching service pricing for {business_id}: {str(e)}")
         return []
 
 

@@ -14,23 +14,12 @@ import { BookingWidgetProvider } from '../../components/booking/BookingWidgetPro
 import PricingPageClient from './PricingPageClient';
 import { getBusinessConfig } from '../../lib/config/api-config';
 
-// Import data
-import servicePricingData from '../../lib/data/service-pricing.json';
-import membershipPlansData from '../../lib/data/membership-plans.json';
 import { ServicePricing, MembershipPlan } from '../../lib/types/membership';
 
 export const metadata: Metadata = {
   title: 'Prices - Professional Service Pricing & Membership Plans',
   description: 'Transparent pricing for all our professional services. Join our membership program for exclusive discounts and priority service.',
 };
-
-// Convert JSON data to typed objects
-const servicePricing = servicePricingData as Array<{
-  category: string;
-  services: ServicePricing[];
-}>;
-
-const membershipPlans = membershipPlansData as MembershipPlan[];
 
 async function loadBusinessData(businessId: string) {
   try {
@@ -41,17 +30,25 @@ async function loadBusinessData(businessId: string) {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
     console.log('🔄 [PRICING] Backend URL:', backendUrl);
     
-    const [profileResponse, servicesResponse] = await Promise.all([
+    const [profileResponse, servicesResponse, membershipResponse, pricingResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/professional/profile/${businessId}`, {
         headers: { 'Content-Type': 'application/json' }
       }),
       fetch(`${backendUrl}/api/v1/public/professional/services/${businessId}`, {
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      fetch(`${backendUrl}/api/v1/public/professional/membership-plans/${businessId}`, {
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      fetch(`${backendUrl}/api/v1/public/professional/service-pricing/${businessId}`, {
         headers: { 'Content-Type': 'application/json' }
       })
     ]);
     
     let profile = null;
     let services = [];
+    let membershipPlans = [];
+    let servicePricing = [];
     
     if (profileResponse.ok) {
       profile = await profileResponse.json();
@@ -62,11 +59,21 @@ async function loadBusinessData(businessId: string) {
       services = await servicesResponse.json();
       console.log('✅ [PRICING] Services loaded:', services.length, 'items');
     }
+
+    if (membershipResponse.ok) {
+      membershipPlans = await membershipResponse.json();
+      console.log('✅ [PRICING] Membership plans loaded:', membershipPlans.length, 'plans');
+    }
+
+    if (pricingResponse.ok) {
+      servicePricing = await pricingResponse.json();
+      console.log('✅ [PRICING] Service pricing loaded:', servicePricing.length, 'categories');
+    }
     
-    return { profile, services };
+    return { profile, services, membershipPlans, servicePricing };
   } catch (error) {
     console.error('⚠️ [PRICING] Failed to load business data:', error);
-    return { profile: null, services: [] };
+    return { profile: null, services: [], membershipPlans: [], servicePricing: [] };
   }
 }
 
@@ -75,7 +82,12 @@ export default async function PricingPage() {
   const businessId = businessConfig.defaultBusinessId;
   
   // Load business data server-side
-  const { profile: serverProfile, services: serverServices } = await loadBusinessData(businessId);
+  const { 
+    profile: serverProfile, 
+    services: serverServices,
+    membershipPlans: serverMembershipPlans,
+    servicePricing: serverServicePricing
+  } = await loadBusinessData(businessId);
   
   // Use server data if available, otherwise fallback
   const profile = serverProfile || {
@@ -98,6 +110,9 @@ export default async function PricingPage() {
   };
   
   const services = serverServices || [];
+  const membershipPlans = serverMembershipPlans || [];
+  const servicePricing = serverServicePricing || [];
+  
   const error = serverProfile ? null : 'Using fallback data - backend not available';
 
   // Generate dynamic content based on real business profile
@@ -190,6 +205,7 @@ export default async function PricingPage() {
           <PricingPageClient 
             servicePricing={servicePricing}
             membershipPlans={membershipPlans}
+            hasRealData={serverProfile !== null}
           />
         </div>
 

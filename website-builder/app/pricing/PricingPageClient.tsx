@@ -20,11 +20,13 @@ interface PricingPageClientProps {
     services: ServicePricing[];
   }>;
   membershipPlans: MembershipPlan[];
+  hasRealData?: boolean;
 }
 
 export default function PricingPageClient({
   servicePricing,
-  membershipPlans
+  membershipPlans,
+  hasRealData = false
 }: PricingPageClientProps) {
   
   const handleServiceSelect = (service: ServicePricing) => {
@@ -58,6 +60,23 @@ export default function PricingPageClient({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       
+      {/* Data Status Alert */}
+      {!hasRealData && (
+        <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <svg className="h-5 w-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L5.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+              <h4 className="font-medium text-yellow-800">Database Connection Required</h4>
+              <p className="text-sm text-yellow-700 mt-1">
+                Membership plans and pricing data will be loaded from the database once the backend is connected.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Membership Plans Section */}
       <section className="mb-16">
         <div className="text-center mb-12">
@@ -73,11 +92,23 @@ export default function PricingPageClient({
           </p>
         </div>
         
-        <MembershipPlansComparison
-          plans={membershipPlans}
-          onJoinNow={handleJoinMembership}
-          showAnnualSavings={true}
-        />
+        {membershipPlans.length > 0 ? (
+          <MembershipPlansComparison
+            plans={membershipPlans}
+            onJoinNow={handleJoinMembership}
+            showAnnualSavings={true}
+          />
+        ) : (
+          <div className="text-center py-12 bg-white rounded-lg shadow">
+            <div className="text-gray-500">
+              <svg className="h-16 w-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Membership Plans Coming Soon</h3>
+              <p className="text-gray-600">Membership plans will be displayed here once configured in the database.</p>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Service Pricing Tables */}
@@ -92,18 +123,30 @@ export default function PricingPageClient({
           </p>
         </div>
 
-        {servicePricing.map((category) => (
-          <div key={category.category} className="mb-12">
-            <ServicePricingTable
-              services={category.services}
-              category={category.category}
-              showMemberPricing={true}
-              selectedMembershipType="residential"
-              onServiceSelect={handleServiceSelect}
-              onBookNow={handleBookNow}
-            />
+        {servicePricing.length > 0 ? (
+          servicePricing.map((category) => (
+            <div key={category.category} className="mb-12">
+              <ServicePricingTable
+                services={category.services}
+                category={category.category}
+                showMemberPricing={true}
+                selectedMembershipType="residential"
+                onServiceSelect={handleServiceSelect}
+                onBookNow={handleBookNow}
+              />
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-12 bg-white rounded-lg shadow">
+            <div className="text-gray-500">
+              <svg className="h-16 w-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Service Pricing Coming Soon</h3>
+              <p className="text-gray-600">Detailed service pricing will be displayed here once configured in the database.</p>
+            </div>
           </div>
-        ))}
+        )}
       </section>
 
       {/* Additional Services Information */}
