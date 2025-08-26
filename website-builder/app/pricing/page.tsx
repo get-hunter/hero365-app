@@ -32,41 +32,131 @@ const servicePricing = servicePricingData as Array<{
 
 const membershipPlans = membershipPlansData as MembershipPlan[];
 
-export default function PricingPage() {
+async function loadBusinessData(businessId: string) {
+  try {
+    console.log('🔄 [PRICING] Loading business data for:', businessId);
+    console.log('🔄 [PRICING] Environment:', process.env.NODE_ENV);
+    
+    // Make direct API calls to the backend (server-to-server)
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    console.log('🔄 [PRICING] Backend URL:', backendUrl);
+    
+    const [profileResponse, servicesResponse] = await Promise.all([
+      fetch(`${backendUrl}/api/v1/public/professional/profile/${businessId}`, {
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      fetch(`${backendUrl}/api/v1/public/professional/services/${businessId}`, {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    ]);
+    
+    let profile = null;
+    let services = [];
+    
+    if (profileResponse.ok) {
+      profile = await profileResponse.json();
+      console.log('✅ [PRICING] Profile loaded:', profile.business_name);
+    }
+    
+    if (servicesResponse.ok) {
+      services = await servicesResponse.json();
+      console.log('✅ [PRICING] Services loaded:', services.length, 'items');
+    }
+    
+    return { profile, services };
+  } catch (error) {
+    console.error('⚠️ [PRICING] Failed to load business data:', error);
+    return { profile: null, services: [] };
+  }
+}
+
+export default async function PricingPage() {
   const businessConfig = getBusinessConfig();
+  const businessId = businessConfig.defaultBusinessId;
   
-  // Use business config data
-  const businessData = {
+  // Load business data server-side
+  const { profile: serverProfile, services: serverServices } = await loadBusinessData(businessId);
+  
+  // Use server data if available, otherwise fallback
+  const profile = serverProfile || {
+    business_id: businessConfig.defaultBusinessId,
+    business_name: businessConfig.defaultBusinessName,
+    trade_type: 'hvac',
+    description: 'Premier professional services for homes and businesses.',
+    phone: businessConfig.defaultBusinessPhone,
+    email: businessConfig.defaultBusinessEmail,
+    address: '123 Main St',
+    website: 'https://www.example.com',
+    service_areas: ['Local Area'],
+    emergency_service: true,
+    years_in_business: 10,
+    license_number: 'Licensed & Insured',
+    insurance_verified: true,
+    average_rating: 4.8,
+    total_reviews: 150,
+    certifications: []
+  };
+  
+  const services = serverServices || [];
+  const error = serverProfile ? null : 'Using fallback data - backend not available';
+
+  // Generate dynamic content based on real business profile
+  const businessData = profile ? {
+    businessName: profile.business_name,
+    phone: profile.phone,
+    email: profile.email,
+    address: profile.address,
+    serviceAreas: profile.service_areas || ['Local Area'],
+    emergencyService: profile.emergency_service,
+    yearsInBusiness: profile.years_in_business,
+    licenseNumber: profile.license_number,
+    insuranceVerified: profile.insurance_verified,
+    averageRating: profile.average_rating,
+    totalReviews: profile.total_reviews,
+    certifications: profile.certifications || []
+  } : null;
+
+  // Fallback business data if no profile loaded
+  const fallbackBusinessData = {
     businessName: businessConfig.defaultBusinessName,
     phone: businessConfig.defaultBusinessPhone,
     email: businessConfig.defaultBusinessEmail,
-    serviceAreas: ['Austin'], // You can expand this from config if needed
-    address: '123 Main St, Austin, TX'
+    serviceAreas: ['Austin'],
+    address: '123 Main St, Austin, TX',
+    emergencyService: true,
+    yearsInBusiness: 10,
+    licenseNumber: 'Licensed & Insured',
+    insuranceVerified: true,
+    averageRating: 4.8,
+    totalReviews: 150,
+    certifications: ['Licensed Professional', 'Insured']
   };
+
+  const finalBusinessData = businessData || fallbackBusinessData;
 
   return (
     <BookingWidgetProvider
-      businessId={businessConfig.defaultBusinessId}
-      companyName={businessData.businessName}
-      companyPhone={businessData.phone}
-      companyEmail={businessData.email}
+      businessId={businessId}
+      companyName={finalBusinessData.businessName}
+      companyPhone={finalBusinessData.phone}
+      companyEmail={finalBusinessData.email}
       services={[]}
     >
       <div className="min-h-screen bg-white">
-        {/* Elite Header - Same as main page */}
+        {/* Elite Header - Same as main page with real data */}
         <EliteHeader 
-          businessName={businessData.businessName}
-          city={businessData.serviceAreas[0] || 'Austin'}
+          businessName={finalBusinessData.businessName}
+          city={finalBusinessData.serviceAreas[0] || 'Austin'}
           state={'TX'}
-          phone={businessData.phone}
+          phone={finalBusinessData.phone}
           supportHours={'24/7'}
         />
 
-        {/* Pricing Page Content with hero section */}
+        {/* Pricing Page Content with hero section using real data */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-4xl font-bold mb-4">
-              Transparent Pricing
+              {finalBusinessData.businessName} Pricing
             </h1>
             <div className="flex items-center justify-center gap-2 mb-6">
               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,19 +167,19 @@ export default function PricingPage() {
               </span>
             </div>
             
-            {/* Contact Info */}
+            {/* Contact Info with real data */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-white/90">
               <div className="flex items-center gap-2">
                 <Phone className="h-5 w-5" />
-                <span>Support 24/7: {businessData.phone}</span>
+                <span>Support 24/7: {finalBusinessData.phone}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Award className="h-5 w-5" />
-                <span>15 Years Experience</span>
+                <span>{finalBusinessData.yearsInBusiness} Years Experience</span>
               </div>
               <div className="flex items-center gap-2">
                 <Star className="h-5 w-5 text-yellow-400" />
-                <span>4.9★ Customer Rating</span>
+                <span>{finalBusinessData.averageRating}★ {finalBusinessData.totalReviews} Reviews</span>
               </div>
             </div>
           </div>
@@ -103,20 +193,28 @@ export default function PricingPage() {
           />
         </div>
 
-        {/* Professional Footer - Same as main page */}
+        {/* Professional Footer - Same as main page with real data */}
         <ProfessionalFooter 
           business={{
-            name: businessData.businessName,
-            phone: businessData.phone,
-            email: businessData.email,
-            address: businessData.address,
-            license_number: 'Licensed & Insured',
+            name: finalBusinessData.businessName,
+            phone: finalBusinessData.phone,
+            email: finalBusinessData.email,
+            address: finalBusinessData.address,
+            license_number: finalBusinessData.licenseNumber,
             website: undefined,
-            service_areas: businessData.serviceAreas
+            service_areas: finalBusinessData.serviceAreas
           }}
           serviceCategories={[]}
           locations={[]}
         />
+
+        {/* Error message for development */}
+        {error && (
+          <div className="fixed bottom-4 right-4 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded shadow-lg max-w-sm z-50">
+            <strong className="font-bold">Development Notice:</strong>
+            <span className="block sm:inline"> {error}</span>
+          </div>
+        )}
       </div>
     </BookingWidgetProvider>
   );
