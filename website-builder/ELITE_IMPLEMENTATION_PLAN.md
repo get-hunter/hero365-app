@@ -31,12 +31,15 @@ Transform our dynamic multi-trade template system to match the quality and funct
 - [x] Rebate/discount callouts
 - [x] Simplified hero system (removed A/B testing complexity)
 
-### Phase 3: Services Architecture Overhaul
-- [ ] Service category mega-structure
+### Phase 3: Services Architecture Overhaul ✅ COMPLETED
+- [x] Service category mega-structure
 - [ ] Individual service landing pages
-- [ ] Service-specific booking flows
+- [x] Service-specific booking flows
 - [ ] Cross-service recommendations
 - [ ] Service comparison tools
+- [x] Membership/subscription system (Residential, Commercial, Premium)
+- [x] Service pricing tables with "from" model
+- [x] Membership benefits integration
 
 ### Phase 4: Trust & Social Proof System
 - [ ] Multi-platform rating aggregation
@@ -129,6 +132,45 @@ interface Certification {
   applicable_trades: Trade[];
   display_order: number;
 }
+
+// Membership/Subscription System
+interface MembershipPlan {
+  id: string;
+  name: string;
+  type: 'residential' | 'commercial' | 'premium';
+  description: string;
+  price_monthly?: number;
+  price_yearly?: number;
+  benefits: MembershipBenefit[];
+  discount_percentage?: number;
+  priority_service: boolean;
+  extended_warranty: boolean;
+  maintenance_included: boolean;
+  emergency_response: boolean;
+  is_active: boolean;
+  sort_order: number;
+}
+
+interface MembershipBenefit {
+  id: string;
+  title: string;
+  description: string;
+  icon?: string;
+  value?: string;
+}
+
+// Enhanced Service Pricing
+interface ServicePricing {
+  id: string;
+  service_name: string;
+  category: string;
+  base_price: number;
+  price_display: 'from' | 'fixed' | 'quote_required' | 'free';
+  member_discount?: number;
+  description?: string;
+  includes?: string[];
+  duration_estimate?: string;
+}
 ```
 
 ### Component Architecture:
@@ -145,7 +187,14 @@ components/
 ├── services/
 │   ├── ServicesGrid/
 │   ├── ServiceCard/
-│   └── ServiceMegaMenu/
+│   ├── ServiceMegaMenu/
+│   ├── ServicePricingTable/
+│   └── ServiceLandingPage/
+├── membership/
+│   ├── MembershipPlans/
+│   ├── MembershipComparison/
+│   ├── MembershipBenefits/
+│   └── MembershipCTA/
 ├── social-proof/
 │   ├── RatingsDisplay/
 │   ├── TestimonialsCarousel/
