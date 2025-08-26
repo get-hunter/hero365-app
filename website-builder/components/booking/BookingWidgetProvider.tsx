@@ -7,6 +7,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { X } from 'lucide-react';
 import EmbeddableBookingWidget, { BookingWidgetLauncher } from './EmbeddableBookingWidget';
 import { BookableService, Booking } from '../../lib/types/booking';
 
@@ -137,27 +138,41 @@ export function BookingWidgetProvider({
             onClick={closeBookingWidget}
           />
           
-          {/* Widget Container */}
-          <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-            <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
-              <EmbeddableBookingWidget
-                businessId={businessId}
-                services={filteredServices}
-                mode="popup"
-                theme="light"
-                primaryColor={primaryColor}
-                companyName={companyName}
-                companyLogo={companyLogo}
-                companyPhone={companyPhone}
-                companyEmail={companyEmail}
-                showHeader={true}
-                showFooter={true}
-                allowMinimize={false}
-                onBookingComplete={handleBookingComplete}
-                onBookingError={handleBookingError}
-                onWidgetClose={closeBookingWidget}
-                className="bg-white rounded-lg shadow-2xl"
-              />
+          {/* Widget Container: fullscreen on mobile, centered modal on desktop */}
+          <div className="relative z-10 flex items-start md:items-center justify-center min-h-screen p-0 md:p-6">
+            <div 
+              className="w-full h-full md:h-auto md:w-full md:max-w-4xl md:max-h-[90vh] flex flex-col bg-white md:rounded-xl shadow-2xl overflow-hidden relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={closeBookingWidget}
+                className="absolute top-4 right-4 z-20 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors duration-200 shadow-sm"
+                aria-label="Close booking widget"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+              
+              <div className="flex-1 overflow-y-auto">
+                <EmbeddableBookingWidget
+                  businessId={businessId}
+                  services={filteredServices}
+                  mode="inline"
+                  theme="light"
+                  primaryColor={primaryColor}
+                  companyName={companyName}
+                  companyLogo={companyLogo}
+                  companyPhone={companyPhone}
+                  companyEmail={companyEmail}
+                  showHeader={true}
+                  showFooter={true}
+                  allowMinimize={false}
+                  onBookingComplete={handleBookingComplete}
+                  onBookingError={handleBookingError}
+                  onWidgetClose={closeBookingWidget}
+                  className="border-0 shadow-none rounded-none md:rounded-xl"
+                />
+              </div>
             </div>
           </div>
         </div>
