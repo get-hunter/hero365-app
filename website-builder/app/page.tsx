@@ -18,6 +18,7 @@ import { BookingWidgetProvider } from '../components/booking/BookingWidgetProvid
 import { BookableService } from '../lib/types/booking';
 import { createTemplateGenerator } from '../lib/services/template-generator';
 import { austinEliteHVAC } from '../lib/data/sample-businesses';
+import { samplePromotions } from '../lib/data/sample-promotions';
 
 export default function HomePage() {
   // Generate dynamic content based on business profile
@@ -233,7 +234,7 @@ export default function HomePage() {
         />
 
         {/* Elite Hero Section */}
-        <EliteHero
+                <EliteHero
           businessName={generatedContent.business.name}
           headline={generatedContent.hero.headline}
           subheadline="24/7 Emergency Service • Same-Day Repairs • 100% Satisfaction Guaranteed • NATE Certified Technicians"
@@ -241,7 +242,8 @@ export default function HomePage() {
           phone={generatedContent.business.phone}
           averageRating={4.9}
           totalReviews={2291}
-          promotions={promotions}
+          promotions={samplePromotions}
+          currentTrade="HVAC"
           emergencyMessage="HVAC Emergency? We're Available 24/7 - No Overtime Charges!"
           primaryColor={generatedContent.colors.primary}
         />

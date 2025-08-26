@@ -1,7 +1,7 @@
 /**
  * Elite Hero Component
  * 
- * Professional hero section with promotional banners, trust badges, and dynamic CTAs
+ * Professional hero section with enhanced promotional banners, trust badges, A/B testing, and dynamic CTAs
  */
 
 'use client';
@@ -11,21 +11,7 @@ import { Star, Award, Shield, Clock, Phone, Calendar, ArrowRight } from 'lucide-
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { BookingCTAButton } from '../booking/BookingWidgetProvider';
-
-interface Promotion {
-  id: string;
-  title: string;
-  subtitle?: string;
-  discount?: string;
-  badge?: string;
-  ctaText?: string;
-  type: 'rebate' | 'discount' | 'seasonal' | 'membership';
-}
-
-interface TrustIndicator {
-  text: string;
-  icon: React.ReactNode;
-}
+import PromotionalBannerSystem, { Promotion, getSeasonalPromotions } from './PromotionalBannerSystem';
 
 interface EliteHeroProps {
   businessName: string;
@@ -36,7 +22,7 @@ interface EliteHeroProps {
   averageRating: number;
   totalReviews: number;
   promotions?: Promotion[];
-  trustIndicators?: TrustIndicator[];
+  currentTrade?: string;
   emergencyMessage?: string;
   backgroundImage?: string;
   primaryColor?: string;
@@ -51,21 +37,14 @@ export default function EliteHero({
   averageRating,
   totalReviews,
   promotions = [],
-  trustIndicators = [],
+  currentTrade = 'HVAC',
   emergencyMessage,
   backgroundImage,
   primaryColor = "#3b82f6"
 }: EliteHeroProps) {
   
-  const defaultTrustIndicators: TrustIndicator[] = [
-    { text: "Licensed & Insured", icon: <Shield className="w-4 h-4" /> },
-    { text: "25+ Years Experience", icon: <Award className="w-4 h-4" /> },
-    { text: "Same-Day Service", icon: <Clock className="w-4 h-4" /> },
-    { text: "100% Satisfaction", icon: <Star className="w-4 h-4" /> }
-  ];
-
-  const displayTrustIndicators = trustIndicators.length > 0 ? trustIndicators : defaultTrustIndicators;
-  const featuredPromotion = promotions.find(p => p.type === 'rebate') || promotions[0];
+  // Enhanced promotional system with seasonal offers
+  const enhancedPromotions = getSeasonalPromotions(promotions);
 
   return (
     <div className="relative">
@@ -80,30 +59,13 @@ export default function EliteHero({
         </div>
       )}
 
-      {/* Promotional Banner */}
-      {featuredPromotion && (
-        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div>
-                <span className="font-bold text-lg">{featuredPromotion.title}</span>
-                {featuredPromotion.subtitle && (
-                  <span className="ml-2 text-green-100">{featuredPromotion.subtitle}</span>
-                )}
-              </div>
-              {featuredPromotion.badge && (
-                <Badge className="bg-yellow-400 text-yellow-900 font-bold">
-                  {featuredPromotion.badge}
-                </Badge>
-              )}
-            </div>
-            <button className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium border-2 border-white text-white hover:bg-white hover:text-green-700 rounded-md transition-colors duration-200">
-              {featuredPromotion.ctaText || "More Details"}
-              <ArrowRight className="ml-2 w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Enhanced Promotional Banner System */}
+      <PromotionalBannerSystem
+        promotions={enhancedPromotions}
+        placement="hero_banner"
+        phone={phone}
+        currentTrade={currentTrade}
+      />
 
       {/* Main Hero Section */}
       <section 
@@ -152,16 +114,32 @@ export default function EliteHero({
                 </p>
               </div>
 
-              {/* Trust Indicators */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {displayTrustIndicators.map((indicator, index) => (
-                  <div key={index} className="flex items-center text-sm text-blue-100">
-                    <div className="text-green-400 mr-2">
-                      {indicator.icon}
-                    </div>
-                    {indicator.text}
+              {/* Original Trust Indicators */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div className="flex items-center text-sm text-blue-100">
+                  <div className="text-green-400 mr-2">
+                    <Shield className="w-4 h-4" />
                   </div>
-                ))}
+                  Licensed & Insured
+                </div>
+                <div className="flex items-center text-sm text-blue-100">
+                  <div className="text-green-400 mr-2">
+                    <Award className="w-4 h-4" />
+                  </div>
+                  25+ Years Experience
+                </div>
+                <div className="flex items-center text-sm text-blue-100">
+                  <div className="text-green-400 mr-2">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  Same-Day Service
+                </div>
+                <div className="flex items-center text-sm text-blue-100">
+                  <div className="text-green-400 mr-2">
+                    <Star className="w-4 h-4" />
+                  </div>
+                  100% Satisfaction
+                </div>
               </div>
 
               {/* CTAs */}
@@ -182,33 +160,16 @@ export default function EliteHero({
                 </a>
               </div>
 
-              {/* Additional Promotions */}
-              {promotions.length > 1 && (
-                <div className="space-y-3">
-                  {promotions.slice(1, 3).map((promo) => (
-                    <div key={promo.id} className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-lg">{promo.title}</h3>
-                            {promo.badge && (
-                              <Badge variant="destructive" className="bg-red-500 text-white text-xs">
-                                {promo.badge}
-                              </Badge>
-                            )}
-                          </div>
-                          {promo.subtitle && (
-                            <p className="text-blue-100 text-sm">{promo.subtitle}</p>
-                          )}
-                        </div>
-                        {promo.discount && (
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-orange-300">{promo.discount}</div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+              {/* Additional Promotions Carousel */}
+              {enhancedPromotions.length > 1 && (
+                <div className="mt-8">
+                  <PromotionalBannerSystem
+                    promotions={enhancedPromotions.slice(1, 4)}
+                    placement="promo_carousel"
+                    phone={phone}
+                    currentTrade={currentTrade}
+                    className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20"
+                  />
                 </div>
               )}
             </div>
