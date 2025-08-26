@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import EliteHeader from '../../components/layout/EliteHeader';
 import ProfessionalFooter from '../../components/professional/ProfessionalFooter';
 import { BookingWidgetProvider } from '../../components/booking/BookingWidgetProvider';
+import { CartProvider } from '../../lib/contexts/CartContext';
 import ProductListingClient from './ProductListingClient';
 import { getBusinessConfig } from '../../lib/config/api-config';
 
@@ -98,13 +99,14 @@ export default async function ProductsPage() {
   };
 
   return (
-    <BookingWidgetProvider
-      businessId={businessId}
-      companyName={businessData.businessName}
-      companyPhone={businessData.phone}
-      companyEmail={businessData.email}
-      services={[]}
-    >
+    <CartProvider businessId={businessId}>
+      <BookingWidgetProvider
+        businessId={businessId}
+        companyName={businessData.businessName}
+        companyPhone={businessData.phone}
+        companyEmail={businessData.email}
+        services={[]}
+      >
       <div className="min-h-screen bg-gray-50">
         <EliteHeader 
           businessName={businessData.businessName}
@@ -178,6 +180,7 @@ export default async function ProductsPage() {
           </div>
         )}
       </div>
-    </BookingWidgetProvider>
+      </BookingWidgetProvider>
+    </CartProvider>
   );
 }

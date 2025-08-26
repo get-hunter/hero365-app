@@ -8,9 +8,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Phone, MapPin, Menu, X, ChevronDown } from 'lucide-react';
+import { Phone, MapPin, Menu, X, ChevronDown, ShoppingBag } from 'lucide-react';
 import { Button } from '../ui/button';
 import { BookingCTAButton } from '../booking/BookingWidgetProvider';
+import { CartIndicator } from '../cart/CartIndicator';
 
 interface EliteHeaderProps {
   businessName: string;
@@ -290,6 +291,7 @@ export default function EliteHeader({
                 <Phone className="w-4 h-4 mr-2" />
                 {phone}
               </a>
+              <CartIndicator />
               <BookingCTAButton>
                 Book Now
               </BookingCTAButton>
@@ -364,6 +366,7 @@ export default function EliteHeader({
                   <Phone className="w-4 h-4 mr-2" />
                   {phone}
                 </a>
+                <CartIndicator />
                 <div className="flex space-x-3">
                   <BookingCTAButton className="flex-1">
                     Book Now

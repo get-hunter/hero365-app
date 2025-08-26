@@ -1320,23 +1320,28 @@ class CartItem(BaseModel):
 
 class ShoppingCart(BaseModel):
     id: str
+    business_id: Optional[str] = None
     session_id: Optional[str] = None
-    customer_id: Optional[str] = None
-    status: str = "active"
-    items: List[CartItem]
+    customer_email: Optional[str] = None
+    customer_phone: Optional[str] = None
+    cart_status: str = "active"
+    currency_code: str = "USD"
+    items: List[CartItem] = []
     membership_type: Optional[str] = None
+    membership_verified: bool = False
     subtotal: float = 0.0
-    total_discount: float = 0.0
+    total_savings: float = 0.0
     tax_amount: float = 0.0
     total_amount: float = 0.0
     item_count: int = 0
+    last_activity_at: Optional[str] = None
     created_at: str
     updated_at: str
 
 class CartSummary(BaseModel):
     item_count: int
     subtotal: float
-    total_discount: float
+    total_savings: float
     tax_amount: float
     total_amount: float
     savings_percentage: float = 0.0
@@ -1367,14 +1372,18 @@ async def create_shopping_cart(
         # Create new cart
         cart_data = {
             "id": str(uuid.uuid4()),
+            "business_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",  # Default business ID for now
             "session_id": session_id,
-            "customer_id": customer_id,
-            "status": "active",
+            "customer_email": customer_id,  # Using customer_id as email for now
+            "cart_status": "active",
+            "currency_code": "USD",
             "subtotal": 0.0,
-            "total_discount": 0.0,
+            "total_savings": 0.0,
             "tax_amount": 0.0,
             "total_amount": 0.0,
-            "item_count": 0,
+            "membership_type": "none",
+            "membership_verified": False,
+            "last_activity_at": datetime.utcnow().isoformat(),
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat()
         }
@@ -1388,15 +1397,21 @@ async def create_shopping_cart(
         
         return ShoppingCart(
             id=cart["id"],
+            business_id=cart.get("business_id"),
             session_id=cart.get("session_id"),
-            customer_id=cart.get("customer_id"),
-            status=cart["status"],
+            customer_email=cart.get("customer_email"),
+            customer_phone=cart.get("customer_phone"),
+            cart_status=cart["cart_status"],
+            currency_code=cart.get("currency_code", "USD"),
             items=[],
+            membership_type=cart.get("membership_type"),
+            membership_verified=cart.get("membership_verified", False),
             subtotal=float(cart["subtotal"]),
-            total_discount=float(cart["total_discount"]),
+            total_savings=float(cart["total_savings"]),
             tax_amount=float(cart["tax_amount"]),
             total_amount=float(cart["total_amount"]),
-            item_count=cart["item_count"],
+            item_count=0,  # No items yet
+            last_activity_at=cart.get("last_activity_at"),
             created_at=cart["created_at"],
             updated_at=cart["updated_at"]
         )

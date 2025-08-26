@@ -1,0 +1,289 @@
+'use client';
+
+import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import { ShoppingCart, CartItem, CartSummary, MembershipType } from '@/lib/types/products';
+
+interface CartContextType {
+  cart: ShoppingCart | null;
+  cartSummary: CartSummary | null;
+  isLoading: boolean;
+  error: string | null;
+  
+  // Actions
+  createCart: () => Promise<void>;
+  addToCart: (item: AddCartItemRequest) => Promise<void>;
+  updateCartItem: (itemId: string, quantity: number) => Promise<void>;
+  removeFromCart: (itemId: string) => Promise<void>;
+  clearCart: () => Promise<void>;
+  refreshCart: () => Promise<void>;
+}
+
+interface AddCartItemRequest {
+  product_id: string;
+  installation_option_id?: string;
+  quantity: number;
+  membership_type?: MembershipType;
+}
+
+interface CartState {
+  cart: ShoppingCart | null;
+  cartSummary: CartSummary | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+type CartAction =
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_CART'; payload: ShoppingCart }
+  | { type: 'SET_CART_SUMMARY'; payload: CartSummary }
+  | { type: 'CLEAR_CART' };
+
+const initialState: CartState = {
+  cart: null,
+  cartSummary: null,
+  isLoading: false,
+  error: null,
+};
+
+function cartReducer(state: CartState, action: CartAction): CartState {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload, isLoading: false };
+    case 'SET_CART':
+      return { ...state, cart: action.payload, error: null, isLoading: false };
+    case 'SET_CART_SUMMARY':
+      return { ...state, cartSummary: action.payload };
+    case 'CLEAR_CART':
+      return { ...state, cart: null, cartSummary: null };
+    default:
+      return state;
+  }
+}
+
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
+interface CartProviderProps {
+  children: ReactNode;
+  businessId: string;
+}
+
+export function CartProvider({ children, businessId }: CartProviderProps) {
+  const [state, dispatch] = useReducer(cartReducer, initialState);
+
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
+  // Get or create cart ID from localStorage
+  const getCartId = (): string | null => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('cart_id');
+  };
+
+  const setCartId = (cartId: string): void => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('cart_id', cartId);
+  };
+
+  const removeCartId = (): void => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('cart_id');
+  };
+
+  const createCart = async (): Promise<void> => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      const sessionId = `session_${Date.now()}`;
+      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/create?session_id=${sessionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create cart');
+      }
+
+      const cart = await response.json();
+      setCartId(cart.id);
+      dispatch({ type: 'SET_CART', payload: cart });
+      
+      // Also get cart summary
+      await getCartSummary(cart.id);
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to create cart' });
+    }
+  };
+
+  const getCartSummary = async (cartId: string): Promise<void> => {
+    try {
+      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}/summary`);
+      
+      if (response.ok) {
+        const summary = await response.json();
+        dispatch({ type: 'SET_CART_SUMMARY', payload: summary });
+      }
+    } catch (error) {
+      console.error('Failed to fetch cart summary:', error);
+    }
+  };
+
+  const refreshCart = async (): Promise<void> => {
+    const cartId = getCartId();
+    if (!cartId) return;
+
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Cart not found, clear local storage
+          removeCartId();
+          dispatch({ type: 'CLEAR_CART' });
+          return;
+        }
+        throw new Error('Failed to fetch cart');
+      }
+
+      const cart = await response.json();
+      dispatch({ type: 'SET_CART', payload: cart });
+      
+      // Also get cart summary
+      await getCartSummary(cartId);
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to fetch cart' });
+    }
+  };
+
+  const addToCart = async (item: AddCartItemRequest): Promise<void> => {
+    let cartId = getCartId();
+    
+    // Create cart if it doesn't exist
+    if (!cartId) {
+      await createCart();
+      cartId = getCartId();
+      if (!cartId) throw new Error('Failed to create cart');
+    }
+
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add item to cart');
+      }
+
+      // Refresh the cart to get updated data
+      await refreshCart();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to add item to cart' });
+    }
+  };
+
+  const updateCartItem = async (itemId: string, quantity: number): Promise<void> => {
+    const cartId = getCartId();
+    if (!cartId) return;
+
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}/items/${itemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update cart item');
+      }
+
+      // Refresh the cart to get updated data
+      await refreshCart();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to update cart item' });
+    }
+  };
+
+  const removeFromCart = async (itemId: string): Promise<void> => {
+    const cartId = getCartId();
+    if (!cartId) return;
+
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}/items/${itemId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove item from cart');
+      }
+
+      // Refresh the cart to get updated data
+      await refreshCart();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to remove item' });
+    }
+  };
+
+  const clearCart = async (): Promise<void> => {
+    const cartId = getCartId();
+    if (!cartId) return;
+
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clear cart');
+      }
+
+      removeCartId();
+      dispatch({ type: 'CLEAR_CART' });
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to clear cart' });
+    }
+  };
+
+  // Load cart on mount
+  useEffect(() => {
+    const cartId = getCartId();
+    if (cartId) {
+      refreshCart();
+    }
+  }, [businessId]);
+
+  const value: CartContextType = {
+    cart: state.cart,
+    cartSummary: state.cartSummary,
+    isLoading: state.isLoading,
+    error: state.error,
+    createCart,
+    addToCart,
+    updateCartItem,
+    removeFromCart,
+    clearCart,
+    refreshCart,
+  };
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+}
+
+export function useCart() {
+  const context = useContext(CartContext);
+  if (context === undefined) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
+}

@@ -87,16 +87,21 @@ export interface CartItem {
 
 export interface ShoppingCart {
   id: string;
+  business_id?: string;
   session_id?: string;
-  customer_id?: string;
-  status: string;
+  customer_email?: string;
+  customer_phone?: string;
+  cart_status: string;
+  currency_code?: string;
   items: CartItem[];
   membership_type?: string;
+  membership_verified?: boolean;
   subtotal: number;
-  total_discount: number;
+  total_savings: number;
   tax_amount: number;
   total_amount: number;
   item_count: number;
+  last_activity_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -104,7 +109,7 @@ export interface ShoppingCart {
 export interface CartSummary {
   item_count: number;
   subtotal: number;
-  total_discount: number;
+  total_savings: number;
   tax_amount: number;
   total_amount: number;
   savings_percentage: number;

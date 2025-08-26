@@ -14,6 +14,7 @@ import CustomerReviews from '../components/professional/CustomerReviews';
 import ContactSection from '../components/professional/ContactSection';
 import ProfessionalFooter from '../components/professional/ProfessionalFooter';
 import { BookingWidgetProvider } from '../components/booking/BookingWidgetProvider';
+import { CartProvider } from '../lib/contexts/CartContext';
 import { professionalApi, ProfessionalProfile, ServiceItem } from '../lib/api/professional-client';
 import { BookableService } from '../lib/types/booking';
 import { getBusinessConfig } from '../lib/config/api-config';
@@ -181,6 +182,7 @@ export default async function HomePage() {
     ];
 
   return (
+    <CartProvider businessId={businessId}>
       <BookingWidgetProvider
         businessId={businessId}
         companyName={fallbackContent.businessName}
@@ -272,17 +274,19 @@ export default async function HomePage() {
           )}
         </div>
       </BookingWidgetProvider>
-    );
+    </CartProvider>
+  );
   }
 
   return (
-    <BookingWidgetProvider
-      businessId={businessId}
-      companyName={generatedContent.businessName}
-      companyPhone={generatedContent.phone}
-      companyEmail={generatedContent.email}
-      services={bookableServices}
-    >
+    <CartProvider businessId={businessId}>
+      <BookingWidgetProvider
+        businessId={businessId}
+        companyName={generatedContent.businessName}
+        companyPhone={generatedContent.phone}
+        companyEmail={generatedContent.email}
+        services={bookableServices}
+      >
       <div className="min-h-screen bg-white">
         {/* Header */}
         <EliteHeader 
@@ -505,7 +509,8 @@ export default async function HomePage() {
           locations={[]}
         />
       </div>
-    </BookingWidgetProvider>
+      </BookingWidgetProvider>
+    </CartProvider>
   );
 }
 
