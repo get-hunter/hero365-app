@@ -407,3 +407,45 @@ class CheckoutResponse(BaseModel):
     booking_number: str
     total_amount: float
     message: str
+
+
+# Featured Projects Models
+class FeaturedProject(BaseModel):
+    """Featured project information."""
+    
+    id: str = Field(..., description="Project ID")
+    title: str = Field(..., description="Project title")
+    description: str = Field(..., description="Project description")
+    trade: str = Field(..., description="Trade type")
+    service_category: str = Field(..., description="Service category")
+    location: str = Field(..., description="Project location")
+    completion_date: date = Field(..., description="Project completion date")
+    project_duration: str = Field(..., description="Project duration")
+    project_value: Optional[float] = Field(None, description="Project value")
+    customer_name: Optional[str] = Field(None, description="Customer name")
+    customer_testimonial: Optional[str] = Field(None, description="Customer testimonial")
+    before_images: List[str] = Field(default_factory=list, description="Before images")
+    after_images: List[str] = Field(default_factory=list, description="After images")
+    gallery_images: List[str] = Field(default_factory=list, description="Gallery images")
+    video_url: Optional[str] = Field(None, description="Project video URL")
+    challenges_faced: List[str] = Field(default_factory=list, description="Challenges faced")
+    solutions_provided: List[str] = Field(default_factory=list, description="Solutions provided")
+    equipment_installed: List[str] = Field(default_factory=list, description="Equipment installed")
+    warranty_info: Optional[str] = Field(None, description="Warranty information")
+    is_featured: bool = Field(False, description="Is featured project")
+    seo_slug: str = Field(..., description="SEO slug")
+    tags: List[str] = Field(default_factory=list, description="Project tags")
+    display_order: int = Field(0, description="Display order")
+
+
+
+class ProjectCategory(BaseModel):
+    """Project category information."""
+    
+    id: str = Field(..., description="Category ID")
+    name: str = Field(..., description="Category name")
+    slug: str = Field(..., description="Category slug")
+    description: Optional[str] = Field(None, description="Category description")
+    icon: Optional[str] = Field(None, description="Category icon")
+    project_count: int = Field(0, description="Number of projects in category")
+    display_order: int = Field(0, description="Display order")

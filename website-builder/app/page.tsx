@@ -13,6 +13,7 @@ import TrustRatingDisplay from '../components/professional/TrustRatingDisplay';
 import CustomerReviews from '../components/professional/CustomerReviews';
 import ContactSection from '../components/professional/ContactSection';
 import ProfessionalFooter from '../components/professional/ProfessionalFooter';
+import FeaturedProjectsGrid from '../components/projects/FeaturedProjectsGrid';
 import { BookingWidgetProvider } from '../components/booking/BookingWidgetProvider';
 import { CartProvider } from '../lib/contexts/CartContext';
 import { professionalApi, ProfessionalProfile, ServiceItem } from '../lib/api/professional-client';
@@ -229,6 +230,18 @@ export default async function HomePage() {
             licenseNumber={fallbackContent.licenseNumber}
             insuranceVerified={fallbackContent.insuranceVerified}
           />
+
+          {/* Featured Projects */}
+          <div className="py-16 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <FeaturedProjectsGrid 
+                businessId={businessId}
+                limit={6}
+                featuredOnly={true}
+                showViewAll={true}
+              />
+            </div>
+          </div>
 
           {/* Customer Reviews */}
           <CustomerReviews 
@@ -463,6 +476,18 @@ export default async function HomePage() {
             </div>
           </div>
         )}
+
+        {/* Featured Projects */}
+        <div className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <FeaturedProjectsGrid 
+              businessId={businessId}
+              limit={6}
+              featuredOnly={true}
+              showViewAll={true}
+            />
+          </div>
+        </div>
 
         {/* Trust & Rating Display */}
         <TrustRatingDisplay 

@@ -4295,6 +4295,104 @@ export type EstimateTermsSchema = {
 }
 
 /**
+ * Featured project information.
+ */
+export type FeaturedProject = {
+  /**
+   * Project ID
+   */
+  id: string
+  /**
+   * Project title
+   */
+  title: string
+  /**
+   * Project description
+   */
+  description: string
+  /**
+   * Trade type
+   */
+  trade: string
+  /**
+   * Service category
+   */
+  service_category: string
+  /**
+   * Project location
+   */
+  location: string
+  /**
+   * Project completion date
+   */
+  completion_date: string
+  /**
+   * Project duration
+   */
+  project_duration: string
+  /**
+   * Project value
+   */
+  project_value?: number | null
+  /**
+   * Customer name
+   */
+  customer_name?: string | null
+  /**
+   * Customer testimonial
+   */
+  customer_testimonial?: string | null
+  /**
+   * Before images
+   */
+  before_images?: Array<string>
+  /**
+   * After images
+   */
+  after_images?: Array<string>
+  /**
+   * Gallery images
+   */
+  gallery_images?: Array<string>
+  /**
+   * Project video URL
+   */
+  video_url?: string | null
+  /**
+   * Challenges faced
+   */
+  challenges_faced?: Array<string>
+  /**
+   * Solutions provided
+   */
+  solutions_provided?: Array<string>
+  /**
+   * Equipment installed
+   */
+  equipment_installed?: Array<string>
+  /**
+   * Warranty information
+   */
+  warranty_info?: string | null
+  /**
+   * Is featured project
+   */
+  is_featured?: boolean
+  /**
+   * SEO slug
+   */
+  seo_slug: string
+  /**
+   * Project tags
+   */
+  tags?: Array<string>
+  /**
+   * Display order
+   */
+  display_order?: number
+}
+
+/**
  * Schema for Google Sign-In with ID token from iOS app.
  */
 export type GoogleSignInRequest = {
@@ -6479,6 +6577,40 @@ export type ProjectBudgetSummaryResponse = {
 }
 
 /**
+ * Project category information.
+ */
+export type ProjectCategory = {
+  /**
+   * Category ID
+   */
+  id: string
+  /**
+   * Category name
+   */
+  name: string
+  /**
+   * Category slug
+   */
+  slug: string
+  /**
+   * Category description
+   */
+  description?: string | null
+  /**
+   * Category icon
+   */
+  icon?: string | null
+  /**
+   * Number of projects in category
+   */
+  project_count?: number
+  /**
+   * Display order
+   */
+  display_order?: number
+}
+
+/**
  * Schema for creating project from template request.
  */
 export type ProjectCreateFromTemplateRequest = {
@@ -6643,6 +6775,36 @@ export type ProjectListResponse = {
    * Human-readable type
    */
   type_display: string
+}
+
+/**
+ * Project completion metrics.
+ */
+export type ProjectMetrics = {
+  /**
+   * Total number of projects
+   */
+  total_projects: number
+  /**
+   * Projects completed this year
+   */
+  projects_this_year: number
+  /**
+   * Average completion time
+   */
+  average_completion_time: string
+  /**
+   * Customer satisfaction rate
+   */
+  customer_satisfaction_rate: number
+  /**
+   * Warranty claims rate
+   */
+  warranty_claims_rate: number
+  /**
+   * Repeat customer rate
+   */
+  repeat_customer_rate: number
 }
 
 /**
@@ -10289,6 +10451,77 @@ export type ContractorsProfileGetContractorProfileData = {
 }
 
 export type ContractorsProfileGetContractorProfileResponse = ProfessionalProfile
+
+export type ContractorsProjectsGetFeaturedProjectsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Filter by service category
+   */
+  category?: string | null
+  /**
+   * Show only featured projects
+   */
+  featuredOnly?: boolean
+  /**
+   * Maximum number of projects to return
+   */
+  limit?: number
+  /**
+   * Offset for pagination
+   */
+  offset?: number
+  /**
+   * Filter by trade type
+   */
+  trade?: string | null
+}
+
+export type ContractorsProjectsGetFeaturedProjectsResponse =
+  Array<FeaturedProject>
+
+export type ContractorsProjectsGetProjectDetailsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Project SEO slug
+   */
+  projectSlug: string
+}
+
+export type ContractorsProjectsGetProjectDetailsResponse = FeaturedProject
+
+export type ContractorsProjectsGetProjectMetricsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ContractorsProjectsGetProjectMetricsResponse = ProjectMetrics
+
+export type ContractorsProjectsGetProjectCategoriesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ContractorsProjectsGetProjectCategoriesResponse =
+  Array<ProjectCategory>
+
+export type ContractorsProjectsGetProjectTagsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ContractorsProjectsGetProjectTagsResponse = unknown
 
 export type ContractorsServicesGetContractorServicesData = {
   /**

@@ -179,6 +179,16 @@ import type {
   ContractorsProductsCalculateProductPricingResponse,
   ContractorsProfileGetContractorProfileData,
   ContractorsProfileGetContractorProfileResponse,
+  ContractorsProjectsGetFeaturedProjectsData,
+  ContractorsProjectsGetFeaturedProjectsResponse,
+  ContractorsProjectsGetProjectDetailsData,
+  ContractorsProjectsGetProjectDetailsResponse,
+  ContractorsProjectsGetProjectMetricsData,
+  ContractorsProjectsGetProjectMetricsResponse,
+  ContractorsProjectsGetProjectCategoriesData,
+  ContractorsProjectsGetProjectCategoriesResponse,
+  ContractorsProjectsGetProjectTagsData,
+  ContractorsProjectsGetProjectTagsResponse,
   ContractorsServicesGetContractorServicesData,
   ContractorsServicesGetContractorServicesResponse,
   ContractorsServicesGetContractorServiceCategoriesData,
@@ -3045,6 +3055,147 @@ export class ContractorsProfileService {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/public/contractors/profile/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class ContractorsProjectsService {
+  /**
+   * Get Featured Projects
+   * Get featured projects for a contractor.
+   *
+   * Returns list of projects with images, testimonials, and project details.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.trade Filter by trade type
+   * @param data.category Filter by service category
+   * @param data.featuredOnly Show only featured projects
+   * @param data.limit Maximum number of projects to return
+   * @param data.offset Offset for pagination
+   * @returns FeaturedProject Successful Response
+   * @throws ApiError
+   */
+  public static getFeaturedProjects(
+    data: ContractorsProjectsGetFeaturedProjectsData,
+  ): CancelablePromise<ContractorsProjectsGetFeaturedProjectsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/featured-projects/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        trade: data.trade,
+        category: data.category,
+        featured_only: data.featuredOnly,
+        limit: data.limit,
+        offset: data.offset,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Project Details
+   * Get detailed information for a specific project.
+   *
+   * Returns complete project details including all images and testimonials.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.projectSlug Project SEO slug
+   * @returns FeaturedProject Successful Response
+   * @throws ApiError
+   */
+  public static getProjectDetails(
+    data: ContractorsProjectsGetProjectDetailsData,
+  ): CancelablePromise<ContractorsProjectsGetProjectDetailsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/featured-projects/{business_id}/{project_slug}",
+      path: {
+        business_id: data.businessId,
+        project_slug: data.projectSlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Project Metrics
+   * Get project completion metrics for a contractor.
+   *
+   * Returns aggregated metrics like total projects, completion rates, etc.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns ProjectMetrics Successful Response
+   * @throws ApiError
+   */
+  public static getProjectMetrics(
+    data: ContractorsProjectsGetProjectMetricsData,
+  ): CancelablePromise<ContractorsProjectsGetProjectMetricsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/project-metrics/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Project Categories
+   * Get project categories for filtering and navigation.
+   *
+   * Returns list of project categories with counts.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns ProjectCategory Successful Response
+   * @throws ApiError
+   */
+  public static getProjectCategories(
+    data: ContractorsProjectsGetProjectCategoriesData,
+  ): CancelablePromise<ContractorsProjectsGetProjectCategoriesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/project-categories/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Project Tags
+   * Get available project tags for filtering.
+   *
+   * Returns list of tags with usage counts.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getProjectTags(
+    data: ContractorsProjectsGetProjectTagsData,
+  ): CancelablePromise<ContractorsProjectsGetProjectTagsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/project-tags/{business_id}",
       path: {
         business_id: data.businessId,
       },
