@@ -25,6 +25,10 @@ class ProductItemDTO(BaseModel):
     specifications: Dict[str, Any] = Field(default_factory=dict, description="Product specifications")
     warranty_years: Optional[int] = Field(None, description="Warranty period in years")
     energy_rating: Optional[str] = Field(None, description="Energy efficiency rating")
+    images: List[str] = Field(default_factory=list, description="Product image URLs")
+    has_variations: bool = Field(default=False, description="Product has variations")
+    is_featured: bool = Field(default=False, description="Product is featured")
+    tags: List[str] = Field(default_factory=list, description="Product tags")
 
 
 class ProductCatalogDTO(BaseModel):
@@ -45,6 +49,7 @@ class ProductCatalogDTO(BaseModel):
     warranty_years: Optional[int] = Field(None, description="Warranty period in years")
     energy_rating: Optional[str] = Field(None, description="Energy efficiency rating")
     images: List[str] = Field(default_factory=list, description="Product image URLs")
+    installation_options: List["ProductInstallationOptionDTO"] = Field(default_factory=list, description="Available installation options")
     has_variations: bool = Field(default=False, description="Product has variations")
     is_featured: bool = Field(default=False, description="Product is featured")
     tags: List[str] = Field(default_factory=list, description="Product tags")

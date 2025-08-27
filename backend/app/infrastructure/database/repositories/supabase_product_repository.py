@@ -1045,8 +1045,25 @@ class SupabaseProductRepository(ProductRepository):
         else:
             product_type = ProductType.PRODUCT
         
+        # Handle images from gallery_images and featured_image_url
+        images = []
+        if data.get("gallery_images"):
+            # Parse JSON array if it's a string, or use as-is if it's already a list
+            if isinstance(data["gallery_images"], str):
+                try:
+                    import json
+                    images = json.loads(data["gallery_images"])
+                except json.JSONDecodeError:
+                    images = []
+            elif isinstance(data["gallery_images"], list):
+                images = data["gallery_images"]
+        
+        # Add featured image if it exists and not already in gallery
+        if data.get("featured_image_url") and data["featured_image_url"] not in images:
+            images.insert(0, data["featured_image_url"])
+        
         try:
-            # Create minimal Product entity with only absolutely required fields
+            # Create Product entity with e-commerce fields including images
             product = Product(
                 id=uuid.UUID(data["id"]),
                 business_id=uuid.UUID(data["business_id"]),
@@ -1056,6 +1073,7 @@ class SupabaseProductRepository(ProductRepository):
                 product_type=product_type,
                 status=ProductStatus(data.get("status", "active")),
                 category_id=uuid.UUID(data["category_id"]) if data.get("category_id") else None,
+                category_name=data.get("category_name"),  # Add category name
                 track_inventory=data.get("track_inventory", True),
                 quantity_on_hand=safe_decimal(data.get("current_stock"), Decimal('0')),
                 unit_price=safe_decimal(data.get("unit_price"), Decimal('0')),
@@ -1065,6 +1083,12 @@ class SupabaseProductRepository(ProductRepository):
                 updated_at=safe_datetime(data.get("updated_at")) or datetime.utcnow(),
                 created_by=data.get("created_by") or "system",  # Required field, handle null
                 updated_by=data.get("updated_by") or "system",  # Add this too for consistency
+                image_urls=images,  # Add the processed images
+                # Add other e-commerce fields
+                specifications=data.get("technical_specs", {}) or {},
+                warranty_years=data.get("warranty_years"),
+                msrp=safe_decimal(data.get("msrp")) if data.get("msrp") else None,
+                brand=data.get("brand"),
             )
             return product
         except Exception as e:

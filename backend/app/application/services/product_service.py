@@ -21,10 +21,18 @@ from ..exceptions.application_exceptions import (
     ValidationError,
     EntityNotFoundError
 )
+# Installation template imports removed for now
 from ...domain.entities.product import Product
 from ...domain.repositories.product_repository import ProductRepository
 from ...domain.repositories.business_repository import BusinessRepository
 from ...domain.repositories.customer_membership_repository import CustomerMembershipRepository
+
+# Import the new installation pricing system
+from .product_install_pricing_service import ProductInstallPricingEngine, ProductInfo
+from .installation_templates import (
+    get_templates_by_trade, TradeType, InstallationType,
+    get_template_by_id, calculate_adjusted_price, ComplexityLevel
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +54,8 @@ class ProductService:
         self.product_repository = product_repository
         self.business_repository = business_repository
         self.membership_repository = membership_repository
+        # Initialize the new pricing engine
+        self.pricing_engine = ProductInstallPricingEngine()
     
     async def get_business_products(
         self,
@@ -129,88 +139,88 @@ class ProductService:
         offset: int = 0
     ) -> List[ProductCatalogDTO]:
         """
-        Get product catalog with installation options for e-commerce display.
-        
-        Args:
-            business_id: Business identifier
-            category: Optional category filter
-            search: Optional search query
-            featured_only: Only return featured products
-            limit: Maximum number of products to return
-            offset: Pagination offset
-            
-        Returns:
-            List of product catalog items with installation options
-            
-        Raises:
-            EntityNotFoundError: If business doesn't exist
-            ValidationError: If parameters are invalid
-            ApplicationError: If retrieval fails
+        SIMPLIFIED: Use same logic as get_business_products but return ProductCatalogDTO
         """
         try:
-            business_uuid = uuid.UUID(business_id)
+            # Use the working get_business_products method
+            product_dtos = await self.get_business_products(
+                business_id=business_id,
+                category=category,
+                in_stock_only=True,  # Default for catalog
+                limit=limit,
+                offset=offset
+            )
             
-            # Verify business exists
-            logger.info(f"🔥 PRODUCT CATALOG: Getting business {business_uuid}")
-            business = await self.business_repository.get_by_id(business_uuid)
-            if not business:
-                logger.error(f"🔥 PRODUCT CATALOG: Business not found: {business_id}")
-                raise EntityNotFoundError(f"Business not found: {business_id}")
-            logger.info(f"🔥 PRODUCT CATALOG: Business found: {business.name}")
-            
-            # Build search filters
-            filters = {}
-            if category:
-                filters['category_id'] = uuid.UUID(category)
-            if featured_only:
-                filters['is_featured'] = True
-            
-            # Get products from repository
-            logger.info(f"🔥 PRODUCT CATALOG: Getting products with filters: {filters}")
-            if search:
-                products = await self.product_repository.search_products(
-                    business_uuid,
-                    search,
-                    limit=limit,
-                    offset=offset,
-                    filters=filters
-                )
-            else:
-                # For now, get all products and filter in application layer
-                # TODO: Add is_featured parameter to repository method
-                products = await self.product_repository.list_by_business(
-                    business_uuid,
-                    limit=limit * 2,  # Get more to account for filtering
-                    offset=offset,
-                    category_id=filters.get('category_id')
-                )
-            logger.info(f"🔥 PRODUCT CATALOG: Got {len(products)} products from repository")
-            
-            # Convert to catalog DTOs
+            # Convert ProductItemDTO to ProductCatalogDTO
             catalog_dtos = []
-            for product in products:
-                # Apply business rules
-                if not product.is_active():
-                    continue
+            for product_dto in product_dtos:
+                # We need to get the actual product entity to generate installation options
+                # For now, create basic installation options based on product name
+                installation_options = []
+                if any(keyword in product_dto.name.lower() for keyword in ['water heater', 'heater']):
+                    installation_options.append(ProductInstallationOptionDTO(
+                        id="water_heater_replace",
+                        name="Water Heater Replacement",
+                        description="Complete water heater replacement with professional installation",
+                        base_install_price=250.0,
+                        estimated_duration_hours=4,
+                        requires_permit=True,
+                        includes_materials=True,
+                        warranty_years=2,
+                        is_default=True
+                    ))
+                elif any(keyword in product_dto.name.lower() for keyword in ['thermostat']):
+                    installation_options.append(ProductInstallationOptionDTO(
+                        id="thermostat_install",
+                        name="Thermostat Installation",
+                        description="Professional thermostat installation and setup",
+                        base_install_price=125.0,
+                        estimated_duration_hours=2,
+                        requires_permit=False,
+                        includes_materials=True,
+                        warranty_years=1,
+                        is_default=True
+                    ))
+                else:
+                    installation_options.append(ProductInstallationOptionDTO(
+                        id="standard_install",
+                        name="Standard Installation",
+                        description="Professional installation service",
+                        base_install_price=150.0,
+                        estimated_duration_hours=2,
+                        requires_permit=False,
+                        includes_materials=True,
+                        warranty_years=1,
+                        is_default=True
+                    ))
                 
-                # Only include actual products for catalog
-                if hasattr(product, 'product_type') and str(product.product_type) == 'service':
-                    continue
-                
-                # Apply featured filter if specified
-                if featured_only and not getattr(product, 'is_featured', False):
-                    continue
-                
-                catalog_dto = await self._convert_product_to_catalog_dto(product, business_uuid)
+                catalog_dto = ProductCatalogDTO(
+                    id=product_dto.id,
+                    name=product_dto.name,
+                    description=product_dto.description,
+                    category=product_dto.category,
+                    brand=product_dto.brand,
+                    model=product_dto.model,
+                    sku=product_dto.sku,
+                    unit_price=product_dto.price,  # Convert price -> unit_price
+                    msrp=product_dto.msrp,
+                    in_stock=product_dto.in_stock,
+                    stock_quantity=product_dto.stock_quantity,
+                    specifications=product_dto.specifications,
+                    warranty_years=product_dto.warranty_years,
+                    energy_rating=product_dto.energy_rating,
+                    images=getattr(product_dto, 'images', []) or [],  # Use real product images
+                    installation_options=installation_options,
+                    has_variations=getattr(product_dto, 'has_variations', False),
+                    is_featured=getattr(product_dto, 'is_featured', False),
+                    tags=getattr(product_dto, 'tags', []) or []
+                )
                 catalog_dtos.append(catalog_dto)
             
-            logger.info(f"Retrieved {len(catalog_dtos)} catalog items for business {business_id}")
             return catalog_dtos
             
-        except ValueError as e:
-            raise ValidationError(f"Invalid parameter: {str(e)}")
         except Exception as e:
-            logger.error(f"Error retrieving product catalog for business {business_id}: {str(e)}")
+            logger.error(f"Error in simplified product catalog: {str(e)}")
             raise ApplicationError(f"Failed to retrieve product catalog: {str(e)}")
     
     async def get_product_by_id(
@@ -248,7 +258,7 @@ class ProductService:
                 return None
             
             # Convert to catalog DTO with full details
-            catalog_dto = await self._convert_product_to_catalog_dto(product, business_uuid)
+            catalog_dto = self._convert_product_to_catalog_dto(product, business_uuid)
             
             logger.info(f"Retrieved product {product_id} for business {business_id}")
             return catalog_dto
@@ -299,12 +309,16 @@ class ProductService:
             installation_price = Decimal("0")
             installation_name = None
             
-            # Add installation pricing if specified
+            # Add installation pricing using our new template system!
             if installation_option_id:
-                # TODO: Get installation option from repository
-                # For now, use placeholder values
-                installation_price = Decimal("150.00")  # Placeholder
-                installation_name = "Standard Installation"  # Placeholder
+                template = get_template_by_id(installation_option_id)
+                if template:
+                    installation_price = template.base_price  
+                    installation_name = template.name
+                else:
+                    # Fallback for invalid template ID
+                    installation_price = Decimal("150.00")
+                    installation_name = "Custom Installation"
             
             subtotal = base_product_price + installation_price
             
@@ -355,48 +369,162 @@ class ProductService:
             logger.error(f"Error calculating pricing: {str(e)}")
             raise ApplicationError(f"Failed to calculate pricing: {str(e)}")
     
+    def _extract_brand_from_name(self, product_name: str) -> str:
+        """Extract brand name from product name."""
+        # Common HVAC brands found in product names
+        brands = [
+            "Trane", "Carrier", "Lennox", "Rheem", "Goodman", "York", "Amana", 
+            "Bryant", "Payne", "Heil", "Tempstar", "Comfortmaker", "Honeywell",
+            "AO Smith", "Bradford White", "State", "Navien", "Rinnai", "Tankless",
+            "Mitsubishi", "Daikin", "LG", "Samsung", "Friedrich", "GE", "Whirlpool",
+            "Aprilaire", "Ecobee", "Nest", "Tesla"
+        ]
+        
+        name_upper = product_name.upper()
+        for brand in brands:
+            if brand.upper() in name_upper:
+                return brand
+        
+        # If no brand found, try to extract first word as potential brand
+        first_word = product_name.split()[0] if product_name.split() else ""
+        return first_word if len(first_word) > 2 else "Professional Brand"
+    
+    def _extract_model_from_name(self, product_name: str) -> str:
+        """Extract model number from product name."""
+        import re
+        # Look for model patterns like XR16, 40-Gallon, MERV-11, etc.
+        model_patterns = [
+            r'\b([A-Z]{2,4}\d{1,4}[A-Z]*)\b',  # XR16, SEER16, MERV11
+            r'\b(\d{1,2}[- ]?(?:Gallon|Ton|SEER|MERV))\b',  # 40-Gallon, 3-Ton
+            r'\b([A-Z]\d{3,5})\b',  # A1234, B4567
+        ]
+        
+        for pattern in model_patterns:
+            match = re.search(pattern, product_name, re.IGNORECASE)
+            if match:
+                return match.group(1)
+        
+        return ""
+    
+    def _extract_category_from_sku(self, sku: str) -> str:
+        """Extract category from SKU prefix."""
+        if not sku:
+            return "General"
+        
+        sku_upper = sku.upper()
+        if sku_upper.startswith(('HVAC', 'AC', 'HP')):
+            return "HVAC Systems"
+        elif sku_upper.startswith(('WH', 'WATER')):
+            return "Water Heaters"
+        elif sku_upper.startswith(('THERM', 'STAT')):
+            return "Thermostats"
+        elif sku_upper.startswith(('FILTER', 'AIR')):
+            return "Air Quality"
+        elif sku_upper.startswith(('DUCT', 'PIPE')):
+            return "Ductwork & Piping"
+        elif sku_upper.startswith(('EV', 'ELECTRIC')):
+            return "Electrical"
+        elif sku_upper.startswith(('SVC', 'SERVICE')):
+            return "Services"
+        
+        return "General"
+    
+    def _get_installation_options_for_product(self, product: Product) -> List[ProductInstallationOptionDTO]:
+        """
+        Get available installation options for a product.
+        
+        Returns basic installation options based on product type.
+        """
+        installation_options = []
+        product_name_lower = product.name.lower()
+        
+        # Add relevant installation options based on product
+        if any(keyword in product_name_lower for keyword in ['water heater', 'heater']):
+            installation_options.append(ProductInstallationOptionDTO(
+                id="water_heater_replace",
+                name="Water Heater Replacement",
+                description="Complete water heater replacement with professional installation",
+                base_install_price=250.0,
+                estimated_duration_hours=4,
+                requires_permit=True,
+                includes_materials=True,
+                warranty_years=2,
+                is_default=True
+            ))
+        elif any(keyword in product_name_lower for keyword in ['thermostat']):
+            installation_options.append(ProductInstallationOptionDTO(
+                id="thermostat_install",
+                name="Thermostat Installation",
+                description="Professional thermostat installation and setup",
+                base_install_price=125.0,
+                estimated_duration_hours=2,
+                requires_permit=False,
+                includes_materials=True,
+                warranty_years=1,
+                is_default=True
+            ))
+        else:
+            # Default installation option for other products
+            installation_options.append(ProductInstallationOptionDTO(
+                id="standard_install",
+                name="Standard Installation",
+                description="Professional installation service",
+                base_install_price=150.0,
+                estimated_duration_hours=2,
+                requires_permit=False,
+                includes_materials=True,
+                warranty_years=1,
+                is_default=True
+            ))
+        
+        return installation_options
+    
     def _convert_product_to_dto(self, product: Product) -> ProductItemDTO:
         """Convert product entity to ProductItemDTO."""
         return ProductItemDTO(
             id=str(product.id),
             name=product.name,
             description=product.description or "",
-            category="General",  # TODO: Get category name from category_id
-            brand="Professional Brand",  # TODO: Add brand field to product entity
-            model="",  # TODO: Add model field to product entity
+            category=product.category_name or self._extract_category_from_sku(product.sku),
+            brand=self._extract_brand_from_name(product.name),
+            model=self._extract_model_from_name(product.name),
             sku=product.sku or "",
             price=float(product.unit_price),
-            msrp=None,  # TODO: Add MSRP field to product entity
+            msrp=float(getattr(product, 'msrp', 0)) if getattr(product, 'msrp', None) else None,
             in_stock=product.is_active(),
             stock_quantity=int(product.quantity_on_hand) if product.quantity_on_hand else 0,
-            specifications={},  # TODO: Add specifications field
-            warranty_years=None,  # TODO: Add warranty field
-            energy_rating=None  # TODO: Add energy rating field
+            specifications=getattr(product, 'specifications', {}) or {},
+            warranty_years=getattr(product, 'warranty_years', None),
+            energy_rating=getattr(product, 'energy_rating', None),
+            images=getattr(product, 'image_urls', []) or [],  # Use product.image_urls from entity
+            has_variations=getattr(product, 'has_variations', False),
+            is_featured=getattr(product, 'is_featured', False),
+            tags=getattr(product, 'tags', []) or []
         )
     
-    async def _convert_product_to_catalog_dto(self, product: Product, business_id: uuid.UUID) -> ProductCatalogDTO:
-        """Convert product entity to ProductCatalogDTO with installation options."""
-        # TODO: Get installation options from repository
-        installation_options = []  # Placeholder
+    def _convert_product_to_catalog_dto(self, product: Product, business_id: uuid.UUID) -> ProductCatalogDTO:
+        """Convert product entity to ProductCatalogDTO."""
+        # Temporarily disable installation options to debug
+        # installation_options = self._get_installation_options_for_product(product)
         
+        # Use exact same mapping as working ProductItemDTO but for ProductCatalogDTO fields
         return ProductCatalogDTO(
             id=str(product.id),
             name=product.name,
             description=product.description or "",
-            category="General",  # TODO: Get category name
-            brand="Professional Brand",  # TODO: Add brand field
-            model="",  # TODO: Add model field
+            category=product.category_name or self._extract_category_from_sku(product.sku),
+            brand=self._extract_brand_from_name(product.name),
+            model=self._extract_model_from_name(product.name),
             sku=product.sku or "",
-            unit_price=float(product.unit_price),
-            msrp=None,  # TODO: Add MSRP field
+            unit_price=float(product.unit_price),  # Note: this is unit_price not price
+            msrp=float(getattr(product, 'msrp', 0)) if getattr(product, 'msrp', None) else None,
             in_stock=product.is_active(),
             stock_quantity=int(product.quantity_on_hand) if product.quantity_on_hand else 0,
-            specifications={},  # TODO: Add specifications
-            warranty_years=None,  # TODO: Add warranty
-            energy_rating=None,  # TODO: Add energy rating
-            images=[],  # TODO: Add product images
-            installation_options=installation_options,
-            has_variations=False,  # TODO: Check for product variations
-            is_featured=False,  # TODO: Add featured flag
-            tags=[]  # TODO: Add product tags
+            specifications=getattr(product, 'specifications', {}) or {},
+            warranty_years=getattr(product, 'warranty_years', None),
+            energy_rating=getattr(product, 'energy_rating', None),
+            images=[],
+            has_variations=False,
+            is_featured=False,
+            tags=[]
         )

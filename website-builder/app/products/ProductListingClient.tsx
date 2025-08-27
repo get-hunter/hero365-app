@@ -283,56 +283,62 @@ export default function ProductListingClient({
             const totalSavings = getTotalSavings(product, defaultInstallOption);
 
             return (
-              <div key={product.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-                {/* Product Image */}
-                <div className="relative">
-                  <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg bg-gray-200">
-                    {product.featured_image_url ? (
-                      <img
-                        src={product.featured_image_url}
-                        alt={product.name}
-                        className="h-48 w-full object-cover object-center"
-                      />
-                    ) : (
-                      <div className="h-48 w-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
-                        <ShoppingCart className="h-12 w-12 text-blue-400" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Badges */}
-                  <div className="absolute top-2 left-2 flex flex-col gap-1">
-                    {product.is_featured && (
-                      <span className="px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded">
-                        FEATURED
-                      </span>
-                    )}
-                    {totalSavings > 0 && (
-                      <span className="px-2 py-1 bg-green-500 text-white text-xs font-bold rounded">
-                        SAVE ${totalSavings.toFixed(0)}
-                      </span>
-                    )}
+              <div key={product.id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 group">
+                <Link href={`/products/${product.slug}`} className="block h-full">
+                  {/* Product Image */}
+                  <div className="relative">
+                    <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg bg-gray-200">
+                      {product.featured_image_url ? (
+                        <img
+                          src={product.featured_image_url}
+                          alt={product.name}
+                          className="h-48 w-full object-cover object-center group-hover:scale-105 transition-transform duration-200"
+                        />
+                      ) : (
+                        <div className="h-48 w-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center group-hover:from-blue-200 group-hover:to-blue-300 transition-colors duration-200">
+                          <ShoppingCart className="h-12 w-12 text-blue-400 group-hover:text-blue-500 transition-colors duration-200" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Badges */}
+                    <div className="absolute top-2 left-2 flex flex-col gap-1">
+                      {product.is_featured && (
+                        <span className="px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded">
+                          FEATURED
+                        </span>
+                      )}
+                      {totalSavings > 0 && (
+                        <span className="px-2 py-1 bg-green-500 text-white text-xs font-bold rounded">
+                          SAVE ${totalSavings.toFixed(0)}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Wishlist Button */}
+                    <button 
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors duration-200 z-10"
+                    >
+                      <Heart className="h-4 w-4 text-gray-600 hover:text-red-500 transition-colors duration-200" />
+                    </button>
                   </div>
 
-                  {/* Wishlist Button */}
-                  <button className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50">
-                    <Heart className="h-4 w-4 text-gray-600" />
-                  </button>
-                </div>
-
-                {/* Product Info */}
-                <div className="p-4">
+                  {/* Product Info */}
+                  <div className="p-4 flex-1 flex flex-col">
                   <div className="mb-2">
-                    <h3 className="text-sm font-medium text-gray-900 overflow-hidden" style={{
+                    <h3 className="text-sm font-medium text-gray-900 overflow-hidden group-hover:text-blue-700 transition-colors duration-200" style={{
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical'
                     }}>
                       {product.name}
                     </h3>
-                    <p className="text-xs text-gray-500 mt-1">
-                      SKU: {product.sku}
-                    </p>
+                    {product.brand && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {product.brand}
+                      </p>
+                    )}
                   </div>
 
                   {/* Description */}
@@ -407,21 +413,14 @@ export default function ProductListingClient({
                     )}
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="space-y-2">
-                    <Link
-                      href={`/products/${product.id}`}
-                      className="block w-full text-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      View Details & Add to Cart
-                    </Link>
-                    {product.installation_options.length > 0 && (
-                      <div className="text-xs text-center text-gray-500">
-                        {product.installation_options.length} installation options available
-                      </div>
-                    )}
+                  {/* Installation Options Info */}
+                  {product.installation_options.length > 0 && (
+                    <div className="text-xs text-center text-blue-600 mt-auto pt-2 group-hover:text-blue-700 transition-colors duration-200">
+                      {product.installation_options.length} installation option{product.installation_options.length > 1 ? 's' : ''} available
+                    </div>
+                  )}
                   </div>
-                </div>
+                </Link>
               </div>
             );
           })}

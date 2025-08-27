@@ -171,6 +171,12 @@ import type {
   ContractorsCartGetCartSummaryResponse,
   ContractorsCheckoutProcessCheckoutData,
   ContractorsCheckoutProcessCheckoutResponse,
+  ContractorsInstallationQuotesGetQuickInstallationQuoteData,
+  ContractorsInstallationQuotesGetQuickInstallationQuoteResponse,
+  ContractorsInstallationQuotesGetAvailableTemplatesData,
+  ContractorsInstallationQuotesGetAvailableTemplatesResponse,
+  ContractorsInstallationQuotesPricingDemoData,
+  ContractorsInstallationQuotesPricingDemoResponse,
   ContractorsMembershipGetMembershipPlansData,
   ContractorsMembershipGetMembershipPlansResponse,
   ContractorsProductsGetContractorProductsData,
@@ -2791,7 +2797,7 @@ export class ContractorsCartService {
    * @throws ApiError
    */
   public static createShoppingCart(
-    data: ContractorsCartCreateShoppingCartData,
+    data: ContractorsCartCreateShoppingCartData = {},
   ): CancelablePromise<ContractorsCartCreateShoppingCartResponse> {
     return __request(OpenAPI, {
       method: "POST",
@@ -3041,6 +3047,100 @@ export class ContractorsCheckoutService {
       },
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class ContractorsInstallationQuotesService {
+  /**
+   * Get Quick Installation Quote
+   * Get a quick installation quote for phone calls
+   *
+   * Perfect for contractors who need to give instant pricing to customers:
+   * - Water heater replacement: $250 + product cost
+   * - Thermostat installation: $125 + product cost
+   * - AC repair: $150 + parts
+   *
+   * Includes smart adjustments for complexity, timing, and location.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns QuickQuoteResponse Successful Response
+   * @throws ApiError
+   */
+  public static getQuickInstallationQuote(
+    data: ContractorsInstallationQuotesGetQuickInstallationQuoteData,
+  ): CancelablePromise<ContractorsInstallationQuotesGetQuickInstallationQuoteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/public/contractors/quick-quote",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Available Templates
+   * Get available installation templates for a business
+   *
+   * Shows all the fixed-price installation options available:
+   * - Water heater replacement: $250
+   * - Thermostat installation: $125
+   * - Standard AC repair: $150
+   * - Plus hourly rates for diagnostic and custom work
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.tradeType Filter by trade type: hvac, plumbing, electrical
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getAvailableTemplates(
+    data: ContractorsInstallationQuotesGetAvailableTemplatesData,
+  ): CancelablePromise<ContractorsInstallationQuotesGetAvailableTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/templates/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        trade_type: data.tradeType,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Pricing Demo
+   * Demo endpoint showing pricing for different scenarios
+   *
+   * Perfect for testing the new pricing system with real examples:
+   * - Standard pricing vs. complex job pricing
+   * - Business hours vs. emergency pricing
+   * - Member vs. non-member pricing
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.productId Product ID
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static pricingDemo(
+    data: ContractorsInstallationQuotesPricingDemoData,
+  ): CancelablePromise<ContractorsInstallationQuotesPricingDemoResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/pricing-demo/{business_id}/{product_id}",
+      path: {
+        business_id: data.businessId,
+        product_id: data.productId,
+      },
       errors: {
         422: "Validation Error",
       },

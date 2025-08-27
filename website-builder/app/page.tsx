@@ -354,18 +354,19 @@ export default async function HomePage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {serverProducts.slice(0, 3).map((product: any) => (
-                  <div key={product.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                  <div key={product.id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 group">
+                    <a href={`/products/${product.slug}`} className="block h-full">
                     <div className="relative">
                       <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg bg-gray-200">
                         {product.featured_image_url ? (
                           <img
                             src={product.featured_image_url}
                             alt={product.name}
-                            className="h-48 w-full object-cover object-center"
+                            className="h-48 w-full object-cover object-center group-hover:scale-105 transition-transform duration-200"
                           />
                         ) : (
-                          <div className="h-48 w-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
-                            <svg className="h-12 w-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="h-48 w-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center group-hover:from-blue-200 group-hover:to-blue-300 transition-colors duration-200">
+                            <svg className="h-12 w-12 text-blue-400 group-hover:text-blue-500 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h6m-6 4h6m-2 4h2" />
                             </svg>
                           </div>
@@ -433,14 +434,14 @@ export default async function HomePage() {
                         )}
                       </div>
 
-                      {/* Action Button */}
-                      <a
-                        href={`/products/${product.id}`}
-                        className="block w-full text-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        View Details & Pricing
-                      </a>
+                      {/* Installation Options Info */}
+                      {product.installation_options && product.installation_options.length > 0 && (
+                        <div className="text-xs text-center text-blue-600 group-hover:text-blue-700 transition-colors duration-200">
+                          Professional installation available
+                        </div>
+                      )}
                     </div>
+                    </a>
                   </div>
                 ))}
               </div>

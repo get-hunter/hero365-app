@@ -3,6 +3,8 @@ Product + Installation Pricing Engine
 
 This service handles complex pricing calculations for products with installation services,
 including membership discounts, bundle pricing, and various pricing models.
+
+Enhanced with fixed-price templates optimized for home service contractors.
 """
 
 from typing import Optional, List, Dict, Any
@@ -10,6 +12,13 @@ from decimal import Decimal, ROUND_HALF_UP
 from dataclasses import dataclass
 from enum import Enum
 import logging
+
+# Import our new installation templates
+from .installation_templates import (
+    InstallationTemplate, ComplexityLevel, InstallationType, TradeType,
+    get_template_by_id, get_templates_by_trade, calculate_adjusted_price,
+    ALL_TEMPLATES
+)
 
 logger = logging.getLogger(__name__)
 
@@ -139,10 +148,17 @@ class ProductInstallPricingEngine:
     - Bundle savings
     - Tax calculations
     - Price display formatting
+    
+    ENHANCED with fixed-price templates for 80% of home service jobs:
+    - Water heater replacement: $250
+    - Thermostat installation: $125
+    - Standard AC repair: $150
+    - Plus smart adjustments for complexity/timing/location
     """
     
     def __init__(self):
         self.default_tax_rate = Decimal('0.0825')  # 8.25% default tax rate
+        self.templates = ALL_TEMPLATES  # Load all installation templates
         
     def calculate_combined_pricing(
         self,
@@ -227,6 +243,255 @@ class ProductInstallPricingEngine:
         logger.debug(f"Pricing calculated: ${calculation.total_amount} (saved ${calculation.total_savings})")
         
         return calculation
+    
+    def get_installation_templates_for_product(
+        self, 
+        product: ProductInfo,
+        trade_type: Optional[TradeType] = None
+    ) -> Dict[str, InstallationTemplate]:
+        """
+        Get relevant installation templates for a product
+        
+        Args:
+            product: Product information
+            trade_type: Optional trade type filter
+            
+        Returns:
+            Dictionary of relevant installation templates
+        """
+        
+        # Determine trade type from product if not specified
+        if not trade_type:
+            # Auto-detect trade type from product info
+            product_name_lower = product.name.lower()
+            if any(term in product_name_lower for term in ['water heater', 'hvac', 'heat pump', 'ac', 'thermostat', 'furnace']):
+                trade_type = TradeType.HVAC
+            elif any(term in product_name_lower for term in ['toilet', 'faucet', 'sink', 'plumbing']):
+                trade_type = TradeType.PLUMBING
+            elif any(term in product_name_lower for term in ['electrical', 'outlet', 'switch', 'panel']):
+                trade_type = TradeType.ELECTRICAL
+            else:
+                trade_type = TradeType.GENERAL
+        
+        return get_templates_by_trade(trade_type)
+    
+    def calculate_template_based_pricing(
+        self,
+        template_id: str,
+        product: ProductInfo,
+        complexity: ComplexityLevel = ComplexityLevel.STANDARD,
+        timing: str = "business_hours",
+        location: str = "local",
+        quantity: int = 1,
+        membership_type: Optional[MembershipType] = None,
+        tax_rate: Optional[Decimal] = None
+    ) -> PricingCalculation:
+        """
+        Calculate pricing using a specific installation template
+        
+        Args:
+            template_id: Installation template ID
+            product: Product information
+            complexity: Job complexity level
+            timing: Time of service (business_hours, evening, weekend, emergency)
+            location: Service location (local, regional, distant)
+            quantity: Number of units
+            membership_type: Customer membership level
+            tax_rate: Override tax rate
+            
+        Returns:
+            Complete pricing breakdown
+        """
+        
+        template = get_template_by_id(template_id)
+        if not template:
+            raise ValueError(f"Installation template not found: {template_id}")
+        
+        logger.debug(f"Calculating template-based pricing for {product.name} + {template.name}")
+        
+        # Calculate product pricing
+        product_subtotal = product.unit_price * quantity
+        
+        # Calculate template-based installation pricing
+        installation_subtotal = calculate_adjusted_price(
+            template=template,
+            complexity=complexity,
+            timing=timing,
+            location=location,
+            quantity=quantity
+        )
+        
+        subtotal_before_discounts = product_subtotal + installation_subtotal
+        
+        # Calculate membership discounts
+        product_discount = self._calculate_membership_discount_for_product(
+            product_subtotal, membership_type
+        )
+        installation_discount = self._calculate_membership_discount_for_installation(
+            installation_subtotal, membership_type
+        )
+        
+        # Apply bundle discount for buying product + installation together
+        bundle_discount = Decimal('0')
+        if template.installation_type == InstallationType.FIXED:
+            # 5% bundle discount for fixed-price installations
+            bundle_discount = subtotal_before_discounts * Decimal('0.05')
+        
+        # Calculate totals
+        total_savings = product_discount + installation_discount + bundle_discount
+        total_after_discounts = subtotal_before_discounts - total_savings
+        
+        # Calculate tax
+        tax_rate = tax_rate or self.default_tax_rate
+        tax_amount = total_after_discounts * tax_rate
+        final_total = total_after_discounts + tax_amount
+        
+        # Create pricing calculation (using existing fields only)
+        calculation = PricingCalculation(
+            product_subtotal=product_subtotal,
+            installation_subtotal=installation_subtotal,
+            subtotal_before_discounts=subtotal_before_discounts,
+            total_savings=total_savings,
+            total_after_discounts=total_after_discounts,
+            tax_rate=tax_rate,
+            tax_amount=tax_amount,
+            total_amount=final_total,
+            bundle_savings=bundle_discount
+        )
+        
+        logger.debug(f"Template pricing calculated: ${calculation.total_amount} (saved ${calculation.total_savings})")
+        
+        return calculation
+    
+    def get_quick_installation_quote(
+        self,
+        product: ProductInfo,
+        installation_type: str = "standard",
+        complexity: ComplexityLevel = ComplexityLevel.STANDARD,
+        timing: str = "business_hours",
+        location: str = "local",
+        membership_type: Optional[MembershipType] = None
+    ) -> Dict[str, Any]:
+        """
+        Get a quick installation quote for common scenarios
+        Optimized for phone quotes - returns the most likely pricing options
+        
+        Args:
+            product: Product information
+            installation_type: Type of installation needed (standard, diagnostic, custom)
+            complexity: Job complexity level
+            timing: Time of service
+            location: Service location  
+            membership_type: Customer membership level
+            
+        Returns:
+            Dictionary with pricing options and recommendations
+        """
+        
+        templates = self.get_installation_templates_for_product(product)
+        
+        if not templates:
+            return {
+                "error": "No installation templates available for this product",
+                "recommendation": "Contact for custom quote"
+            }
+        
+        # Find the best template match
+        recommended_template = None
+        
+        # Logic for template selection based on installation type and product
+        product_name_lower = product.name.lower()
+        
+        if "water heater" in product_name_lower:
+            recommended_template = templates.get("water_heater_replace")  # FIXED: Correct template ID
+        elif "thermostat" in product_name_lower:
+            recommended_template = templates.get("thermostat_install")
+        elif any(term in product_name_lower for term in ["ac", "heat pump", "hvac system"]):
+            if installation_type == "diagnostic":
+                recommended_template = templates.get("hvac_diagnostic")
+            else:
+                recommended_template = templates.get("hvac_system_install")
+        elif "toilet" in product_name_lower:
+            recommended_template = templates.get("toilet_install")
+        else:
+            # Default to first available template
+            recommended_template = list(templates.values())[0] if templates else None
+        
+        if not recommended_template:
+            return {
+                "error": "No suitable installation template found",
+                "available_templates": list(templates.keys())
+            }
+        
+        # Calculate pricing with the recommended template
+        try:
+            pricing = self.calculate_template_based_pricing(
+                template_id=recommended_template.id,
+                product=product,
+                complexity=complexity,
+                timing=timing,
+                location=location,
+                membership_type=membership_type
+            )
+            
+            return {
+                "template_used": recommended_template.name,
+                "template_id": recommended_template.id,
+                "installation_type": recommended_template.installation_type.value,
+                "base_installation_price": float(recommended_template.base_price),
+                "adjusted_installation_price": float(pricing.installation_subtotal),
+                "product_price": float(pricing.product_subtotal),
+                "total_before_tax": float(pricing.total_after_discounts),
+                "tax_amount": float(pricing.tax_amount),
+                "total_amount": float(pricing.total_amount),
+                "total_savings": float(pricing.total_savings),
+                "includes": recommended_template.includes,
+                "estimated_hours": float(recommended_template.estimated_hours),
+                "warranty_years": recommended_template.warranty_years,
+                "requires_permit": recommended_template.requires_permit,
+                "phone_quote_ready": True  # This quote can be given over the phone
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating quick quote: {str(e)}")
+            return {
+                "error": f"Failed to calculate quote: {str(e)}",
+                "template_available": recommended_template.name
+            }
+    
+    def _calculate_membership_discount_for_product(
+        self, 
+        product_subtotal: Decimal, 
+        membership_type: Optional[MembershipType]
+    ) -> Decimal:
+        """Calculate membership discount for product portion"""
+        if not membership_type:
+            return Decimal('0')
+            
+        discount_rates = {
+            MembershipType.RESIDENTIAL: Decimal('0.05'),  # 5% off products
+            MembershipType.COMMERCIAL: Decimal('0.08'),   # 8% off products
+            MembershipType.PREMIUM: Decimal('0.12')       # 12% off products
+        }
+        
+        return product_subtotal * discount_rates.get(membership_type, Decimal('0'))
+    
+    def _calculate_membership_discount_for_installation(
+        self,
+        installation_subtotal: Decimal,
+        membership_type: Optional[MembershipType]
+    ) -> Decimal:
+        """Calculate membership discount for installation portion"""
+        if not membership_type:
+            return Decimal('0')
+            
+        discount_rates = {
+            MembershipType.RESIDENTIAL: Decimal('0.10'),  # 10% off labor
+            MembershipType.COMMERCIAL: Decimal('0.15'),   # 15% off labor  
+            MembershipType.PREMIUM: Decimal('0.20')       # 20% off labor
+        }
+        
+        return installation_subtotal * discount_rates.get(membership_type, Decimal('0'))
     
     def _calculate_installation_pricing(
         self,

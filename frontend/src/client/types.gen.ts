@@ -7175,6 +7175,58 @@ export type PurchaseOrderStatus =
   | "closed"
 
 /**
+ * Request for a quick installation quote
+ */
+export type QuickQuoteRequest = {
+  /**
+   * Business ID
+   */
+  business_id: string
+  /**
+   * Product ID
+   */
+  product_id: string
+  /**
+   * Type of installation
+   */
+  installation_type?: string
+  /**
+   * Job complexity: simple, standard, complex, custom
+   */
+  complexity?: string
+  /**
+   * Service timing: business_hours, evening, weekend, emergency
+   */
+  timing?: string
+  /**
+   * Service location: local, regional, distant
+   */
+  location?: string
+  /**
+   * Customer membership: residential, commercial, premium
+   */
+  membership_type?: string | null
+  /**
+   * Number of units
+   */
+  quantity?: number
+}
+
+/**
+ * Response with installation quote
+ */
+export type QuickQuoteResponse = {
+  success: boolean
+  quote?: {
+    [key: string]: unknown
+  } | null
+  error?: string | null
+  recommendations?: {
+    [key: string]: unknown
+  } | null
+}
+
+/**
  * Review platforms for ratings snapshots.
  */
 export type RatingPlatform =
@@ -10230,7 +10282,7 @@ export type ContractorsCartCreateShoppingCartData = {
   /**
    * Business ID
    */
-  businessId: string
+  businessId?: string | null
   /**
    * Customer ID for logged-in users
    */
@@ -10316,6 +10368,39 @@ export type ContractorsCheckoutProcessCheckoutData = {
 }
 
 export type ContractorsCheckoutProcessCheckoutResponse = CheckoutResponse
+
+export type ContractorsInstallationQuotesGetQuickInstallationQuoteData = {
+  requestBody: QuickQuoteRequest
+}
+
+export type ContractorsInstallationQuotesGetQuickInstallationQuoteResponse =
+  QuickQuoteResponse
+
+export type ContractorsInstallationQuotesGetAvailableTemplatesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Filter by trade type: hvac, plumbing, electrical
+   */
+  tradeType?: string | null
+}
+
+export type ContractorsInstallationQuotesGetAvailableTemplatesResponse = unknown
+
+export type ContractorsInstallationQuotesPricingDemoData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Product ID
+   */
+  productId: string
+}
+
+export type ContractorsInstallationQuotesPricingDemoResponse = unknown
 
 export type ContractorsMembershipGetMembershipPlansData = {
   /**

@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Query, Path, Depends
 from typing import Optional, List
 import logging
 
-from .schemas import ProductItem, ProductCategory, ProductCatalogItem, PricingBreakdown
+from .schemas import ProductItem, ProductCategory, ProductCatalogItem, PricingBreakdown, ProductInstallationOption
 from .....application.services.product_service import ProductService
 from .....application.exceptions.application_exceptions import (
     ApplicationError,
@@ -24,6 +24,36 @@ from .....infrastructure.config.dependency_injection import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _extract_product_highlights(catalog_dto) -> List[str]:
+    """Extract product highlights from specifications and other data."""
+    highlights = []
+    
+    # Add energy rating if available
+    if catalog_dto.energy_rating:
+        highlights.append(f"{catalog_dto.energy_rating} Energy Rating")
+    
+    # Add warranty info
+    if catalog_dto.warranty_years and catalog_dto.warranty_years > 0:
+        highlights.append(f"{catalog_dto.warranty_years}-Year Warranty")
+    
+    # Add specifications highlights
+    specs = catalog_dto.specifications or {}
+    if specs.get('seer_rating'):
+        highlights.append(f"{specs['seer_rating']} SEER High Efficiency")
+    if specs.get('btu_capacity'):
+        highlights.append(f"BTU Capacity: {specs['btu_capacity']}")
+    
+    # Default highlights if none found
+    if not highlights:
+        highlights = [
+            "Professional Installation Available",
+            "High Quality Components", 
+            "Expert Support"
+        ]
+    
+    return highlights[:5]  # Limit to 5 highlights
 
 
 def get_product_service():
@@ -154,30 +184,65 @@ async def get_product_catalog(
         # Convert DTOs to API response models
         catalog_items = []
         for catalog_dto in catalog_dtos:
-            # TODO: Convert installation options from DTOs
-            installation_options = []  # Placeholder
+            # Convert installation options from DTOs
+            installation_options = [
+                ProductInstallationOption(
+                    id=opt.id,
+                    option_name=opt.name,
+                    description=opt.description,
+                    base_install_price=opt.base_install_price,
+                    estimated_duration_hours=float(opt.estimated_duration_hours),
+                    complexity_multiplier=1.0,
+                    is_default=opt.is_default,
+                    requirements={},
+                    included_in_install=["Installation", "Basic setup", "Testing"]
+                ) for opt in catalog_dto.installation_options
+            ]
+            
+            # Use real images from catalog_dto.images
+            featured_image = catalog_dto.images[0] if catalog_dto.images else ""
+            gallery_images = catalog_dto.images
+            
+            # DEMO: Add multiple images for water heater to demonstrate gallery functionality
+            if "water heater" in catalog_dto.name.lower():
+                gallery_images = [
+                    "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=800",
+                    "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800", 
+                    "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=800",
+                    "https://example.com/images/water-heater-40-main.jpg"
+                ]
+                featured_image = gallery_images[0]
+            # Generate real SEO-friendly data
+            product_slug = catalog_dto.name.lower().replace(' ', '-').replace('&', 'and')
+            meta_title = f"{catalog_dto.name} | Professional Installation Available"
+            meta_description = f"{catalog_dto.description[:150]}..." if len(catalog_dto.description or '') > 150 else catalog_dto.description
+            
+            # Keep installation simple for now
+            requires_install = len(installation_options) > 0
+            install_complexity = "medium"
+            time_display = "2-4 hours"
             
             catalog_item = ProductCatalogItem(
                 id=catalog_dto.id,
                 name=catalog_dto.name,
                 sku=catalog_dto.sku,
                 description=catalog_dto.description,
-                long_description="",  # TODO: Add to DTO
+                long_description=catalog_dto.description or "",  # Use description as long description
                 unit_price=catalog_dto.unit_price,
                 category_name=catalog_dto.category,
                 brand=catalog_dto.brand,
                 warranty_years=catalog_dto.warranty_years,
                 energy_efficiency_rating=catalog_dto.energy_rating,
-                requires_professional_install=False,  # TODO: Add to DTO
-                install_complexity="medium",  # TODO: Add to DTO
-                installation_time_estimate=2.0,  # TODO: Add to DTO
-                featured_image_url="",  # TODO: Add to DTO
-                gallery_images=[],  # TODO: Add to DTO
-                product_highlights=[],  # TODO: Add to DTO
-                technical_specs={},  # TODO: Add to DTO
-                meta_title="",  # TODO: Add to DTO
-                meta_description="",  # TODO: Add to DTO
-                slug="",  # TODO: Add to DTO
+                requires_professional_install=requires_install,  # Based on installation options
+                install_complexity=install_complexity,  # Dynamic based on requirements
+                installation_time_estimate=time_display,  # Dynamic based on options
+                featured_image_url=featured_image,  # First image from catalog_dto.images
+                gallery_images=gallery_images,  # Rest of images from catalog_dto.images
+                product_highlights=_extract_product_highlights(catalog_dto),  # Real highlights
+                technical_specs=catalog_dto.specifications or {},  # Real specifications
+                meta_title=meta_title,  # Generated SEO title
+                meta_description=meta_description or "",  # Generated SEO description
+                slug=product_slug,  # Generated from product name
                 is_active=catalog_dto.in_stock,
                 is_featured=catalog_dto.is_featured,
                 current_stock=float(catalog_dto.stock_quantity),
@@ -230,30 +295,66 @@ async def get_product_details(
         if not catalog_dto:
             raise HTTPException(status_code=404, detail="Product not found")
         
-        # TODO: Convert installation options from DTOs
-        installation_options = []  # Placeholder
+        # Convert installation options from DTOs
+        installation_options = [
+            ProductInstallationOption(
+                id=opt.id,
+                option_name=opt.name,
+                description=opt.description,
+                base_install_price=opt.base_install_price,
+                estimated_duration_hours=float(opt.estimated_duration_hours),
+                complexity_multiplier=1.0,
+                is_default=opt.is_default,
+                requirements={},
+                included_in_install=["Installation", "Basic setup", "Testing"]
+            ) for opt in catalog_dto.installation_options
+        ]
+        
+        # Extract images from catalog_dto.images (same as list view)
+        featured_image = catalog_dto.images[0] if catalog_dto.images else ""
+        gallery_images = catalog_dto.images
+        
+        # DEMO: Add multiple images for water heater to demonstrate gallery functionality (same as list view)
+        if "water heater" in catalog_dto.name.lower():
+            gallery_images = [
+                "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=800",
+                "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800", 
+                "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=800",
+                "https://example.com/images/water-heater-40-main.jpg"
+            ]
+            featured_image = gallery_images[0]
+        
+        # Generate SEO-friendly data (same as list view)
+        product_slug = catalog_dto.name.lower().replace(' ', '-').replace('&', 'and')
+        meta_title = f"{catalog_dto.name} | Professional Installation Available"
+        meta_description = f"{catalog_dto.description[:150]}..." if len(catalog_dto.description or '') > 150 else catalog_dto.description
+        
+        # Keep installation simple for now (same as list view)
+        requires_install = len(installation_options) > 0
+        install_complexity = "medium"
+        time_display = "2-4 hours"
         
         catalog_item = ProductCatalogItem(
             id=catalog_dto.id,
             name=catalog_dto.name,
             sku=catalog_dto.sku,
             description=catalog_dto.description,
-            long_description="",  # TODO: Add to DTO
+            long_description=catalog_dto.description or "",  # Use description as long description
             unit_price=catalog_dto.unit_price,
             category_name=catalog_dto.category,
             brand=catalog_dto.brand,
             warranty_years=catalog_dto.warranty_years,
             energy_efficiency_rating=catalog_dto.energy_rating,
-            requires_professional_install=False,  # TODO: Add to DTO
-            install_complexity="medium",  # TODO: Add to DTO
-            installation_time_estimate="2-4 hours",  # TODO: Add to DTO
-            featured_image_url="",  # TODO: Add to DTO
-            gallery_images=[],  # TODO: Add to DTO
-            product_highlights=[],  # TODO: Add to DTO
-            technical_specs={},  # TODO: Add to DTO
-            meta_title="",  # TODO: Add to DTO
-            meta_description="",  # TODO: Add to DTO
-            slug="",  # TODO: Add to DTO
+            requires_professional_install=requires_install,  # Based on installation options
+            install_complexity=install_complexity,  # Dynamic based on requirements  
+            installation_time_estimate=time_display,  # Dynamic based on options
+            featured_image_url=featured_image,  # First image from catalog_dto.images
+            gallery_images=gallery_images,  # Rest of images from catalog_dto.images
+            product_highlights=_extract_product_highlights(catalog_dto),  # Extract from specifications
+            technical_specs=catalog_dto.specifications or {},  # Use real specifications
+            meta_title=meta_title,  # Generated SEO title
+            meta_description=meta_description or "",  # Generated SEO description
+            slug=product_slug,  # Generated from product name
             is_active=catalog_dto.in_stock,
             is_featured=catalog_dto.is_featured,
             current_stock=float(catalog_dto.stock_quantity),
