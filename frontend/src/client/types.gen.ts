@@ -5287,41 +5287,7 @@ export type LocationUpdateRequest = {
 }
 
 /**
- * Membership plan benefit.
- */
-export type MembershipBenefit = {
-  /**
-   * Benefit ID
-   */
-  id: string
-  /**
-   * Benefit title
-   */
-  title: string
-  /**
-   * Benefit description
-   */
-  description: string
-  /**
-   * Icon name for UI
-   */
-  icon?: string | null
-  /**
-   * Benefit value (e.g., '15%', '$69 value')
-   */
-  value?: string | null
-  /**
-   * Whether this benefit should be highlighted
-   */
-  is_highlighted?: boolean
-  /**
-   * Display order
-   */
-  sort_order?: number
-}
-
-/**
- * Customer membership plan.
+ * Customer membership plan information.
  */
 export type MembershipPlan = {
   /**
@@ -5341,85 +5307,81 @@ export type MembershipPlan = {
    */
   description: string
   /**
-   * Marketing tagline
+   * Plan tagline
    */
-  tagline?: string | null
+  tagline: string
   /**
    * Monthly price
    */
-  price_monthly?: number | null
+  price_monthly: number
   /**
    * Yearly price
    */
-  price_yearly?: number | null
+  price_yearly: number
   /**
-   * Annual savings amount
+   * Yearly savings amount
    */
-  yearly_savings?: number | null
+  yearly_savings: number
   /**
-   * One-time setup fee
+   * Setup fee
    */
-  setup_fee?: number | null
+  setup_fee: number
   /**
-   * Service discount percentage
+   * Discount percentage
    */
-  discount_percentage?: number
+  discount_percentage: number
   /**
-   * Priority scheduling
+   * Priority service included
    */
-  priority_service?: boolean
+  priority_service: boolean
   /**
-   * Extended warranty coverage
+   * Extended warranty included
    */
-  extended_warranty?: boolean
+  extended_warranty: boolean
   /**
-   * Maintenance visits included
+   * Maintenance included
    */
-  maintenance_included?: boolean
+  maintenance_included: boolean
   /**
-   * 24/7 emergency response
+   * Emergency response included
    */
-  emergency_response?: boolean
+  emergency_response: boolean
   /**
-   * Free diagnostic calls
+   * Free diagnostics included
    */
-  free_diagnostics?: boolean
+  free_diagnostics: boolean
   /**
    * Number of annual tune-ups
    */
-  annual_tune_ups?: number
+  annual_tune_ups: number
   /**
    * Plan is active
    */
-  is_active?: boolean
+  is_active: boolean
   /**
-   * Plan is featured/popular
+   * Plan is featured
    */
-  is_featured?: boolean
+  is_featured: boolean
   /**
    * Popular badge text
    */
   popular_badge?: string | null
   /**
-   * UI color scheme
+   * Plan color scheme
    */
-  color_scheme?: string | null
+  color_scheme: string
   /**
-   * Display order
+   * Sort order
    */
-  sort_order?: number
+  sort_order: number
   /**
    * Contract length in months
    */
-  contract_length_months?: number | null
+  contract_length_months: number
   /**
    * Cancellation policy
    */
-  cancellation_policy?: string | null
-  /**
-   * Plan benefits
-   */
-  benefits?: Array<MembershipBenefit>
+  cancellation_policy: string
 }
 
 /**
@@ -6778,36 +6740,6 @@ export type ProjectListResponse = {
 }
 
 /**
- * Project completion metrics.
- */
-export type ProjectMetrics = {
-  /**
-   * Total number of projects
-   */
-  total_projects: number
-  /**
-   * Projects completed this year
-   */
-  projects_this_year: number
-  /**
-   * Average completion time
-   */
-  average_completion_time: string
-  /**
-   * Customer satisfaction rate
-   */
-  customer_satisfaction_rate: number
-  /**
-   * Warranty claims rate
-   */
-  warranty_claims_rate: number
-  /**
-   * Repeat customer rate
-   */
-  repeat_customer_rate: number
-}
-
-/**
  * Project priority enumeration.
  */
 export type ProjectPriority = "low" | "medium" | "high" | "critical"
@@ -8032,20 +7964,6 @@ export type ServicePricing = {
 }
 
 /**
- * Service pricing grouped by category.
- */
-export type ServicePricingCategory = {
-  /**
-   * Category name
-   */
-  category: string
-  /**
-   * Services in this category
-   */
-  services?: Array<ServicePricing>
-}
-
-/**
  * Pre-defined industry-standard service template.
  */
 export type ServiceTemplate = {
@@ -8829,6 +8747,16 @@ export type TrendAnalysis = {
    * Significance level
    */
   significance_level: string
+}
+
+/**
+ * DTO for updating cart item quantity.
+ */
+export type UpdateCartItemDTO = {
+  /**
+   * New item quantity
+   */
+  quantity: number
 }
 
 /**
@@ -10223,9 +10151,21 @@ export type ContractorsAvailabilityGetContractorAvailabilityData = {
    */
   businessId: string
   /**
+   * Required duration in minutes
+   */
+  durationMinutes?: number
+  /**
+   * Show only emergency slots
+   */
+  emergencyOnly?: boolean
+  /**
    * End date for availability
    */
   endDate: string
+  /**
+   * Filter by service type
+   */
+  serviceType?: string
   /**
    * Start date for availability
    */
@@ -10235,7 +10175,62 @@ export type ContractorsAvailabilityGetContractorAvailabilityData = {
 export type ContractorsAvailabilityGetContractorAvailabilityResponse =
   Array<AvailabilitySlot>
 
+export type ContractorsAvailabilityCheckSlotAvailabilityData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Duration in minutes
+   */
+  durationMinutes: number
+  /**
+   * Date of the slot
+   */
+  slotDate: string
+  /**
+   * Start time (HH:MM format)
+   */
+  startTime: string
+}
+
+export type ContractorsAvailabilityCheckSlotAvailabilityResponse = unknown
+
+export type ContractorsAvailabilityGetBusinessHoursData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ContractorsAvailabilityGetBusinessHoursResponse = unknown
+
+export type ContractorsCartCreateShoppingCartWithIdData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Specific cart ID to create
+   */
+  cartId: string
+  /**
+   * Customer ID for logged-in users
+   */
+  customerId?: string | null
+  /**
+   * Session ID for guest users
+   */
+  sessionId?: string | null
+}
+
+export type ContractorsCartCreateShoppingCartWithIdResponse = ShoppingCart
+
 export type ContractorsCartCreateShoppingCartData = {
+  /**
+   * Business ID
+   */
+  businessId: string
   /**
    * Customer ID for logged-in users
    */
@@ -10250,55 +10245,40 @@ export type ContractorsCartCreateShoppingCartResponse = ShoppingCart
 
 export type ContractorsCartGetShoppingCartData = {
   /**
-   * Business ID for pricing context (optional - will use cart's business_id)
+   * Cart ID
    */
-  businessId?: string | null
-  /**
-   * Cart ID or Session ID
-   */
-  cartIdentifier: string
+  cartId: string
 }
 
 export type ContractorsCartGetShoppingCartResponse = ShoppingCart
 
-export type ContractorsCartAddCartItemData = {
+export type ContractorsCartAddItemToCartData = {
   /**
-   * Business ID for pricing context
-   */
-  businessId: string
-  /**
-   * Shopping cart ID
+   * Cart ID
    */
   cartId: string
   requestBody: CartItemRequest
 }
 
-export type ContractorsCartAddCartItemResponse = CartItem
+export type ContractorsCartAddItemToCartResponse = ShoppingCart
 
 export type ContractorsCartUpdateCartItemData = {
   /**
-   * Business ID for pricing context
-   */
-  businessId: string
-  /**
-   * Shopping cart ID
+   * Cart ID
    */
   cartId: string
   /**
    * Cart item ID
    */
   itemId: string
-  /**
-   * New quantity (0 to remove)
-   */
-  quantity: number
+  requestBody: UpdateCartItemDTO
 }
 
-export type ContractorsCartUpdateCartItemResponse = CartItem
+export type ContractorsCartUpdateCartItemResponse = ShoppingCart
 
-export type ContractorsCartRemoveCartItemData = {
+export type ContractorsCartRemoveItemFromCartData = {
   /**
-   * Shopping cart ID
+   * Cart ID
    */
   cartId: string
   /**
@@ -10307,22 +10287,22 @@ export type ContractorsCartRemoveCartItemData = {
   itemId: string
 }
 
-export type ContractorsCartRemoveCartItemResponse = unknown
+export type ContractorsCartRemoveItemFromCartResponse = ShoppingCart
 
 export type ContractorsCartClearShoppingCartData = {
   /**
-   * Shopping cart ID
+   * Cart ID
    */
   cartId: string
 }
 
-export type ContractorsCartClearShoppingCartResponse = unknown
+export type ContractorsCartClearShoppingCartResponse = ShoppingCart
 
 export type ContractorsCartGetCartSummaryData = {
   /**
-   * Cart ID or Session ID
+   * Cart ID
    */
-  cartIdentifier: string
+  cartId: string
 }
 
 export type ContractorsCartGetCartSummaryResponse = CartSummary
@@ -10337,6 +10317,16 @@ export type ContractorsCheckoutProcessCheckoutData = {
 
 export type ContractorsCheckoutProcessCheckoutResponse = CheckoutResponse
 
+export type ContractorsMembershipGetMembershipPlansData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ContractorsMembershipGetMembershipPlansResponse =
+  Array<MembershipPlan>
+
 export type ContractorsProductsGetContractorProductsData = {
   /**
    * Business ID
@@ -10350,6 +10340,14 @@ export type ContractorsProductsGetContractorProductsData = {
    * Show only in-stock products
    */
   inStockOnly?: boolean
+  /**
+   * Maximum number of products to return
+   */
+  limit?: number
+  /**
+   * Offset for pagination
+   */
+  offset?: number
 }
 
 export type ContractorsProductsGetContractorProductsResponse =
@@ -10385,25 +10383,6 @@ export type ContractorsProductsGetProductCatalogData = {
 export type ContractorsProductsGetProductCatalogResponse =
   Array<ProductCatalogItem>
 
-export type ContractorsProductsDebugProductsData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-}
-
-export type ContractorsProductsDebugProductsResponse = unknown
-
-export type ContractorsProductsGetProductCategoriesData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-}
-
-export type ContractorsProductsGetProductCategoriesResponse =
-  Array<ProductCategory>
-
 export type ContractorsProductsGetProductDetailsData = {
   /**
    * Business ID
@@ -10417,7 +10396,7 @@ export type ContractorsProductsGetProductDetailsData = {
 
 export type ContractorsProductsGetProductDetailsResponse = ProductCatalogItem
 
-export type ContractorsProductsCalculateProductPricingData = {
+export type ContractorsProductsGetProductPricingData = {
   /**
    * Business ID
    */
@@ -10427,21 +10406,30 @@ export type ContractorsProductsCalculateProductPricingData = {
    */
   installationOptionId?: string | null
   /**
-   * Membership type (residential, commercial, premium)
+   * Membership plan ID for discounts
    */
-  membershipType?: string | null
+  membershipPlanId?: string | null
   /**
    * Product ID
    */
   productId: string
   /**
-   * Quantity
+   * Product quantity
    */
   quantity?: number
 }
 
-export type ContractorsProductsCalculateProductPricingResponse =
-  PricingBreakdown
+export type ContractorsProductsGetProductPricingResponse = PricingBreakdown
+
+export type ContractorsProductsGetProductCategoriesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ContractorsProductsGetProductCategoriesResponse =
+  Array<ProductCategory>
 
 export type ContractorsProfileGetContractorProfileData = {
   /**
@@ -10495,15 +10483,6 @@ export type ContractorsProjectsGetProjectDetailsData = {
 
 export type ContractorsProjectsGetProjectDetailsResponse = FeaturedProject
 
-export type ContractorsProjectsGetProjectMetricsData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-}
-
-export type ContractorsProjectsGetProjectMetricsResponse = ProjectMetrics
-
 export type ContractorsProjectsGetProjectCategoriesData = {
   /**
    * Business ID
@@ -10536,6 +10515,14 @@ export type ContractorsServicesGetContractorServicesData = {
    * Show only emergency services
    */
   emergencyOnly?: boolean
+  /**
+   * Maximum number of services to return
+   */
+  limit?: number
+  /**
+   * Offset for pagination
+   */
+  offset?: number
 }
 
 export type ContractorsServicesGetContractorServicesResponse =
@@ -10551,29 +10538,30 @@ export type ContractorsServicesGetContractorServiceCategoriesData = {
 export type ContractorsServicesGetContractorServiceCategoriesResponse =
   Array<app__api__public__routes__contractors__schemas__ServiceCategory>
 
-export type ContractorsServicesGetMembershipPlansData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-}
-
-export type ContractorsServicesGetMembershipPlansResponse =
-  Array<MembershipPlan>
-
 export type ContractorsServicesGetServicePricingData = {
   /**
    * Business ID
    */
   businessId: string
   /**
-   * Filter by service category
+   * Estimated hours for hourly services
    */
-  category?: string | null
+  estimatedHours?: number | null
+  /**
+   * Membership plan ID for discounts
+   */
+  membershipPlanId?: string | null
+  /**
+   * Service area for location-based pricing
+   */
+  serviceArea?: string | null
+  /**
+   * Service ID
+   */
+  serviceId: string
 }
 
-export type ContractorsServicesGetServicePricingResponse =
-  Array<ServicePricingCategory>
+export type ContractorsServicesGetServicePricingResponse = ServicePricing
 
 export type DynamicWebsiteDeploymentCheckWebsiteGenerationReadinessResponse =
   unknown

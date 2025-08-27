@@ -6,9 +6,9 @@ Repository implementation using Supabase client SDK for business management oper
 
 import uuid
 import logging
+import json
 from typing import Optional, List, Tuple
 from datetime import datetime, timedelta
-import json
 
 from supabase import Client
 
@@ -266,7 +266,84 @@ class SupabaseBusinessRepository(BusinessRepository):
             return [self._dict_to_business(business_data) for business_data in response.data]
             
         except Exception as e:
-            raise DatabaseError(f"Failed to get recent businesses: {str(e)}")
+            raise DatabaseError(f"Failed to get recent businesses: {str(e)}"        ) 
+    
+    def _parse_commercial_trades(self, data: dict) -> List[CommercialTrade]:
+        """Parse commercial trades from database data."""
+        # First try the dedicated commercial_trades field
+        if data.get("commercial_trades"):
+            trades_data = self._safe_json_parse(data.get("commercial_trades"), [])
+            commercial_trades = []
+            for trade in trades_data:
+                try:
+                    # Convert to lowercase and handle special cases
+                    trade_lower = trade.lower()
+                    # Map HVAC to mechanical for commercial trades
+                    if trade_lower == "hvac":
+                        trade_lower = "mechanical"
+                    commercial_trades.append(CommercialTrade(trade_lower))
+                except ValueError as e:
+                    logger.warning(f"Invalid commercial trade value: {trade} -> {e}")
+                    continue
+            return commercial_trades
+        
+        # Fallback: parse from general trades field
+        trades_data = self._safe_json_parse(data.get("trades"), [])
+        commercial_trades = []
+        for trade in trades_data:
+            try:
+                # Convert to lowercase and handle special cases
+                trade_lower = trade.lower()
+                # Map HVAC to mechanical for commercial trades
+                if trade_lower == "hvac":
+                    trade_lower = "mechanical"
+                commercial_trades.append(CommercialTrade(trade_lower))
+            except ValueError:
+                # Not a commercial trade, skip
+                continue
+        return commercial_trades
+    
+    def _parse_residential_trades(self, data: dict) -> List[ResidentialTrade]:
+        """Parse residential trades from database data."""
+        # First try the dedicated residential_trades field
+        if data.get("residential_trades"):
+            trades_data = self._safe_json_parse(data.get("residential_trades"), [])
+            residential_trades = []
+            for trade in trades_data:
+                try:
+                    # Convert to lowercase for enum matching
+                    trade_lower = trade.lower()
+                    residential_trades.append(ResidentialTrade(trade_lower))
+                except ValueError as e:
+                    logger.warning(f"Invalid residential trade value: {trade} -> {e}")
+                    continue
+            return residential_trades
+        
+        # Fallback: parse from general trades field
+        trades_data = self._safe_json_parse(data.get("trades"), [])
+        residential_trades = []
+        for trade in trades_data:
+            try:
+                # Convert to lowercase for enum matching
+                trade_lower = trade.lower()
+                residential_trades.append(ResidentialTrade(trade_lower))
+            except ValueError:
+                # Not a residential trade, skip
+                continue
+        return residential_trades
+    
+    def _safe_json_parse(self, value, default=None):
+        """Helper function to safely handle JSONB fields that might be strings or already parsed."""
+        if value is None:
+            return default
+        if isinstance(value, (list, dict)):
+            return value  # Already parsed by Supabase
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                return default
+        return default
     
     def _business_to_dict(self, business: Business) -> dict:
         """Convert Business entity to dictionary for Supabase."""
@@ -325,7 +402,8 @@ class SupabaseBusinessRepository(BusinessRepository):
                     return default or []
             return default or []
         
-        return Business(
+        try:
+            business = Business(
             id=uuid.UUID(data["id"]),
             name=data["name"],
             industry=data["industry"],
@@ -357,10 +435,14 @@ class SupabaseBusinessRepository(BusinessRepository):
             
             # Trade Information
             trade_category=TradeCategory(data["trade_category"]) if data.get("trade_category") else None,
-            commercial_trades=[CommercialTrade(trade) for trade in safe_json_parse(data.get("commercial_trades"), [])],
-            residential_trades=[ResidentialTrade(trade) for trade in safe_json_parse(data.get("residential_trades"), [])],
+            commercial_trades=self._parse_commercial_trades(data),
+            residential_trades=self._parse_residential_trades(data),
             service_areas=safe_json_parse(data.get("service_areas"), []),
             
             created_date=datetime.fromisoformat(data["created_date"]) if data.get("created_date") else None,
             last_modified=datetime.fromisoformat(data["last_modified"]) if data.get("last_modified") else None
-        ) 
+            )
+            return business
+        except Exception as e:
+            logger.error(f"Failed to create business entity from data: {e}")
+            raise 

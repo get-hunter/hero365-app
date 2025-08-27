@@ -16,7 +16,7 @@ from supabase import Client
 from app.domain.repositories.product_repository import ProductRepository
 from app.domain.entities.product import Product
 from app.domain.entities.product_enums.enums import ProductType, ProductStatus, CostingMethod
-from app.domain.shared.enums import PricingModel, UnitOfMeasure
+from app.domain.shared.enums import PricingModel, UnitOfMeasure, CurrencyCode
 from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DuplicateEntityError, DatabaseError
 )
@@ -1037,61 +1037,36 @@ class SupabaseProductRepository(ProductRepository):
                 return datetime.fromisoformat(value.replace('Z', '+00:00'))
             return value
         
-        return Product(
-            id=uuid.UUID(data["id"]),
-            business_id=uuid.UUID(data["business_id"]),
-            category_id=uuid.UUID(data["category_id"]) if data.get("category_id") else None,
-            sku=data["sku"],
-            name=data["name"],
-            description=data.get("description"),
-            long_description=data.get("long_description"),
-            product_type=ProductType(data["product_type"]),
-            status=ProductStatus(data["status"]),
-            pricing_model=PricingModel(data.get("pricing_model", "fixed")),
-            unit_price=safe_decimal(data["unit_price"], Decimal('0')),
-            cost_price=safe_decimal(data.get("cost_price"), Decimal('0')),
-            minimum_price=safe_decimal(data.get("minimum_price")),
-            markup_percentage=safe_decimal(data.get("markup_percentage")),
-            unit_of_measure=UnitOfMeasure(data.get("unit_of_measure", "each")),
-            weight=safe_decimal(data.get("weight")),
-            dimensions=data.get("dimensions"),
-            track_inventory=data.get("track_inventory", True),
-            current_stock=safe_decimal(data.get("current_stock"), Decimal('0')),
-            reserved_stock=safe_decimal(data.get("reserved_stock"), Decimal('0')),
-            available_stock=safe_decimal(data.get("available_stock"), Decimal('0')),
-            reorder_point=safe_decimal(data.get("reorder_point")),
-            reorder_quantity=safe_decimal(data.get("reorder_quantity")),
-            minimum_stock_level=safe_decimal(data.get("minimum_stock_level")),
-            maximum_stock_level=safe_decimal(data.get("maximum_stock_level")),
-            costing_method=CostingMethod(data.get("costing_method", "weighted_average")),
-            weighted_average_cost=safe_decimal(data.get("weighted_average_cost"), Decimal('0')),
-            last_cost=safe_decimal(data.get("last_cost")),
-            standard_cost=safe_decimal(data.get("standard_cost")),
-            inventory_account=data.get("inventory_account"),
-            cost_of_goods_sold_account=data.get("cost_of_goods_sold_account"),
-            income_account=data.get("income_account"),
-            tax_rate=safe_decimal(data.get("tax_rate")),
-            tax_category=data.get("tax_category"),
-            is_taxable=data.get("is_taxable", True),
-            primary_supplier_id=uuid.UUID(data["primary_supplier_id"]) if data.get("primary_supplier_id") else None,
-            supplier_sku=data.get("supplier_sku"),
-            lead_time_days=data.get("lead_time_days", 0),
-            barcode=data.get("barcode"),
-            qr_code=data.get("qr_code"),
-            images=data.get("images"),
-            attachments=data.get("attachments"),
-            notes=data.get("notes"),
-            tags=data.get("tags", []),
-            is_active=data.get("is_active", True),
-            is_featured=data.get("is_featured", False),
-            is_digital=data.get("is_digital", False),
-            total_sold=safe_decimal(data.get("total_sold"), Decimal('0')),
-            total_revenue=safe_decimal(data.get("total_revenue"), Decimal('0')),
-            last_sold_date=safe_datetime(data.get("last_sold_date")),
-            last_purchased_date=safe_datetime(data.get("last_purchased_date")),
-            last_inventory_update=safe_datetime(data.get("last_inventory_update")),
-            created_at=safe_datetime(data.get("created_at")) or datetime.utcnow(),
-            updated_at=safe_datetime(data.get("updated_at")) or datetime.utcnow(),
-            created_by=data.get("created_by", ""),
-            updated_by=data.get("updated_by", ""),
-        ) 
+        # Derive product_type from available database fields
+        if data.get("is_digital", False):
+            product_type = ProductType.DIGITAL
+        elif data.get("has_variations", False):
+            product_type = ProductType.BUNDLE
+        else:
+            product_type = ProductType.PRODUCT
+        
+        try:
+            # Create minimal Product entity with only absolutely required fields
+            product = Product(
+                id=uuid.UUID(data["id"]),
+                business_id=uuid.UUID(data["business_id"]),
+                sku=data["sku"],
+                name=data["name"],
+                description=data.get("description"),
+                product_type=product_type,
+                status=ProductStatus(data.get("status", "active")),
+                category_id=uuid.UUID(data["category_id"]) if data.get("category_id") else None,
+                track_inventory=data.get("track_inventory", True),
+                quantity_on_hand=safe_decimal(data.get("current_stock"), Decimal('0')),
+                unit_price=safe_decimal(data.get("unit_price"), Decimal('0')),
+                unit_cost=safe_decimal(data.get("cost_price"), Decimal('0')),
+                is_active=data.get("is_active", True),
+                created_at=safe_datetime(data.get("created_at")) or datetime.utcnow(),
+                updated_at=safe_datetime(data.get("updated_at")) or datetime.utcnow(),
+                created_by=data.get("created_by") or "system",  # Required field, handle null
+                updated_by=data.get("updated_by") or "system",  # Add this too for consistency
+            )
+            return product
+        except Exception as e:
+            logger.error(f"Failed to create product entity: {e}")
+            raise 

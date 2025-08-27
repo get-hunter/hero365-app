@@ -160,28 +160,35 @@ async def get_product_catalog(
             catalog_item = ProductCatalogItem(
                 id=catalog_dto.id,
                 name=catalog_dto.name,
-                sku=catalog_dto.sku,
                 description=catalog_dto.description,
-                long_description="",  # TODO: Add to DTO
-                unit_price=catalog_dto.unit_price,
-                category_name=catalog_dto.category,
+                category=catalog_dto.category,
                 brand=catalog_dto.brand,
+                model=catalog_dto.model,
+                sku=catalog_dto.sku,
+                unit_price=catalog_dto.unit_price,
+                msrp=catalog_dto.msrp,
+                in_stock=catalog_dto.in_stock,
+                stock_quantity=catalog_dto.stock_quantity,
+                specifications=catalog_dto.specifications,
                 warranty_years=catalog_dto.warranty_years,
-                energy_efficiency_rating=catalog_dto.energy_rating,
-                requires_professional_install=False,  # TODO: Add to DTO
-                install_complexity="medium",  # TODO: Add to DTO
-                installation_time_estimate=2.0,  # TODO: Add to DTO
-                featured_image_url="",  # TODO: Add to DTO
-                gallery_images=[],  # TODO: Add to DTO
+                energy_rating=catalog_dto.energy_rating,
+                images=catalog_dto.images,
+                installation_options=installation_options,
+                has_variations=catalog_dto.has_variations,
+                is_featured=catalog_dto.is_featured,
+                tags=catalog_dto.tags,
+                # Additional fields for catalog display
+                long_description="",  # TODO: Add to DTO
                 product_highlights=[],  # TODO: Add to DTO
                 technical_specs={},  # TODO: Add to DTO
                 meta_title="",  # TODO: Add to DTO
                 meta_description="",  # TODO: Add to DTO
                 slug="",  # TODO: Add to DTO
-                is_active=catalog_dto.in_stock,
-                is_featured=catalog_dto.is_featured,
-                current_stock=float(catalog_dto.stock_quantity),
-                installation_options=installation_options
+                featured_image_url="",  # TODO: Add to DTO
+                gallery_images=[],  # TODO: Add to DTO
+                requires_professional_install=False,  # TODO: Add to DTO
+                install_complexity="medium",  # TODO: Add to DTO
+                installation_time_estimate=2.0  # TODO: Add to DTO
             )
             catalog_items.append(catalog_item)
         
@@ -236,28 +243,35 @@ async def get_product_details(
         catalog_item = ProductCatalogItem(
             id=catalog_dto.id,
             name=catalog_dto.name,
-            sku=catalog_dto.sku,
             description=catalog_dto.description,
-            long_description="",  # TODO: Add to DTO
-            unit_price=catalog_dto.unit_price,
-            category_name=catalog_dto.category,
+            category=catalog_dto.category,
             brand=catalog_dto.brand,
+            model=catalog_dto.model,
+            sku=catalog_dto.sku,
+            unit_price=catalog_dto.unit_price,
+            msrp=catalog_dto.msrp,
+            in_stock=catalog_dto.in_stock,
+            stock_quantity=catalog_dto.stock_quantity,
+            specifications=catalog_dto.specifications,
             warranty_years=catalog_dto.warranty_years,
-            energy_efficiency_rating=catalog_dto.energy_rating,
-            requires_professional_install=False,  # TODO: Add to DTO
-            install_complexity="medium",  # TODO: Add to DTO
-            installation_time_estimate="2-4 hours",  # TODO: Add to DTO
-            featured_image_url="",  # TODO: Add to DTO
-            gallery_images=[],  # TODO: Add to DTO
+            energy_rating=catalog_dto.energy_rating,
+            images=catalog_dto.images,
+            installation_options=installation_options,
+            has_variations=catalog_dto.has_variations,
+            is_featured=catalog_dto.is_featured,
+            tags=catalog_dto.tags,
+            # Additional fields for catalog display
+            long_description="",  # TODO: Add to DTO
             product_highlights=[],  # TODO: Add to DTO
             technical_specs={},  # TODO: Add to DTO
             meta_title="",  # TODO: Add to DTO
             meta_description="",  # TODO: Add to DTO
             slug="",  # TODO: Add to DTO
-            is_active=catalog_dto.in_stock,
-            is_featured=catalog_dto.is_featured,
-            current_stock=float(catalog_dto.stock_quantity),
-            installation_options=installation_options
+            featured_image_url="",  # TODO: Add to DTO
+            gallery_images=[],  # TODO: Add to DTO
+            requires_professional_install=False,  # TODO: Add to DTO
+            install_complexity="medium",  # TODO: Add to DTO
+            installation_time_estimate=2.0  # TODO: Add to DTO
         )
         
         return catalog_item

@@ -1,553 +1,384 @@
 """
-Availability Service
+Availability Application Service
 
-Core business logic for calculating available time slots for booking appointments.
-Handles complex scheduling constraints including:
-- Business hours and holidays
-- Technician skills and availability
-- Travel time optimization
-- Capacity management
-- Lead time and booking horizon
+Service layer for availability and scheduling management operations.
 """
 
-import asyncio
-from datetime import date, datetime, time, timedelta
-from typing import List, Dict, Optional, Set, Tuple
-from uuid import UUID
+import uuid
 import logging
+from typing import Optional, List
+from datetime import date, time, datetime, timedelta
 
-from supabase import Client
-from ...domain.entities.booking import (
-    AvailabilityRequest, AvailabilityResponse, TimeSlot,
-    BookableService, Technician, BusinessHours, TimeOff,
-    BookingStatus, TimeOffStatus, AvailabilityCache
+from ..dto.availability_dto import (
+    AvailabilitySlotDTO, BusinessHoursDTO, AvailabilitySearchCriteria, CalendarEventDTO
 )
+from ...domain.repositories.business_repository import BusinessRepository
 from ..exceptions.application_exceptions import (
-    BusinessNotFoundError, ServiceNotFoundError, ValidationError
+    ApplicationError, ValidationError, EntityNotFoundError
 )
+from ...core.db import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
 
 class AvailabilityService:
-    """Service for calculating and managing appointment availability"""
+    """
+    Application service for availability and scheduling management.
     
-    def __init__(self, supabase_client: Client):
-        self.supabase = supabase_client
-        self.cache_ttl_minutes = 5  # Cache availability for 5 minutes
-        
-    async def get_availability(
+    Encapsulates business logic for availability operations and coordinates
+    between the domain and infrastructure layers.
+    """
+    
+    def __init__(self, business_repository: BusinessRepository):
+        self.business_repository = business_repository
+        self.supabase = get_supabase_client()
+        logger.info("AvailabilityService initialized")
+    
+    async def get_availability_slots(
         self, 
-        request: AvailabilityRequest
-    ) -> AvailabilityResponse:
+        business_id: str, 
+        search_criteria: AvailabilitySearchCriteria
+    ) -> List[AvailabilitySlotDTO]:
         """
-        Get available time slots for a service within the requested date range
+        Get availability slots for a business within a date range.
         
         Args:
-            request: Availability request with service, dates, and preferences
+            business_id: Business identifier
+            search_criteria: Search and filter criteria
             
         Returns:
-            AvailabilityResponse with available time slots by date
+            List of availability slots as DTOs
+            
+        Raises:
+            EntityNotFoundError: If business doesn't exist
+            ValidationError: If parameters are invalid
+            ApplicationError: If retrieval fails
         """
         try:
-            # Validate request
-            await self._validate_availability_request(request)
+            business_uuid = uuid.UUID(business_id)
             
-            # Get service details
-            service = await self._get_service(request.business_id, request.service_id)
-            if not service:
-                raise ServiceNotFoundError(str(request.service_id))
+            # Verify business exists
+            business = await self.business_repository.get_by_id(business_uuid)
+            if not business:
+                raise EntityNotFoundError(f"Business not found: {business_id}")
             
-            # Determine date range
-            start_date = request.start_date
-            end_date = request.end_date or start_date
+            # Get business hours for the date range
+            business_hours = await self._get_business_hours(business_id)
             
-            # Limit to service's max advance booking
-            max_end_date = date.today() + timedelta(days=service.max_advance_days)
-            if end_date > max_end_date:
-                end_date = max_end_date
+            # Get existing calendar events (bookings, blocks, etc.)
+            calendar_events = await self._get_calendar_events(business_id, search_criteria)
             
-            # Check cache first
-            cached_availability = await self._get_cached_availability(
-                request.business_id, request.service_id, start_date, end_date
+            # Generate availability slots based on business hours and existing events
+            availability_slots = self._generate_availability_slots(
+                business_id, 
+                business_hours, 
+                calendar_events, 
+                search_criteria
             )
             
-            if cached_availability:
-                logger.info(f"Returning cached availability for service {request.service_id}")
-                return cached_availability
+            logger.info(f"Generated {len(availability_slots)} availability slots for business {business_id}")
+            return availability_slots
             
-            # Calculate fresh availability
-            availability = await self._calculate_availability(request, service, start_date, end_date)
+        except ValueError as e:
+            raise ValidationError(f"Invalid business ID format: {business_id}")
+        except Exception as e:
+            logger.error(f"Error retrieving availability for business {business_id}: {str(e)}")
+            raise ApplicationError(f"Failed to retrieve availability: {str(e)}")
+    
+    async def get_business_hours(self, business_id: str) -> List[BusinessHoursDTO]:
+        """
+        Get business hours for a business.
+        
+        Args:
+            business_id: Business identifier
             
-            # Cache the results
-            await self._cache_availability(availability)
+        Returns:
+            List of business hours as DTOs
             
-            return availability
+        Raises:
+            EntityNotFoundError: If business doesn't exist
+            ValidationError: If parameters are invalid
+            ApplicationError: If retrieval fails
+        """
+        try:
+            business_uuid = uuid.UUID(business_id)
+            
+            # Verify business exists
+            business = await self.business_repository.get_by_id(business_uuid)
+            if not business:
+                raise EntityNotFoundError(f"Business not found: {business_id}")
+            
+            return await self._get_business_hours(business_id)
+            
+        except ValueError as e:
+            raise ValidationError(f"Invalid business ID format: {business_id}")
+        except Exception as e:
+            logger.error(f"Error retrieving business hours for business {business_id}: {str(e)}")
+            raise ApplicationError(f"Failed to retrieve business hours: {str(e)}")
+    
+    async def check_slot_availability(
+        self, 
+        business_id: str, 
+        slot_date: date, 
+        start_time: time, 
+        duration_minutes: int
+    ) -> bool:
+        """
+        Check if a specific time slot is available.
+        
+        Args:
+            business_id: Business identifier
+            slot_date: Date of the slot
+            start_time: Start time of the slot
+            duration_minutes: Duration in minutes
+            
+        Returns:
+            True if slot is available, False otherwise
+            
+        Raises:
+            EntityNotFoundError: If business doesn't exist
+            ValidationError: If parameters are invalid
+            ApplicationError: If check fails
+        """
+        try:
+            business_uuid = uuid.UUID(business_id)
+            
+            # Verify business exists
+            business = await self.business_repository.get_by_id(business_uuid)
+            if not business:
+                raise EntityNotFoundError(f"Business not found: {business_id}")
+            
+            # Create search criteria for the specific slot
+            end_time = (datetime.combine(slot_date, start_time) + timedelta(minutes=duration_minutes)).time()
+            search_criteria = AvailabilitySearchCriteria(
+                start_date=slot_date,
+                end_date=slot_date,
+                duration_minutes=duration_minutes,
+                available_only=True
+            )
+            
+            # Get availability slots
+            slots = await self.get_availability_slots(business_id, search_criteria)
+            
+            # Check if any slot matches the requested time
+            for slot in slots:
+                if (slot.date == slot_date and 
+                    slot.start_time <= start_time and 
+                    slot.end_time >= end_time and 
+                    slot.is_available):
+                    return True
+            
+            return False
+            
+        except ValueError as e:
+            raise ValidationError(f"Invalid business ID format: {business_id}")
+        except Exception as e:
+            logger.error(f"Error checking slot availability for business {business_id}: {str(e)}")
+            raise ApplicationError(f"Failed to check slot availability: {str(e)}")
+    
+    async def _get_business_hours(self, business_id: str) -> List[BusinessHoursDTO]:
+        """Get business hours from database."""
+        try:
+            # Query business hours table
+            result = self.supabase.table("business_hours").select(
+                "day_of_week, is_open, open_time, close_time, break_start, break_end, is_emergency_available"
+            ).eq("business_id", business_id).order("day_of_week").execute()
+            
+            business_hours = []
+            for hours_data in result.data:
+                hours_dto = BusinessHoursDTO(
+                    business_id=business_id,
+                    day_of_week=hours_data["day_of_week"],
+                    is_open=hours_data.get("is_open", True),
+                    open_time=time.fromisoformat(hours_data["open_time"]) if hours_data.get("open_time") else None,
+                    close_time=time.fromisoformat(hours_data["close_time"]) if hours_data.get("close_time") else None,
+                    break_start=time.fromisoformat(hours_data["break_start"]) if hours_data.get("break_start") else None,
+                    break_end=time.fromisoformat(hours_data["break_end"]) if hours_data.get("break_end") else None,
+                    is_emergency_available=hours_data.get("is_emergency_available", False)
+                )
+                business_hours.append(hours_dto)
+            
+            # If no business hours found, return default hours (9 AM - 5 PM, Monday-Friday)
+            if not business_hours:
+                for day in range(7):
+                    is_weekday = day < 5  # Monday-Friday
+                    hours_dto = BusinessHoursDTO(
+                        business_id=business_id,
+                        day_of_week=day,
+                        is_open=is_weekday,
+                        open_time=time(9, 0) if is_weekday else None,
+                        close_time=time(17, 0) if is_weekday else None,
+                        is_emergency_available=True
+                    )
+                    business_hours.append(hours_dto)
+            
+            return business_hours
             
         except Exception as e:
-            logger.error(f"Error getting availability: {str(e)}")
+            logger.error(f"Error getting business hours: {str(e)}")
             raise
     
-    async def _validate_availability_request(self, request: AvailabilityRequest) -> None:
-        """Validate availability request parameters"""
-        
-        # Check date range
-        if request.start_date < date.today():
-            raise ValidationError("Cannot request availability for past dates")
-        
-        if request.end_date and request.end_date < request.start_date:
-            raise ValidationError("End date must be after start date")
-        
-        # Limit date range to prevent excessive computation
-        max_range_days = 90
-        end_date = request.end_date or request.start_date
-        if (end_date - request.start_date).days > max_range_days:
-            raise ValidationError(f"Date range cannot exceed {max_range_days} days")
-    
-    async def _get_service(self, business_id: UUID, service_id: UUID) -> Optional[BookableService]:
-        """Get service details from database"""
+    async def _get_calendar_events(
+        self, 
+        business_id: str, 
+        search_criteria: AvailabilitySearchCriteria
+    ) -> List[CalendarEventDTO]:
+        """Get calendar events from database."""
         try:
-            result = self.supabase.table('bookable_services').select('*').eq(
-                'business_id', str(business_id)
-            ).eq('id', str(service_id)).eq('is_bookable', True).single().execute()
+            # Query calendar events table
+            result = self.supabase.table("calendar_events").select(
+                "id, title, start_datetime, end_datetime, event_type, status, customer_id, service_id, notes"
+            ).eq("business_id", business_id).gte(
+                "start_datetime", search_criteria.start_date.isoformat()
+            ).lte(
+                "end_datetime", (search_criteria.end_date + timedelta(days=1)).isoformat()
+            ).execute()
             
-            if result.data:
-                return BookableService(**result.data)
-            return None
+            calendar_events = []
+            for event_data in result.data:
+                event_dto = CalendarEventDTO(
+                    id=str(event_data["id"]),
+                    business_id=business_id,
+                    title=event_data["title"],
+                    start_datetime=datetime.fromisoformat(event_data["start_datetime"]),
+                    end_datetime=datetime.fromisoformat(event_data["end_datetime"]),
+                    event_type=event_data.get("event_type", "booking"),
+                    status=event_data.get("status", "confirmed"),
+                    customer_id=event_data.get("customer_id"),
+                    service_id=event_data.get("service_id"),
+                    notes=event_data.get("notes")
+                )
+                calendar_events.append(event_dto)
+            
+            return calendar_events
             
         except Exception as e:
-            logger.error(f"Error fetching service {service_id}: {str(e)}")
-            return None
+            logger.error(f"Error getting calendar events: {str(e)}")
+            # Return empty list if table doesn't exist or other error
+            return []
     
-    async def _calculate_availability(
+    def _generate_availability_slots(
         self,
-        request: AvailabilityRequest,
-        service: BookableService,
-        start_date: date,
-        end_date: date
-    ) -> AvailabilityResponse:
-        """Calculate availability for the date range"""
+        business_id: str,
+        business_hours: List[BusinessHoursDTO],
+        calendar_events: List[CalendarEventDTO],
+        search_criteria: AvailabilitySearchCriteria
+    ) -> List[AvailabilitySlotDTO]:
+        """Generate availability slots based on business hours and existing events."""
         
-        # Get all required data in parallel
-        business_hours, technicians, existing_bookings, time_off_records = await asyncio.gather(
-            self._get_business_hours(request.business_id),
-            self._get_qualified_technicians(request.business_id, service),
-            self._get_existing_bookings(request.business_id, start_date, end_date),
-            self._get_time_off_records(request.business_id, start_date, end_date)
-        )
+        slots = []
+        current_date = search_criteria.start_date
         
-        if not technicians:
-            logger.warning(f"No qualified technicians found for service {service.id}")
-            return AvailabilityResponse(
-                business_id=request.business_id,
-                service_id=request.service_id,
-                service_name=service.name,
-                estimated_duration_minutes=service.estimated_duration_minutes,
-                base_price=service.base_price
-            )
-        
-        # Calculate slots for each date
-        available_dates = {}
-        total_slots = 0
-        earliest_available = None
-        latest_available = None
-        
-        current_date = start_date
-        while current_date <= end_date:
-            # Skip if service not available on this day
-            day_of_week = current_date.isoweekday()  # 1=Monday, 7=Sunday
-            if day_of_week not in service.available_days:
-                current_date += timedelta(days=1)
-                continue
+        while current_date <= search_criteria.end_date:
+            day_of_week = current_date.weekday()  # 0=Monday, 6=Sunday
             
-            # Check if we're within lead time
-            if not self._is_within_lead_time(current_date, service.min_lead_time_hours):
-                current_date += timedelta(days=1)
-                continue
+            # Find business hours for this day
+            day_hours = next((h for h in business_hours if h.day_of_week == day_of_week), None)
             
-            # Get business hours for this day
-            day_hours = self._get_day_business_hours(business_hours, day_of_week)
-            if not day_hours or not day_hours.is_open:
-                current_date += timedelta(days=1)
-                continue
-            
-            # Calculate available slots for this date
-            date_slots = await self._calculate_date_slots(
-                current_date, day_hours, service, technicians, 
-                existing_bookings, time_off_records, request
-            )
-            
-            if date_slots:
-                available_dates[current_date.isoformat()] = date_slots
-                total_slots += len(date_slots)
-                
-                # Update earliest/latest available
-                for slot in date_slots:
-                    if earliest_available is None or slot.start_time < earliest_available:
-                        earliest_available = slot.start_time
-                    if latest_available is None or slot.end_time > latest_available:
-                        latest_available = slot.end_time
+            if day_hours and day_hours.is_open and day_hours.open_time and day_hours.close_time:
+                # Generate slots for this day
+                day_slots = self._generate_day_slots(
+                    business_id,
+                    current_date,
+                    day_hours,
+                    calendar_events,
+                    search_criteria
+                )
+                slots.extend(day_slots)
             
             current_date += timedelta(days=1)
         
-        return AvailabilityResponse(
-            business_id=request.business_id,
-            service_id=request.service_id,
-            service_name=service.name,
-            available_dates=available_dates,
-            total_slots=total_slots,
-            earliest_available=earliest_available,
-            latest_available=latest_available,
-            estimated_duration_minutes=service.estimated_duration_minutes,
-            base_price=service.base_price
-        )
+        return slots
     
-    async def _get_business_hours(self, business_id: UUID) -> List[BusinessHours]:
-        """Get business operating hours"""
-        try:
-            result = self.supabase.table('business_hours').select('*').eq(
-                'business_id', str(business_id)
-            ).execute()
-            
-            return [BusinessHours(**row) for row in result.data]
-            
-        except Exception as e:
-            logger.error(f"Error fetching business hours: {str(e)}")
-            return []
-    
-    async def _get_qualified_technicians(
-        self, 
-        business_id: UUID, 
-        service: BookableService
-    ) -> List[Technician]:
-        """Get technicians qualified to perform the service"""
-        try:
-            # If no specific skills required, get all active technicians
-            if not service.required_skills:
-                result = self.supabase.table('technicians').select('*').eq(
-                    'business_id', str(business_id)
-                ).eq('is_active', True).eq('can_be_booked', True).execute()
-                
-                return [Technician(**row) for row in result.data]
-            
-            # Get technicians with required skills
-            skill_ids = [str(skill_id) for skill_id in service.required_skills]
-            
-            # Complex query to find technicians with ALL required skills
-            query = """
-            SELECT DISTINCT t.* FROM technicians t
-            JOIN technician_skills ts ON t.id = ts.technician_id
-            WHERE t.business_id = %s 
-              AND t.is_active = true 
-              AND t.can_be_booked = true
-              AND ts.skill_id = ANY(%s)
-            GROUP BY t.id
-            HAVING COUNT(DISTINCT ts.skill_id) >= %s
-            """
-            
-            result = self.supabase.rpc('execute_sql', {
-                'query': query,
-                'params': [str(business_id), skill_ids, len(skill_ids)]
-            }).execute()
-            
-            return [Technician(**row) for row in result.data]
-            
-        except Exception as e:
-            logger.error(f"Error fetching qualified technicians: {str(e)}")
-            return []
-    
-    async def _get_existing_bookings(
-        self, 
-        business_id: UUID, 
-        start_date: date, 
-        end_date: date
-    ) -> List[Dict]:
-        """Get existing bookings in the date range"""
-        try:
-            start_datetime = datetime.combine(start_date, time.min)
-            end_datetime = datetime.combine(end_date, time.max)
-            
-            result = self.supabase.table('bookings').select(
-                'id, scheduled_at, estimated_duration_minutes, primary_technician_id, status'
-            ).eq('business_id', str(business_id)).in_(
-                'status', [BookingStatus.CONFIRMED.value, BookingStatus.IN_PROGRESS.value]
-            ).gte('scheduled_at', start_datetime.isoformat()).lte(
-                'scheduled_at', end_datetime.isoformat()
-            ).execute()
-            
-            return result.data
-            
-        except Exception as e:
-            logger.error(f"Error fetching existing bookings: {str(e)}")
-            return []
-    
-    async def _get_time_off_records(
-        self, 
-        business_id: UUID, 
-        start_date: date, 
-        end_date: date
-    ) -> List[Dict]:
-        """Get technician time off records in the date range"""
-        try:
-            start_datetime = datetime.combine(start_date, time.min)
-            end_datetime = datetime.combine(end_date, time.max)
-            
-            # Get time off for technicians in this business
-            result = self.supabase.table('time_off').select(
-                'technician_id, start_at, end_at, type'
-            ).eq('status', TimeOffStatus.APPROVED.value).gte(
-                'start_at', start_datetime.isoformat()
-            ).lte('end_at', end_datetime.isoformat()).execute()
-            
-            return result.data
-            
-        except Exception as e:
-            logger.error(f"Error fetching time off records: {str(e)}")
-            return []
-    
-    def _get_day_business_hours(
-        self, 
-        business_hours: List[BusinessHours], 
-        day_of_week: int
-    ) -> Optional[BusinessHours]:
-        """Get business hours for a specific day"""
-        for hours in business_hours:
-            if hours.day_of_week == day_of_week:
-                return hours
-        return None
-    
-    def _is_within_lead_time(self, booking_date: date, min_lead_time_hours: int) -> bool:
-        """Check if booking date is within minimum lead time"""
-        if min_lead_time_hours == 0:
-            return True
-        
-        earliest_booking_time = datetime.now() + timedelta(hours=min_lead_time_hours)
-        booking_datetime = datetime.combine(booking_date, time.min)
-        
-        return booking_datetime >= earliest_booking_time
-    
-    async def _calculate_date_slots(
+    def _generate_day_slots(
         self,
-        target_date: date,
-        day_hours: BusinessHours,
-        service: BookableService,
-        technicians: List[Technician],
-        existing_bookings: List[Dict],
-        time_off_records: List[Dict],
-        request: AvailabilityRequest
-    ) -> List[TimeSlot]:
-        """Calculate available time slots for a specific date"""
+        business_id: str,
+        slot_date: date,
+        business_hours: BusinessHoursDTO,
+        calendar_events: List[CalendarEventDTO],
+        search_criteria: AvailabilitySearchCriteria
+    ) -> List[AvailabilitySlotDTO]:
+        """Generate availability slots for a single day."""
         
         slots = []
+        slot_duration = 60  # Default 1-hour slots
         
-        # Determine working hours for the day
-        if not day_hours.open_time or not day_hours.close_time:
-            return slots
+        if search_criteria.duration_minutes:
+            slot_duration = search_criteria.duration_minutes
         
-        # Use service available times if more restrictive
-        service_start = time.fromisoformat(service.available_times.get('start', '08:00'))
-        service_end = time.fromisoformat(service.available_times.get('end', '17:00'))
+        # Start from opening time
+        current_time = business_hours.open_time
+        end_time = business_hours.close_time
         
-        work_start = max(day_hours.open_time, service_start)
-        work_end = min(day_hours.close_time, service_end)
-        
-        if work_start >= work_end:
-            return slots
-        
-        # Generate time slots (30-minute intervals by default)
-        slot_interval_minutes = 30
-        current_time = datetime.combine(target_date, work_start)
-        end_time = datetime.combine(target_date, work_end)
-        
-        while current_time + timedelta(minutes=service.estimated_duration_minutes) <= end_time:
-            slot_end = current_time + timedelta(minutes=service.estimated_duration_minutes)
+        slot_counter = 0
+        while current_time < end_time:
+            # Calculate slot end time
+            slot_end = (datetime.combine(slot_date, current_time) + timedelta(minutes=slot_duration)).time()
             
-            # Check if slot is during lunch break
-            if day_hours.lunch_start and day_hours.lunch_end:
-                lunch_start = datetime.combine(target_date, day_hours.lunch_start)
-                lunch_end = datetime.combine(target_date, day_hours.lunch_end)
-                
-                if current_time < lunch_end and slot_end > lunch_start:
-                    # Skip this slot, it conflicts with lunch
-                    current_time += timedelta(minutes=slot_interval_minutes)
-                    continue
+            # Don't create slots that extend past closing time
+            if slot_end > end_time:
+                break
             
-            # Find available technicians for this slot
-            available_techs = self._get_available_technicians_for_slot(
-                current_time, slot_end, technicians, existing_bookings, 
-                time_off_records, request
+            # Check if slot conflicts with break time
+            is_during_break = (business_hours.break_start and business_hours.break_end and
+                             current_time < business_hours.break_end and slot_end > business_hours.break_start)
+            
+            # Check if slot conflicts with existing events
+            is_booked = self._is_slot_booked(slot_date, current_time, slot_end, calendar_events)
+            
+            # Create slot
+            slot_id = f"{business_id}-{slot_date.isoformat()}-{current_time.strftime('%H%M')}"
+            slot = AvailabilitySlotDTO(
+                id=slot_id,
+                business_id=business_id,
+                date=slot_date,
+                start_time=current_time,
+                end_time=slot_end,
+                duration_minutes=slot_duration,
+                is_available=not (is_during_break or is_booked),
+                is_emergency=business_hours.is_emergency_available,
+                service_types=[],  # TODO: Add service type filtering
+                max_bookings=1,
+                current_bookings=1 if is_booked else 0
             )
             
-            if available_techs:
-                # Calculate capacity (minimum of service requirements and available technicians)
-                capacity = min(len(available_techs), service.max_technicians)
-                
-                if capacity >= service.min_technicians:
-                    slot = TimeSlot(
-                        start_time=current_time,
-                        end_time=slot_end,
-                        available_technicians=[tech.id for tech in available_techs[:capacity]],
-                        capacity=capacity,
-                        booked_count=0,  # Will be updated based on existing bookings
-                        price=service.base_price
-                    )
-                    slots.append(slot)
+            # Apply filters
+            if search_criteria.available_only and not slot.is_available:
+                current_time = (datetime.combine(slot_date, current_time) + timedelta(minutes=30)).time()
+                continue
             
-            current_time += timedelta(minutes=slot_interval_minutes)
+            if search_criteria.emergency_only and not slot.is_emergency:
+                current_time = (datetime.combine(slot_date, current_time) + timedelta(minutes=30)).time()
+                continue
+            
+            slots.append(slot)
+            
+            # Move to next slot (30-minute intervals)
+            current_time = (datetime.combine(slot_date, current_time) + timedelta(minutes=30)).time()
+            slot_counter += 1
+            
+            # Limit number of slots per day to prevent excessive generation
+            if slot_counter >= 20:
+                break
         
         return slots
     
-    def _get_available_technicians_for_slot(
-        self,
-        slot_start: datetime,
-        slot_end: datetime,
-        technicians: List[Technician],
-        existing_bookings: List[Dict],
-        time_off_records: List[Dict],
-        request: AvailabilityRequest
-    ) -> List[Technician]:
-        """Get technicians available for a specific time slot"""
-        
-        available_techs = []
-        
-        for tech in technicians:
-            # Skip if technician is excluded
-            if tech.id in request.exclude_technician_ids:
-                continue
-            
-            # Prefer requested technician
-            is_preferred = tech.id == request.preferred_technician_id
-            
-            # Check for booking conflicts
-            has_conflict = False
-            for booking in existing_bookings:
-                if booking.get('primary_technician_id') == str(tech.id):
-                    booking_start = datetime.fromisoformat(booking['scheduled_at'])
-                    booking_end = booking_start + timedelta(
-                        minutes=booking['estimated_duration_minutes']
-                    )
-                    
-                    # Add buffer time
-                    booking_start -= timedelta(minutes=tech.default_buffer_minutes)
-                    booking_end += timedelta(minutes=tech.default_buffer_minutes)
-                    
-                    if slot_start < booking_end and slot_end > booking_start:
-                        has_conflict = True
-                        break
-            
-            if has_conflict:
-                continue
-            
-            # Check for time off conflicts
-            for time_off in time_off_records:
-                if time_off.get('technician_id') == str(tech.id):
-                    time_off_start = datetime.fromisoformat(time_off['start_at'])
-                    time_off_end = datetime.fromisoformat(time_off['end_at'])
-                    
-                    if slot_start < time_off_end and slot_end > time_off_start:
-                        has_conflict = True
-                        break
-            
-            if has_conflict:
-                continue
-            
-            # Check service area (if customer address provided)
-            if request.customer_address and tech.service_areas:
-                # TODO: Implement geographic matching
-                # For now, assume all technicians can serve all areas
-                pass
-            
-            available_techs.append(tech)
-        
-        # Sort by preference (preferred technician first, then by experience/rating)
-        available_techs.sort(key=lambda t: (
-            t.id != request.preferred_technician_id,  # Preferred first
-            -len(t.skills),  # More skills first
-            t.first_name  # Alphabetical as tiebreaker
-        ))
-        
-        return available_techs
-    
-    async def _get_cached_availability(
-        self,
-        business_id: UUID,
-        service_id: UUID,
-        start_date: date,
-        end_date: date
-    ) -> Optional[AvailabilityResponse]:
-        """Get cached availability if valid and not expired"""
-        try:
-            # For now, skip caching to ensure fresh data
-            # TODO: Implement proper cache invalidation
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error checking availability cache: {str(e)}")
-            return None
-    
-    async def _cache_availability(self, availability: AvailabilityResponse) -> None:
-        """Cache availability results for performance"""
-        try:
-            # TODO: Implement availability caching
-            # For now, skip caching to avoid complexity
-            pass
-            
-        except Exception as e:
-            logger.error(f"Error caching availability: {str(e)}")
-    
-    async def invalidate_availability_cache(
+    def _is_slot_booked(
         self, 
-        business_id: UUID, 
-        service_id: Optional[UUID] = None,
-        date_range: Optional[Tuple[date, date]] = None
-    ) -> None:
-        """Invalidate cached availability data"""
-        try:
-            query = self.supabase.table('availability_cache').delete().eq(
-                'business_id', str(business_id)
-            )
-            
-            if service_id:
-                query = query.eq('service_id', str(service_id))
-            
-            if date_range:
-                start_date, end_date = date_range
-                query = query.gte('date', start_date.isoformat()).lte(
-                    'date', end_date.isoformat()
-                )
-            
-            query.execute()
-            logger.info(f"Invalidated availability cache for business {business_id}")
-            
-        except Exception as e:
-            logger.error(f"Error invalidating availability cache: {str(e)}")
-    
-    async def get_next_available_slot(
-        self,
-        business_id: UUID,
-        service_id: UUID,
-        preferred_date: Optional[date] = None
-    ) -> Optional[TimeSlot]:
-        """Get the next available time slot for a service"""
+        slot_date: date, 
+        start_time: time, 
+        end_time: time, 
+        calendar_events: List[CalendarEventDTO]
+    ) -> bool:
+        """Check if a slot conflicts with existing calendar events."""
         
-        start_date = preferred_date or date.today()
-        end_date = start_date + timedelta(days=30)  # Look ahead 30 days
+        slot_start = datetime.combine(slot_date, start_time)
+        slot_end = datetime.combine(slot_date, end_time)
         
-        request = AvailabilityRequest(
-            business_id=business_id,
-            service_id=service_id,
-            start_date=start_date,
-            end_date=end_date
-        )
+        for event in calendar_events:
+            # Check if event overlaps with slot
+            if (event.start_datetime < slot_end and event.end_datetime > slot_start and
+                event.status in ["confirmed", "pending"]):
+                return True
         
-        availability = await self.get_availability(request)
-        
-        # Find the earliest available slot
-        earliest_slot = None
-        for date_str, slots in availability.available_dates.items():
-            for slot in slots:
-                if slot.is_available:
-                    if earliest_slot is None or slot.start_time < earliest_slot.start_time:
-                        earliest_slot = slot
-        
-        return earliest_slot
+        return False

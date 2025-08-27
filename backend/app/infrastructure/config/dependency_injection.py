@@ -22,6 +22,7 @@ from ...domain.repositories.job_repository import JobRepository
 from ...domain.repositories.activity_repository import ActivityRepository
 from ...domain.repositories.project_repository import ProjectRepository, ProjectTemplateRepository
 from ...domain.repositories.user_capabilities_repository import UserCapabilitiesRepository
+from ...domain.repositories.customer_membership_repository import CustomerMembershipRepository
 
 # Application Ports
 from ...application.ports.auth_service import AuthServicePort
@@ -37,6 +38,7 @@ from ..database.repositories.supabase_job_repository import SupabaseJobRepositor
 from ..database.repositories.supabase_activity_repository import SupabaseActivityRepository, SupabaseActivityTemplateRepository
 from ..database.repositories.supabase_project_repository import SupabaseProjectRepository, SupabaseProjectTemplateRepository
 from ..database.repositories.supabase_user_capabilities_repository import SupabaseUserCapabilitiesRepository
+from ..database.repositories.supabase_membership_repository import SupabaseMembershipRepository
 from ..external_services.supabase_auth_adapter import SupabaseAuthAdapter
 from ..external_services.resend_email_adapter import ResendEmailAdapter
 from ..external_services.twilio_sms_adapter import TwilioSMSAdapter
@@ -197,6 +199,9 @@ class DependencyContainer:
         # Estimate management repositories
         self._repositories['estimate_repository'] = SupabaseEstimateRepository(supabase_client=supabase_client)
         self._repositories['invoice_repository'] = SupabaseInvoiceRepository(supabase_client=supabase_client)
+        
+        # Customer membership repository
+        self._repositories['customer_membership_repository'] = SupabaseMembershipRepository(supabase_client=supabase_client)
         
         # New unified template repository
         from ..database.repositories.supabase_template_repository import SupabaseTemplateRepository
@@ -845,6 +850,10 @@ class DependencyContainer:
         """Get invoice repository from container."""
         return self._repositories['invoice_repository']
     
+    def get_customer_membership_repository(self) -> CustomerMembershipRepository:
+        """Get customer membership repository."""
+        return self.get_repository('customer_membership_repository')
+    
     def get_template_repository(self):
         """Get unified template repository from container."""
         return self._repositories['template_repository']
@@ -1210,6 +1219,11 @@ def get_estimate_repository() -> EstimateRepository:
 def get_invoice_repository() -> InvoiceRepository:
     """Get invoice repository from container."""
     return get_container().get_invoice_repository()
+
+
+def get_customer_membership_repository() -> CustomerMembershipRepository:
+    """Get customer membership repository from container."""
+    return get_container().get_customer_membership_repository()
 
 
 # Inventory management dependencies

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { ProductCatalogItem, ProductCategory, MembershipType, ProductInstallationOption } from '@/lib/types/products';
 import { BookingCTAButton } from '@/components/booking/BookingWidgetProvider';
 import { useCart } from '@/lib/contexts/CartContext';
+import MembershipPricingDisplay from '@/components/ecommerce/MembershipPricingDisplay';
+import ProductVariantSelector from '@/components/ecommerce/ProductVariantSelector';
 import Image from 'next/image';
 
 interface PricingBreakdown {
@@ -48,9 +50,29 @@ export function ProductDetailClient({
   const [pricingBreakdown, setPricingBreakdown] = useState<PricingBreakdown | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [variantPrice, setVariantPrice] = useState(product.unit_price);
+  const [membershipPlans, setMembershipPlans] = useState<any[]>([]);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   
   const { addToCart } = useCart();
+
+  // Load membership plans
+  useEffect(() => {
+    const loadMembershipPlans = async () => {
+      try {
+        const response = await fetch(`/api/contractors/${businessId}/membership-plans`);
+        if (response.ok) {
+          const plans = await response.json();
+          setMembershipPlans(plans);
+        }
+      } catch (error) {
+        console.error('Failed to load membership plans:', error);
+      }
+    };
+    
+    loadMembershipPlans();
+  }, [businessId]);
 
   // Get all images (featured + gallery)
   const allImages = [
@@ -171,11 +193,8 @@ export function ProductDetailClient({
       });
       
       console.log('✅ [PRODUCT] Successfully added to cart');
-      // Show success message and offer to go to cart
-      const goToCart = confirm('Product added to cart! Would you like to view your cart?');
-      if (goToCart) {
-        window.location.href = '/cart';
-      }
+      // Silently added to cart - no confirmation dialog
+      // User can access cart via the cart icon in navigation
     } catch (error) {
       console.error('❌ [PRODUCT] Error adding to cart:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to add product to cart';
@@ -431,6 +450,18 @@ export function ProductDetailClient({
             </div>
           )}
 
+          {/* Product Variants */}
+          {product.has_variations && (
+            <ProductVariantSelector
+              variants={[]} // TODO: Load variants from API
+              basePrice={product.unit_price}
+              onVariantChange={(variant, price) => {
+                setSelectedVariant(variant);
+                setVariantPrice(price);
+              }}
+            />
+          )}
+
           {/* Quantity */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -446,6 +477,19 @@ export function ProductDetailClient({
               ))}
             </select>
           </div>
+
+          {/* Membership Pricing Display */}
+          {membershipPlans.length > 0 && selectedInstallation && (
+            <MembershipPricingDisplay
+              productPrice={variantPrice}
+              installationPrice={selectedInstallation.base_install_price}
+              membershipPlans={membershipPlans}
+              selectedMembership={selectedMembership === 'none' ? null : selectedMembership}
+              onMembershipSelect={(planType) => {
+                setSelectedMembership(planType as MembershipType || 'none');
+              }}
+            />
+          )}
 
           {/* Pricing Breakdown */}
           {pricingBreakdown && (

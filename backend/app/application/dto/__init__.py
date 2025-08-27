@@ -81,12 +81,45 @@ from .invoice_dto import (
     PaymentDTO,
 )
 from .product_dto import (
-    ProductDTO,
+    ProductItemDTO,
+    ProductCatalogDTO,
+    PricingBreakdownDTO,
+    ProductInstallationOptionDTO,
+    ProductCategoryDTO,
     CreateProductDTO,
-    ProductSummaryDTO,
+    ProductDTO,
+    StockAdjustmentDTO,
     ProductSearchCriteria,
     ProductListDTO,
-    StockAdjustmentDTO,
+    ProductSummaryDTO,
+)
+from .service_dto import (
+    ServiceItemDTO,
+    ServiceCategoryDTO,
+    ServicePricingDTO,
+)
+from .cart_dto import (
+    CartDTO,
+    CartItemDTO,
+    CartSummaryDTO,
+    AddToCartDTO,
+    UpdateCartItemDTO,
+)
+from .profile_dto import (
+    BusinessProfileDTO,
+    ProfileSummaryDTO,
+)
+from .project_portfolio_dto import (
+    FeaturedProjectDTO,
+    ProjectCategoryDTO,
+    ProjectTagDTO,
+    ProjectSearchCriteria,
+)
+from .availability_dto import (
+    AvailabilitySlotDTO,
+    BusinessHoursDTO,
+    AvailabilitySearchCriteria,
+    CalendarEventDTO,
 )
 
 __all__ = [
@@ -159,10 +192,38 @@ __all__ = [
     "InvoiceLineItemDTO",
     "PaymentDTO",
     # Product DTOs
-    "ProductDTO",
+    "ProductItemDTO",
+    "ProductCatalogDTO",
+    "PricingBreakdownDTO",
+    "ProductInstallationOptionDTO",
+    "ProductCategoryDTO",
     "CreateProductDTO",
-    "ProductSummaryDTO",
+    "ProductDTO",
+    "StockAdjustmentDTO",
     "ProductSearchCriteria",
     "ProductListDTO",
-    "StockAdjustmentDTO",
+    "ProductSummaryDTO",
+    # Service DTOs
+    "ServiceItemDTO",
+    "ServiceCategoryDTO",
+    "ServicePricingDTO",
+    # Cart DTOs
+    "CartDTO",
+    "CartItemDTO",
+    "CartSummaryDTO",
+    "AddToCartDTO",
+    "UpdateCartItemDTO",
+    # Profile DTOs
+    "BusinessProfileDTO",
+    "ProfileSummaryDTO",
+    # Project Portfolio DTOs
+    "FeaturedProjectDTO",
+    "ProjectCategoryDTO",
+    "ProjectTagDTO",
+    "ProjectSearchCriteria",
+    # Availability DTOs
+    "AvailabilitySlotDTO",
+    "BusinessHoursDTO",
+    "AvailabilitySearchCriteria",
+    "CalendarEventDTO",
 ] 

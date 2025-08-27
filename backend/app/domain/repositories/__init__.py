@@ -23,6 +23,7 @@ from .stock_movement_repository import StockMovementRepository
 from .supplier_repository import SupplierRepository
 from .purchase_order_repository import PurchaseOrderRepository
 from .hybrid_search_repository import HybridSearchRepository, SearchResult, EmbeddingRecord, SearchQuery
+from .customer_membership_repository import CustomerMembershipRepository
 
 __all__ = [
     "ActivityRepository",
@@ -46,4 +47,5 @@ __all__ = [
     "SearchResult",
     "EmbeddingRecord",
     "SearchQuery",
+    "CustomerMembershipRepository",
 ] 

@@ -149,42 +149,46 @@ import type {
   ContactsUpdateContactStatusResponse,
   ContractorsAvailabilityGetContractorAvailabilityData,
   ContractorsAvailabilityGetContractorAvailabilityResponse,
+  ContractorsAvailabilityCheckSlotAvailabilityData,
+  ContractorsAvailabilityCheckSlotAvailabilityResponse,
+  ContractorsAvailabilityGetBusinessHoursData,
+  ContractorsAvailabilityGetBusinessHoursResponse,
+  ContractorsCartCreateShoppingCartWithIdData,
+  ContractorsCartCreateShoppingCartWithIdResponse,
   ContractorsCartCreateShoppingCartData,
   ContractorsCartCreateShoppingCartResponse,
   ContractorsCartGetShoppingCartData,
   ContractorsCartGetShoppingCartResponse,
-  ContractorsCartAddCartItemData,
-  ContractorsCartAddCartItemResponse,
+  ContractorsCartAddItemToCartData,
+  ContractorsCartAddItemToCartResponse,
   ContractorsCartUpdateCartItemData,
   ContractorsCartUpdateCartItemResponse,
-  ContractorsCartRemoveCartItemData,
-  ContractorsCartRemoveCartItemResponse,
+  ContractorsCartRemoveItemFromCartData,
+  ContractorsCartRemoveItemFromCartResponse,
   ContractorsCartClearShoppingCartData,
   ContractorsCartClearShoppingCartResponse,
   ContractorsCartGetCartSummaryData,
   ContractorsCartGetCartSummaryResponse,
   ContractorsCheckoutProcessCheckoutData,
   ContractorsCheckoutProcessCheckoutResponse,
+  ContractorsMembershipGetMembershipPlansData,
+  ContractorsMembershipGetMembershipPlansResponse,
   ContractorsProductsGetContractorProductsData,
   ContractorsProductsGetContractorProductsResponse,
   ContractorsProductsGetProductCatalogData,
   ContractorsProductsGetProductCatalogResponse,
-  ContractorsProductsDebugProductsData,
-  ContractorsProductsDebugProductsResponse,
-  ContractorsProductsGetProductCategoriesData,
-  ContractorsProductsGetProductCategoriesResponse,
   ContractorsProductsGetProductDetailsData,
   ContractorsProductsGetProductDetailsResponse,
-  ContractorsProductsCalculateProductPricingData,
-  ContractorsProductsCalculateProductPricingResponse,
+  ContractorsProductsGetProductPricingData,
+  ContractorsProductsGetProductPricingResponse,
+  ContractorsProductsGetProductCategoriesData,
+  ContractorsProductsGetProductCategoriesResponse,
   ContractorsProfileGetContractorProfileData,
   ContractorsProfileGetContractorProfileResponse,
   ContractorsProjectsGetFeaturedProjectsData,
   ContractorsProjectsGetFeaturedProjectsResponse,
   ContractorsProjectsGetProjectDetailsData,
   ContractorsProjectsGetProjectDetailsResponse,
-  ContractorsProjectsGetProjectMetricsData,
-  ContractorsProjectsGetProjectMetricsResponse,
   ContractorsProjectsGetProjectCategoriesData,
   ContractorsProjectsGetProjectCategoriesResponse,
   ContractorsProjectsGetProjectTagsData,
@@ -193,8 +197,6 @@ import type {
   ContractorsServicesGetContractorServicesResponse,
   ContractorsServicesGetContractorServiceCategoriesData,
   ContractorsServicesGetContractorServiceCategoriesResponse,
-  ContractorsServicesGetMembershipPlansData,
-  ContractorsServicesGetMembershipPlansResponse,
   ContractorsServicesGetServicePricingData,
   ContractorsServicesGetServicePricingResponse,
   DynamicWebsiteDeploymentCheckWebsiteGenerationReadinessResponse,
@@ -2602,10 +2604,28 @@ export class ContractorsAvailabilityService {
    * Get contractor availability for a date range.
    *
    * Returns available time slots for booking appointments.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * start_date: Start date for availability search
+   * end_date: End date for availability search
+   * service_type: Optional service type filter
+   * duration_minutes: Required duration in minutes
+   * emergency_only: Show only emergency slots
+   * availability_service: Injected availability service
+   *
+   * Returns:
+   * List[AvailabilitySlot]: List of available time slots
+   *
+   * Raises:
+   * HTTPException: If business not found or retrieval fails
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @param data.startDate Start date for availability
    * @param data.endDate End date for availability
+   * @param data.serviceType Filter by service type
+   * @param data.durationMinutes Required duration in minutes
+   * @param data.emergencyOnly Show only emergency slots
    * @returns AvailabilitySlot Successful Response
    * @throws ApiError
    */
@@ -2621,6 +2641,90 @@ export class ContractorsAvailabilityService {
       query: {
         start_date: data.startDate,
         end_date: data.endDate,
+        service_type: data.serviceType,
+        duration_minutes: data.durationMinutes,
+        emergency_only: data.emergencyOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Check Slot Availability
+   * Check if a specific time slot is available.
+   *
+   * Returns boolean indicating availability status.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * slot_date: Date of the slot to check
+   * start_time: Start time in HH:MM format
+   * duration_minutes: Duration in minutes
+   * availability_service: Injected availability service
+   *
+   * Returns:
+   * Dict: Availability status and details
+   *
+   * Raises:
+   * HTTPException: If business not found or check fails
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.slotDate Date of the slot
+   * @param data.startTime Start time (HH:MM format)
+   * @param data.durationMinutes Duration in minutes
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static checkSlotAvailability(
+    data: ContractorsAvailabilityCheckSlotAvailabilityData,
+  ): CancelablePromise<ContractorsAvailabilityCheckSlotAvailabilityResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/availability/{business_id}/check",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        slot_date: data.slotDate,
+        start_time: data.startTime,
+        duration_minutes: data.durationMinutes,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Business Hours
+   * Get business hours for a contractor.
+   *
+   * Returns weekly business hours and availability settings.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * availability_service: Injected availability service
+   *
+   * Returns:
+   * List[Dict]: Business hours for each day of the week
+   *
+   * Raises:
+   * HTTPException: If business not found or retrieval fails
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getBusinessHours(
+    data: ContractorsAvailabilityGetBusinessHoursData,
+  ): CancelablePromise<ContractorsAvailabilityGetBusinessHoursResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/business-hours/{business_id}",
+      path: {
+        business_id: data.businessId,
       },
       errors: {
         422: "Validation Error",
@@ -2631,24 +2735,69 @@ export class ContractorsAvailabilityService {
 
 export class ContractorsCartService {
   /**
+   * Create Shopping Cart With Id
+   * Create a cart with a specific ID for testing purposes.
+   * @param data The data for the request.
+   * @param data.cartId Specific cart ID to create
+   * @param data.businessId Business ID
+   * @param data.sessionId Session ID for guest users
+   * @param data.customerId Customer ID for logged-in users
+   * @returns ShoppingCart Successful Response
+   * @throws ApiError
+   */
+  public static createShoppingCartWithId(
+    data: ContractorsCartCreateShoppingCartWithIdData,
+  ): CancelablePromise<ContractorsCartCreateShoppingCartWithIdResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/public/contractors/shopping-cart/create-with-id/{cart_id}",
+      path: {
+        cart_id: data.cartId,
+      },
+      query: {
+        business_id: data.businessId,
+        session_id: data.sessionId,
+        customer_id: data.customerId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Create Shopping Cart
    * Create a new shopping cart.
    *
    * Creates a new cart for either guest users (session-based) or logged-in users.
    * At least one of session_id or customer_id must be provided.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * session_id: Session ID for guest users
+   * customer_id: Customer ID for logged-in users
+   * cart_service: Injected cart service
+   *
+   * Returns:
+   * ShoppingCart: Created shopping cart
+   *
+   * Raises:
+   * HTTPException: If validation fails or creation fails
    * @param data The data for the request.
+   * @param data.businessId Business ID
    * @param data.sessionId Session ID for guest users
    * @param data.customerId Customer ID for logged-in users
    * @returns ShoppingCart Successful Response
    * @throws ApiError
    */
   public static createShoppingCart(
-    data: ContractorsCartCreateShoppingCartData = {},
+    data: ContractorsCartCreateShoppingCartData,
   ): CancelablePromise<ContractorsCartCreateShoppingCartResponse> {
     return __request(OpenAPI, {
       method: "POST",
       url: "/api/v1/public/contractors/shopping-cart/create",
       query: {
+        business_id: data.businessId,
         session_id: data.sessionId,
         customer_id: data.customerId,
       },
@@ -2660,12 +2809,19 @@ export class ContractorsCartService {
 
   /**
    * Get Shopping Cart
-   * Get shopping cart with all items and pricing calculations.
+   * Get shopping cart by ID.
    *
-   * Retrieves cart by cart ID or session ID with real-time pricing updates.
+   * Args:
+   * cart_id: The unique identifier of the cart
+   * cart_service: Injected cart service
+   *
+   * Returns:
+   * ShoppingCart: Shopping cart details
+   *
+   * Raises:
+   * HTTPException: If cart is not found or retrieval fails
    * @param data The data for the request.
-   * @param data.cartIdentifier Cart ID or Session ID
-   * @param data.businessId Business ID for pricing context (optional - will use cart's business_id)
+   * @param data.cartId Cart ID
    * @returns ShoppingCart Successful Response
    * @throws ApiError
    */
@@ -2674,12 +2830,9 @@ export class ContractorsCartService {
   ): CancelablePromise<ContractorsCartGetShoppingCartResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/public/contractors/shopping-cart/{cart_identifier}",
+      url: "/api/v1/public/contractors/shopping-cart/{cart_id}",
       path: {
-        cart_identifier: data.cartIdentifier,
-      },
-      query: {
-        business_id: data.businessId,
+        cart_id: data.cartId,
       },
       errors: {
         422: "Validation Error",
@@ -2688,29 +2841,33 @@ export class ContractorsCartService {
   }
 
   /**
-   * Add Cart Item
-   * Add item to shopping cart with real-time pricing calculation.
+   * Add Item To Cart
+   * Add an item to the shopping cart.
    *
-   * Adds a product with optional installation to the cart and calculates
-   * pricing with membership discounts and bundle savings.
+   * Args:
+   * cart_id: The unique identifier of the cart
+   * item_request: Item details to add to cart
+   * cart_service: Injected cart service
+   *
+   * Returns:
+   * ShoppingCart: Updated shopping cart
+   *
+   * Raises:
+   * HTTPException: If cart is not found or operation fails
    * @param data The data for the request.
-   * @param data.cartId Shopping cart ID
-   * @param data.businessId Business ID for pricing context
+   * @param data.cartId Cart ID
    * @param data.requestBody
-   * @returns CartItem Successful Response
+   * @returns ShoppingCart Successful Response
    * @throws ApiError
    */
-  public static addCartItem(
-    data: ContractorsCartAddCartItemData,
-  ): CancelablePromise<ContractorsCartAddCartItemResponse> {
+  public static addItemToCart(
+    data: ContractorsCartAddItemToCartData,
+  ): CancelablePromise<ContractorsCartAddItemToCartResponse> {
     return __request(OpenAPI, {
       method: "POST",
       url: "/api/v1/public/contractors/shopping-cart/{cart_id}/items",
       path: {
         cart_id: data.cartId,
-      },
-      query: {
-        business_id: data.businessId,
       },
       body: data.requestBody,
       mediaType: "application/json",
@@ -2722,15 +2879,24 @@ export class ContractorsCartService {
 
   /**
    * Update Cart Item
-   * Update cart item quantity with real-time pricing recalculation.
+   * Update the quantity of an item in the cart.
    *
-   * Updates quantity and recalculates pricing. Set quantity to 0 to remove item.
+   * Args:
+   * cart_id: The unique identifier of the cart
+   * item_id: The unique identifier of the cart item
+   * update_request: Updated item details
+   * cart_service: Injected cart service
+   *
+   * Returns:
+   * ShoppingCart: Updated shopping cart
+   *
+   * Raises:
+   * HTTPException: If cart or item is not found or operation fails
    * @param data The data for the request.
-   * @param data.cartId Shopping cart ID
+   * @param data.cartId Cart ID
    * @param data.itemId Cart item ID
-   * @param data.quantity New quantity (0 to remove)
-   * @param data.businessId Business ID for pricing context
-   * @returns CartItem Successful Response
+   * @param data.requestBody
+   * @returns ShoppingCart Successful Response
    * @throws ApiError
    */
   public static updateCartItem(
@@ -2743,10 +2909,8 @@ export class ContractorsCartService {
         cart_id: data.cartId,
         item_id: data.itemId,
       },
-      query: {
-        quantity: data.quantity,
-        business_id: data.businessId,
-      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },
@@ -2754,17 +2918,28 @@ export class ContractorsCartService {
   }
 
   /**
-   * Remove Cart Item
-   * Remove specific item from shopping cart.
+   * Remove Item From Cart
+   * Remove an item from the shopping cart.
+   *
+   * Args:
+   * cart_id: The unique identifier of the cart
+   * item_id: The unique identifier of the cart item
+   * cart_service: Injected cart service
+   *
+   * Returns:
+   * ShoppingCart: Updated shopping cart
+   *
+   * Raises:
+   * HTTPException: If cart or item is not found or operation fails
    * @param data The data for the request.
-   * @param data.cartId Shopping cart ID
+   * @param data.cartId Cart ID
    * @param data.itemId Cart item ID
-   * @returns unknown Successful Response
+   * @returns ShoppingCart Successful Response
    * @throws ApiError
    */
-  public static removeCartItem(
-    data: ContractorsCartRemoveCartItemData,
-  ): CancelablePromise<ContractorsCartRemoveCartItemResponse> {
+  public static removeItemFromCart(
+    data: ContractorsCartRemoveItemFromCartData,
+  ): CancelablePromise<ContractorsCartRemoveItemFromCartResponse> {
     return __request(OpenAPI, {
       method: "DELETE",
       url: "/api/v1/public/contractors/shopping-cart/{cart_id}/items/{item_id}",
@@ -2780,10 +2955,20 @@ export class ContractorsCartService {
 
   /**
    * Clear Shopping Cart
-   * Clear all items from shopping cart or delete the cart entirely.
+   * Clear all items from the shopping cart.
+   *
+   * Args:
+   * cart_id: The unique identifier of the cart
+   * cart_service: Injected cart service
+   *
+   * Returns:
+   * ShoppingCart: Empty shopping cart
+   *
+   * Raises:
+   * HTTPException: If cart is not found or operation fails
    * @param data The data for the request.
-   * @param data.cartId Shopping cart ID
-   * @returns unknown Successful Response
+   * @param data.cartId Cart ID
+   * @returns ShoppingCart Successful Response
    * @throws ApiError
    */
   public static clearShoppingCart(
@@ -2791,7 +2976,7 @@ export class ContractorsCartService {
   ): CancelablePromise<ContractorsCartClearShoppingCartResponse> {
     return __request(OpenAPI, {
       method: "DELETE",
-      url: "/api/v1/public/contractors/shopping-cart/{cart_id}",
+      url: "/api/v1/public/contractors/shopping-cart/{cart_id}/clear",
       path: {
         cart_id: data.cartId,
       },
@@ -2803,12 +2988,19 @@ export class ContractorsCartService {
 
   /**
    * Get Cart Summary
-   * Get cart summary with totals for header/navigation display.
+   * Get shopping cart summary.
    *
-   * Returns lightweight cart summary for UI elements that need
-   * quick access to cart totals and item counts.
+   * Args:
+   * cart_id: The unique identifier of the cart
+   * cart_service: Injected cart service
+   *
+   * Returns:
+   * CartSummary: Cart summary information
+   *
+   * Raises:
+   * HTTPException: If cart is not found or retrieval fails
    * @param data The data for the request.
-   * @param data.cartIdentifier Cart ID or Session ID
+   * @param data.cartId Cart ID
    * @returns CartSummary Successful Response
    * @throws ApiError
    */
@@ -2817,9 +3009,9 @@ export class ContractorsCartService {
   ): CancelablePromise<ContractorsCartGetCartSummaryResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/public/contractors/shopping-cart/{cart_identifier}/summary",
+      url: "/api/v1/public/contractors/shopping-cart/{cart_id}/summary",
       path: {
-        cart_identifier: data.cartIdentifier,
+        cart_id: data.cartId,
       },
       errors: {
         422: "Validation Error",
@@ -2856,16 +3048,70 @@ export class ContractorsCheckoutService {
   }
 }
 
+export class ContractorsMembershipService {
+  /**
+   * Get Membership Plans
+   * Get all active membership plans for a business.
+   *
+   * Returns membership plans with pricing, benefits, and discount information
+   * for display on product pages and checkout flows.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * membership_service: Injected membership service
+   *
+   * Returns:
+   * List[MembershipPlan]: A list of active membership plans
+   *
+   * Raises:
+   * HTTPException: If the business is not found or retrieval fails
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns MembershipPlan Successful Response
+   * @throws ApiError
+   */
+  public static getMembershipPlans(
+    data: ContractorsMembershipGetMembershipPlansData,
+  ): CancelablePromise<ContractorsMembershipGetMembershipPlansResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/membership-plans/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class ContractorsProductsService {
   /**
    * Get Contractor Products
    * Get contractor products sold by a business.
    *
    * Returns list of products with pricing and availability information.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * category: Optional category filter
+   * in_stock_only: Only return in-stock products
+   * limit: Maximum number of products to return
+   * offset: Pagination offset
+   * product_service: Injected product service
+   *
+   * Returns:
+   * List[ProductItem]: A list of products
+   *
+   * Raises:
+   * HTTPException: If the business is not found or retrieval fails
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @param data.category Filter by product category
    * @param data.inStockOnly Show only in-stock products
+   * @param data.limit Maximum number of products to return
+   * @param data.offset Offset for pagination
    * @returns ProductItem Successful Response
    * @throws ApiError
    */
@@ -2881,6 +3127,8 @@ export class ContractorsProductsService {
       query: {
         category: data.category,
         in_stock_only: data.inStockOnly,
+        limit: data.limit,
+        offset: data.offset,
       },
       errors: {
         422: "Validation Error",
@@ -2894,6 +3142,21 @@ export class ContractorsProductsService {
    *
    * Returns products that are available for website display with their installation options
    * and pricing information for different membership tiers.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * category: Optional category filter
+   * search: Optional search query
+   * featured_only: Only return featured products
+   * limit: Maximum number of products to return
+   * offset: Pagination offset
+   * product_service: Injected product service
+   *
+   * Returns:
+   * List[ProductCatalogItem]: A list of product catalog items
+   *
+   * Raises:
+   * HTTPException: If the business is not found or retrieval fails
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @param data.category Filter by category
@@ -2927,58 +3190,21 @@ export class ContractorsProductsService {
   }
 
   /**
-   * Debug Products
-   * Debug endpoint to check raw product data
-   * @param data The data for the request.
-   * @param data.businessId Business ID
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static debugProducts(
-    data: ContractorsProductsDebugProductsData,
-  ): CancelablePromise<ContractorsProductsDebugProductsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/public/contractors/debug-products/{business_id}",
-      path: {
-        business_id: data.businessId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Product Categories
-   * Get product categories for a business.
-   *
-   * Returns list of product categories with product counts for navigation.
-   * @param data The data for the request.
-   * @param data.businessId Business ID
-   * @returns ProductCategory Successful Response
-   * @throws ApiError
-   */
-  public static getProductCategories(
-    data: ContractorsProductsGetProductCategoriesData,
-  ): CancelablePromise<ContractorsProductsGetProductCategoriesResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/public/contractors/product-categories/{business_id}",
-      path: {
-        business_id: data.businessId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
    * Get Product Details
    * Get detailed product information with installation options.
    *
    * Returns complete product details for product detail page display.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * product_id: The unique identifier of the product
+   * product_service: Injected product service
+   *
+   * Returns:
+   * ProductCatalogItem: Detailed product information
+   *
+   * Raises:
+   * HTTPException: If the business or product is not found
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @param data.productId Product ID
@@ -3002,25 +3228,36 @@ export class ContractorsProductsService {
   }
 
   /**
-   * Calculate Product Pricing
-   * Calculate detailed pricing for product + installation combination.
+   * Get Product Pricing
+   * Calculate comprehensive pricing for a product with installation and membership discounts.
    *
-   * Returns comprehensive pricing breakdown including membership discounts,
-   * bundle savings, tax calculations, and formatted display pricing.
+   * Args:
+   * business_id: The unique identifier of the business
+   * product_id: The unique identifier of the product
+   * installation_option_id: Optional installation option
+   * membership_plan_id: Optional membership plan for discounts
+   * quantity: Product quantity
+   * product_service: Injected product service
+   *
+   * Returns:
+   * PricingBreakdown: Detailed pricing breakdown
+   *
+   * Raises:
+   * HTTPException: If the business or product is not found
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @param data.productId Product ID
    * @param data.installationOptionId Installation option ID
-   * @param data.quantity Quantity
-   * @param data.membershipType Membership type (residential, commercial, premium)
+   * @param data.membershipPlanId Membership plan ID for discounts
+   * @param data.quantity Product quantity
    * @returns PricingBreakdown Successful Response
    * @throws ApiError
    */
-  public static calculateProductPricing(
-    data: ContractorsProductsCalculateProductPricingData,
-  ): CancelablePromise<ContractorsProductsCalculateProductPricingResponse> {
+  public static getProductPricing(
+    data: ContractorsProductsGetProductPricingData,
+  ): CancelablePromise<ContractorsProductsGetProductPricingResponse> {
     return __request(OpenAPI, {
-      method: "POST",
+      method: "GET",
       url: "/api/v1/public/contractors/product-pricing/{business_id}/{product_id}",
       path: {
         business_id: data.businessId,
@@ -3028,8 +3265,43 @@ export class ContractorsProductsService {
       },
       query: {
         installation_option_id: data.installationOptionId,
+        membership_plan_id: data.membershipPlanId,
         quantity: data.quantity,
-        membership_type: data.membershipType,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Product Categories
+   * Get product categories for a business.
+   *
+   * Returns list of product categories with product counts for navigation.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * product_service: Injected product service
+   *
+   * Returns:
+   * List[ProductCategory]: A list of product categories
+   *
+   * Raises:
+   * HTTPException: If the business is not found or retrieval fails
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns ProductCategory Successful Response
+   * @throws ApiError
+   */
+  public static getProductCategories(
+    data: ContractorsProductsGetProductCategoriesData,
+  ): CancelablePromise<ContractorsProductsGetProductCategoriesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/product-categories/{business_id}",
+      path: {
+        business_id: data.businessId,
       },
       errors: {
         422: "Validation Error",
@@ -3044,6 +3316,16 @@ export class ContractorsProfileService {
    * Get complete contractor profile information.
    *
    * Returns business details, contact information, service areas, and credentials.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * profile_service: Injected profile service
+   *
+   * Returns:
+   * ProfessionalProfile: Complete business profile information
+   *
+   * Raises:
+   * HTTPException: If business not found or retrieval fails
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @returns ProfessionalProfile Successful Response
@@ -3071,6 +3353,21 @@ export class ContractorsProjectsService {
    * Get featured projects for a contractor.
    *
    * Returns list of projects with images, testimonials, and project details.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * trade: Optional trade filter
+   * category: Optional category filter
+   * featured_only: Show only featured projects
+   * limit: Maximum number of projects to return
+   * offset: Pagination offset
+   * project_service: Injected project portfolio service
+   *
+   * Returns:
+   * List[FeaturedProject]: List of featured projects
+   *
+   * Raises:
+   * HTTPException: If business not found or retrieval fails
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @param data.trade Filter by trade type
@@ -3108,6 +3405,17 @@ export class ContractorsProjectsService {
    * Get detailed information for a specific project.
    *
    * Returns complete project details including all images and testimonials.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * project_slug: Project SEO slug
+   * project_service: Injected project portfolio service
+   *
+   * Returns:
+   * FeaturedProject: Complete project details
+   *
+   * Raises:
+   * HTTPException: If business or project not found or retrieval fails
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @param data.projectSlug Project SEO slug
@@ -3131,35 +3439,20 @@ export class ContractorsProjectsService {
   }
 
   /**
-   * Get Project Metrics
-   * Get project completion metrics for a contractor.
-   *
-   * Returns aggregated metrics like total projects, completion rates, etc.
-   * @param data The data for the request.
-   * @param data.businessId Business ID
-   * @returns ProjectMetrics Successful Response
-   * @throws ApiError
-   */
-  public static getProjectMetrics(
-    data: ContractorsProjectsGetProjectMetricsData,
-  ): CancelablePromise<ContractorsProjectsGetProjectMetricsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/public/contractors/project-metrics/{business_id}",
-      path: {
-        business_id: data.businessId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
    * Get Project Categories
    * Get project categories for filtering and navigation.
    *
    * Returns list of project categories with counts.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * project_service: Injected project portfolio service
+   *
+   * Returns:
+   * List[ProjectCategory]: List of project categories
+   *
+   * Raises:
+   * HTTPException: If business not found or retrieval fails
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @returns ProjectCategory Successful Response
@@ -3185,6 +3478,16 @@ export class ContractorsProjectsService {
    * Get available project tags for filtering.
    *
    * Returns list of tags with usage counts.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * project_service: Injected project portfolio service
+   *
+   * Returns:
+   * List[Dict]: List of project tags
+   *
+   * Raises:
+   * HTTPException: If business not found or retrieval fails
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @returns unknown Successful Response
@@ -3212,11 +3515,26 @@ export class ContractorsServicesService {
    * Get contractor services offered by a business.
    *
    * Returns list of services with pricing and availability information.
-   * Uses the new business_services table from service template system.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * category: Optional category filter
+   * emergency_only: Only return emergency services
+   * limit: Maximum number of services to return
+   * offset: Pagination offset
+   * contractor_service: Injected contractor service
+   *
+   * Returns:
+   * List[ServiceItem]: A list of services
+   *
+   * Raises:
+   * HTTPException: If the business is not found or retrieval fails
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @param data.category Filter by service category
    * @param data.emergencyOnly Show only emergency services
+   * @param data.limit Maximum number of services to return
+   * @param data.offset Offset for pagination
    * @returns ServiceItem Successful Response
    * @throws ApiError
    */
@@ -3232,6 +3550,8 @@ export class ContractorsServicesService {
       query: {
         category: data.category,
         emergency_only: data.emergencyOnly,
+        limit: data.limit,
+        offset: data.offset,
       },
       errors: {
         422: "Validation Error",
@@ -3241,9 +3561,19 @@ export class ContractorsServicesService {
 
   /**
    * Get Contractor Service Categories
-   * Get contractor service categories with their services grouped.
+   * Get service categories for a business.
    *
-   * Returns service categories with services organized for website navigation and menus.
+   * Returns list of service categories with service counts for navigation.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * contractor_service: Injected contractor service
+   *
+   * Returns:
+   * List[ServiceCategory]: A list of service categories
+   *
+   * Raises:
+   * HTTPException: If the business is not found or retrieval fails
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @returns app__api__public__routes__contractors__schemas__ServiceCategory Successful Response
@@ -3265,39 +3595,29 @@ export class ContractorsServicesService {
   }
 
   /**
-   * Get Membership Plans
-   * Get customer membership plans for a business.
-   *
-   * Returns list of available membership plans with benefits and pricing.
-   * @param data The data for the request.
-   * @param data.businessId Business ID
-   * @returns MembershipPlan Successful Response
-   * @throws ApiError
-   */
-  public static getMembershipPlans(
-    data: ContractorsServicesGetMembershipPlansData,
-  ): CancelablePromise<ContractorsServicesGetMembershipPlansResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/public/contractors/membership-plans/{business_id}",
-      path: {
-        business_id: data.businessId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
    * Get Service Pricing
-   * Get service pricing with membership discounts for a business.
+   * Calculate pricing for a service with membership discounts.
    *
-   * Returns service pricing organized by category with member pricing.
+   * Args:
+   * business_id: The unique identifier of the business
+   * service_id: The unique identifier of the service
+   * membership_plan_id: Optional membership plan for discounts
+   * service_area: Service area for location-based pricing
+   * estimated_hours: Estimated hours for hourly services
+   * contractor_service: Injected contractor service
+   *
+   * Returns:
+   * ServicePricing: Detailed service pricing breakdown
+   *
+   * Raises:
+   * HTTPException: If the business or service is not found
    * @param data The data for the request.
    * @param data.businessId Business ID
-   * @param data.category Filter by service category
-   * @returns ServicePricingCategory Successful Response
+   * @param data.serviceId Service ID
+   * @param data.membershipPlanId Membership plan ID for discounts
+   * @param data.serviceArea Service area for location-based pricing
+   * @param data.estimatedHours Estimated hours for hourly services
+   * @returns ServicePricing Successful Response
    * @throws ApiError
    */
   public static getServicePricing(
@@ -3305,12 +3625,15 @@ export class ContractorsServicesService {
   ): CancelablePromise<ContractorsServicesGetServicePricingResponse> {
     return __request(OpenAPI, {
       method: "GET",
-      url: "/api/v1/public/contractors/service-pricing/{business_id}",
+      url: "/api/v1/public/contractors/service-pricing/{business_id}/{service_id}",
       path: {
         business_id: data.businessId,
+        service_id: data.serviceId,
       },
       query: {
-        category: data.category,
+        membership_plan_id: data.membershipPlanId,
+        service_area: data.serviceArea,
+        estimated_hours: data.estimatedHours,
       },
       errors: {
         422: "Validation Error",

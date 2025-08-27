@@ -1,447 +1,188 @@
 """
 Product Data Transfer Objects
 
-DTOs for product and inventory management operations following clean architecture principles.
+DTOs for product-related data transfer between application layers.
 """
 
-import uuid
-from typing import List, Optional, Dict, Any
-from datetime import datetime, date
-from decimal import Decimal
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
-from app.domain.entities.product_enums.enums import ProductType, ProductStatus, CostingMethod
-from app.domain.shared.enums import UnitOfMeasure
-from app.domain.value_objects.address import Address
+
+class ProductItemDTO(BaseModel):
+    """DTO for basic product information."""
+    
+    id: str = Field(..., description="Product ID")
+    name: str = Field(..., description="Product name")
+    description: str = Field(..., description="Product description")
+    category: str = Field(..., description="Product category")
+    brand: str = Field(..., description="Product brand")
+    model: str = Field(..., description="Product model")
+    sku: str = Field(..., description="Product SKU")
+    price: float = Field(..., description="Product price")
+    msrp: Optional[float] = Field(None, description="Manufacturer suggested retail price")
+    in_stock: bool = Field(..., description="Product is in stock")
+    stock_quantity: int = Field(..., description="Available stock quantity")
+    specifications: Dict[str, Any] = Field(default_factory=dict, description="Product specifications")
+    warranty_years: Optional[int] = Field(None, description="Warranty period in years")
+    energy_rating: Optional[str] = Field(None, description="Energy efficiency rating")
 
 
-class ProductPricingTierDTO(BaseModel):
-    """DTO for product pricing tiers."""
-    min_quantity: Decimal
-    max_quantity: Optional[Decimal] = None
-    unit_price: Decimal = Decimal('0')
-    discount_percentage: Optional[Decimal] = None
-
-    @classmethod
-    def from_entity(cls, tier) -> 'ProductPricingTierDTO':
-        """Create DTO from domain entity."""
-        return cls(
-            min_quantity=tier.min_quantity,
-            max_quantity=tier.max_quantity,
-            unit_price=tier.unit_price,
-            discount_percentage=tier.discount_percentage
-        )
-
-
-class ProductLocationDTO(BaseModel):
-    """DTO for product location inventory."""
-    location_id: uuid.UUID
-    location_name: str
-    quantity_on_hand: Decimal = Decimal('0')
-    quantity_reserved: Decimal = Decimal('0')
-    quantity_available: Decimal = Decimal('0')
-    bin_location: Optional[str] = None
-    last_counted_date: Optional[datetime] = None
-
-    @classmethod
-    def from_entity(cls, location) -> 'ProductLocationDTO':
-        """Create DTO from domain entity."""
-        return cls(
-            location_id=location.location_id,
-            location_name=location.location_name,
-            quantity_on_hand=location.quantity_on_hand,
-            quantity_reserved=location.quantity_reserved,
-            quantity_available=location.quantity_available,
-            bin_location=location.bin_location,
-            last_counted_date=location.last_counted_date
-        )
+class ProductCatalogDTO(BaseModel):
+    """DTO for product catalog with full details and installation options."""
+    
+    id: str = Field(..., description="Product ID")
+    name: str = Field(..., description="Product name")
+    description: str = Field(..., description="Product description")
+    category: str = Field(..., description="Product category")
+    brand: str = Field(..., description="Product brand")
+    model: str = Field(..., description="Product model")
+    sku: str = Field(..., description="Product SKU")
+    unit_price: float = Field(..., description="Product unit price")
+    msrp: Optional[float] = Field(None, description="Manufacturer suggested retail price")
+    in_stock: bool = Field(..., description="Product is in stock")
+    stock_quantity: int = Field(..., description="Available stock quantity")
+    specifications: Dict[str, Any] = Field(default_factory=dict, description="Product specifications")
+    warranty_years: Optional[int] = Field(None, description="Warranty period in years")
+    energy_rating: Optional[str] = Field(None, description="Energy efficiency rating")
+    images: List[str] = Field(default_factory=list, description="Product image URLs")
+    has_variations: bool = Field(default=False, description="Product has variations")
+    is_featured: bool = Field(default=False, description="Product is featured")
+    tags: List[str] = Field(default_factory=list, description="Product tags")
 
 
-class ProductSupplierDTO(BaseModel):
-    """DTO for product supplier information."""
-    supplier_id: uuid.UUID
-    supplier_name: str
-    supplier_sku: Optional[str] = None
-    cost_price: Decimal = Decimal('0')
-    lead_time_days: Optional[int] = None
-    minimum_order_quantity: Optional[Decimal] = None
-    is_preferred: bool = False
-    last_order_date: Optional[datetime] = None
-
-    @classmethod
-    def from_entity(cls, supplier) -> 'ProductSupplierDTO':
-        """Create DTO from domain entity."""
-        return cls(
-            supplier_id=supplier.supplier_id,
-            supplier_name=supplier.supplier_name,
-            supplier_sku=supplier.supplier_sku,
-            cost_price=supplier.cost_price,
-            lead_time_days=supplier.lead_time_days,
-            minimum_order_quantity=supplier.minimum_order_quantity,
-            is_preferred=supplier.is_preferred,
-            last_order_date=supplier.last_order_date
-        )
+class PricingBreakdownDTO(BaseModel):
+    """DTO for detailed pricing breakdown."""
+    
+    product_id: str = Field(..., description="Product ID")
+    product_name: str = Field(..., description="Product name")
+    quantity: int = Field(..., description="Product quantity")
+    unit_price: float = Field(..., description="Unit price")
+    product_subtotal: float = Field(..., description="Product subtotal")
+    installation_option_id: Optional[str] = Field(None, description="Selected installation option ID")
+    installation_name: Optional[str] = Field(None, description="Installation option name")
+    installation_price: float = Field(default=0.0, description="Installation price")
+    subtotal: float = Field(..., description="Subtotal before discounts")
+    membership_plan_id: Optional[str] = Field(None, description="Applied membership plan ID")
+    membership_plan_name: Optional[str] = Field(None, description="Applied membership plan name")
+    discount_percentage: int = Field(default=0, description="Applied discount percentage")
+    discount_amount: float = Field(default=0.0, description="Discount amount")
+    tax_rate: float = Field(..., description="Tax rate applied")
+    tax_amount: float = Field(..., description="Tax amount")
+    total: float = Field(..., description="Final total after all calculations")
 
 
-# Create Product DTOs
+class ProductInstallationOptionDTO(BaseModel):
+    """DTO for product installation options."""
+    
+    id: str = Field(..., description="Installation option ID")
+    name: str = Field(..., description="Installation option name")
+    description: str = Field(..., description="Installation description")
+    base_install_price: float = Field(..., description="Base installation price")
+    estimated_duration_hours: int = Field(..., description="Estimated installation time in hours")
+    requires_permit: bool = Field(default=False, description="Installation requires permit")
+    includes_materials: bool = Field(default=True, description="Installation includes materials")
+    warranty_years: int = Field(default=1, description="Installation warranty in years")
+    is_default: bool = Field(default=False, description="Default installation option")
+
+
 class CreateProductDTO(BaseModel):
     """DTO for creating a new product."""
-    business_id: uuid.UUID
-    sku: str
-    name: str
-    description: Optional[str] = None
-    product_type: ProductType = ProductType.PRODUCT
-    status: ProductStatus = ProductStatus.ACTIVE
-    category_id: Optional[uuid.UUID] = None
     
-    # Pricing
-    unit_price: Decimal = Decimal('0')
-    cost_price: Decimal = Decimal('0')
-    
-    # Physical attributes
-    unit_of_measure: UnitOfMeasure = UnitOfMeasure.EACH
-    weight: Optional[Decimal] = None
-    dimensions: Optional[Dict[str, Decimal]] = None
-    
-    # Inventory
-    track_inventory: bool = True
-    initial_quantity: Decimal = Decimal('0')
-    reorder_point: Optional[Decimal] = None
-    reorder_quantity: Optional[Decimal] = None
-    costing_method: CostingMethod = CostingMethod.WEIGHTED_AVERAGE
-    
-    # Tax settings
-    tax_rate: Optional[Decimal] = None
-    is_taxable: bool = True
-    
-    # Supplier information
-    primary_supplier_id: Optional[uuid.UUID] = None
-    
-    # Media and metadata
-    barcode: Optional[str] = None
-    manufacturer: Optional[str] = None
-    brand: Optional[str] = None
-
-
-class UpdateProductDTO(BaseModel):
-    """DTO for updating an existing product."""
-    name: Optional[str] = None
-    description: Optional[str] = None
-    long_description: Optional[str] = None
-    status: Optional[ProductStatus] = None
-    category_id: Optional[uuid.UUID] = None
-    
-    # Pricing
-    unit_price: Optional[Decimal] = None
-    cost_price: Optional[Decimal] = None
-    minimum_price: Optional[Decimal] = None
-    
-    # Physical attributes
-    weight: Optional[Decimal] = None
-    weight_unit: Optional[str] = None
-    dimensions: Optional[Dict[str, Decimal]] = None
-    
-    # Inventory settings
-    reorder_point: Optional[Decimal] = None
-    reorder_quantity: Optional[Decimal] = None
-    minimum_quantity: Optional[Decimal] = None
-    maximum_quantity: Optional[Decimal] = None
-    
-    # Tax settings
-    tax_rate: Optional[Decimal] = None
-    tax_code: Optional[str] = None
-    is_taxable: Optional[bool] = None
-    
-    # Supplier information
-    primary_supplier_id: Optional[uuid.UUID] = None
-    supplier_sku: Optional[str] = None
-    lead_time_days: Optional[int] = None
-    
-    # Media and metadata
-    image_urls: Optional[List[str]] = None
-    barcode: Optional[str] = None
-    manufacturer: Optional[str] = None
-    manufacturer_sku: Optional[str] = None
-    brand: Optional[str] = None
-    
-    # Pricing tiers
-    pricing_tiers: Optional[List[ProductPricingTierDTO]] = None
-    
-    # Notes
-    notes: Optional[str] = None
+    name: str = Field(..., min_length=1, max_length=200, description="Product name")
+    description: str = Field(..., min_length=1, max_length=1000, description="Product description")
+    category_id: str = Field(..., description="Product category ID")
+    brand: str = Field(..., min_length=1, max_length=100, description="Product brand")
+    model: str = Field(..., min_length=1, max_length=100, description="Product model")
+    sku: str = Field(..., min_length=1, max_length=50, description="Product SKU")
+    unit_price: float = Field(..., gt=0, description="Product unit price")
+    msrp: Optional[float] = Field(None, gt=0, description="Manufacturer suggested retail price")
+    cost_price: Optional[float] = Field(None, ge=0, description="Product cost price")
+    stock_quantity: int = Field(default=0, ge=0, description="Initial stock quantity")
+    specifications: Dict[str, Any] = Field(default_factory=dict, description="Product specifications")
+    warranty_years: Optional[int] = Field(None, ge=0, le=10, description="Warranty period in years")
+    energy_rating: Optional[str] = Field(None, max_length=10, description="Energy efficiency rating")
+    is_featured: bool = Field(default=False, description="Product is featured")
+    tags: List[str] = Field(default_factory=list, description="Product tags")
 
 
 class ProductDTO(BaseModel):
-    """DTO for product entity with full information."""
-    id: uuid.UUID
-    business_id: uuid.UUID
-    sku: str
-    name: str
-    description: Optional[str] = None
-    product_type: ProductType = ProductType.PRODUCT
-    status: ProductStatus = ProductStatus.ACTIVE
-    category_id: Optional[uuid.UUID] = None
+    """DTO for complete product information."""
     
-    # Pricing
-    unit_price: Decimal = Decimal('0')
-    cost_price: Decimal = Decimal('0')
-    
-    # Physical attributes
-    unit_of_measure: UnitOfMeasure = UnitOfMeasure.EACH
-    weight: Optional[Decimal] = None
-    dimensions: Optional[Dict[str, Decimal]] = None
-    
-    # Inventory
-    track_inventory: bool = True
-    quantity_on_hand: Decimal = Decimal('0')
-    quantity_reserved: Decimal = Decimal('0')
-    quantity_available: Decimal = Decimal('0')
-    
-    # Reorder management
-    reorder_point: Optional[Decimal] = None
-    reorder_quantity: Optional[Decimal] = None
-    
-    # Cost tracking
-    costing_method: CostingMethod = CostingMethod.WEIGHTED_AVERAGE
-    unit_cost: Decimal = Decimal('0')
-    average_cost: Decimal = Decimal('0')
-    
-    # Calculated fields
-    inventory_value: Decimal = Decimal('0')
-    is_low_stock: bool = False
-    is_out_of_stock: bool = False
-    needs_reorder: bool = False
-    
-    # Tax settings
-    tax_rate: Optional[Decimal] = None
-    is_taxable: bool = True
-    
-    # Supplier information
-    primary_supplier_id: Optional[uuid.UUID] = None
-    
-    # Media and metadata
-    barcode: Optional[str] = None
-    manufacturer: Optional[str] = None
-    brand: Optional[str] = None
-    
-    # Analytics
-    times_sold: int = 0
-    last_sale_date: Optional[datetime] = None
-    
-    # Audit fields
-    created_by: str = ""
-    created_date: datetime = Field(default_factory=datetime.utcnow)
-    last_modified: datetime = Field(default_factory=datetime.utcnow)
-
-    @classmethod
-    def from_entity(cls, product) -> 'ProductDTO':
-        """Create DTO from domain entity."""
-        return cls(
-            id=product.id,
-            business_id=product.business_id,
-            sku=product.sku,
-            name=product.name,
-            description=product.description,
-            product_type=product.product_type,
-            status=product.status,
-            category_id=getattr(product, 'category_id', None),
-            unit_price=product.unit_price,
-            cost_price=getattr(product, 'cost_price', product.unit_cost),
-            unit_of_measure=product.unit_of_measure,
-            weight=product.weight,
-            dimensions=product.dimensions,
-            track_inventory=product.track_inventory,
-            quantity_on_hand=product.quantity_on_hand,
-            quantity_reserved=product.quantity_reserved,
-            quantity_available=product.quantity_available,
-            reorder_point=getattr(product, 'reorder_point', None),
-            reorder_quantity=getattr(product, 'reorder_quantity', None),
-            costing_method=product.costing_method,
-            unit_cost=product.unit_cost,
-            average_cost=product.average_cost,
-            inventory_value=product.inventory_value,
-            is_low_stock=product.is_low_stock(),
-            is_out_of_stock=product.is_out_of_stock(),
-            needs_reorder=product.needs_reorder(),
-            tax_rate=getattr(product, 'tax_rate', None),
-            is_taxable=getattr(product, 'is_taxable', True),
-            primary_supplier_id=getattr(product, 'primary_supplier_id', None),
-            barcode=product.barcode,
-            manufacturer=product.manufacturer,
-            brand=product.brand,
-            times_sold=product.times_sold,
-            last_sale_date=product.last_sale_date,
-            created_by=product.created_by,
-            created_date=product.created_date,
-            last_modified=product.last_modified
-        )
+    id: str = Field(..., description="Product ID")
+    name: str = Field(..., description="Product name")
+    description: str = Field(..., description="Product description")
+    category_id: str = Field(..., description="Product category ID")
+    brand: str = Field(..., description="Product brand")
+    model: str = Field(..., description="Product model")
+    sku: str = Field(..., description="Product SKU")
+    unit_price: float = Field(..., description="Product unit price")
+    msrp: Optional[float] = Field(None, description="Manufacturer suggested retail price")
+    cost_price: Optional[float] = Field(None, description="Product cost price")
+    stock_quantity: int = Field(..., description="Stock quantity")
+    specifications: Dict[str, Any] = Field(default_factory=dict, description="Product specifications")
+    warranty_years: Optional[int] = Field(None, description="Warranty period in years")
+    energy_rating: Optional[str] = Field(None, description="Energy efficiency rating")
+    is_featured: bool = Field(default=False, description="Product is featured")
+    tags: List[str] = Field(default_factory=list, description="Product tags")
+    is_active: bool = Field(default=True, description="Product is active")
+    created_at: Optional[str] = Field(None, description="Creation timestamp")
+    updated_at: Optional[str] = Field(None, description="Update timestamp")
 
 
-class ProductSummaryDTO(BaseModel):
-    """DTO for product summary in lists."""
-    id: uuid.UUID
-    sku: str
-    name: str
-    description: Optional[str] = None
-    product_type: ProductType = ProductType.PRODUCT
-    status: ProductStatus = ProductStatus.ACTIVE
-    unit_price: Decimal = Decimal('0')
-    quantity_available: Decimal = Decimal('0')
-    is_low_stock: bool = False
-    is_out_of_stock: bool = False
-
-    @classmethod
-    def from_entity(cls, product) -> 'ProductSummaryDTO':
-        """Create summary DTO from domain entity."""
-        return cls(
-            id=product.id,
-            sku=product.sku,
-            name=product.name,
-            description=product.description,
-            product_type=product.product_type,
-            status=product.status,
-            unit_price=product.unit_price,
-            quantity_available=product.quantity_available,
-            is_low_stock=product.is_low_stock(),
-            is_out_of_stock=product.is_out_of_stock()
-        )
+class StockAdjustmentDTO(BaseModel):
+    """DTO for stock adjustments."""
+    
+    product_id: str = Field(..., description="Product ID")
+    adjustment_type: str = Field(..., description="Adjustment type (increase, decrease, set)")
+    quantity: int = Field(..., description="Adjustment quantity")
+    reason: str = Field(..., description="Reason for adjustment")
+    reference_number: Optional[str] = Field(None, description="Reference number")
+    notes: Optional[str] = Field(None, description="Additional notes")
 
 
 class ProductSearchCriteria(BaseModel):
     """DTO for product search criteria."""
-    query: Optional[str] = None
-    category_id: Optional[uuid.UUID] = None
-    product_type: Optional[ProductType] = None
-    status: Optional[ProductStatus] = None
-    low_stock_only: bool = False
-    out_of_stock_only: bool = False
-    sort_by: Optional[str] = None
-    sort_order: str = "asc"
+    
+    query: Optional[str] = Field(None, description="Search query")
+    category_id: Optional[str] = Field(None, description="Filter by category")
+    min_price: Optional[float] = Field(None, ge=0, description="Minimum price filter")
+    max_price: Optional[float] = Field(None, ge=0, description="Maximum price filter")
+    in_stock_only: bool = Field(default=True, description="Only show in-stock products")
+    featured_only: bool = Field(default=False, description="Only show featured products")
+    tags: List[str] = Field(default_factory=list, description="Filter by tags")
+    limit: int = Field(default=50, ge=1, le=100, description="Maximum results")
+    offset: int = Field(default=0, ge=0, description="Pagination offset")
 
 
 class ProductListDTO(BaseModel):
-    """DTO for paginated product lists."""
-    products: List[ProductSummaryDTO]
-    total_count: int
-    has_more: bool
-    offset: int
-    limit: int
-
-
-# Inventory Management DTOs
-class StockAdjustmentDTO(BaseModel):
-    """DTO for stock adjustments."""
-    product_id: uuid.UUID
-    quantity_change: Decimal
-    adjustment_reason: str
-    reference_number: Optional[str] = None
-    notes: Optional[str] = None
-
-
-class StockMovementDTO(BaseModel):
-    """DTO for stock movements."""
-    id: uuid.UUID
-    product_id: uuid.UUID
-    product_sku: str
-    product_name: str
-    movement_type: str
-    quantity: Decimal
-    movement_date: datetime
-    created_by: str
-    unit_cost: Optional[Decimal] = None
-    reference_number: Optional[str] = None
-    notes: Optional[str] = None
-    location_id: Optional[uuid.UUID] = None
-    location_name: Optional[str] = None
+    """DTO for product list response."""
     
-    # Calculated fields
-    movement_value: Optional[Decimal] = None
-    running_balance: Optional[Decimal] = None
-
-    @classmethod
-    def from_entity(cls, movement) -> 'StockMovementDTO':
-        """Create DTO from domain entity."""
-        return cls(
-            id=movement.id,
-            product_id=movement.product_id,
-            product_sku=movement.product_sku,
-            product_name=movement.product_name,
-            movement_type=movement.movement_type.value,
-            quantity=movement.quantity,
-            unit_cost=movement.unit_cost,
-            movement_date=movement.movement_date,
-            reference_number=movement.reference_number,
-            notes=movement.notes,
-            location_id=movement.location_id,
-            location_name=getattr(movement, 'location_name', None),
-            created_by=movement.created_by,
-            movement_value=movement.calculate_movement_value(),
-            running_balance=getattr(movement, 'running_balance', None)
-        )
+    products: List[ProductDTO] = Field(default_factory=list, description="List of products")
+    total_count: int = Field(..., description="Total number of products")
+    has_more: bool = Field(..., description="Whether there are more products")
+    offset: int = Field(..., description="Current offset")
+    limit: int = Field(..., description="Current limit")
 
 
-class InventoryReportDTO(BaseModel):
-    """DTO for inventory reports."""
-    report_date: datetime
-    total_products: int
-    total_inventory_value: Decimal
-    low_stock_count: int
-    out_of_stock_count: int
-    reorder_needed_count: int
-    products_by_category: Dict[str, int]
-    top_selling_products: List[ProductSummaryDTO]
-    slow_moving_products: List[ProductSummaryDTO]
+class ProductSummaryDTO(BaseModel):
+    """DTO for product summary information."""
+    
+    id: str = Field(..., description="Product ID")
+    name: str = Field(..., description="Product name")
+    sku: str = Field(..., description="Product SKU")
+    unit_price: float = Field(..., description="Product unit price")
+    stock_quantity: int = Field(..., description="Stock quantity")
+    is_active: bool = Field(default=True, description="Product is active")
+    category_name: Optional[str] = Field(None, description="Category name")
 
 
-class ProductAvailabilityDTO(BaseModel):
-    """DTO for product availability checking."""
-    product_id: uuid.UUID
-    sku: str
-    name: str
-    requested_quantity: Decimal
-    available_quantity: Decimal
-    is_available: bool
-    shortage: Decimal = Decimal('0')
-    estimated_availability_date: Optional[datetime] = None
-    alternative_products: Optional[List[ProductSummaryDTO]] = None
-
-
-# Mobile-optimized DTOs
-class MobileProductDTO(BaseModel):
-    """DTO optimized for mobile app consumption."""
-    id: uuid.UUID
-    sku: str
-    name: str
-    description: Optional[str] = None
-    unit_price: Decimal = Decimal('0')
-    unit_of_measure: UnitOfMeasure = UnitOfMeasure.EACH
-    available_quantity: Decimal = Decimal('0')
-    is_available: bool = True
-    category_name: Optional[str] = None
-    image_url: Optional[str] = None
-    barcode: Optional[str] = None
-
-    @classmethod
-    def from_entity(cls, product) -> 'MobileProductDTO':
-        """Create mobile DTO from domain entity."""
-        return cls(
-            id=product.id,
-            sku=product.sku,
-            name=product.name,
-            description=product.description,
-            unit_price=product.unit_price,
-            unit_of_measure=product.unit_of_measure,
-            available_quantity=product.quantity_available,
-            is_available=not product.is_out_of_stock(),
-            category_name=getattr(product, 'category_name', None),
-            image_url=getattr(product, 'image_urls', [None])[0] if getattr(product, 'image_urls', []) else None,
-            barcode=product.barcode
-        )
-
-
-class MobileProductCatalogDTO(BaseModel):
-    """DTO for mobile product catalog."""
-    products: List[MobileProductDTO]
-    categories: List[Dict[str, Any]]
-    has_more: bool
-    total_count: int 
+class ProductCategoryDTO(BaseModel):
+    """DTO for product categories."""
+    
+    id: str = Field(..., description="Category ID")
+    name: str = Field(..., description="Category name")
+    description: str = Field(..., description="Category description")
+    parent_id: Optional[str] = Field(None, description="Parent category ID")
+    is_active: bool = Field(default=True, description="Category is active")
+    sort_order: int = Field(default=0, description="Display sort order")
+    product_count: int = Field(default=0, description="Number of products in category")

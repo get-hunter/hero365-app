@@ -244,6 +244,8 @@ class ValidationError(ApplicationException):
         super().__init__(message, "VALIDATION_ERROR")
 
 
-# Aliases for backwards compatibility
+# Aliases for backwards compatibility and clean architecture
 ApplicationError = ApplicationException
-BusinessLogicViolationError = BusinessLogicError  # Alias for consistency 
+BusinessLogicViolationError = BusinessLogicError  # Alias for consistency
+EntityNotFoundError = NotFoundError  # Alias for clean architecture
+BusinessRuleError = BusinessRuleViolationError  # Alias for clean architecture 

@@ -449,3 +449,31 @@ class ProjectCategory(BaseModel):
     icon: Optional[str] = Field(None, description="Category icon")
     project_count: int = Field(0, description="Number of projects in category")
     display_order: int = Field(0, description="Display order")
+
+
+class MembershipPlan(BaseModel):
+    """Customer membership plan information."""
+    
+    id: str = Field(..., description="Plan ID")
+    name: str = Field(..., description="Plan name")
+    plan_type: str = Field(..., description="Plan type (residential, commercial, premium)")
+    description: str = Field(..., description="Plan description")
+    tagline: str = Field(..., description="Plan tagline")
+    price_monthly: float = Field(..., description="Monthly price")
+    price_yearly: float = Field(..., description="Yearly price")
+    yearly_savings: float = Field(..., description="Yearly savings amount")
+    setup_fee: float = Field(..., description="Setup fee")
+    discount_percentage: int = Field(..., description="Discount percentage")
+    priority_service: bool = Field(..., description="Priority service included")
+    extended_warranty: bool = Field(..., description="Extended warranty included")
+    maintenance_included: bool = Field(..., description="Maintenance included")
+    emergency_response: bool = Field(..., description="Emergency response included")
+    free_diagnostics: bool = Field(..., description="Free diagnostics included")
+    annual_tune_ups: int = Field(..., description="Number of annual tune-ups")
+    is_active: bool = Field(..., description="Plan is active")
+    is_featured: bool = Field(..., description="Plan is featured")
+    popular_badge: Optional[str] = Field(None, description="Popular badge text")
+    color_scheme: str = Field(..., description="Plan color scheme")
+    sort_order: int = Field(..., description="Sort order")
+    contract_length_months: int = Field(..., description="Contract length in months")
+    cancellation_policy: str = Field(..., description="Cancellation policy")

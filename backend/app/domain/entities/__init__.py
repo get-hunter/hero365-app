@@ -33,6 +33,9 @@ from .stock_movement import StockMovement, StockMovementContext
 from .supplier import Supplier, SupplierContact, PaymentTerms, SupplierPerformance
 from .purchase_order import PurchaseOrder, PurchaseOrderLineItem
 
+# Customer membership entities
+from .customer_membership import CustomerMembershipPlan, CustomerMembership, MembershipPlanType, MembershipStatus
+
 __all__ = [
     # Core business entities
     "Business",
@@ -80,4 +83,10 @@ __all__ = [
     "SupplierPerformance",
     "PurchaseOrder",
     "PurchaseOrderLineItem",
+    
+    # Customer membership entities
+    "CustomerMembershipPlan",
+    "CustomerMembership",
+    "MembershipPlanType",
+    "MembershipStatus",
 ] 
