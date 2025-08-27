@@ -161,13 +161,15 @@ export default async function ProductsPage() {
 
         <ProfessionalFooter 
           business={{
+            id: businessId,
             name: businessData.businessName,
-            phone: businessData.phone,
-            email: businessData.email,
+            phone_number: businessData.phone,
+            business_email: businessData.email,
             address: businessData.address,
-            license_number: businessData.licenseNumber,
             website: undefined,
-            service_areas: businessData.serviceAreas
+            service_areas: businessData.serviceAreas,
+            trades: [],
+            seo_keywords: []
           }}
           serviceCategories={[]}
           locations={[]}

@@ -158,14 +158,14 @@ export function ProductDetailClient({
       console.log('🛒 [PRODUCT] Adding to cart:', {
         product_id: product.id,
         product_name: product.name,
-        installation_option_id: selectedInstallation?.id || null,
+        installation_option_id: selectedInstallation?.id,
         quantity: quantity,
         membership_type: selectedMembership
       });
       
       await addToCart({
         product_id: product.id,
-        installation_option_id: selectedInstallation?.id || null,
+        installation_option_id: selectedInstallation?.id,
         quantity: quantity,
         membership_type: selectedMembership
       });

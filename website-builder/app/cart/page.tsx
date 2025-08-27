@@ -70,13 +70,15 @@ export default async function CartPage() {
           
           <ProfessionalFooter 
             business={{
+              id: businessProfile.id || 'default-id',
               name: businessProfile.business_name,
-              phone: businessProfile.phone,
-              email: businessProfile.email,
+              phone_number: businessProfile.phone,
+              business_email: businessProfile.email,
               address: businessProfile.address,
-              license_number: profile?.license_number || "Licensed & Insured",
               website: profile?.website,
-              service_areas: businessProfile.service_areas
+              trades: businessProfile.trades || [],
+              service_areas: businessProfile.service_areas || [],
+              seo_keywords: []
             }}
             serviceCategories={[]}
             locations={[]}

@@ -49,7 +49,7 @@ async function loadBusinessProfile(businessId: string) {
 
 export default async function CheckoutSuccessPage() {
   const businessConfig = getBusinessConfig();
-  const businessId = businessConfig.businessId || businessConfig.defaultBusinessId;
+  const businessId = businessConfig.defaultBusinessId;
   const businessProfile = await loadBusinessProfile(businessId);
 
   const fallbackProfile = {
@@ -64,7 +64,13 @@ export default async function CheckoutSuccessPage() {
 
   return (
     <CartProvider businessId={businessId}>
-      <BookingWidgetProvider businessProfile={profile}>
+      <BookingWidgetProvider 
+        businessId={businessId}
+        services={[]}
+        companyName={profile.business_name}
+        companyPhone={profile.phone}
+        companyEmail={profile.email}
+      >
         <div className="min-h-screen bg-gray-50">
           <EliteHeader 
             businessName={profile.business_name}

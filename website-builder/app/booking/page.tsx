@@ -111,15 +111,20 @@ export default function BookingPage() {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <BookingWizard
             businessId="123e4567-e89b-12d3-a456-426614174000"
-            services={SAMPLE_SERVICES}
-            companyName="Professional HVAC Services"
-            companyPhone="(555) 123-4567"
-            companyEmail="info@professionalhvac.com"
-            onBookingComplete={(booking) => {
+            services={SAMPLE_SERVICES.map(service => ({
+              id: service.id,
+              name: service.name,
+              category: service.category || 'General',
+              description: service.description,
+              duration_minutes: service.estimated_duration_minutes,
+              price_cents: Math.round((service.base_price || 0) * 100),
+              is_emergency: service.id === 'emergency-repair'
+            }))}
+            businessName="Professional HVAC Services"
+            businessPhone="(555) 123-4567"
+            businessEmail="info@professionalhvac.com"
+            onComplete={(booking) => {
               console.log('Booking completed:', booking);
-            }}
-            onBookingError={(error) => {
-              console.error('Booking error:', error);
             }}
           />
         </div>

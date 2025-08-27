@@ -184,8 +184,7 @@ export default function BookingPage() {
         <BookingWizard
           businessId={SAMPLE_BUSINESS_ID}
           services={SAMPLE_SERVICES}
-          onBookingComplete={handleBookingComplete}
-          onBookingError={handleBookingError}
+          onComplete={handleBookingComplete}
           className="mb-12"
         />
 

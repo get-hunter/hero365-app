@@ -9,6 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar, MapPin, Clock, Star, Search, Filter, Grid, List, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getCurrentBusinessId } from '@/lib/config/api-config';
+import EliteHeader from '@/components/layout/EliteHeader';
+import ProfessionalFooter from '@/components/professional/ProfessionalFooter';
+import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvider';
+import { CartProvider } from '@/lib/contexts/CartContext';
 
 interface FeaturedProject {
   id: string;
@@ -74,8 +79,8 @@ export default function ProjectsPage() {
   const [hasMore, setHasMore] = useState(true);
   const projectsPerPage = 12;
 
-  // Get business ID from URL or context
-  const businessId = 'demo-business-id'; // This should come from your app context
+  // Get business ID from configuration
+  const businessId = getCurrentBusinessId();
 
   useEffect(() => {
     fetchProjects();
@@ -206,7 +211,25 @@ export default function ProjectsPage() {
   const trades = Array.from(new Set(projects.map(p => p.trade)));
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <CartProvider businessId={businessId}>
+      <BookingWidgetProvider
+        businessId={businessId}
+        companyName="Austin Elite Home Services"
+        companyPhone="(512) 555-0123"
+        companyEmail="info@austinelitehome.com"
+        services={[]}
+      >
+      <div className="min-h-screen bg-white">
+        {/* Header */}
+        <EliteHeader 
+          businessName="Austin Elite Home Services"
+          city="Austin"
+          state="TX"
+          phone="(512) 555-0123"
+          supportHours="24/7"
+        />
+        
+        <div className="bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -520,6 +543,26 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+
+      {/* Footer */}
+      <ProfessionalFooter 
+        business={{
+          id: businessId,
+          name: "Austin Elite Home Services",
+          phone_number: "(512) 555-0123",
+          business_email: "info@austinelitehome.com",
+          address: "123 Main St, Austin, TX 78701",
+          website: "https://austinelitehome.com",
+          trades: [],
+          service_areas: [],
+          seo_keywords: []
+        }}
+        serviceCategories={[]}
+        locations={[]}
+      />
+      </div>
+      </BookingWidgetProvider>
+    </CartProvider>
   );
 }

@@ -117,6 +117,7 @@ export default function EliteHeader({
     { name: "About Us", href: "/about" },
     { name: "Service Area", href: "/service-area" },
     { name: "Why Choose Us", href: "/why-us" },
+    { name: "Our Work", href: "/projects" },
     { name: "Customer Reviews", href: "/reviews" },
     { name: "Careers", href: "/careers" },
     { name: "Blog", href: "/blog" }
@@ -224,15 +225,7 @@ export default function EliteHeader({
                         <div className="flex items-center justify-between">
                           <div>
                             <h4 className="font-semibold text-gray-900">Need Help Choosing?</h4>
-                            <p className="text-sm text-gray-600">Our experts are here to help</p>
-                          </div>
-                          <div className="flex space-x-3">
-                            <a 
-                              href={`tel:${phone}`}
-                              className="px-3 py-1 text-sm border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-                            >
-                              Call {phone}
-                            </a>
+                            <p className="text-sm text-gray-600">Our experts are here to help - call the number above</p>
                           </div>
                         </div>
                       </div>
@@ -244,6 +237,11 @@ export default function EliteHeader({
               {/* Products Link */}
               <a href="/products" className="text-gray-700 hover:text-gray-900 font-medium py-2">
                 Products
+              </a>
+
+              {/* Projects Link */}
+              <a href="/projects" className="text-gray-700 hover:text-gray-900 font-medium py-2">
+                Projects
               </a>
 
               {/* Company Dropdown */}
@@ -284,17 +282,7 @@ export default function EliteHeader({
 
             {/* Desktop CTAs */}
             <div className="hidden lg:flex items-center space-x-3">
-              <a 
-                href={`tel:${phone}`}
-                className="flex items-center text-gray-700 hover:text-gray-900 font-medium"
-              >
-                <Phone className="w-4 h-4 mr-2" />
-                {phone}
-              </a>
               <CartIndicator />
-              <BookingCTAButton>
-                Book Now
-              </BookingCTAButton>
             </div>
 
             {/* Mobile CTAs and Menu Button */}
@@ -339,6 +327,9 @@ export default function EliteHeader({
                 <a href="/products" className="block text-gray-700 font-medium">
                   Products
                 </a>
+                <a href="/projects" className="block text-gray-700 font-medium">
+                  Projects
+                </a>
                 <div>
                   <div className="text-gray-900 font-semibold mb-2">Company</div>
                   <div className="ml-4 space-y-1">
@@ -362,17 +353,10 @@ export default function EliteHeader({
               </div>
               
               <div className="pt-6 border-t border-gray-200 space-y-3">
-                <a 
-                  href={`tel:${phone}`}
-                  className="flex items-center text-gray-700 font-medium"
-                >
-                  <Phone className="w-4 h-4 mr-2" />
-                  {phone}
-                </a>
-                <div className="flex space-x-3">
-                  <BookingCTAButton className="flex-1">
-                    Book Now
-                  </BookingCTAButton>
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-3">
+                    Ready to get started? Call the number above or book online!
+                  </p>
                 </div>
               </div>
             </div>

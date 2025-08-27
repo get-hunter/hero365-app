@@ -20,7 +20,7 @@ interface CheckoutPageClientProps {
 
 export function CheckoutPageClient({ businessProfile }: CheckoutPageClientProps) {
   const router = useRouter();
-  const { cart, loading } = useCart();
+  const { cart, isLoading } = useCart();
   
   // Checkout state
   const [currentStep, setCurrentStep] = useState(0);
@@ -63,7 +63,7 @@ export function CheckoutPageClient({ businessProfile }: CheckoutPageClientProps)
   const [showEmptyCartMessage, setShowEmptyCartMessage] = useState(false);
   
   useEffect(() => {
-    if (!loading && (!cart || cart.item_count === 0)) {
+    if (!isLoading && (!cart || cart.item_count === 0)) {
       setShowEmptyCartMessage(true);
       // Delay redirect to let user see the message
       const timer = setTimeout(() => {
@@ -71,7 +71,7 @@ export function CheckoutPageClient({ businessProfile }: CheckoutPageClientProps)
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [cart, loading, router]);
+  }, [cart, isLoading, router]);
 
   // Validation functions
   const validateCurrentStep = (): CheckoutValidation => {
@@ -181,7 +181,7 @@ export function CheckoutPageClient({ businessProfile }: CheckoutPageClientProps)
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16">
         <div className="bg-white rounded-lg shadow-md p-8">
@@ -256,13 +256,13 @@ export function CheckoutPageClient({ businessProfile }: CheckoutPageClientProps)
       case 2:
         return <PaymentStep {...stepProps} />;
       case 3:
-        return <ReviewStep 
+        return cart ? <ReviewStep 
           {...stepProps} 
           cart={cart}
           businessProfile={businessProfile}
           onSubmit={processCheckout}
           isProcessing={isProcessing}
-        />;
+        /> : null;
       default:
         return null;
     }

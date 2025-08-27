@@ -84,18 +84,13 @@ const SAMPLE_DATA = {
   business: {
     id: "123e4567-e89b-12d3-a456-426614174000",
     name: "Professional HVAC Services",
-    phone: "(555) 123-4567",
-    email: "info@professionalhvac.com",
+    business_email: "info@professionalhvac.com",
     phone_number: "(555) 123-4567",
     service_areas: ["Downtown", "Midtown", "Suburbs"],
     description: "Professional HVAC services with 20+ years of experience",
-    primary_trade: "hvac",
-    logo_url: null,
-    website_url: "https://professionalhvac.com",
-    social_media: {
-      facebook: "https://facebook.com/professionalhvac",
-      instagram: "https://instagram.com/professionalhvac"
-    }
+    website: "https://professionalhvac.com",
+    trades: ["HVAC"],
+    seo_keywords: ["hvac", "heating", "cooling", "air conditioning"]
   },
   serviceCategories: [
     {
@@ -104,7 +99,10 @@ const SAMPLE_DATA = {
       description: "Complete heating, ventilation, and air conditioning services",
       services_count: 8,
       starting_price: 99,
-      is_popular: true
+      is_popular: true,
+      slug: "hvac-services",
+      is_featured: true,
+      sort_order: 1
     },
     {
       id: "emergency",
@@ -112,7 +110,10 @@ const SAMPLE_DATA = {
       description: "24/7 emergency HVAC repair services",
       services_count: 5,
       starting_price: 199,
-      is_popular: false
+      is_popular: false,
+      slug: "emergency-repair",
+      is_featured: false,
+      sort_order: 2
     }
   ],
   promos: [
@@ -123,12 +124,15 @@ const SAMPLE_DATA = {
       price_label: "$99",
       badge_text: "Limited Time",
       placement: "hero_banner",
-      is_featured: true
+      is_featured: true,
+      offer_type: "discount",
+      cta_text: "Book Now",
+      priority: 1
     }
   ],
   ratings: [
-    { id: "1", platform: "Google", rating: 4.8, review_count: 150, is_featured: true },
-    { id: "2", platform: "Yelp", rating: 4.7, review_count: 89, is_featured: true }
+    { id: "1", platform: "Google", display_name: "Google Reviews", rating: 4.8, review_count: 150, is_featured: true },
+    { id: "2", platform: "Yelp", display_name: "Yelp Reviews", rating: 4.7, review_count: 89, is_featured: true }
   ],
   awards: [
     {
@@ -209,8 +213,8 @@ export default function ProfessionalTemplate() {
       businessId="123e4567-e89b-12d3-a456-426614174000"
       services={SAMPLE_SERVICES}
       companyName={business.name}
-      companyPhone={business.phone}
-      companyEmail={business.email}
+      companyPhone={business.phone_number}
+      companyEmail={business.business_email}
       primaryColor="#3b82f6"
       showLauncher={true}
     >

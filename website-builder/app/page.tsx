@@ -98,7 +98,7 @@ export default async function HomePage() {
   const error = serverProfile ? null : 'Using fallback data - backend not available';
 
   // Convert services to bookable format
-  const bookableServices: BookableService[] = services.map(service => ({
+  const bookableServices: BookableService[] = services.map((service: any) => ({
     id: service.id,
     business_id: businessId,
     name: service.name,
@@ -223,12 +223,7 @@ export default async function HomePage() {
 
           {/* Trust & Rating Display */}
           <TrustRatingDisplay 
-            averageRating={fallbackContent.averageRating}
-            totalReviews={fallbackContent.totalReviews}
-            certifications={fallbackContent.certifications}
-            yearsInBusiness={fallbackContent.yearsInBusiness}
-            licenseNumber={fallbackContent.licenseNumber}
-            insuranceVerified={fallbackContent.insuranceVerified}
+            ratings={[]}
           />
 
           {/* Featured Projects */}
@@ -245,20 +240,20 @@ export default async function HomePage() {
 
           {/* Customer Reviews */}
           <CustomerReviews 
-            businessName={fallbackContent.businessName}
-            averageRating={fallbackContent.averageRating}
-            totalReviews={fallbackContent.totalReviews}
+            testimonials={[]}
           />
 
           {/* Contact Section */}
           <ContactSection 
             business={{
+              id: businessId,
               name: fallbackContent.businessName,
-              phone: fallbackContent.phone,
-              email: fallbackContent.email,
+              phone_number: fallbackContent.phone,
+              business_email: fallbackContent.email,
               address: fallbackContent.address,
               service_areas: fallbackContent.serviceAreas,
-              emergency_service: fallbackContent.emergencyService
+              trades: [],
+              seo_keywords: []
             }}
             locations={[]}
           />
@@ -266,13 +261,15 @@ export default async function HomePage() {
           {/* Footer */}
           <ProfessionalFooter 
             business={{
+              id: businessId,
               name: fallbackContent.businessName,
-              phone: fallbackContent.phone,
-              email: fallbackContent.email,
+              phone_number: fallbackContent.phone,
+              business_email: fallbackContent.email,
               address: fallbackContent.address,
-              license_number: fallbackContent.licenseNumber,
               website: fallbackContent.website,
-              service_areas: fallbackContent.serviceAreas
+              service_areas: fallbackContent.serviceAreas,
+              trades: [],
+              seo_keywords: []
             }}
             serviceCategories={[]}
             locations={[]}
@@ -491,30 +488,25 @@ export default async function HomePage() {
 
         {/* Trust & Rating Display */}
         <TrustRatingDisplay 
-          averageRating={generatedContent.averageRating || 4.8}
-          totalReviews={generatedContent.totalReviews || 150}
-          certifications={generatedContent.certifications}
-          yearsInBusiness={generatedContent.yearsInBusiness || 10}
-          licenseNumber={generatedContent.licenseNumber}
-          insuranceVerified={generatedContent.insuranceVerified}
+          ratings={[]}
         />
 
         {/* Customer Reviews */}
         <CustomerReviews 
-          businessName={generatedContent.businessName}
-          averageRating={generatedContent.averageRating || 4.8}
-          totalReviews={generatedContent.totalReviews || 150}
+          testimonials={[]}
         />
 
         {/* Contact Section */}
         <ContactSection 
           business={{
+            id: businessId,
             name: generatedContent.businessName,
-            phone: generatedContent.phone,
-            email: generatedContent.email,
+            phone_number: generatedContent.phone,
+            business_email: generatedContent.email,
             address: generatedContent.address,
             service_areas: generatedContent.serviceAreas,
-            emergency_service: generatedContent.emergencyService
+            trades: [],
+            seo_keywords: []
           }}
           locations={[]}
         />
@@ -522,13 +514,15 @@ export default async function HomePage() {
         {/* Footer */}
         <ProfessionalFooter 
           business={{
+            id: businessId,
             name: generatedContent.businessName,
-            phone: generatedContent.phone,
-            email: generatedContent.email,
+            phone_number: generatedContent.phone,
+            business_email: generatedContent.email,
             address: generatedContent.address,
-            license_number: generatedContent.licenseNumber,
             website: generatedContent.website,
-            service_areas: generatedContent.serviceAreas
+            service_areas: generatedContent.serviceAreas,
+            trades: [],
+            seo_keywords: []
           }}
           serviceCategories={[]}
           locations={[]}

@@ -154,7 +154,7 @@ export default async function PricingPage() {
   const finalBusinessData = businessData || fallbackBusinessData;
 
   return (
-    <CartProvider>
+    <CartProvider businessId={businessId}>
       <BookingWidgetProvider
         businessId={businessId}
         companyName={finalBusinessData.businessName}
@@ -217,13 +217,15 @@ export default async function PricingPage() {
         {/* Professional Footer - Same as main page with real data */}
         <ProfessionalFooter 
           business={{
+            id: businessId,
             name: finalBusinessData.businessName,
-            phone: finalBusinessData.phone,
-            email: finalBusinessData.email,
+            phone_number: finalBusinessData.phone,
+            business_email: finalBusinessData.email,
             address: finalBusinessData.address,
-            license_number: finalBusinessData.licenseNumber,
             website: undefined,
-            service_areas: finalBusinessData.serviceAreas
+            service_areas: finalBusinessData.serviceAreas,
+            trades: [],
+            seo_keywords: []
           }}
           serviceCategories={[]}
           locations={[]}
