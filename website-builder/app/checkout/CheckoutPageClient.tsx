@@ -59,10 +59,17 @@ export function CheckoutPageClient({ businessProfile }: CheckoutPageClientProps)
 
   const [checkoutSteps, setCheckoutSteps] = useState(steps);
 
-  // Redirect to cart if empty
+  // Show empty cart message instead of redirecting immediately
+  const [showEmptyCartMessage, setShowEmptyCartMessage] = useState(false);
+  
   useEffect(() => {
     if (!loading && (!cart || cart.item_count === 0)) {
-      router.push('/cart');
+      setShowEmptyCartMessage(true);
+      // Delay redirect to let user see the message
+      const timer = setTimeout(() => {
+        router.push('/cart');
+      }, 3000);
+      return () => clearTimeout(timer);
     }
   }, [cart, loading, router]);
 
@@ -142,9 +149,7 @@ export function CheckoutPageClient({ businessProfile }: CheckoutPageClientProps)
     setIsProcessing(true);
 
     try {
-      const backendUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://api.hero365.app' 
-        : 'http://127.0.0.1:8000';
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
       const response = await fetch(`${backendUrl}/api/v1/public/professional/${businessProfile.business_id}/checkout/process`, {
         method: 'POST',
@@ -194,8 +199,44 @@ export function CheckoutPageClient({ businessProfile }: CheckoutPageClientProps)
     );
   }
 
-  if (!cart || cart.item_count === 0) {
-    return null; // Will redirect in useEffect
+  // Show empty cart message
+  if (showEmptyCartMessage && (!cart || cart.item_count === 0)) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-16">
+        <div className="max-w-2xl mx-auto px-4 text-center">
+          <div className="bg-white rounded-lg shadow-md p-8">
+            <div className="mb-6">
+              <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1 5a1 1 0 001 1h9M9 19v1a1 1 0 001 1h4a1 1 0 001-1v-1m-6 0a1 1 0 011-1h4a1 1 0 011 1m-6 0h6" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Cart is Empty</h2>
+              <p className="text-gray-600 mb-6">
+                You need to add items to your cart before you can proceed to checkout.
+              </p>
+              <div className="text-sm text-gray-500 mb-6">
+                Redirecting to cart in 3 seconds...
+              </div>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => router.push('/products')}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                Browse Products
+              </button>
+              <button
+                onClick={() => router.push('/cart')}
+                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                Go to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const renderCurrentStep = () => {

@@ -66,7 +66,13 @@ export default async function CheckoutSuccessPage() {
     <CartProvider businessId={businessId}>
       <BookingWidgetProvider businessProfile={profile}>
         <div className="min-h-screen bg-gray-50">
-          <EliteHeader businessProfile={profile} />
+          <EliteHeader 
+            businessName={profile.business_name}
+            city="Austin"
+            state="TX"
+            phone={profile.phone}
+            supportHours="24/7"
+          />
           
           <main>
             <Suspense 

@@ -297,17 +297,20 @@ export default function EliteHeader({
               </BookingCTAButton>
             </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              className="lg:hidden p-2"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </button>
+            {/* Mobile CTAs and Menu Button */}
+            <div className="lg:hidden flex items-center space-x-3">
+              <CartIndicator />
+              <button
+                className="p-2"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -366,7 +369,6 @@ export default function EliteHeader({
                   <Phone className="w-4 h-4 mr-2" />
                   {phone}
                 </a>
-                <CartIndicator />
                 <div className="flex space-x-3">
                   <BookingCTAButton className="flex-1">
                     Book Now

@@ -18,7 +18,7 @@ export function CartIndicator() {
           {itemCount > 9 ? '9+' : itemCount}
         </span>
       )}
-      <span className="ml-2 hidden sm:inline">Cart</span>
+
     </a>
   );
 }

@@ -3,7 +3,7 @@
 import { ShoppingCart } from '@/lib/types/products';
 
 interface CheckoutSummaryProps {
-  cart: ShoppingCart;
+  cart: ShoppingCart | null;
   membershipType: string;
   businessProfile: any;
 }
@@ -27,6 +27,20 @@ export function CheckoutSummary({ cart, membershipType, businessProfile }: Check
     }
   };
 
+  // Handle null cart safely to avoid runtime errors during initial render
+  if (!cart) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
@@ -40,16 +54,16 @@ export function CheckoutSummary({ cart, membershipType, businessProfile }: Check
                 {item.product_name}
               </div>
               <div className="text-xs text-gray-500">
-                {item.installation_option_name} × {item.quantity}
+                {item.installation_option_name || 'No Installation'} × {item.quantity}
               </div>
-              {item.membership_type !== 'none' && (
+              {membershipType !== 'none' && (
                 <div className="text-xs text-green-600">
-                  {getMembershipLabel(item.membership_type)} Pricing
+                  {getMembershipLabel(membershipType)} Pricing
                 </div>
               )}
             </div>
             <div className="text-sm font-medium text-gray-900">
-              {formatPrice(item.total_price)}
+              {formatPrice(item.item_total)}
             </div>
           </div>
         ))}

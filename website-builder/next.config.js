@@ -1,19 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Global environment variables
+  // Global environment variables (Infrastructure only)
   env: {
     // Backend API Configuration - Global Setting
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
     NEXT_PUBLIC_API_VERSION: process.env.NEXT_PUBLIC_API_VERSION || 'v1',
     
-    // Business Configuration
-    NEXT_PUBLIC_BUSINESS_ID: process.env.NEXT_PUBLIC_BUSINESS_ID || 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
-    NEXT_PUBLIC_BUSINESS_NAME: process.env.NEXT_PUBLIC_BUSINESS_NAME || 'Austin Elite HVAC',
-    NEXT_PUBLIC_BUSINESS_EMAIL: process.env.NEXT_PUBLIC_BUSINESS_EMAIL || 'info@austinelitehvac.com',
-    NEXT_PUBLIC_BUSINESS_PHONE: process.env.NEXT_PUBLIC_BUSINESS_PHONE || '(512) 555-COOL',
-    
-    // Feature Flags
+    // Feature Flags (Global)
     NEXT_PUBLIC_DEBUG_MODE: process.env.NEXT_PUBLIC_DEBUG_MODE || 'true',
+    NEXT_PUBLIC_ANALYTICS_ENABLED: process.env.NEXT_PUBLIC_ANALYTICS_ENABLED || 'false',
+    
+    // Business Configuration: DO NOT SET DEFAULTS HERE
+    // These should be passed via environment variables or deployment scripts
+    NEXT_PUBLIC_BUSINESS_ID: process.env.NEXT_PUBLIC_BUSINESS_ID,
+    NEXT_PUBLIC_BUSINESS_NAME: process.env.NEXT_PUBLIC_BUSINESS_NAME,
+    NEXT_PUBLIC_BUSINESS_EMAIL: process.env.NEXT_PUBLIC_BUSINESS_EMAIL,
+    NEXT_PUBLIC_BUSINESS_PHONE: process.env.NEXT_PUBLIC_BUSINESS_PHONE,
   },
   
   // Optional: Add webpack config for better performance

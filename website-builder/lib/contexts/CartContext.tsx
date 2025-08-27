@@ -146,8 +146,12 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
 
   const refreshCart = async (): Promise<void> => {
     const cartId = getCartId();
-    if (!cartId) return;
+    if (!cartId) {
+      console.log('🛒 [CART-CONTEXT] refreshCart: No cart_id, skipping');
+      return;
+    }
 
+    console.log('🛒 [CART-CONTEXT] refreshCart: Loading cart from API:', cartId);
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
@@ -155,26 +159,36 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
       
       if (!response.ok) {
         if (response.status === 404) {
+          console.log('🛒 [CART-CONTEXT] Cart not found (404), clearing localStorage');
           // Cart not found, clear local storage
           removeCartId();
           dispatch({ type: 'CLEAR_CART' });
           return;
         }
-        throw new Error('Failed to fetch cart');
+        throw new Error(`Failed to fetch cart: ${response.status} ${response.statusText}`);
       }
 
       const cart = await response.json();
+      console.log('🛒 [CART-CONTEXT] Cart loaded successfully:', { 
+        cartId: cart.id, 
+        itemCount: cart.item_count, 
+        items: cart.items?.length || 0 
+      });
       dispatch({ type: 'SET_CART', payload: cart });
       
       // Also get cart summary
       await getCartSummary(cartId);
     } catch (error) {
+      console.error('🛒 [CART-CONTEXT] refreshCart error:', error);
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to fetch cart' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
   const addToCart = async (item: AddCartItemRequest): Promise<void> => {
     let cartId = getCartId();
+    console.log('🛒 [CART-CONTEXT] addToCart called:', { item, currentCartId: cartId });
     
     // Create cart if it doesn't exist
     if (!cartId) {
@@ -290,8 +304,13 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
   // Load cart on mount
   useEffect(() => {
     const cartId = getCartId();
+    console.log('🛒 [CART-CONTEXT] Initializing cart context:', { cartId, businessId });
+    
     if (cartId) {
+      console.log('🛒 [CART-CONTEXT] Found cart_id in localStorage, refreshing cart...');
       refreshCart();
+    } else {
+      console.log('🛒 [CART-CONTEXT] No cart_id in localStorage, starting with empty cart');
     }
   }, [businessId]);
 
