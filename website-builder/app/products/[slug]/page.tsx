@@ -7,14 +7,14 @@ import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvide
 import { CartProvider } from '@/lib/contexts/CartContext';
 import { ProductCatalogItem, ProductCategory } from '@/lib/types/products';
 
-async function loadProductData(businessId: string, productId: string) {
+async function loadProductData(businessId: string, productSlug: string) {
   try {
-    console.log('🔄 [PRODUCT DETAIL] Loading product data for:', productId);
+    console.log('🔄 [PRODUCT DETAIL] Loading product data for slug:', productSlug);
     
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     
     const [productResponse, profileResponse, categoriesResponse] = await Promise.all([
-      fetch(`${backendUrl}/api/v1/public/contractors/product/${businessId}/${productId}`, {
+      fetch(`${backendUrl}/api/v1/public/contractors/product-by-slug/${businessId}/${productSlug}`, {
         headers: { 'Content-Type': 'application/json' }
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
@@ -55,7 +55,7 @@ async function loadProductData(businessId: string, productId: string) {
 
 interface ProductDetailPageProps {
   params: Promise<{
-    productId: string;
+    slug: string;
   }>;
 }
 
@@ -64,9 +64,9 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const businessId = businessConfig.defaultBusinessId;
   
   // Await params in Next.js 15+
-  const { productId } = await params;
+  const { slug } = await params;
   
-  const { product, profile, categories } = await loadProductData(businessId, productId);
+  const { product, profile, categories } = await loadProductData(businessId, slug);
   
   // If product not found, show 404
   if (!product) {

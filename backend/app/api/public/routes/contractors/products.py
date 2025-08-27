@@ -486,3 +486,44 @@ async def get_product_categories(
     except Exception as e:
         logger.error(f"Unexpected error retrieving categories for business {business_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/product-by-slug/{business_id}/{product_slug}", response_model=ProductCatalogItem)
+async def get_product_by_slug(
+    business_id: str = Path(..., description="Business ID"),
+    product_slug: str = Path(..., description="Product SEO slug"),
+    product_service: ProductService = Depends(get_product_service)
+):
+    """
+    Get detailed product information by SEO slug.
+    
+    SEO-friendly endpoint that finds products by their slug instead of UUID.
+    Returns complete product details for product detail page display.
+    """
+    
+    try:
+        # For now, just use the existing UUID-based endpoint by finding the product first
+        catalog_dtos = await product_service.get_product_catalog(
+            business_id=business_id,
+            limit=1000
+        )
+        
+        # Find matching product by slug
+        matching_product = None
+        for catalog_dto in catalog_dtos:
+            generated_slug = catalog_dto.name.lower().replace(' ', '-').replace('&', 'and')
+            if generated_slug == product_slug:
+                matching_product = catalog_dto
+                break
+        
+        if not matching_product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        
+        # Use the existing get_product_details logic by calling it with the found product ID
+        return await get_product_details(business_id, matching_product.id, product_service)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting product by slug: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
