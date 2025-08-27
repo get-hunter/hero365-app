@@ -29,13 +29,13 @@ async function loadBusinessData(businessId: string) {
     console.log('🔄 [SERVER] Backend URL:', backendUrl);
     
     const [profileResponse, servicesResponse, productsResponse] = await Promise.all([
-      fetch(`${backendUrl}/api/v1/public/professional/profile/${businessId}`, {
+      fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
         headers: { 'Content-Type': 'application/json' }
       }),
-      fetch(`${backendUrl}/api/v1/public/professional/services/${businessId}`, {
+      fetch(`${backendUrl}/api/v1/public/contractors/services/${businessId}`, {
         headers: { 'Content-Type': 'application/json' }
       }),
-      fetch(`${backendUrl}/api/v1/public/professional/product-catalog/${businessId}?featured_only=true&limit=6`, {
+      fetch(`${backendUrl}/api/v1/public/contractors/product-catalog/${businessId}?featured_only=true&limit=6`, {
         headers: { 'Content-Type': 'application/json' }
       })
     ]);

@@ -14,13 +14,13 @@ async function loadProductData(businessId: string, productId: string) {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     
     const [productResponse, profileResponse, categoriesResponse] = await Promise.all([
-      fetch(`${backendUrl}/api/v1/public/professional/product/${businessId}/${productId}`, {
+      fetch(`${backendUrl}/api/v1/public/contractors/product/${businessId}/${productId}`, {
         headers: { 'Content-Type': 'application/json' }
       }),
-      fetch(`${backendUrl}/api/v1/public/professional/profile/${businessId}`, {
+      fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
         headers: { 'Content-Type': 'application/json' }
       }),
-      fetch(`${backendUrl}/api/v1/public/professional/product-categories/${businessId}`, {
+      fetch(`${backendUrl}/api/v1/public/contractors/product-categories/${businessId}`, {
         headers: { 'Content-Type': 'application/json' }
       })
     ]);

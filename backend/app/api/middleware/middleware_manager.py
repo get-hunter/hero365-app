@@ -51,9 +51,8 @@ class MiddlewareConfig:
             f"{self.api_v1_str}/auth/google/signin",
             f"{self.api_v1_str}/auth/password-recovery",
             f"{self.api_v1_str}/auth/refresh",
-            f"{self.api_v1_str}/public/professional/",
+            f"{self.api_v1_str}/public/contractors/",
             f"{self.api_v1_str}/public/service-areas/",
-            f"{self.api_v1_str}/public/availability/",
         ]
     
     @property

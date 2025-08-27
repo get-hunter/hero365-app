@@ -20,7 +20,7 @@ async function loadBusinessProfile(businessId: string) {
       nodeEnv: process.env.NODE_ENV 
     });
       
-    const response = await fetch(`${backendUrl}/api/v1/public/professional/profile/${businessId}`, {
+    const response = await fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store'
     });

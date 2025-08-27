@@ -783,7 +783,7 @@ export type AdvancePaymentSchema_Output = {
 /**
  * Service category with services.
  */
-export type app__api__public__routes__professional__ServiceCategory = {
+export type app__api__public__routes__contractors__schemas__ServiceCategory = {
   /**
    * Category ID
    */
@@ -10055,6 +10055,293 @@ export type ContactsUpdateContactStatusData = {
 
 export type ContactsUpdateContactStatusResponse = ContactStatusUpdateResponse
 
+export type ContractorsAvailabilityGetContractorAvailabilityData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * End date for availability
+   */
+  endDate: string
+  /**
+   * Start date for availability
+   */
+  startDate: string
+}
+
+export type ContractorsAvailabilityGetContractorAvailabilityResponse =
+  Array<AvailabilitySlot>
+
+export type ContractorsCartCreateShoppingCartData = {
+  /**
+   * Customer ID for logged-in users
+   */
+  customerId?: string | null
+  /**
+   * Session ID for guest users
+   */
+  sessionId?: string | null
+}
+
+export type ContractorsCartCreateShoppingCartResponse = ShoppingCart
+
+export type ContractorsCartGetShoppingCartData = {
+  /**
+   * Business ID for pricing context (optional - will use cart's business_id)
+   */
+  businessId?: string | null
+  /**
+   * Cart ID or Session ID
+   */
+  cartIdentifier: string
+}
+
+export type ContractorsCartGetShoppingCartResponse = ShoppingCart
+
+export type ContractorsCartAddCartItemData = {
+  /**
+   * Business ID for pricing context
+   */
+  businessId: string
+  /**
+   * Shopping cart ID
+   */
+  cartId: string
+  requestBody: CartItemRequest
+}
+
+export type ContractorsCartAddCartItemResponse = CartItem
+
+export type ContractorsCartUpdateCartItemData = {
+  /**
+   * Business ID for pricing context
+   */
+  businessId: string
+  /**
+   * Shopping cart ID
+   */
+  cartId: string
+  /**
+   * Cart item ID
+   */
+  itemId: string
+  /**
+   * New quantity (0 to remove)
+   */
+  quantity: number
+}
+
+export type ContractorsCartUpdateCartItemResponse = CartItem
+
+export type ContractorsCartRemoveCartItemData = {
+  /**
+   * Shopping cart ID
+   */
+  cartId: string
+  /**
+   * Cart item ID
+   */
+  itemId: string
+}
+
+export type ContractorsCartRemoveCartItemResponse = unknown
+
+export type ContractorsCartClearShoppingCartData = {
+  /**
+   * Shopping cart ID
+   */
+  cartId: string
+}
+
+export type ContractorsCartClearShoppingCartResponse = unknown
+
+export type ContractorsCartGetCartSummaryData = {
+  /**
+   * Cart ID or Session ID
+   */
+  cartIdentifier: string
+}
+
+export type ContractorsCartGetCartSummaryResponse = CartSummary
+
+export type ContractorsCheckoutProcessCheckoutData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  requestBody: CheckoutRequest
+}
+
+export type ContractorsCheckoutProcessCheckoutResponse = CheckoutResponse
+
+export type ContractorsProductsGetContractorProductsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Filter by product category
+   */
+  category?: string | null
+  /**
+   * Show only in-stock products
+   */
+  inStockOnly?: boolean
+}
+
+export type ContractorsProductsGetContractorProductsResponse =
+  Array<ProductItem>
+
+export type ContractorsProductsGetProductCatalogData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Filter by category
+   */
+  category?: string | null
+  /**
+   * Show only featured products
+   */
+  featuredOnly?: boolean
+  /**
+   * Maximum number of products to return
+   */
+  limit?: number
+  /**
+   * Offset for pagination
+   */
+  offset?: number
+  /**
+   * Search products by name or description
+   */
+  search?: string | null
+}
+
+export type ContractorsProductsGetProductCatalogResponse =
+  Array<ProductCatalogItem>
+
+export type ContractorsProductsDebugProductsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ContractorsProductsDebugProductsResponse = unknown
+
+export type ContractorsProductsGetProductCategoriesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ContractorsProductsGetProductCategoriesResponse =
+  Array<ProductCategory>
+
+export type ContractorsProductsGetProductDetailsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Product ID
+   */
+  productId: string
+}
+
+export type ContractorsProductsGetProductDetailsResponse = ProductCatalogItem
+
+export type ContractorsProductsCalculateProductPricingData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Installation option ID
+   */
+  installationOptionId?: string | null
+  /**
+   * Membership type (residential, commercial, premium)
+   */
+  membershipType?: string | null
+  /**
+   * Product ID
+   */
+  productId: string
+  /**
+   * Quantity
+   */
+  quantity?: number
+}
+
+export type ContractorsProductsCalculateProductPricingResponse =
+  PricingBreakdown
+
+export type ContractorsProfileGetContractorProfileData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ContractorsProfileGetContractorProfileResponse = ProfessionalProfile
+
+export type ContractorsServicesGetContractorServicesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Filter by service category
+   */
+  category?: string | null
+  /**
+   * Show only emergency services
+   */
+  emergencyOnly?: boolean
+}
+
+export type ContractorsServicesGetContractorServicesResponse =
+  Array<ServiceItem>
+
+export type ContractorsServicesGetContractorServiceCategoriesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ContractorsServicesGetContractorServiceCategoriesResponse =
+  Array<app__api__public__routes__contractors__schemas__ServiceCategory>
+
+export type ContractorsServicesGetMembershipPlansData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ContractorsServicesGetMembershipPlansResponse =
+  Array<MembershipPlan>
+
+export type ContractorsServicesGetServicePricingData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Filter by service category
+   */
+  category?: string | null
+}
+
+export type ContractorsServicesGetServicePricingResponse =
+  Array<ServicePricingCategory>
+
 export type DynamicWebsiteDeploymentCheckWebsiteGenerationReadinessResponse =
   unknown
 
@@ -11356,292 +11643,6 @@ export type ProjectsRemoveJobFromProject1Data = {
 }
 
 export type ProjectsRemoveJobFromProject1Response = ProjectActionResponse
-
-export type PublicProfessionalGetProfessionalProfileData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-}
-
-export type PublicProfessionalGetProfessionalProfileResponse =
-  ProfessionalProfile
-
-export type PublicProfessionalGetProfessionalServicesData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  /**
-   * Filter by service category
-   */
-  category?: string | null
-  /**
-   * Show only emergency services
-   */
-  emergencyOnly?: boolean
-}
-
-export type PublicProfessionalGetProfessionalServicesResponse =
-  Array<ServiceItem>
-
-export type PublicProfessionalGetProfessionalServiceCategoriesData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-}
-
-export type PublicProfessionalGetProfessionalServiceCategoriesResponse =
-  Array<app__api__public__routes__professional__ServiceCategory>
-
-export type PublicProfessionalGetProfessionalProductsData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  /**
-   * Filter by product category
-   */
-  category?: string | null
-  /**
-   * Show only in-stock products
-   */
-  inStockOnly?: boolean
-}
-
-export type PublicProfessionalGetProfessionalProductsResponse =
-  Array<ProductItem>
-
-export type PublicProfessionalGetProfessionalAvailabilityData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  /**
-   * End date for availability
-   */
-  endDate: string
-  /**
-   * Start date for availability
-   */
-  startDate: string
-}
-
-export type PublicProfessionalGetProfessionalAvailabilityResponse =
-  Array<AvailabilitySlot>
-
-export type PublicProfessionalGetMembershipPlansData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-}
-
-export type PublicProfessionalGetMembershipPlansResponse = Array<MembershipPlan>
-
-export type PublicProfessionalGetServicePricingData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  /**
-   * Filter by service category
-   */
-  category?: string | null
-}
-
-export type PublicProfessionalGetServicePricingResponse =
-  Array<ServicePricingCategory>
-
-export type PublicProfessionalGetProductCatalogData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  /**
-   * Filter by category
-   */
-  category?: string | null
-  /**
-   * Show only featured products
-   */
-  featuredOnly?: boolean
-  /**
-   * Maximum number of products to return
-   */
-  limit?: number
-  /**
-   * Offset for pagination
-   */
-  offset?: number
-  /**
-   * Search products by name or description
-   */
-  search?: string | null
-}
-
-export type PublicProfessionalGetProductCatalogResponse =
-  Array<ProductCatalogItem>
-
-export type PublicProfessionalDebugProductsData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-}
-
-export type PublicProfessionalDebugProductsResponse = unknown
-
-export type PublicProfessionalGetProductCategoriesData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-}
-
-export type PublicProfessionalGetProductCategoriesResponse =
-  Array<ProductCategory>
-
-export type PublicProfessionalGetProductDetailsData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  /**
-   * Product ID
-   */
-  productId: string
-}
-
-export type PublicProfessionalGetProductDetailsResponse = ProductCatalogItem
-
-export type PublicProfessionalCalculateProductPricingData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  /**
-   * Installation option ID
-   */
-  installationOptionId?: string | null
-  /**
-   * Membership type (residential, commercial, premium)
-   */
-  membershipType?: string | null
-  /**
-   * Product ID
-   */
-  productId: string
-  /**
-   * Quantity
-   */
-  quantity?: number
-}
-
-export type PublicProfessionalCalculateProductPricingResponse = PricingBreakdown
-
-export type PublicProfessionalCreateShoppingCartData = {
-  /**
-   * Customer ID for logged-in users
-   */
-  customerId?: string | null
-  /**
-   * Session ID for guest users
-   */
-  sessionId?: string | null
-}
-
-export type PublicProfessionalCreateShoppingCartResponse = ShoppingCart
-
-export type PublicProfessionalGetShoppingCartData = {
-  /**
-   * Business ID for pricing context (optional - will use cart's business_id)
-   */
-  businessId?: string | null
-  /**
-   * Cart ID or Session ID
-   */
-  cartIdentifier: string
-}
-
-export type PublicProfessionalGetShoppingCartResponse = ShoppingCart
-
-export type PublicProfessionalAddCartItemData = {
-  /**
-   * Business ID for pricing context
-   */
-  businessId: string
-  /**
-   * Shopping cart ID
-   */
-  cartId: string
-  requestBody: CartItemRequest
-}
-
-export type PublicProfessionalAddCartItemResponse = CartItem
-
-export type PublicProfessionalUpdateCartItemData = {
-  /**
-   * Business ID for pricing context
-   */
-  businessId: string
-  /**
-   * Shopping cart ID
-   */
-  cartId: string
-  /**
-   * Cart item ID
-   */
-  itemId: string
-  /**
-   * New quantity (0 to remove)
-   */
-  quantity: number
-}
-
-export type PublicProfessionalUpdateCartItemResponse = CartItem
-
-export type PublicProfessionalRemoveCartItemData = {
-  /**
-   * Shopping cart ID
-   */
-  cartId: string
-  /**
-   * Cart item ID
-   */
-  itemId: string
-}
-
-export type PublicProfessionalRemoveCartItemResponse = unknown
-
-export type PublicProfessionalClearShoppingCartData = {
-  /**
-   * Shopping cart ID
-   */
-  cartId: string
-}
-
-export type PublicProfessionalClearShoppingCartResponse = unknown
-
-export type PublicProfessionalGetCartSummaryData = {
-  /**
-   * Cart ID or Session ID
-   */
-  cartIdentifier: string
-}
-
-export type PublicProfessionalGetCartSummaryResponse = CartSummary
-
-export type PublicProfessionalProcessCheckoutData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  requestBody: CheckoutRequest
-}
-
-export type PublicProfessionalProcessCheckoutResponse = CheckoutResponse
 
 export type PurchaseOrdersCreatePurchaseOrderData = {
   requestBody: CreatePurchaseOrderSchema

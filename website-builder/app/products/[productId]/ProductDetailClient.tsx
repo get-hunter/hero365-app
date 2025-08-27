@@ -96,7 +96,7 @@ export function ProductDetailClient({
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
       
       const response = await fetch(
-        `${backendUrl}/api/v1/public/professional/product-pricing/${businessId}/${product.id}`,
+        `${backendUrl}/api/v1/public/contractors/product-pricing/${businessId}/${product.id}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -165,7 +165,7 @@ async function fetchBusinessData(businessId, apiBaseUrl) {
     verbose(`Fetching business data from API: ${apiBaseUrl}`);
     
     const fetch = (await import('node-fetch')).default;
-    const response = await fetch(`${apiBaseUrl}/api/v1/public/professional/profile/${businessId}`);
+    const response = await fetch(`${apiBaseUrl}/api/v1/public/contractors/profile/${businessId}`);
     
     if (response.ok) {
       const businessData = await response.json();

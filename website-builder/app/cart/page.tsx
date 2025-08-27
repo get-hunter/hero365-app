@@ -10,7 +10,7 @@ async function loadBusinessProfile(businessId: string) {
   try {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
     
-    const response = await fetch(`${backendUrl}/api/v1/public/professional/profile/${businessId}`, {
+    const response = await fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
       headers: { 'Content-Type': 'application/json' }
     });
     

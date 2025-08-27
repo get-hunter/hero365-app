@@ -1,7 +1,7 @@
 /**
- * Professional API Client
+ * Contractors API Client
  * 
- * Client for interacting with the public professional API endpoints
+ * Client for interacting with the public contractors API endpoints
  */
 
 import { buildPublicApiUrl, getDefaultHeaders } from '../config/api-config';
@@ -78,7 +78,7 @@ export class ProfessionalApiClient {
    */
   async getProfessionalProfile(businessId: string): Promise<ProfessionalProfile> {
     // Use server-side proxy to avoid browser CORS/connectivity issues
-    const url = `/api/professional/${businessId}`;
+    const url = `/api/contractors/${businessId}`;
     
     console.log('🔍 [DEBUG] Fetching profile via proxy:', url);
     
@@ -124,7 +124,7 @@ export class ProfessionalApiClient {
     }
 
     // Use server-side proxy to avoid browser CORS/connectivity issues
-    const url = `/api/professional/${businessId}/services${params.toString() ? '?' + params.toString() : ''}`;
+    const url = `/api/contractors/${businessId}/services${params.toString() ? '?' + params.toString() : ''}`;
     
     console.log('🔍 [DEBUG] Fetching services via proxy:', url);
     
@@ -168,7 +168,7 @@ export class ProfessionalApiClient {
       params.append('in_stock_only', options.inStockOnly.toString());
     }
 
-    const url = buildPublicApiUrl(`professional/products/${businessId}${params.toString() ? '?' + params.toString() : ''}`);
+    const url = buildPublicApiUrl(`contractors/products/${businessId}${params.toString() ? '?' + params.toString() : ''}`);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -199,7 +199,7 @@ export class ProfessionalApiClient {
       end_date: endDate
     });
 
-    const url = buildPublicApiUrl(`professional/availability/${businessId}?${params}`);
+    const url = buildPublicApiUrl(`contractors/availability/${businessId}?${params}`);
     
     const response = await fetch(url, {
       method: 'GET',

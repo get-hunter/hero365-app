@@ -96,7 +96,7 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     
     try {
       const sessionId = `session_${Date.now()}`;
-      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/create?session_id=${sessionId}`, {
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/create?session_id=${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -133,7 +133,7 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
 
   const getCartSummary = async (cartId: string): Promise<void> => {
     try {
-      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}/summary`);
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}/summary`);
       
       if (response.ok) {
         const summary = await response.json();
@@ -155,7 +155,7 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}`);
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}`);
       
       if (!response.ok) {
         if (response.status === 404) {
@@ -210,7 +210,7 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     
     try {
       console.log('🛒 [CART] Adding item to cart:', cartId, item);
-      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}/items?business_id=${businessId}`, {
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}/items?business_id=${businessId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item)
@@ -241,7 +241,7 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}/items/${itemId}?quantity=${quantity}&business_id=${businessId}`, {
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}/items/${itemId}?quantity=${quantity}&business_id=${businessId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -264,7 +264,7 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}/items/${itemId}`, {
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}/items/${itemId}`, {
         method: 'DELETE'
       });
 
@@ -286,7 +286,7 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}`, {
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}`, {
         method: 'DELETE'
       });
 

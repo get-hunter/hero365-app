@@ -19,15 +19,15 @@ async function loadProductData(businessId: string) {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
     
     const [catalogResponse, categoriesResponse, profileResponse] = await Promise.all([
-      fetch(`${backendUrl}/api/v1/public/professional/product-catalog/${businessId}`, {
+      fetch(`${backendUrl}/api/v1/public/contractors/product-catalog/${businessId}`, {
         headers: { 'Content-Type': 'application/json' },
         next: { revalidate: 300 } // Cache for 5 minutes
       }),
-      fetch(`${backendUrl}/api/v1/public/professional/product-categories/${businessId}`, {
+      fetch(`${backendUrl}/api/v1/public/contractors/product-categories/${businessId}`, {
         headers: { 'Content-Type': 'application/json' },
         next: { revalidate: 600 } // Cache for 10 minutes
       }),
-      fetch(`${backendUrl}/api/v1/public/professional/profile/${businessId}`, {
+      fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
         headers: { 'Content-Type': 'application/json' },
         next: { revalidate: 600 } // Cache for 10 minutes
       })

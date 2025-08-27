@@ -151,7 +151,7 @@ export function CheckoutPageClient({ businessProfile }: CheckoutPageClientProps)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-      const response = await fetch(`${backendUrl}/api/v1/public/professional/${businessProfile.business_id}/checkout/process`, {
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/${businessProfile.business_id}/checkout/process`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -6,10 +6,10 @@ These endpoints are completely separate from the main authenticated API.
 """
 
 from fastapi import APIRouter
-from .routes import professional
+from .routes.contractors import contractors_router
 
 # Create public API router without any middleware dependencies
 public_router = APIRouter(prefix="/public")
 
 # Include public route modules
-public_router.include_router(professional.router, prefix="/professional", tags=["Public Professional"])
+public_router.include_router(contractors_router, prefix="/contractors")
