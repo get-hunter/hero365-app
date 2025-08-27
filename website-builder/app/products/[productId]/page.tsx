@@ -11,7 +11,7 @@ async function loadProductData(businessId: string, productId: string) {
   try {
     console.log('🔄 [PRODUCT DETAIL] Loading product data for:', productId);
     
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     
     const [productResponse, profileResponse, categoriesResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/professional/product/${businessId}/${productId}`, {
@@ -54,9 +54,9 @@ async function loadProductData(businessId: string, productId: string) {
 }
 
 interface ProductDetailPageProps {
-  params: {
+  params: Promise<{
     productId: string;
-  };
+  }>;
 }
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {

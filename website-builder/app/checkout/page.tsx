@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getBusinessConfig } from '@/lib/config/api-config';
+import { getBusinessConfig, getBackendUrl } from '@/lib/config/api-config';
 import { CheckoutPageClient } from './CheckoutPageClient';
 import EliteHeader from '@/components/layout/EliteHeader';
 import ProfessionalFooter from '@/components/professional/ProfessionalFooter';
@@ -11,9 +11,14 @@ export const dynamic = 'force-dynamic';
 
 async function loadBusinessProfile(businessId: string) {
   try {
-    const backendUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://api.hero365.app' 
-      : 'http://127.0.0.1:8000';
+    // Use global backend URL configuration
+    const backendUrl = getBackendUrl();
+      
+    console.log('🔧 [CHECKOUT] Loading business profile:', { 
+      businessId, 
+      backendUrl, 
+      nodeEnv: process.env.NODE_ENV 
+    });
       
     const response = await fetch(`${backendUrl}/api/v1/public/professional/profile/${businessId}`, {
       headers: { 'Content-Type': 'application/json' },
@@ -21,13 +26,23 @@ async function loadBusinessProfile(businessId: string) {
     });
 
     if (!response.ok) {
-      console.error('Failed to fetch business profile:', response.status);
+      console.error('Failed to fetch business profile:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url
+      });
       return null;
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log('✅ [CHECKOUT] Business profile loaded successfully');
+    return data;
   } catch (error) {
-    console.error('Error loading business profile:', error);
+    console.error('Error loading business profile:', {
+      error: error instanceof Error ? error.message : error,
+      businessId,
+      backendUrl: getBackendUrl()
+    });
     return null;
   }
 }

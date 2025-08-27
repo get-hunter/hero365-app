@@ -25,7 +25,7 @@ async function loadBusinessData(businessId: string) {
     console.log('🔄 [SERVER] Environment:', process.env.NODE_ENV);
     
     // Make direct API calls to the backend (server-to-server)
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     console.log('🔄 [SERVER] Backend URL:', backendUrl);
     
     const [profileResponse, servicesResponse, productsResponse] = await Promise.all([

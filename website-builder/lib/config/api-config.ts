@@ -53,14 +53,15 @@ function getEnvironment(): 'development' | 'staging' | 'production' {
  * Get API base URL based on environment
  */
 function getApiBaseUrl(environment: string): string {
-  // Check for explicit environment variable first
+  // Check for explicit environment variable first (highest priority)
   if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   
+  // Environment-specific defaults
   switch (environment) {
     case 'development':
-      return 'http://localhost:8000';
+      return 'http://localhost:8000';  // Global default for development
     
     case 'staging':
       return process.env.NEXT_PUBLIC_STAGING_API_URL || 'https://api-staging.hero365.ai';
@@ -69,7 +70,7 @@ function getApiBaseUrl(environment: string): string {
       return process.env.NEXT_PUBLIC_PRODUCTION_API_URL || 'https://api.hero365.ai';
     
     default:
-      return 'http://localhost:8000';
+      return 'http://localhost:8000';  // Fallback to localhost
   }
 }
 
@@ -228,6 +229,15 @@ export function isDevelopment(): boolean {
  */
 export function isProduction(): boolean {
   return getConfig().api.environment === 'production';
+}
+
+/**
+ * Get the backend API base URL (without /api/v1 path)
+ * This is the global setting for all API calls
+ */
+export function getBackendUrl(): string {
+  const environment = getEnvironment();
+  return getApiBaseUrl(environment);
 }
 
 /**

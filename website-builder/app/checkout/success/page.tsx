@@ -4,16 +4,21 @@ import EliteHeader from '@/components/layout/EliteHeader';
 import ProfessionalFooter from '@/components/professional/ProfessionalFooter';
 import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvider';
 import { CartProvider } from '@/lib/contexts/CartContext';
-import { getBusinessConfig } from '@/lib/config/api-config';
+import { getBusinessConfig, getBackendUrl } from '@/lib/config/api-config';
 
 // Force dynamic rendering for checkout success page
 export const dynamic = 'force-dynamic';
 
 async function loadBusinessProfile(businessId: string) {
   try {
-    const backendUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://api.hero365.app' 
-      : 'http://127.0.0.1:8000';
+    // Use global backend URL configuration
+    const backendUrl = getBackendUrl();
+      
+    console.log('🔧 [CHECKOUT-SUCCESS] Loading business profile:', { 
+      businessId, 
+      backendUrl, 
+      nodeEnv: process.env.NODE_ENV 
+    });
       
     const response = await fetch(`${backendUrl}/api/v1/public/professional/profile/${businessId}`, {
       headers: { 'Content-Type': 'application/json' },
@@ -21,11 +26,23 @@ async function loadBusinessProfile(businessId: string) {
     });
 
     if (!response.ok) {
+      console.error('Failed to fetch business profile:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url
+      });
       return null;
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log('✅ [CHECKOUT-SUCCESS] Business profile loaded successfully');
+    return data;
   } catch (error) {
+    console.error('Error loading business profile:', {
+      error: error instanceof Error ? error.message : error,
+      businessId,
+      backendUrl: getBackendUrl()
+    });
     return null;
   }
 }
