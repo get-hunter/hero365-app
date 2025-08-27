@@ -63,7 +63,10 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const businessConfig = getBusinessConfig();
   const businessId = businessConfig.defaultBusinessId;
   
-  const { product, profile, categories } = await loadProductData(businessId, params.productId);
+  // Await params in Next.js 15+
+  const { productId } = await params;
+  
+  const { product, profile, categories } = await loadProductData(businessId, productId);
   
   // If product not found, show 404
   if (!product) {

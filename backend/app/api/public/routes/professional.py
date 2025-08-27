@@ -5,14 +5,17 @@ Public endpoints for retrieving professional information, services, products,
 and availability. These endpoints are completely public and don't require authentication.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Path, status, Depends, Body
+from fastapi import APIRouter, HTTPException, Query, Path, status, Depends, Body, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, HttpUrl
 from typing import Optional, List, Dict, Any
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from uuid import UUID
 import uuid
 import logging
+import os
 from decimal import Decimal
+from supabase import create_client, Client
 
 from ....infrastructure.config.dependency_injection import get_container, get_product_repository as get_product_repo_func
 from ....domain.repositories.business_repository import BusinessRepository
@@ -1369,10 +1372,13 @@ async def create_shopping_cart(
         
         supabase = get_supabase_client()
         
+        # Get business ID from environment variable
+        business_id = os.getenv("BUSINESS_ID", "a1b2c3d4-e5f6-7890-1234-567890abcdef")
+        
         # Create new cart
         cart_data = {
             "id": str(uuid.uuid4()),
-            "business_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",  # Default business ID for now
+            "business_id": business_id,
             "session_id": session_id,
             "customer_email": customer_id,  # Using customer_id as email for now
             "cart_status": "active",
@@ -1424,7 +1430,7 @@ async def create_shopping_cart(
 @router.get("/shopping-cart/{cart_identifier}", response_model=ShoppingCart)
 async def get_shopping_cart(
     cart_identifier: str = Path(..., description="Cart ID or Session ID"),
-    business_id: str = Query(..., description="Business ID for pricing context")
+    business_id: Optional[str] = Query(None, description="Business ID for pricing context (optional - will use cart's business_id)")
 ):
     """
     Get shopping cart with all items and pricing calculations.
@@ -1452,11 +1458,90 @@ async def get_shopping_cart(
         cart_data = cart_result.data[0]
         cart_id = cart_data["id"]
         
+        # Use cart's business_id if not provided in query
+        if not business_id:
+            business_id = cart_data.get("business_id")
+            if not business_id:
+                raise HTTPException(status_code=400, detail="Business ID not found in cart or query parameters")
+        
         # Get cart items with product details
         items_query = supabase.table("cart_items").select(
             """
             id, product_id, installation_option_id, quantity,
-            unit_price, installation_price, item_total, discount_amount,
+            unit_price, install_price, subtotal_price, product_discount, 
+            install_discount, total_discount, final_price, product_name,
+            products(name, sku, unit_price),
+            product_installation_options(option_name, base_install_price)
+            """
+        ).eq("cart_id", cart_id).order("created_at")
+        
+        items_result = items_query.execute()
+        
+        # Process cart items
+        cart_items = []
+        total_subtotal = 0.0
+        total_discount = 0.0
+        
+        for item_data in items_result.data or []:
+            product = item_data.get("products", {})
+            install_option = item_data.get("product_installation_options", {})
+            
+            # Use stored values from cart_items table
+            item_total = float(item_data["final_price"])
+            discount_amount = float(item_data["total_discount"])
+            
+            cart_item = CartItem(
+                id=str(item_data["id"]),
+                product_id=item_data["product_id"],
+                product_name=item_data.get("product_name") or (product.get("name", "Unknown Product") if product else "Unknown Product"),
+                product_sku=product.get("sku", "") if product else "",
+                unit_price=float(item_data["unit_price"]),
+                installation_option_id=item_data.get("installation_option_id"),
+                installation_option_name=install_option.get("option_name") if install_option else None,
+                installation_price=float(item_data["install_price"]),
+                quantity=item_data["quantity"],
+                item_total=item_total,
+                discount_amount=discount_amount,
+                membership_discount=float(item_data.get("product_discount", 0)) + float(item_data.get("install_discount", 0)),
+                bundle_savings=0.0  # Not stored in cart_items currently
+            )
+            
+            cart_items.append(cart_item)
+            total_subtotal += item_total + discount_amount  # Subtotal before discounts
+            total_discount += discount_amount
+        
+        # Calculate tax and totals
+        tax_rate = 0.0825
+        tax_amount = (total_subtotal - total_discount) * tax_rate
+        total_amount = (total_subtotal - total_discount) + tax_amount
+        
+        return ShoppingCart(
+            id=cart_data["id"],
+            business_id=cart_data.get("business_id"),
+            session_id=cart_data.get("session_id"),
+            customer_email=cart_data.get("customer_email"),
+            customer_phone=cart_data.get("customer_phone"),
+            cart_status=cart_data.get("cart_status", "active"),
+            currency_code=cart_data.get("currency_code", "USD"),
+            items=cart_items,
+            membership_type=cart_data.get("membership_type", "none"),
+            membership_verified=cart_data.get("membership_verified", False),
+            subtotal=total_subtotal,
+            total_savings=total_discount,
+            tax_amount=tax_amount,
+            total_amount=total_amount,
+            item_count=len(cart_items),
+            last_activity_at=cart_data.get("updated_at"),
+            created_at=cart_data.get("created_at"),
+            updated_at=cart_data.get("updated_at")
+        )
+        
+        # Get cart items with product details
+        items_query = supabase.table("cart_items").select(
+            """
+            id, product_id, installation_option_id, quantity,
+            unit_price, install_price, subtotal_price, product_discount, 
+            install_discount, total_discount, final_price,
             products(name, sku, unit_price),
             product_installation_options(option_name, base_install_price)
             """
@@ -1520,8 +1605,8 @@ async def get_shopping_cart(
             except Exception as e:
                 logger.warning(f"Failed to recalculate pricing for cart item {item_data['id']}: {str(e)}")
                 # Fallback to stored values
-                item_total = float(item_data["item_total"])
-                discount_amount = float(item_data["discount_amount"])
+                item_total = float(item_data["final_price"])
+                discount_amount = float(item_data["total_discount"])
             
             cart_item = CartItem(
                 id=str(item_data["id"]),
@@ -1531,7 +1616,7 @@ async def get_shopping_cart(
                 unit_price=float(product.get("unit_price", item_data["unit_price"])),
                 installation_option_id=item_data.get("installation_option_id"),
                 installation_option_name=install_option.get("option_name") if install_option else None,
-                installation_price=float(item_data["installation_price"]),
+                installation_price=float(item_data["install_price"]),
                 quantity=item_data["quantity"],
                 item_total=item_total,
                 discount_amount=discount_amount
@@ -1550,10 +1635,9 @@ async def get_shopping_cart(
         try:
             supabase.table("shopping_carts").update({
                 "subtotal": total_subtotal,
-                "total_discount": total_discount,
+                "total_savings": total_discount,
                 "tax_amount": tax_amount,
                 "total_amount": total_amount,
-                "item_count": len(cart_items),
                 "updated_at": datetime.utcnow().isoformat()
             }).eq("id", cart_id).execute()
         except Exception as e:
@@ -1706,9 +1790,9 @@ async def add_cart_item(
             updated_item = supabase.table("cart_items").update({
                 "quantity": new_quantity,
                 "unit_price": float(calculation.product_unit_price),
-                "installation_price": float(calculation.installation_base_price),
-                "item_total": float(new_calculation.subtotal_after_discounts),
-                "discount_amount": float(new_calculation.total_discount_amount),
+                "install_price": float(calculation.installation_base_price),
+                "final_price": float(new_calculation.subtotal_after_discounts),
+                "total_discount": float(new_calculation.total_discount_amount),
                 "updated_at": datetime.utcnow().isoformat()
             }).eq("id", existing_item["id"]).execute()
             
@@ -1723,14 +1807,19 @@ async def add_cart_item(
                 "id": str(uuid.uuid4()),
                 "cart_id": cart_id,
                 "product_id": item.product_id,
+                "product_name": product_info.name,
+                "product_sku": product_info.sku,
                 "installation_option_id": item.installation_option_id,
+                "installation_name": install_option.option_name if install_option else None,
                 "quantity": item.quantity,
                 "unit_price": float(calculation.product_unit_price),
-                "installation_price": float(calculation.installation_base_price),
-                "item_total": float(calculation.subtotal_after_discounts),
-                "discount_amount": float(calculation.total_discount_amount),
-                "membership_discount": float(calculation.product_discount_amount + calculation.installation_discount_amount),
-                "bundle_savings": float(calculation.bundle_savings),
+                "install_price": float(calculation.installation_base_price),
+                "subtotal_price": float(calculation.subtotal_before_discounts),
+                "membership_type": calculation.membership_type.value if calculation.membership_type else None,
+                "product_discount": float(calculation.product_discount_amount),
+                "install_discount": float(calculation.installation_discount_amount),
+                "total_discount": float(calculation.total_discount_amount),
+                "final_price": float(calculation.subtotal_after_discounts),
                 "created_at": datetime.utcnow().isoformat(),
                 "updated_at": datetime.utcnow().isoformat()
             }
@@ -1758,12 +1847,12 @@ async def add_cart_item(
             unit_price=float(cart_item_data["unit_price"]),
             installation_option_id=cart_item_data.get("installation_option_id"),
             installation_option_name=install_option.option_name if install_option else None,
-            installation_price=float(cart_item_data["installation_price"]),
+            installation_price=float(cart_item_data["install_price"]),
             quantity=final_quantity,
-            item_total=float(cart_item_data["item_total"]),
-            discount_amount=float(cart_item_data["discount_amount"]),
-            membership_discount=float(cart_item_data.get("membership_discount", 0)),
-            bundle_savings=float(cart_item_data.get("bundle_savings", 0))
+            item_total=float(cart_item_data["final_price"]),
+            discount_amount=float(cart_item_data["total_discount"]),
+            membership_discount=float(calculation.product_discount_amount + calculation.installation_discount_amount),
+            bundle_savings=float(calculation.bundle_savings)
         )
         
     except HTTPException:
@@ -1857,8 +1946,8 @@ async def update_cart_item(
         # Update cart item
         updated_item = supabase.table("cart_items").update({
             "quantity": quantity,
-            "item_total": float(calculation.subtotal_after_discounts),
-            "discount_amount": float(calculation.total_discount_amount),
+            "final_price": float(calculation.subtotal_after_discounts),
+            "total_discount": float(calculation.total_discount_amount),
             "updated_at": datetime.utcnow().isoformat()
         }).eq("id", item_id).execute()
         
@@ -1877,8 +1966,8 @@ async def update_cart_item(
             installation_option_name=install_option.option_name if install_option else None,
             installation_price=float(calculation.installation_base_price),
             quantity=quantity,
-            item_total=float(updated_data["item_total"]),
-            discount_amount=float(updated_data["discount_amount"])
+            item_total=float(updated_data["final_price"]),
+            discount_amount=float(updated_data["total_discount"])
         )
         
     except HTTPException:
@@ -1946,10 +2035,9 @@ async def clear_shopping_cart(
         from datetime import datetime
         supabase.table("shopping_carts").update({
             "subtotal": 0.0,
-            "total_discount": 0.0,
+            "total_savings": 0.0,
             "tax_amount": 0.0,
             "total_amount": 0.0,
-            "item_count": 0,
             "updated_at": datetime.utcnow().isoformat()
         }).eq("id", cart_id).execute()
         
@@ -1979,7 +2067,7 @@ async def get_cart_summary(
         
         # Find cart
         cart_query = supabase.table("shopping_carts").select(
-            "id, subtotal, total_discount, tax_amount, total_amount, item_count"
+            "id, subtotal, total_savings, tax_amount, total_amount"
         )
         
         if len(cart_identifier) > 20:  # UUID cart ID
@@ -1994,7 +2082,7 @@ async def get_cart_summary(
             return CartSummary(
                 item_count=0,
                 subtotal=0.0,
-                total_discount=0.0,
+                total_savings=0.0,
                 tax_amount=0.0,
                 total_amount=0.0,
                 savings_percentage=0.0
@@ -2002,14 +2090,18 @@ async def get_cart_summary(
         
         cart = cart_result.data[0]
         subtotal = float(cart["subtotal"])
-        total_discount = float(cart["total_discount"])
+        total_savings = float(cart["total_savings"])
         
-        savings_percentage = (total_discount / subtotal * 100) if subtotal > 0 else 0.0
+        # Calculate item count from cart_items table
+        items_count_result = supabase.table("cart_items").select("id", count="exact").eq("cart_id", cart["id"]).execute()
+        item_count = items_count_result.count or 0
+        
+        savings_percentage = (total_savings / subtotal * 100) if subtotal > 0 else 0.0
         
         return CartSummary(
-            item_count=cart["item_count"],
+            item_count=item_count,
             subtotal=subtotal,
-            total_discount=total_discount,
+            total_savings=total_savings,
             tax_amount=float(cart["tax_amount"]),
             total_amount=float(cart["total_amount"]),
             savings_percentage=savings_percentage
@@ -2021,7 +2113,7 @@ async def get_cart_summary(
         return CartSummary(
             item_count=0,
             subtotal=0.0,
-            total_discount=0.0,
+            total_savings=0.0,
             tax_amount=0.0,
             total_amount=0.0,
             savings_percentage=0.0
@@ -2084,3 +2176,391 @@ def _generate_service_keywords(service_name: str) -> List[str]:
         keywords.extend(["thermostat", "smart thermostat", "temperature control"])
     
     return keywords
+
+
+# ======================================
+# CHECKOUT SYSTEM MODELS
+# ======================================
+
+class CheckoutCustomer(BaseModel):
+    """Customer information for checkout."""
+    
+    name: str = Field(..., description="Customer full name")
+    email: str = Field(..., description="Customer email address")
+    phone: str = Field(..., description="Customer phone number")
+    address: str = Field(..., description="Service address")
+    city: str = Field(..., description="Service city")
+    state: str = Field(..., description="Service state")
+    zip_code: str = Field(..., description="Service ZIP code")
+
+
+class InstallationPreferences(BaseModel):
+    """Installation scheduling preferences."""
+    
+    preferred_date: str = Field(..., description="Preferred installation date (YYYY-MM-DD)")
+    preferred_time: str = Field(..., description="Preferred time slot (morning/afternoon/evening)")
+    special_instructions: Optional[str] = Field(None, description="Special installation instructions")
+    access_instructions: Optional[str] = Field(None, description="Property access instructions")
+
+
+class CheckoutRequest(BaseModel):
+    """Complete checkout request."""
+    
+    cart_id: str = Field(..., description="Shopping cart ID")
+    customer: CheckoutCustomer
+    installation: InstallationPreferences
+    membership_type: str = Field(default="none", description="Customer membership type")
+    payment_method: str = Field(default="card", description="Payment method (card/check/cash)")
+    notes: Optional[str] = Field(None, description="Additional order notes")
+
+
+class CheckoutResponse(BaseModel):
+    """Checkout response with estimate and booking information."""
+    
+    success: bool
+    estimate_id: str
+    booking_id: str
+    estimate_number: str
+    booking_number: str
+    total_amount: float
+    message: str
+
+
+# ======================================
+# CHECKOUT API ENDPOINTS
+# ======================================
+
+@router.post(
+    "/{business_id}/checkout/process",
+    response_model=CheckoutResponse,
+    summary="Process Cart Checkout",
+    description="Convert shopping cart to estimate and schedule installation appointments"
+)
+async def process_checkout(
+    business_id: str = Path(..., description="Business ID"),
+    checkout_request: CheckoutRequest = Body(..., description="Checkout details")
+) -> CheckoutResponse:
+    """
+    Process cart checkout by:
+    1. Creating an estimate from cart items
+    2. Creating customer contact if needed
+    3. Scheduling installation appointments
+    4. Updating cart status to completed
+    """
+    
+    try:
+        # Get Supabase client
+        supabase: Client = create_client(
+            os.getenv("SUPABASE_URL"),
+            os.getenv("SUPABASE_KEY")
+        )
+        
+        # Validate business exists
+        business_result = supabase.table("businesses").select("*").eq("id", business_id).eq("is_active", True).single().execute()
+        if not business_result.data:
+            raise HTTPException(status_code=404, detail="Business not found")
+        
+        business = business_result.data
+        
+        # Get cart items
+        cart_result = supabase.table("shopping_carts").select("""
+            *,
+            cart_items (
+                id,
+                product_id,
+                installation_option_id,
+                quantity,
+                membership_type,
+                unit_price,
+                total_price,
+                products (
+                    name,
+                    sku,
+                    description,
+                    unit_price
+                ),
+                product_installation_options (
+                    option_name,
+                    description,
+                    estimated_duration_hours,
+                    base_install_price,
+                    residential_install_price,
+                    commercial_install_price,
+                    premium_install_price
+                )
+            )
+        """).eq("id", checkout_request.cart_id).single().execute()
+        
+        if not cart_result.data:
+            raise HTTPException(status_code=404, detail="Cart not found")
+        
+        cart = cart_result.data
+        cart_items = cart["cart_items"]
+        
+        if not cart_items:
+            raise HTTPException(status_code=400, detail="Cart is empty")
+        
+        # Create or find customer contact
+        contact_id = await _create_or_find_contact(
+            supabase,
+            business_id,
+            checkout_request.customer
+        )
+        
+        # Create estimate
+        estimate_id, estimate_number = await _create_estimate_from_cart(
+            supabase,
+            business_id,
+            contact_id,
+            checkout_request.customer,
+            cart,
+            checkout_request.notes
+        )
+        
+        # Schedule installations for items that require them
+        booking_id, booking_number = await _schedule_installations(
+            supabase,
+            business_id,
+            checkout_request.customer,
+            checkout_request.installation,
+            cart_items,
+            estimate_id
+        )
+        
+        # Mark cart as completed
+        supabase.table("shopping_carts").update({
+            "cart_status": "completed",
+            "updated_at": datetime.now().isoformat()
+        }).eq("id", checkout_request.cart_id).execute()
+        
+        return CheckoutResponse(
+            success=True,
+            estimate_id=estimate_id,
+            booking_id=booking_id,
+            estimate_number=estimate_number,
+            booking_number=booking_number,
+            total_amount=float(cart["total_amount"]),
+            message="Checkout completed successfully! Your estimate and installation appointments have been created."
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing checkout for business {business_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process checkout: {str(e)}"
+        )
+
+
+# ======================================
+# CHECKOUT HELPER FUNCTIONS
+# ======================================
+
+async def _create_or_find_contact(
+    supabase: Client,
+    business_id: str,
+    customer: CheckoutCustomer
+) -> str:
+    """Create or find customer contact."""
+    
+    # Try to find existing contact by email
+    existing_contact = supabase.table("contacts").select("id").eq(
+        "business_id", business_id
+    ).eq("email", customer.email).execute()
+    
+    if existing_contact.data:
+        return existing_contact.data[0]["id"]
+    
+    # Create new contact
+    name_parts = customer.name.split(" ", 1)
+    first_name = name_parts[0] if name_parts else customer.name
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
+    
+    contact_data = {
+        "business_id": business_id,
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": customer.email,
+        "phone": customer.phone,
+        "address": {
+            "street": customer.address,
+            "city": customer.city,
+            "state": customer.state,
+            "zip": customer.zip_code
+        },
+        "contact_type": "customer",
+        "is_active": True,
+        "created_date": datetime.now().isoformat()
+    }
+    
+    result = supabase.table("contacts").insert(contact_data).execute()
+    return result.data[0]["id"]
+
+
+async def _create_estimate_from_cart(
+    supabase: Client,
+    business_id: str,
+    contact_id: str,
+    customer: CheckoutCustomer,
+    cart: Dict[str, Any],
+    notes: Optional[str]
+) -> tuple[str, str]:
+    """Create estimate from cart items."""
+    
+    # Generate estimate number
+    estimate_number = f"EST-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}"
+    
+    # Create estimate
+    estimate_data = {
+        "business_id": business_id,
+        "contact_id": contact_id,
+        "estimate_number": estimate_number,
+        "title": "Product Installation Estimate",
+        "description": "Estimate for product purchase and installation services",
+        "status": "draft",
+        "currency": "USD",
+        "subtotal": float(cart["subtotal"]),
+        "tax_amount": float(cart["tax_amount"]),
+        "total_amount": float(cart["total_amount"]),
+        "discount_amount": float(cart.get("total_savings", 0)),
+        "client_name": customer.name,
+        "client_email": customer.email,
+        "client_phone": customer.phone,
+        "client_address": {
+            "street": customer.address,
+            "city": customer.city,
+            "state": customer.state,
+            "zip": customer.zip_code
+        },
+        "notes": notes,
+        "valid_until": (datetime.now() + timedelta(days=30)).isoformat(),
+        "created_by": "system",
+        "created_date": datetime.now().isoformat()
+    }
+    
+    estimate_result = supabase.table("estimates").insert(estimate_data).execute()
+    estimate_id = estimate_result.data[0]["id"]
+    
+    # Create estimate line items
+    for item in cart["cart_items"]:
+        product = item["products"]
+        installation = item["product_installation_options"]
+        
+        # Product line item
+        product_line = {
+            "estimate_id": estimate_id,
+            "sort_order": len(cart["cart_items"]) * 2,
+            "name": product["name"],
+            "description": f"{product['description']}\nSKU: {product['sku']}",
+            "quantity": float(item["quantity"]),
+            "unit": "each",
+            "unit_price": float(product["unit_price"]),
+            "total_amount": float(product["unit_price"]) * float(item["quantity"])
+        }
+        
+        # Installation line item
+        installation_price = _get_installation_price_for_membership(
+            installation,
+            item["membership_type"]
+        )
+        
+        installation_line = {
+            "estimate_id": estimate_id,
+            "sort_order": len(cart["cart_items"]) * 2 + 1,
+            "name": f"{installation['option_name']} - {product['name']}",
+            "description": installation["description"],
+            "quantity": float(item["quantity"]),
+            "unit": "installation",
+            "unit_price": installation_price,
+            "total_amount": installation_price * float(item["quantity"])
+        }
+        
+        # Insert both line items
+        supabase.table("estimate_line_items").insert([product_line, installation_line]).execute()
+    
+    return estimate_id, estimate_number
+
+
+async def _schedule_installations(
+    supabase: Client,
+    business_id: str,
+    customer: CheckoutCustomer,
+    installation_prefs: InstallationPreferences,
+    cart_items: List[Dict[str, Any]],
+    estimate_id: str
+) -> tuple[str, str]:
+    """Schedule installation appointments."""
+    
+    # Generate booking number
+    booking_number = f"BK-{datetime.now().strftime('%Y')}-{str(uuid.uuid4())[:6].upper()}"
+    
+    # Calculate total installation duration
+    total_duration = 0
+    service_description = []
+    
+    for item in cart_items:
+        installation = item["product_installation_options"]
+        duration = installation.get("estimated_duration_hours", 2) * 60  # Convert to minutes
+        total_duration += duration * item["quantity"]
+        service_description.append(f"{item['products']['name']} - {installation['option_name']}")
+    
+    # Parse preferred date
+    try:
+        preferred_date = datetime.strptime(installation_prefs.preferred_date, "%Y-%m-%d")
+        
+        # Set time based on preference
+        if installation_prefs.preferred_time == "morning":
+            preferred_date = preferred_date.replace(hour=8, minute=0)
+        elif installation_prefs.preferred_time == "afternoon":
+            preferred_date = preferred_date.replace(hour=13, minute=0)
+        else:  # evening
+            preferred_date = preferred_date.replace(hour=17, minute=0)
+            
+    except ValueError:
+        # Default to tomorrow morning if date parsing fails
+        preferred_date = datetime.now() + timedelta(days=1)
+        preferred_date = preferred_date.replace(hour=8, minute=0, second=0, microsecond=0)
+    
+    # Create booking
+    booking_data = {
+        "business_id": business_id,
+        "booking_number": booking_number,
+        "service_name": "Product Installation Service",
+        "estimated_duration_minutes": min(total_duration, 480),  # Cap at 8 hours
+        "requested_at": preferred_date.isoformat(),
+        "customer_name": customer.name,
+        "customer_email": customer.email,
+        "customer_phone": customer.phone,
+        "service_address": customer.address,
+        "service_city": customer.city,
+        "service_state": customer.state,
+        "service_zip": customer.zip_code,
+        "problem_description": f"Installation of: {', '.join(service_description[:3])}{'...' if len(service_description) > 3 else ''}",
+        "special_instructions": installation_prefs.special_instructions,
+        "access_instructions": installation_prefs.access_instructions,
+        "status": "pending",
+        "source": "website_checkout",
+        "created_at": datetime.now().isoformat()
+    }
+    
+    booking_result = supabase.table("bookings").insert(booking_data).execute()
+    booking_id = booking_result.data[0]["id"]
+    
+    return booking_id, booking_number
+
+
+def _get_installation_price_for_membership(
+    installation: Dict[str, Any],
+    membership_type: str
+) -> float:
+    """Get installation price based on membership type."""
+    
+    if membership_type == "residential":
+        return float(installation.get("residential_install_price", installation["base_install_price"]))
+    elif membership_type == "commercial":
+        return float(installation.get("commercial_install_price", installation["base_install_price"]))
+    elif membership_type == "premium":
+        return float(installation.get("premium_install_price", installation["base_install_price"]))
+    else:
+        return float(installation["base_install_price"])

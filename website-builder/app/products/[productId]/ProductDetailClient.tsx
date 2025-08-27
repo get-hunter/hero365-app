@@ -62,8 +62,31 @@ export function ProductDetailClient({
   useEffect(() => {
     if (selectedInstallation) {
       calculatePricing();
+    } else if (!product.requires_professional_install) {
+      // For products not requiring installation, calculate simple pricing
+      const simplePricing = {
+        product_unit_price: product.unit_price,
+        installation_base_price: 0,
+        quantity: quantity,
+        product_subtotal: product.unit_price * quantity,
+        installation_subtotal: 0,
+        subtotal_before_discounts: product.unit_price * quantity,
+        membership_type: selectedMembership,
+        product_discount_amount: 0,
+        installation_discount_amount: 0,
+        total_discount_amount: 0,
+        bundle_savings: 0,
+        subtotal_after_discounts: product.unit_price * quantity,
+        tax_rate: 0.08,
+        tax_amount: (product.unit_price * quantity) * 0.08,
+        total_amount: (product.unit_price * quantity) * 1.08,
+        total_savings: 0,
+        savings_percentage: 0,
+        formatted_display_price: `$${((product.unit_price * quantity) * 1.08).toFixed(2)}`
+      };
+      setPricingBreakdown(simplePricing);
     }
-  }, [selectedInstallation, quantity, selectedMembership, product.id]);
+  }, [selectedInstallation, quantity, selectedMembership, product.id, product.unit_price, product.requires_professional_install]);
 
   const calculatePricing = async () => {
     if (!selectedInstallation) return;
@@ -99,25 +122,64 @@ export function ProductDetailClient({
   };
 
   const handleAddToCart = async () => {
-    if (!selectedInstallation || !pricingBreakdown) return;
+    // For products requiring professional installation, an installation option must be selected
+    if (product.requires_professional_install && (!selectedInstallation || !pricingBreakdown)) {
+      return;
+    }
+    
+    // For products not requiring professional installation, we can add directly to cart
+    if (!product.requires_professional_install && !pricingBreakdown) {
+      // Calculate simple pricing for non-installation products
+      const simplePricing = {
+        product_unit_price: product.unit_price,
+        installation_base_price: 0,
+        quantity: quantity,
+        product_subtotal: product.unit_price * quantity,
+        installation_subtotal: 0,
+        subtotal_before_discounts: product.unit_price * quantity,
+        membership_type: selectedMembership,
+        product_discount_amount: 0,
+        installation_discount_amount: 0,
+        total_discount_amount: 0,
+        bundle_savings: 0,
+        subtotal_after_discounts: product.unit_price * quantity,
+        tax_rate: 0.08,
+        tax_amount: (product.unit_price * quantity) * 0.08,
+        total_amount: (product.unit_price * quantity) * 1.08,
+        total_savings: 0,
+        savings_percentage: 0,
+        formatted_display_price: `$${((product.unit_price * quantity) * 1.08).toFixed(2)}`
+      };
+      setPricingBreakdown(simplePricing);
+    }
     
     setIsAddingToCart(true);
     try {
-      await addToCart({
+      console.log('🛒 [PRODUCT] Adding to cart:', {
         product_id: product.id,
-        installation_option_id: selectedInstallation.id,
+        product_name: product.name,
+        installation_option_id: selectedInstallation?.id || null,
         quantity: quantity,
         membership_type: selectedMembership
       });
       
+      await addToCart({
+        product_id: product.id,
+        installation_option_id: selectedInstallation?.id || null,
+        quantity: quantity,
+        membership_type: selectedMembership
+      });
+      
+      console.log('✅ [PRODUCT] Successfully added to cart');
       // Show success message and offer to go to cart
       const goToCart = confirm('Product added to cart! Would you like to view your cart?');
       if (goToCart) {
         window.location.href = '/cart';
       }
     } catch (error) {
-      console.error('Error adding to cart:', error);
-      alert('Failed to add to cart. Please try again.');
+      console.error('❌ [PRODUCT] Error adding to cart:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add product to cart';
+      alert(`Failed to add product to cart: ${errorMessage}\n\nPlease try again or contact support if the issue persists.`);
     } finally {
       setIsAddingToCart(false);
     }
@@ -298,8 +360,8 @@ export function ProductDetailClient({
             </div>
           </div>
 
-          {/* Installation Options */}
-          {product.installation_options && product.installation_options.length > 0 && (
+          {/* Installation Options - Only show for products requiring professional installation */}
+          {product.requires_professional_install && product.installation_options && product.installation_options.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
                 Installation Options
@@ -348,6 +410,23 @@ export function ProductDetailClient({
                     </div>
                   </label>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Installation Required but No Options Available */}
+          {product.requires_professional_install && (!product.installation_options || product.installation_options.length === 0) && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <svg className="h-5 w-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <div>
+                  <h4 className="text-sm font-medium text-yellow-800">Professional Installation Required</h4>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    This product requires professional installation. Please contact us for installation options and pricing.
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -424,7 +503,11 @@ export function ProductDetailClient({
           <div className="space-y-3">
             <button
               onClick={handleAddToCart}
-              disabled={!selectedInstallation || loading || isAddingToCart}
+              disabled={
+                loading || 
+                isAddingToCart || 
+                (product.requires_professional_install && !selectedInstallation)
+              }
               className="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               {isAddingToCart ? 'Adding to Cart...' : 'Add to Cart'}

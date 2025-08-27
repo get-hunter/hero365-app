@@ -11,10 +11,14 @@ import { Phone, Star, Award } from 'lucide-react';
 import EliteHeader from '../../components/layout/EliteHeader';
 import ProfessionalFooter from '../../components/professional/ProfessionalFooter';
 import { BookingWidgetProvider } from '../../components/booking/BookingWidgetProvider';
+import { CartProvider } from '../../lib/contexts/CartContext';
 import PricingPageClient from './PricingPageClient';
 import { getBusinessConfig } from '../../lib/config/api-config';
 
 import { ServicePricing, MembershipPlan } from '../../lib/types/membership';
+
+// Force dynamic rendering for pricing page
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Prices - Professional Service Pricing & Membership Plans',
@@ -150,22 +154,23 @@ export default async function PricingPage() {
   const finalBusinessData = businessData || fallbackBusinessData;
 
   return (
-    <BookingWidgetProvider
-      businessId={businessId}
-      companyName={finalBusinessData.businessName}
-      companyPhone={finalBusinessData.phone}
-      companyEmail={finalBusinessData.email}
-      services={[]}
-    >
-      <div className="min-h-screen bg-white">
-        {/* Elite Header - Same as main page with real data */}
-        <EliteHeader 
-          businessName={finalBusinessData.businessName}
-          city={finalBusinessData.serviceAreas[0] || 'Austin'}
-          state={'TX'}
-          phone={finalBusinessData.phone}
-          supportHours={'24/7'}
-        />
+    <CartProvider>
+      <BookingWidgetProvider
+        businessId={businessId}
+        companyName={finalBusinessData.businessName}
+        companyPhone={finalBusinessData.phone}
+        companyEmail={finalBusinessData.email}
+        services={[]}
+      >
+        <div className="min-h-screen bg-white">
+          {/* Elite Header - Same as main page with real data */}
+          <EliteHeader 
+            businessName={finalBusinessData.businessName}
+            city={finalBusinessData.serviceAreas[0] || 'Austin'}
+            state={'TX'}
+            phone={finalBusinessData.phone}
+            supportHours={'24/7'}
+          />
 
         {/* Pricing Page Content with hero section using real data */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
@@ -231,7 +236,8 @@ export default async function PricingPage() {
             <span className="block sm:inline"> {error}</span>
           </div>
         )}
-      </div>
-    </BookingWidgetProvider>
+        </div>
+      </BookingWidgetProvider>
+    </CartProvider>
   );
 }

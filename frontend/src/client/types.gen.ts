@@ -2368,6 +2368,38 @@ export type CalendarPreferencesResponse = {
   preferences?: CalendarPreferences | null
 }
 
+export type CartItem = {
+  id: string
+  product_id: string
+  product_name: string
+  product_sku: string
+  unit_price: number
+  installation_option_id?: string | null
+  installation_option_name?: string | null
+  installation_price?: number
+  quantity: number
+  item_total: number
+  discount_amount?: number
+  membership_discount?: number
+  bundle_savings?: number
+}
+
+export type CartItemRequest = {
+  product_id: string
+  installation_option_id?: string | null
+  quantity: number
+  membership_type?: string | null
+}
+
+export type CartSummary = {
+  item_count: number
+  subtotal: number
+  total_savings: number
+  tax_amount: number
+  total_amount: number
+  savings_percentage?: number
+}
+
 /**
  * Line item data from catalog item (product or service).
  */
@@ -2392,6 +2424,77 @@ export type CertificateType =
   | "safety_certification"
   | "training_completion"
   | "quality_assurance"
+
+/**
+ * Customer information for checkout.
+ */
+export type CheckoutCustomer = {
+  /**
+   * Customer full name
+   */
+  name: string
+  /**
+   * Customer email address
+   */
+  email: string
+  /**
+   * Customer phone number
+   */
+  phone: string
+  /**
+   * Service address
+   */
+  address: string
+  /**
+   * Service city
+   */
+  city: string
+  /**
+   * Service state
+   */
+  state: string
+  /**
+   * Service ZIP code
+   */
+  zip_code: string
+}
+
+/**
+ * Complete checkout request.
+ */
+export type CheckoutRequest = {
+  /**
+   * Shopping cart ID
+   */
+  cart_id: string
+  customer: CheckoutCustomer
+  installation: InstallationPreferences
+  /**
+   * Customer membership type
+   */
+  membership_type?: string
+  /**
+   * Payment method (card/check/cash)
+   */
+  payment_method?: string
+  /**
+   * Additional order notes
+   */
+  notes?: string | null
+}
+
+/**
+ * Checkout response with estimate and booking information.
+ */
+export type CheckoutResponse = {
+  success: boolean
+  estimate_id: string
+  booking_id: string
+  estimate_number: string
+  booking_number: string
+  total_amount: number
+  message: string
+}
 
 /**
  * Company size options for API.
@@ -4257,6 +4360,28 @@ export type ImprovementRecommendation = {
    * Estimated ROI percentage
    */
   estimated_roi_percent?: string | null
+}
+
+/**
+ * Installation scheduling preferences.
+ */
+export type InstallationPreferences = {
+  /**
+   * Preferred installation date (YYYY-MM-DD)
+   */
+  preferred_date: string
+  /**
+   * Preferred time slot (morning/afternoon/evening)
+   */
+  preferred_time: string
+  /**
+   * Special installation instructions
+   */
+  special_instructions?: string | null
+  /**
+   * Property access instructions
+   */
+  access_instructions?: string | null
 }
 
 /**
@@ -7867,6 +7992,27 @@ export type SetUserWorkingHoursRequest = {
   lunch_duration_minutes?: number
 }
 
+export type ShoppingCart = {
+  id: string
+  business_id?: string | null
+  session_id?: string | null
+  customer_email?: string | null
+  customer_phone?: string | null
+  cart_status?: string
+  currency_code?: string
+  items?: Array<CartItem>
+  membership_type?: string | null
+  membership_verified?: boolean
+  subtotal?: number
+  total_savings?: number
+  tax_amount?: number
+  total_amount?: number
+  item_count?: number
+  last_activity_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type SignInRequest = {
   email: string
   password: string
@@ -11338,6 +11484,15 @@ export type PublicProfessionalGetProductCatalogData = {
 export type PublicProfessionalGetProductCatalogResponse =
   Array<ProductCatalogItem>
 
+export type PublicProfessionalDebugProductsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type PublicProfessionalDebugProductsResponse = unknown
+
 export type PublicProfessionalGetProductCategoriesData = {
   /**
    * Business ID
@@ -11385,6 +11540,108 @@ export type PublicProfessionalCalculateProductPricingData = {
 }
 
 export type PublicProfessionalCalculateProductPricingResponse = PricingBreakdown
+
+export type PublicProfessionalCreateShoppingCartData = {
+  /**
+   * Customer ID for logged-in users
+   */
+  customerId?: string | null
+  /**
+   * Session ID for guest users
+   */
+  sessionId?: string | null
+}
+
+export type PublicProfessionalCreateShoppingCartResponse = ShoppingCart
+
+export type PublicProfessionalGetShoppingCartData = {
+  /**
+   * Business ID for pricing context (optional - will use cart's business_id)
+   */
+  businessId?: string | null
+  /**
+   * Cart ID or Session ID
+   */
+  cartIdentifier: string
+}
+
+export type PublicProfessionalGetShoppingCartResponse = ShoppingCart
+
+export type PublicProfessionalAddCartItemData = {
+  /**
+   * Business ID for pricing context
+   */
+  businessId: string
+  /**
+   * Shopping cart ID
+   */
+  cartId: string
+  requestBody: CartItemRequest
+}
+
+export type PublicProfessionalAddCartItemResponse = CartItem
+
+export type PublicProfessionalUpdateCartItemData = {
+  /**
+   * Business ID for pricing context
+   */
+  businessId: string
+  /**
+   * Shopping cart ID
+   */
+  cartId: string
+  /**
+   * Cart item ID
+   */
+  itemId: string
+  /**
+   * New quantity (0 to remove)
+   */
+  quantity: number
+}
+
+export type PublicProfessionalUpdateCartItemResponse = CartItem
+
+export type PublicProfessionalRemoveCartItemData = {
+  /**
+   * Shopping cart ID
+   */
+  cartId: string
+  /**
+   * Cart item ID
+   */
+  itemId: string
+}
+
+export type PublicProfessionalRemoveCartItemResponse = unknown
+
+export type PublicProfessionalClearShoppingCartData = {
+  /**
+   * Shopping cart ID
+   */
+  cartId: string
+}
+
+export type PublicProfessionalClearShoppingCartResponse = unknown
+
+export type PublicProfessionalGetCartSummaryData = {
+  /**
+   * Cart ID or Session ID
+   */
+  cartIdentifier: string
+}
+
+export type PublicProfessionalGetCartSummaryResponse = CartSummary
+
+export type PublicProfessionalProcessCheckoutData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  requestBody: CheckoutRequest
+}
+
+export type PublicProfessionalProcessCheckoutResponse = CheckoutResponse
 
 export type PurchaseOrdersCreatePurchaseOrderData = {
   requestBody: CreatePurchaseOrderSchema

@@ -437,12 +437,30 @@ import type {
   PublicProfessionalGetServicePricingResponse,
   PublicProfessionalGetProductCatalogData,
   PublicProfessionalGetProductCatalogResponse,
+  PublicProfessionalDebugProductsData,
+  PublicProfessionalDebugProductsResponse,
   PublicProfessionalGetProductCategoriesData,
   PublicProfessionalGetProductCategoriesResponse,
   PublicProfessionalGetProductDetailsData,
   PublicProfessionalGetProductDetailsResponse,
   PublicProfessionalCalculateProductPricingData,
   PublicProfessionalCalculateProductPricingResponse,
+  PublicProfessionalCreateShoppingCartData,
+  PublicProfessionalCreateShoppingCartResponse,
+  PublicProfessionalGetShoppingCartData,
+  PublicProfessionalGetShoppingCartResponse,
+  PublicProfessionalAddCartItemData,
+  PublicProfessionalAddCartItemResponse,
+  PublicProfessionalUpdateCartItemData,
+  PublicProfessionalUpdateCartItemResponse,
+  PublicProfessionalRemoveCartItemData,
+  PublicProfessionalRemoveCartItemResponse,
+  PublicProfessionalClearShoppingCartData,
+  PublicProfessionalClearShoppingCartResponse,
+  PublicProfessionalGetCartSummaryData,
+  PublicProfessionalGetCartSummaryResponse,
+  PublicProfessionalProcessCheckoutData,
+  PublicProfessionalProcessCheckoutResponse,
   PurchaseOrdersCreatePurchaseOrderData,
   PurchaseOrdersCreatePurchaseOrderResponse,
   PurchaseOrdersListPurchaseOrdersData,
@@ -6385,6 +6403,29 @@ export class PublicProfessionalService {
   }
 
   /**
+   * Debug Products
+   * Debug endpoint to check raw product data
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static debugProducts(
+    data: PublicProfessionalDebugProductsData,
+  ): CancelablePromise<PublicProfessionalDebugProductsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/debug-products/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Get Product Categories
    * Get product categories for a business.
    *
@@ -6466,6 +6507,229 @@ export class PublicProfessionalService {
         quantity: data.quantity,
         membership_type: data.membershipType,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Shopping Cart
+   * Create a new shopping cart.
+   *
+   * Creates a new cart for either guest users (session-based) or logged-in users.
+   * At least one of session_id or customer_id must be provided.
+   * @param data The data for the request.
+   * @param data.sessionId Session ID for guest users
+   * @param data.customerId Customer ID for logged-in users
+   * @returns ShoppingCart Successful Response
+   * @throws ApiError
+   */
+  public static createShoppingCart(
+    data: PublicProfessionalCreateShoppingCartData = {},
+  ): CancelablePromise<PublicProfessionalCreateShoppingCartResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/public/professional/shopping-cart/create",
+      query: {
+        session_id: data.sessionId,
+        customer_id: data.customerId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Shopping Cart
+   * Get shopping cart with all items and pricing calculations.
+   *
+   * Retrieves cart by cart ID or session ID with real-time pricing updates.
+   * @param data The data for the request.
+   * @param data.cartIdentifier Cart ID or Session ID
+   * @param data.businessId Business ID for pricing context (optional - will use cart's business_id)
+   * @returns ShoppingCart Successful Response
+   * @throws ApiError
+   */
+  public static getShoppingCart(
+    data: PublicProfessionalGetShoppingCartData,
+  ): CancelablePromise<PublicProfessionalGetShoppingCartResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/shopping-cart/{cart_identifier}",
+      path: {
+        cart_identifier: data.cartIdentifier,
+      },
+      query: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Add Cart Item
+   * Add item to shopping cart with real-time pricing calculation.
+   *
+   * Adds a product with optional installation to the cart and calculates
+   * pricing with membership discounts and bundle savings.
+   * @param data The data for the request.
+   * @param data.cartId Shopping cart ID
+   * @param data.businessId Business ID for pricing context
+   * @param data.requestBody
+   * @returns CartItem Successful Response
+   * @throws ApiError
+   */
+  public static addCartItem(
+    data: PublicProfessionalAddCartItemData,
+  ): CancelablePromise<PublicProfessionalAddCartItemResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/public/professional/shopping-cart/{cart_id}/items",
+      path: {
+        cart_id: data.cartId,
+      },
+      query: {
+        business_id: data.businessId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Cart Item
+   * Update cart item quantity with real-time pricing recalculation.
+   *
+   * Updates quantity and recalculates pricing. Set quantity to 0 to remove item.
+   * @param data The data for the request.
+   * @param data.cartId Shopping cart ID
+   * @param data.itemId Cart item ID
+   * @param data.quantity New quantity (0 to remove)
+   * @param data.businessId Business ID for pricing context
+   * @returns CartItem Successful Response
+   * @throws ApiError
+   */
+  public static updateCartItem(
+    data: PublicProfessionalUpdateCartItemData,
+  ): CancelablePromise<PublicProfessionalUpdateCartItemResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/public/professional/shopping-cart/{cart_id}/items/{item_id}",
+      path: {
+        cart_id: data.cartId,
+        item_id: data.itemId,
+      },
+      query: {
+        quantity: data.quantity,
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Remove Cart Item
+   * Remove specific item from shopping cart.
+   * @param data The data for the request.
+   * @param data.cartId Shopping cart ID
+   * @param data.itemId Cart item ID
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static removeCartItem(
+    data: PublicProfessionalRemoveCartItemData,
+  ): CancelablePromise<PublicProfessionalRemoveCartItemResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/public/professional/shopping-cart/{cart_id}/items/{item_id}",
+      path: {
+        cart_id: data.cartId,
+        item_id: data.itemId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Clear Shopping Cart
+   * Clear all items from shopping cart or delete the cart entirely.
+   * @param data The data for the request.
+   * @param data.cartId Shopping cart ID
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static clearShoppingCart(
+    data: PublicProfessionalClearShoppingCartData,
+  ): CancelablePromise<PublicProfessionalClearShoppingCartResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/public/professional/shopping-cart/{cart_id}",
+      path: {
+        cart_id: data.cartId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Cart Summary
+   * Get cart summary with totals for header/navigation display.
+   *
+   * Returns lightweight cart summary for UI elements that need
+   * quick access to cart totals and item counts.
+   * @param data The data for the request.
+   * @param data.cartIdentifier Cart ID or Session ID
+   * @returns CartSummary Successful Response
+   * @throws ApiError
+   */
+  public static getCartSummary(
+    data: PublicProfessionalGetCartSummaryData,
+  ): CancelablePromise<PublicProfessionalGetCartSummaryResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/professional/shopping-cart/{cart_identifier}/summary",
+      path: {
+        cart_identifier: data.cartIdentifier,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Process Cart Checkout
+   * Convert shopping cart to estimate and schedule installation appointments
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.requestBody
+   * @returns CheckoutResponse Successful Response
+   * @throws ApiError
+   */
+  public static processCheckout(
+    data: PublicProfessionalProcessCheckoutData,
+  ): CancelablePromise<PublicProfessionalProcessCheckoutResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/public/professional/{business_id}/checkout/process",
+      path: {
+        business_id: data.businessId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },

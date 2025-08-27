@@ -102,17 +102,32 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create cart');
+        const errorText = await response.text();
+        throw new Error(`Failed to create cart: ${response.status} ${errorText}`);
       }
 
       const cart = await response.json();
+      
+      // Validate cart response has required ID
+      if (!cart || !cart.id) {
+        throw new Error('Invalid cart response: missing cart ID');
+      }
+      
       setCartId(cart.id);
       dispatch({ type: 'SET_CART', payload: cart });
       
-      // Also get cart summary
-      await getCartSummary(cart.id);
+      // Also get cart summary (but don't fail if this fails)
+      try {
+        await getCartSummary(cart.id);
+      } catch (summaryError) {
+        console.warn('Failed to load cart summary:', summaryError);
+      }
+      
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to create cart' });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create cart';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+      // Re-throw the error so callers can handle it
+      throw new Error(errorMessage);
     }
   };
 
@@ -163,28 +178,45 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     
     // Create cart if it doesn't exist
     if (!cartId) {
-      await createCart();
-      cartId = getCartId();
-      if (!cartId) throw new Error('Failed to create cart');
+      console.log('🛒 [CART] Creating new cart...');
+      try {
+        await createCart();
+        cartId = getCartId();
+        if (!cartId) {
+          throw new Error('Cart creation succeeded but cart ID is still missing from localStorage');
+        }
+        console.log('✅ [CART] Cart created successfully:', cartId);
+      } catch (error) {
+        console.error('❌ [CART] Failed to create cart:', error);
+        throw new Error(`Failed to create shopping cart: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
 
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}/items`, {
+      console.log('🛒 [CART] Adding item to cart:', cartId, item);
+      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}/items?business_id=${businessId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item)
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add item to cart');
+        const errorText = await response.text();
+        console.error('❌ [CART] Add item failed:', response.status, errorText);
+        throw new Error(`Failed to add item to cart: ${response.status} ${errorText}`);
       }
 
+      console.log('✅ [CART] Item added successfully');
       // Refresh the cart to get updated data
       await refreshCart();
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to add item to cart' });
+      console.error('❌ [CART] Failed to add item:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add item to cart';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+      // Re-throw the error so UI components can handle it
+      throw new Error(errorMessage);
     }
   };
 
@@ -195,10 +227,9 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}/items/${itemId}`, {
+      const response = await fetch(`${backendUrl}/api/v1/public/professional/shopping-cart/${cartId}/items/${itemId}?quantity=${quantity}&business_id=${businessId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity })
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (!response.ok) {

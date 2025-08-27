@@ -290,12 +290,12 @@ export function CartPageClient({ businessProfile }: CartPageClientProps) {
             </div>
 
             <div className="mt-6 space-y-3">
-              <button 
-                className="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors"
-                disabled={isLoading}
+              <a
+                href="/checkout"
+                className="w-full bg-green-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-700 transition-colors text-center block"
               >
                 Proceed to Checkout
-              </button>
+              </a>
               
               <div className="flex space-x-3">
                 <BookingCTAButton className="flex-1 text-sm py-2">

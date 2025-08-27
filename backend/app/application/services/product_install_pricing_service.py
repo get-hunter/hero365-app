@@ -147,7 +147,7 @@ class ProductInstallPricingEngine:
     def calculate_combined_pricing(
         self,
         product: ProductInfo,
-        installation_option: InstallationOption,
+        installation_option: Optional[InstallationOption],
         quantity: int = 1,
         membership_type: Optional[MembershipType] = None,
         tax_rate: Optional[Decimal] = None,
@@ -168,7 +168,7 @@ class ProductInstallPricingEngine:
             Complete pricing breakdown
         """
         
-        logger.debug(f"Calculating pricing for {product.name} + {installation_option.option_name}")
+        logger.debug(f"Calculating pricing for {product.name} + {installation_option.option_name if installation_option else 'No Installation'}")
         
         # Calculate base pricing
         product_subtotal = product.unit_price * quantity
@@ -205,7 +205,7 @@ class ProductInstallPricingEngine:
         # Create pricing calculation
         calculation = PricingCalculation(
             product_unit_price=product.unit_price,
-            installation_base_price=installation_option.base_install_price,
+            installation_base_price=installation_option.base_install_price if installation_option else Decimal('0'),
             quantity=quantity,
             product_subtotal=product_subtotal,
             installation_subtotal=installation_subtotal,
@@ -229,12 +229,16 @@ class ProductInstallPricingEngine:
         return calculation
     
     def _calculate_installation_pricing(
-        self, 
-        installation_option: InstallationOption, 
+        self,
+        installation_option: Optional[InstallationOption],
         quantity: int
     ) -> Decimal:
         """Calculate installation pricing with complexity multipliers"""
         
+        # If no installation option, return 0
+        if not installation_option:
+            return Decimal('0')
+            
         base_price = installation_option.base_install_price
         complexity_multiplier = installation_option.complexity_multiplier or Decimal('1.0')
         
@@ -356,12 +360,12 @@ class ProductInstallPricingEngine:
             return PriceDisplayType.QUOTE_REQUIRED
         
         # If installation has complex requirements, show "from" pricing
-        if (installation_option.requirements and 
+        if (installation_option and installation_option.requirements and 
             any(key in installation_option.requirements for key in ['permit', 'electrical_upgrade', 'special_access'])):
             return PriceDisplayType.FROM
         
         # Free services
-        if product.unit_price == 0 and installation_option.base_install_price == 0:
+        if product.unit_price == 0 and (not installation_option or installation_option.base_install_price == 0):
             return PriceDisplayType.FREE
         
         # Default to fixed pricing
