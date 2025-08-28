@@ -38,6 +38,8 @@ const nextConfig = {
 
   // Image configuration for external domains
   images: {
+    // Edge/SSR compatible setting
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',

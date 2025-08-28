@@ -17,7 +17,8 @@ from app.infrastructure.config.dependency_injection import get_container
 logger = logging.getLogger(__name__)
 
 reusable_oauth2 = HTTPBearer(
-    scheme_name="Authorization"
+    scheme_name="Authorization",
+    auto_error=False  # Allow local dev-bypass without Authorization header
 )
 
 
@@ -31,7 +32,7 @@ TokenDep = Annotated[HTTPAuthorizationCredentials | None, Depends(reusable_oauth
 
 
 async def get_current_user(
-    supabase: SupabaseDep, token: TokenDep
+    supabase: SupabaseDep, token: TokenDep, request: Request
 ) -> dict:
     """
     Get current user from business context JWT token.
@@ -42,6 +43,41 @@ async def get_current_user(
         dict: User data containing id, email, business context, etc.
     """
     try:
+        # Development bypass for local testing (no JWT required)
+        if settings.ENVIRONMENT == "local" and request.headers.get("X-Dev-Bypass", "").lower() in ("1", "true", "yes"):
+            mock_business_id = request.headers.get("X-Business-Id", "a1b2c3d4-e5f6-7890-1234-567890abcdef")
+            mock_user = {
+                "sub": "dev-user",
+                "id": "dev-user",
+                "email": "dev@hero365.local",
+                "phone": None,
+                "user_metadata": {},
+                "current_business_id": mock_business_id,
+                "business_memberships": [
+                    {
+                        "business_id": mock_business_id,
+                        "is_active": True,
+                        "permissions": [
+                            "deploy:websites",
+                            "edit:projects",
+                            "view:projects"
+                        ]
+                    }
+                ],
+                "is_active": True,
+                "token_type": "dev_bypass"
+            }
+            # Attach to request state so downstream middlewares/deps can read it
+            try:
+                request.state.user = mock_user
+                request.state.authenticated = True
+                request.state.business_id = mock_business_id
+                request.state.business_context_validated = True
+            except Exception:
+                pass
+            logger.info("Using development auth bypass user")
+            return mock_user
+
         # Handle case where no token is provided
         if not token:
             logger.warning("No token provided")

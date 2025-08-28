@@ -189,6 +189,8 @@ import type {
   ContractorsProductsGetProductPricingResponse,
   ContractorsProductsGetProductCategoriesData,
   ContractorsProductsGetProductCategoriesResponse,
+  ContractorsProductsGetProductBySlugData,
+  ContractorsProductsGetProductBySlugResponse,
   ContractorsProfileGetContractorProfileData,
   ContractorsProfileGetContractorProfileResponse,
   ContractorsProjectsGetFeaturedProjectsData,
@@ -205,12 +207,6 @@ import type {
   ContractorsServicesGetContractorServiceCategoriesResponse,
   ContractorsServicesGetServicePricingData,
   ContractorsServicesGetServicePricingResponse,
-  DynamicWebsiteDeploymentCheckWebsiteGenerationReadinessResponse,
-  DynamicWebsiteDeploymentGenerateWebsiteStructureResponse,
-  DynamicWebsiteDeploymentDeployDynamicWebsiteData,
-  DynamicWebsiteDeploymentDeployDynamicWebsiteResponse,
-  DynamicWebsiteDeploymentGetDeploymentStatusData,
-  DynamicWebsiteDeploymentGetDeploymentStatusResponse,
   CreateEstimateNoSlashData,
   CreateEstimateNoSlashResponse,
   ListEstimatesNoSlashData,
@@ -399,6 +395,14 @@ import type {
   MobileVoiceIntegrationEndVoiceSessionResponse,
   MobileVoiceIntegrationVoiceSystemHealthResponse,
   MobileVoiceIntegrationGetAgentCapabilitiesResponse,
+  MobileWebsiteDeploymentDeployWebsiteMobileData,
+  MobileWebsiteDeploymentDeployWebsiteMobileResponse,
+  MobileWebsiteDeploymentGetDeploymentStatusMobileData,
+  MobileWebsiteDeploymentGetDeploymentStatusMobileResponse,
+  MobileWebsiteDeploymentListDeploymentsMobileData,
+  MobileWebsiteDeploymentListDeploymentsMobileResponse,
+  MobileWebsiteDeploymentCancelDeploymentMobileData,
+  MobileWebsiteDeploymentCancelDeploymentMobileResponse,
   CreateProductNoSlashData,
   CreateProductNoSlashResponse,
   ListProductsNoSlashData,
@@ -479,6 +483,8 @@ import type {
   ProjectsRemoveJobFromProjectResponse,
   ProjectsRemoveJobFromProject1Data,
   ProjectsRemoveJobFromProject1Response,
+  PublicWebsitesResolveWebsiteData,
+  PublicWebsitesResolveWebsiteResponse,
   PurchaseOrdersCreatePurchaseOrderData,
   PurchaseOrdersCreatePurchaseOrderResponse,
   PurchaseOrdersListPurchaseOrdersData,
@@ -622,26 +628,6 @@ import type {
   UsersUpdateUserBusinessContextResponse,
   UtilsTestEmailData,
   UtilsTestEmailResponse,
-  WebsiteDeploymentDeployWebsiteData,
-  WebsiteDeploymentDeployWebsiteResponse,
-  WebsiteDeploymentGetDeploymentStatusData,
-  WebsiteDeploymentGetDeploymentStatusResponse,
-  WebsiteDeploymentListDeploymentsData,
-  WebsiteDeploymentListDeploymentsResponse,
-  WebsiteDeploymentCancelDeploymentData,
-  WebsiteDeploymentCancelDeploymentResponse,
-  WebsiteDeploymentPreviewWebsiteData,
-  WebsiteDeploymentPreviewWebsiteResponse,
-  WebsiteTemplatesPreviewWebsiteTemplateData,
-  WebsiteTemplatesPreviewWebsiteTemplateResponse,
-  WebsiteTemplatesGenerateWebsiteData,
-  WebsiteTemplatesGenerateWebsiteResponse,
-  WebsiteTemplatesDeployWebsiteData,
-  WebsiteTemplatesDeployWebsiteResponse,
-  WebsiteTemplatesGetDeploymentStatusData,
-  WebsiteTemplatesGetDeploymentStatusResponse,
-  WebsiteTemplatesDeleteDeploymentData,
-  WebsiteTemplatesDeleteDeploymentResponse,
 } from "./types.gen"
 
 export class ActivitiesService {
@@ -3408,6 +3394,34 @@ export class ContractorsProductsService {
       },
     })
   }
+
+  /**
+   * Get Product By Slug
+   * Get detailed product information by SEO slug.
+   *
+   * SEO-friendly endpoint that finds products by their slug instead of UUID.
+   * Returns complete product details for product detail page display.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.productSlug Product SEO slug
+   * @returns ProductCatalogItem Successful Response
+   * @throws ApiError
+   */
+  public static getProductBySlug(
+    data: ContractorsProductsGetProductBySlugData,
+  ): CancelablePromise<ContractorsProductsGetProductBySlugResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/product-by-slug/{business_id}/{product_slug}",
+      path: {
+        business_id: data.businessId,
+        product_slug: data.productSlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
 }
 
 export class ContractorsProfileService {
@@ -3734,95 +3748,6 @@ export class ContractorsServicesService {
         membership_plan_id: data.membershipPlanId,
         service_area: data.serviceArea,
         estimated_hours: data.estimatedHours,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-}
-
-export class DynamicWebsiteDeploymentService {
-  /**
-   * Check Website Generation Readiness
-   * Check if a business is ready for website generation.
-   *
-   * This endpoint validates that the business has sufficient services
-   * and provides recommendations for improving website generation readiness.
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static checkWebsiteGenerationReadiness(): CancelablePromise<DynamicWebsiteDeploymentCheckWebsiteGenerationReadinessResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/dynamic-websites/readiness-check",
-    })
-  }
-
-  /**
-   * Generate Website Structure
-   * Generate website structure preview based on business services.
-   *
-   * This endpoint analyzes the business's service categories and generates
-   * a complete website structure without actually building the site.
-   * Useful for previewing what the website will look like.
-   *
-   * IMPORTANT: Only generates websites for businesses with actual service offerings.
-   * @returns WebsiteStructureResponse Successful Response
-   * @throws ApiError
-   */
-  public static generateWebsiteStructure(): CancelablePromise<DynamicWebsiteDeploymentGenerateWebsiteStructureResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/dynamic-websites/generate-structure",
-    })
-  }
-
-  /**
-   * Deploy Dynamic Website
-   * Deploy a dynamic website with personalized content based on service categories.
-   *
-   * This creates a complete professional website with:
-   * - Dynamic navigation based on service categories
-   * - Individual pages for each service category
-   * - SEO-optimized content
-   * - Service-specific call-to-actions
-   * - Professional design and layout
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns DynamicWebsiteResponse Successful Response
-   * @throws ApiError
-   */
-  public static deployDynamicWebsite(
-    data: DynamicWebsiteDeploymentDeployDynamicWebsiteData,
-  ): CancelablePromise<DynamicWebsiteDeploymentDeployDynamicWebsiteResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/dynamic-websites/deploy",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Deployment Status
-   * Get the status of a dynamic website deployment.
-   * @param data The data for the request.
-   * @param data.deploymentId
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getDeploymentStatus(
-    data: DynamicWebsiteDeploymentGetDeploymentStatusData,
-  ): CancelablePromise<DynamicWebsiteDeploymentGetDeploymentStatusResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/dynamic-websites/status/{deployment_id}",
-      path: {
-        deployment_id: data.deploymentId,
       },
       errors: {
         422: "Validation Error",
@@ -6279,6 +6204,110 @@ export class MobileVoiceIntegrationService {
   }
 }
 
+export class MobileWebsiteDeploymentService {
+  /**
+   * Deploy Website Mobile
+   * Deploy website from mobile app with collected business data.
+   *
+   * This endpoint:
+   * 1. Validates business readiness and subdomain availability
+   * 2. Reserves the subdomain
+   * 3. Persists business data to appropriate tables
+   * 4. Enqueues background deployment job
+   * 5. Returns deployment tracking information
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns MobileWebsiteDeployResponse Successful Response
+   * @throws ApiError
+   */
+  public static deployWebsiteMobile(
+    data: MobileWebsiteDeploymentDeployWebsiteMobileData,
+  ): CancelablePromise<MobileWebsiteDeploymentDeployWebsiteMobileResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/mobile/website/deploy",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Deployment Status Mobile
+   * Get deployment status for mobile app polling.
+   *
+   * Returns current status, progress, and website URL when completed.
+   * @param data The data for the request.
+   * @param data.deploymentId
+   * @returns DeploymentStatusResponse Successful Response
+   * @throws ApiError
+   */
+  public static getDeploymentStatusMobile(
+    data: MobileWebsiteDeploymentGetDeploymentStatusMobileData,
+  ): CancelablePromise<MobileWebsiteDeploymentGetDeploymentStatusMobileResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/mobile/website/deployments/{deployment_id}",
+      path: {
+        deployment_id: data.deploymentId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Deployments Mobile
+   * List recent deployments for the current business.
+   * @param data The data for the request.
+   * @param data.limit
+   * @param data.skip
+   * @returns DeploymentListResponse Successful Response
+   * @throws ApiError
+   */
+  public static listDeploymentsMobile(
+    data: MobileWebsiteDeploymentListDeploymentsMobileData = {},
+  ): CancelablePromise<MobileWebsiteDeploymentListDeploymentsMobileResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/mobile/website/deployments",
+      query: {
+        limit: data.limit,
+        skip: data.skip,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Cancel Deployment Mobile
+   * Cancel a pending or in-progress deployment.
+   * @param data The data for the request.
+   * @param data.deploymentId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static cancelDeploymentMobile(
+    data: MobileWebsiteDeploymentCancelDeploymentMobileData,
+  ): CancelablePromise<MobileWebsiteDeploymentCancelDeploymentMobileResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/mobile/website/deployments/{deployment_id}/cancel",
+      path: {
+        deployment_id: data.deploymentId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class ProductsService {
   /**
    * Create Product
@@ -7313,6 +7342,32 @@ export class ProjectsService {
       path: {
         project_id: data.projectId,
         job_id: data.jobId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class PublicWebsitesService {
+  /**
+   * Resolve Website
+   * @param data The data for the request.
+   * @param data.host Full host, e.g., sub.hero365.app or customdomain.com
+   * @param data.subdomain
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static resolveWebsite(
+    data: PublicWebsitesResolveWebsiteData,
+  ): CancelablePromise<PublicWebsitesResolveWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/api/v1/public/websites/resolve",
+      query: {
+        host: data.host,
+        subdomain: data.subdomain,
       },
       errors: {
         422: "Validation Error",
@@ -9194,258 +9249,6 @@ export class UtilsService {
       url: "/api/v1/utils/test-email/",
       query: {
         email_to: data.emailTo,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-}
-
-export class WebsiteDeploymentService {
-  /**
-   * Deploy Website
-   * Deploy a professional website using AI-generated content and Next.js templates.
-   *
-   * This endpoint creates a complete professional website with:
-   * - AI-optimized content for SEO
-   * - Trade-specific templates
-   * - Responsive design
-   * - Professional components (reviews, service areas, etc.)
-   * - Automatic deployment to Cloudflare Pages
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns app__api__routes__website_deployment__WebsiteDeploymentResponse Successful Response
-   * @throws ApiError
-   */
-  public static deployWebsite(
-    data: WebsiteDeploymentDeployWebsiteData,
-  ): CancelablePromise<WebsiteDeploymentDeployWebsiteResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/website-deployment/deploy",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Deployment Status
-   * Get the current status of a website deployment.
-   *
-   * Returns real-time status including progress, current step, and completion details.
-   * @param data The data for the request.
-   * @param data.deploymentId
-   * @returns DeploymentStatus Successful Response
-   * @throws ApiError
-   */
-  public static getDeploymentStatus(
-    data: WebsiteDeploymentGetDeploymentStatusData,
-  ): CancelablePromise<WebsiteDeploymentGetDeploymentStatusResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/website-deployment/status/{deployment_id}",
-      path: {
-        deployment_id: data.deploymentId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * List Deployments
-   * List recent website deployments for the current user.
-   * @param data The data for the request.
-   * @param data.limit
-   * @returns DeploymentStatus Successful Response
-   * @throws ApiError
-   */
-  public static listDeployments(
-    data: WebsiteDeploymentListDeploymentsData = {},
-  ): CancelablePromise<WebsiteDeploymentListDeploymentsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/website-deployment/deployments",
-      query: {
-        limit: data.limit,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Cancel Deployment
-   * Cancel a pending or in-progress deployment.
-   * @param data The data for the request.
-   * @param data.deploymentId
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static cancelDeployment(
-    data: WebsiteDeploymentCancelDeploymentData,
-  ): CancelablePromise<WebsiteDeploymentCancelDeploymentResponse> {
-    return __request(OpenAPI, {
-      method: "DELETE",
-      url: "/api/v1/website-deployment/deployments/{deployment_id}",
-      path: {
-        deployment_id: data.deploymentId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Preview Website
-   * Generate a preview of the website without deploying.
-   *
-   * Returns the generated content and template structure for preview purposes.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static previewWebsite(
-    data: WebsiteDeploymentPreviewWebsiteData,
-  ): CancelablePromise<WebsiteDeploymentPreviewWebsiteResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/website-deployment/preview",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-}
-
-export class WebsiteTemplatesService {
-  /**
-   * Preview Website Template
-   * Preview website template data without generating or deploying.
-   *
-   * Returns composed template properties that would be used for generation.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns TemplateProps Successful Response
-   * @throws ApiError
-   */
-  public static previewWebsiteTemplate(
-    data: WebsiteTemplatesPreviewWebsiteTemplateData,
-  ): CancelablePromise<WebsiteTemplatesPreviewWebsiteTemplateResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/website-templates/preview",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Generate Website
-   * Generate website artifacts and build static site.
-   *
-   * Creates a build job and returns job ID for status tracking.
-   * The actual build happens in the background.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns WebsiteGenerationResponse Successful Response
-   * @throws ApiError
-   */
-  public static generateWebsite(
-    data: WebsiteTemplatesGenerateWebsiteData,
-  ): CancelablePromise<WebsiteTemplatesGenerateWebsiteResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/website-templates/generate",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Deploy Website
-   * Generate and deploy website to Cloudflare Pages.
-   *
-   * This is a full end-to-end operation that composes data, builds the site,
-   * and deploys to Cloudflare Pages.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns app__domain__entities__website_template__WebsiteDeploymentResponse Successful Response
-   * @throws ApiError
-   */
-  public static deployWebsite(
-    data: WebsiteTemplatesDeployWebsiteData,
-  ): CancelablePromise<WebsiteTemplatesDeployWebsiteResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/website-templates/deploy",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Deployment Status
-   * Get deployment status and details.
-   *
-   * Returns current status, deployment URL, and performance metrics if available.
-   * @param data The data for the request.
-   * @param data.jobId
-   * @returns app__domain__entities__website_template__WebsiteDeploymentResponse Successful Response
-   * @throws ApiError
-   */
-  public static getDeploymentStatus(
-    data: WebsiteTemplatesGetDeploymentStatusData,
-  ): CancelablePromise<WebsiteTemplatesGetDeploymentStatusResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/website-templates/status/{job_id}",
-      path: {
-        job_id: data.jobId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Delete Deployment
-   * Delete a website deployment.
-   *
-   * Removes the Cloudflare Pages project and marks the deployment as cancelled.
-   * @param data The data for the request.
-   * @param data.deploymentId
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static deleteDeployment(
-    data: WebsiteTemplatesDeleteDeploymentData,
-  ): CancelablePromise<WebsiteTemplatesDeleteDeploymentResponse> {
-    return __request(OpenAPI, {
-      method: "DELETE",
-      url: "/api/v1/website-templates/deployments/{deployment_id}",
-      path: {
-        deployment_id: data.deploymentId,
       },
       errors: {
         422: "Validation Error",

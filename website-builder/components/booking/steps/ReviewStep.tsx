@@ -63,6 +63,11 @@ export default function ReviewStep({
       const bookingRequest = {
         business_id: businessId,
         service_id: state.serviceId!,
+        requested_at: new Date().toISOString(),
+        customer_name: `${state.contact?.firstName || ''} ${state.contact?.lastName || ''}`.trim(),
+        customer_phone: state.contact?.phoneE164 || '',
+        sms_consent: state.contact?.smsConsent || false,
+        email_consent: !!state.contact?.email,
         customer_contact: {
           first_name: state.contact?.firstName || '',
           last_name: state.contact?.lastName || '',
@@ -70,22 +75,21 @@ export default function ReviewStep({
           email: state.contact?.email || '',
           sms_consent: state.contact?.smsConsent || false
         },
-        service_address: {
-          line1: state.address?.line1 || '',
-          line2: state.address?.line2,
-          city: state.address?.city || '',
-          region: state.address?.region || '',
-          postal_code: state.address?.postalCode || '',
-          country_code: state.address?.countryCode || 'US',
-          notes: state.address?.notes
-        },
+        service_address: [
+          state.address?.line1 || '',
+          state.address?.line2 || '',
+          `${state.address?.city || ''}, ${state.address?.region || ''} ${state.address?.postalCode || ''}`
+        ].filter(Boolean).join(', '),
+        service_city: state.address?.city || '',
+        service_state: state.address?.region || '',
+        service_zip: state.address?.postalCode || '',
         scheduled_at: state.slot?.start || new Date().toISOString(),
         timezone: state.zipInfo?.timezone || 'America/New_York',
         problem_description: state.details?.notes || '',
-        urgency_level: state.details?.urgency || 'normal',
+        urgency_level: 'normal',
         dispatch_fee_accepted: state.dispatchFeeAccepted || false,
         terms_accepted: state.termsAccepted,
-        source: 'booking_widget',
+        source: 'website' as const,
         referrer_url: typeof window !== 'undefined' ? window.location.href : undefined,
         user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
         idempotency_key: bookingApi.generateIdempotencyKey()
@@ -94,15 +98,6 @@ export default function ReviewStep({
       // Try to create booking via API
       try {
         const bookingResponse = await bookingApi.createBooking(bookingRequest, true);
-        
-        // Update booking data with real booking details
-        updateBookingData({
-          bookingId: bookingResponse.booking.id,
-          confirmedAt: bookingResponse.booking.created_at,
-          status: bookingResponse.booking.status,
-          estimatedArrival: bookingResponse.booking.scheduled_at
-        });
-
         console.log('Booking created successfully:', bookingResponse);
 
       } catch (apiError) {
@@ -110,13 +105,6 @@ export default function ReviewStep({
         
         // Fallback to mock booking if API is not available
         const bookingId = `BK-${Date.now().toString().slice(-6)}`;
-        
-        updateBookingData({
-          bookingId,
-          confirmedAt: new Date().toISOString(),
-          status: 'confirmed',
-          estimatedArrival: state.slot?.start
-        });
 
         console.log('Mock booking created:', {
           bookingId,

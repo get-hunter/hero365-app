@@ -62,6 +62,38 @@ class AuthMiddleware(BaseHTTPMiddleware):
         
         logger.info(f"Authentication required for path: {path}")
         
+        # Development bypass: allow local testing with a header
+        try:
+            if settings.ENVIRONMENT == "local":
+                dev_bypass = request.headers.get("X-Dev-Bypass", "").lower() in ("1", "true", "yes")
+                if dev_bypass:
+                    mock_business_id = request.headers.get(
+                        "X-Business-Id",
+                        "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+                    )
+                    # Minimal mock user with a single active business membership
+                    request.state.user = {
+                        "sub": "dev-user",
+                        "email": "dev@hero365.local",
+                        "business_memberships": [
+                            {
+                                "business_id": mock_business_id,
+                                "is_active": True,
+                                "permissions": [
+                                    "deploy:websites",
+                                    "edit:projects",
+                                    "view:projects"
+                                ]
+                            }
+                        ]
+                    }
+                    request.state.authenticated = True
+                    logger.info("Dev bypass enabled: authenticated mock user for local testing")
+                    return await call_next(request)
+        except Exception:
+            # Fall through to normal auth flow on any error
+            pass
+        
         # Extract and validate token
         token = self._extract_token(request)
         if token:

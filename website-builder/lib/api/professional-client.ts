@@ -6,6 +6,8 @@
 
 import { buildPublicApiUrl, getDefaultHeaders } from '../config/api-config';
 
+const edgePublic = (endpoint: string) => `/api/public/${endpoint.replace(/^\//, '')}`;
+
 export interface ProfessionalProfile {
   business_id: string;
   business_name: string;
@@ -77,20 +79,11 @@ export class ProfessionalApiClient {
    * Get professional profile information
    */
   async getProfessionalProfile(businessId: string): Promise<ProfessionalProfile> {
-    // Use server-side proxy to avoid browser CORS/connectivity issues
-    const url = `/api/contractors/${businessId}`;
-    
-    console.log('🔍 [DEBUG] Fetching profile via proxy:', url);
-    
+    const url = edgePublic(`contractors/${businessId}`);
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers: getDefaultHeaders(),
     });
-
-    console.log('✅ [DEBUG] Proxy response:', response.status, response.statusText);
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -101,7 +94,6 @@ export class ProfessionalApiClient {
     }
 
     const data = await response.json();
-    console.log('✅ [DEBUG] Profile data received:', data.business_name);
     return data;
   }
 
@@ -116,37 +108,22 @@ export class ProfessionalApiClient {
     } = {}
   ): Promise<ServiceItem[]> {
     const params = new URLSearchParams();
-    if (options.category) {
-      params.append('category', options.category);
-    }
-    if (options.emergencyOnly) {
-      params.append('emergency_only', 'true');
-    }
+    if (options.category) params.append('category', options.category);
+    if (options.emergencyOnly) params.append('emergency_only', 'true');
 
-    // Use server-side proxy to avoid browser CORS/connectivity issues
-    const url = `/api/contractors/${businessId}/services${params.toString() ? '?' + params.toString() : ''}`;
-    
-    console.log('🔍 [DEBUG] Fetching services via proxy:', url);
-    
+    const url = edgePublic(`contractors/${businessId}/services${params.toString() ? '?' + params.toString() : ''}`);
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers: getDefaultHeaders(),
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
-        console.log('⚠️ [DEBUG] No services found, returning empty array');
-        return []; // No services found
-      }
+      if (response.status === 404) return [];
       const error = await response.json().catch(() => ({ error: 'Failed to get professional services' }));
       throw new Error(error.error || 'Failed to get professional services');
     }
 
     const data = await response.json();
-    console.log('✅ [DEBUG] Services data received:', data.length, 'items');
     return data;
   }
 
@@ -161,24 +138,17 @@ export class ProfessionalApiClient {
     } = {}
   ): Promise<ProductItem[]> {
     const params = new URLSearchParams();
-    if (options.category) {
-      params.append('category', options.category);
-    }
-    if (options.inStockOnly !== undefined) {
-      params.append('in_stock_only', options.inStockOnly.toString());
-    }
+    if (options.category) params.append('category', options.category);
+    if (options.inStockOnly !== undefined) params.append('in_stock_only', options.inStockOnly.toString());
 
-    const url = buildPublicApiUrl(`contractors/products/${businessId}${params.toString() ? '?' + params.toString() : ''}`);
-    
+    const url = edgePublic(`contractors/products/${businessId}${params.toString() ? '?' + params.toString() : ''}`);
     const response = await fetch(url, {
       method: 'GET',
       headers: getDefaultHeaders(),
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
-        return []; // No products found
-      }
+      if (response.status === 404) return [];
       const error = await response.json().catch(() => ({ detail: 'Failed to get professional products' }));
       throw new Error(error.detail || 'Failed to get professional products');
     }
@@ -194,22 +164,15 @@ export class ProfessionalApiClient {
     startDate: string, // ISO date
     endDate: string    // ISO date
   ): Promise<AvailabilitySlot[]> {
-    const params = new URLSearchParams({
-      start_date: startDate,
-      end_date: endDate
-    });
-
-    const url = buildPublicApiUrl(`contractors/availability/${businessId}?${params}`);
-    
+    const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+    const url = edgePublic(`contractors/availability/${businessId}?${params}`);
     const response = await fetch(url, {
       method: 'GET',
       headers: getDefaultHeaders(),
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
-        return []; // No availability found
-      }
+      if (response.status === 404) return [];
       const error = await response.json().catch(() => ({ detail: 'Failed to get professional availability' }));
       throw new Error(error.detail || 'Failed to get professional availability');
     }

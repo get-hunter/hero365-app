@@ -807,112 +807,6 @@ export type app__api__public__routes__contractors__schemas__ServiceCategory = {
 }
 
 /**
- * Request model for dynamic website deployment.
- */
-export type app__api__routes__dynamic_website_deployment__DynamicWebsiteRequest =
-  {
-    /**
-     * Template variant to use
-     */
-    template_variant?: string
-    /**
-     * Custom domain (optional)
-     */
-    custom_domain?: string | null
-    /**
-     * Primary brand color
-     */
-    primary_color?: string | null
-    /**
-     * Secondary brand color
-     */
-    secondary_color?: string | null
-    /**
-     * Logo URL
-     */
-    logo_url?: string | null
-    /**
-     * Include reviews section
-     */
-    include_reviews?: boolean
-    /**
-     * Include service areas
-     */
-    include_service_areas?: boolean
-    /**
-     * Include about section
-     */
-    include_about?: boolean
-    /**
-     * Show emergency service banner
-     */
-    enable_emergency_banner?: boolean
-    /**
-     * Enable advanced SEO features
-     */
-    enable_seo_optimization?: boolean
-    /**
-     * Include JSON-LD schema markup
-     */
-    enable_schema_markup?: boolean
-    /**
-     * Enable performance optimizations
-     */
-    enable_performance_optimization?: boolean
-  }
-
-/**
- * Response model for website deployment.
- */
-export type app__api__routes__website_deployment__WebsiteDeploymentResponse = {
-  /**
-   * Unique deployment ID
-   */
-  deployment_id: string
-  /**
-   * Deployment status
-   */
-  status: string
-  /**
-   * Live website URL
-   */
-  website_url?: string | null
-  /**
-   * Preview URL
-   */
-  preview_url?: string | null
-  /**
-   * Build time in seconds
-   */
-  build_time?: number | null
-  /**
-   * Number of pages generated
-   */
-  pages_generated?: number | null
-  /**
-   * SEO optimization score
-   */
-  seo_score?: number | null
-  /**
-   * Number of content sections
-   */
-  content_sections?: number | null
-  /**
-   * SEO keywords optimized
-   */
-  keywords_optimized?: Array<string> | null
-  created_at?: string
-  /**
-   * Deployment completion time
-   */
-  deployed_at?: string | null
-  /**
-   * Error message if deployment failed
-   */
-  error_message?: string | null
-}
-
-/**
  * Schema for simple message responses.
  */
 export type app__api__schemas__activity_schemas__MessageResponse = {
@@ -1003,36 +897,6 @@ export type app__domain__entities__booking__TimeSlot = {
   booked_count?: number
   price?: string | null
 }
-
-/**
- * Request DTO for dynamic website generation.
- */
-export type app__domain__entities__website_template__DynamicWebsiteRequest = {
-  business_id: string
-  template_name?: string
-  deployment_type?: DeploymentType
-  custom_domain?: string | null
-  include_promos?: boolean
-  include_testimonials?: boolean
-  include_ratings?: boolean
-  include_awards?: boolean
-  include_partnerships?: boolean
-  meta_title_override?: string | null
-  meta_description_override?: string | null
-}
-
-/**
- * Response DTO for website deployment.
- */
-export type app__domain__entities__website_template__WebsiteDeploymentResponse =
-  {
-    deployment_id: string
-    deploy_url: string
-    build_status: BuildStatus
-    lighthouse_scores?: {
-      [key: string]: number
-    } | null
-  }
 
 /**
  * Standardized service category across trades.
@@ -1494,32 +1358,6 @@ export type AvailableTimeSlotsResponse = {
   booking_deadline?: string | null
 }
 
-/**
- * Awards and certifications entity.
- */
-export type AwardCertification = {
-  id?: string
-  business_id: string
-  name: string
-  issuing_organization?: string | null
-  description?: string | null
-  certificate_type?: CertificateType | null
-  logo_url?: string | null
-  certificate_url?: string | null
-  verification_url?: string | null
-  issued_date?: string | null
-  expiry_date?: string | null
-  is_current?: boolean
-  is_featured?: boolean
-  sort_order?: number
-  display_on_website?: boolean
-  trade_relevance?: Array<string>
-  service_categories?: Array<string>
-  is_active?: boolean
-  created_at?: string | null
-  updated_at?: string | null
-}
-
 export type Body_products_reserve_stock = {
   /**
    * Quantity to reserve
@@ -1690,14 +1528,22 @@ export type BookingStatus =
   | "no_show"
 
 /**
- * Website build statuses.
+ * Business branding preferences.
  */
-export type BuildStatus =
-  | "pending"
-  | "building"
-  | "success"
-  | "failed"
-  | "cancelled"
+export type BrandingField = {
+  /**
+   * Primary brand color
+   */
+  primary_color?: string
+  /**
+   * Secondary brand color
+   */
+  secondary_color?: string
+  /**
+   * Logo URL
+   */
+  logo_url?: string | null
+}
 
 /**
  * Adopt multiple service templates at once (useful for onboarding).
@@ -1863,6 +1709,40 @@ export type BusinessDetailResponse = {
 }
 
 /**
+ * Business hours for a specific day.
+ */
+export type BusinessHoursField = {
+  /**
+   * 1=Monday, 7=Sunday
+   */
+  day_of_week: number
+  /**
+   * Whether business is open this day
+   */
+  is_open?: boolean
+  /**
+   * Opening time
+   */
+  open_time?: string | null
+  /**
+   * Closing time
+   */
+  close_time?: string | null
+  /**
+   * Lunch break start
+   */
+  lunch_start?: string | null
+  /**
+   * Lunch break end
+   */
+  lunch_end?: string | null
+  /**
+   * Emergency service only
+   */
+  is_emergency_only?: boolean
+}
+
+/**
  * Request schema for accepting business invitations.
  */
 export type BusinessInvitationAcceptRequest = {
@@ -1931,33 +1811,33 @@ export type BusinessInvitationResponse = {
 }
 
 /**
- * Business locations and service areas entity.
+ * Business location.
  */
-export type BusinessLocation = {
-  id?: string
-  business_id: string
+export type BusinessLocationField = {
+  /**
+   * Location name
+   */
   name?: string | null
+  /**
+   * Street address
+   */
   address?: string | null
+  /**
+   * City
+   */
   city: string
+  /**
+   * State/Province
+   */
   state: string
-  zip_code?: string | null
-  county?: string | null
-  latitude?: string | null
-  longitude?: string | null
-  service_radius_miles?: number | null
-  location_type: LocationType
+  /**
+   * Postal code
+   */
+  postal_code?: string | null
+  /**
+   * Primary location flag
+   */
   is_primary?: boolean
-  is_active?: boolean
-  services_offered?: Array<string>
-  trades_covered?: Array<string>
-  operating_hours?: {
-    [key: string]: unknown
-  } | null
-  display_on_website?: boolean
-  seo_description?: string | null
-  page_slug?: string | null
-  created_at?: string | null
-  updated_at?: string | null
 }
 
 /**
@@ -2017,27 +1897,29 @@ export type BusinessMembershipUpdateRequest = {
 }
 
 /**
- * Comprehensive business properties for template rendering.
+ * Business product offering.
  */
-export type BusinessProps = {
-  id: string
+export type BusinessProductField = {
+  /**
+   * Product name
+   */
   name: string
+  /**
+   * Product SKU
+   */
+  sku?: string | null
+  /**
+   * Product description
+   */
   description?: string | null
-  phone_number?: string | null
-  business_email?: string | null
-  website?: string | null
-  logo_url?: string | null
-  address?: string | null
-  city?: string | null
-  state?: string | null
-  zip_code?: string | null
-  trades?: Array<string>
-  service_areas?: Array<string>
-  business_hours?: {
-    [key: string]: unknown
-  } | null
-  primary_trade?: string | null
-  seo_keywords?: Array<string>
+  /**
+   * Product price
+   */
+  unit_price?: number | null
+  /**
+   * Featured product flag
+   */
+  is_featured?: boolean
 }
 
 /**
@@ -2131,6 +2013,40 @@ export type BusinessService = {
   last_booked_at?: string | null
   created_at: string
   updated_at: string
+}
+
+/**
+ * Business service offering.
+ */
+export type BusinessServiceField = {
+  /**
+   * Service name
+   */
+  name: string
+  /**
+   * Service description
+   */
+  description?: string | null
+  /**
+   * Pricing model
+   */
+  pricing_model?: string
+  /**
+   * Service price
+   */
+  unit_price?: number | null
+  /**
+   * Estimated duration
+   */
+  estimated_duration_hours?: number | null
+  /**
+   * Emergency service flag
+   */
+  is_emergency?: boolean
+  /**
+   * Featured service flag
+   */
+  is_featured?: boolean
 }
 
 /**
@@ -2412,18 +2328,6 @@ export type CatalogItemLineItem = {
   category?: string
   item_type: string
 }
-
-/**
- * Types of awards and certifications.
- */
-export type CertificateType =
-  | "industry_award"
-  | "certification"
-  | "license"
-  | "accreditation"
-  | "safety_certification"
-  | "training_completion"
-  | "quality_assurance"
 
 /**
  * Customer information for checkout.
@@ -3988,10 +3892,30 @@ export type DashboardActivitiesResponse = {
 }
 
 /**
+ * List of deployments response.
+ */
+export type DeploymentListResponse = {
+  /**
+   * Recent deployments
+   */
+  deployments: Array<DeploymentStatusResponse>
+  /**
+   * Total deployment count
+   */
+  total_count: number
+}
+
+/**
  * Deployment status response.
  */
-export type DeploymentStatus = {
+export type DeploymentStatusResponse = {
+  /**
+   * Deployment ID
+   */
   deployment_id: string
+  /**
+   * Current status
+   */
   status: string
   /**
    * Progress percentage
@@ -4001,18 +3925,27 @@ export type DeploymentStatus = {
    * Current deployment step
    */
   current_step: string
+  /**
+   * Live website URL
+   */
   website_url?: string | null
+  /**
+   * Error message if failed
+   */
   error_message?: string | null
+  /**
+   * Build log entries
+   */
+  build_logs?: Array<string> | null
+  /**
+   * Deployment start time
+   */
+  created_at: string
+  /**
+   * Completion time
+   */
+  completed_at?: string | null
 }
-
-/**
- * Website deployment types.
- */
-export type DeploymentType =
-  | "production"
-  | "staging"
-  | "preview"
-  | "development"
 
 /**
  * Current device state
@@ -4095,24 +4028,6 @@ export type DisruptionType =
   | "resource_unavailable"
   | "customer_reschedule"
   | "equipment_failure"
-
-/**
- * Response model for dynamic website deployment.
- */
-export type DynamicWebsiteResponse = {
-  deployment_id: string
-  status: string
-  website_url?: string | null
-  preview_url?: string | null
-  total_pages: number
-  service_categories: number
-  navigation_items: number
-  build_started_at: string
-  estimated_completion?: string | null
-  content_summary: {
-    [key: string]: unknown
-  }
-}
 
 /**
  * Schema for estimate action responses.
@@ -5259,16 +5174,6 @@ export type LocationData = {
 }
 
 /**
- * Business location types.
- */
-export type LocationType =
-  | "headquarters"
-  | "branch_office"
-  | "service_area"
-  | "coverage_zone"
-  | "warehouse"
-
-/**
  * Request to update user location.
  */
 export type LocationUpdateRequest = {
@@ -5497,13 +5402,65 @@ export type MobileTemplateResponse = {
 }
 
 /**
- * Content moderation statuses.
+ * Mobile website deployment request.
  */
-export type ModerationStatus =
-  | "pending"
-  | "approved"
-  | "rejected"
-  | "needs_review"
+export type MobileWebsiteDeployRequest = {
+  /**
+   * Requested subdomain
+   */
+  subdomain: string
+  /**
+   * Service coverage areas
+   */
+  service_areas: Array<ServiceAreaField>
+  /**
+   * Business services
+   */
+  services: Array<BusinessServiceField>
+  /**
+   * Business products
+   */
+  products?: Array<BusinessProductField> | null
+  /**
+   * Business locations
+   */
+  locations?: Array<BusinessLocationField> | null
+  /**
+   * Business hours
+   */
+  hours: Array<BusinessHoursField>
+  /**
+   * Branding preferences
+   */
+  branding?: BrandingField | null
+  /**
+   * Idempotency key for duplicate prevention
+   */
+  idempotency_key?: string | null
+}
+
+/**
+ * Mobile website deployment response.
+ */
+export type MobileWebsiteDeployResponse = {
+  /**
+   * Unique deployment ID
+   */
+  deployment_id: string
+  /**
+   * Deployment status
+   */
+  status: string
+  /**
+   * URL to check deployment status
+   */
+  status_url: string
+  /**
+   * Estimated completion time
+   */
+  estimated_completion_minutes?: number
+  created_at?: string
+}
 
 /**
  * Network connection types
@@ -5619,46 +5576,6 @@ export type OAuthSignInResponse = {
 }
 
 /**
- * OEM and business partnerships entity.
- */
-export type OEMPartnership = {
-  id?: string
-  business_id: string
-  partner_name: string
-  partner_type: PartnerType
-  partnership_level?: string | null
-  description?: string | null
-  partnership_benefits?: Array<string>
-  logo_url: string
-  partner_url?: string | null
-  verification_url?: string | null
-  trade_relevance: Array<string>
-  service_categories?: Array<string>
-  product_lines?: Array<string>
-  is_featured?: boolean
-  sort_order?: number
-  display_on_website?: boolean
-  start_date?: string | null
-  end_date?: string | null
-  is_active?: boolean
-  is_current?: boolean
-  created_at?: string | null
-  updated_at?: string | null
-}
-
-/**
- * Types of promotional offers.
- */
-export type OfferType =
-  | "percentage_discount"
-  | "fixed_amount"
-  | "buy_one_get_one"
-  | "free_service"
-  | "seasonal_special"
-  | "new_customer"
-  | "referral"
-
-/**
  * Available optimization algorithms.
  */
 export type OptimizationAlgorithm =
@@ -5751,18 +5668,6 @@ export type OTPVerificationRequest = {
   phone: string
   token: string
 }
-
-/**
- * Types of business partnerships.
- */
-export type PartnerType =
-  | "manufacturer"
-  | "distributor"
-  | "supplier"
-  | "technology_partner"
-  | "certification_body"
-  | "trade_association"
-  | "dealer_network"
 
 /**
  * Schema for payment responses.
@@ -7038,50 +6943,6 @@ export type ProjectUpdateRequest = {
 }
 
 /**
- * Promotional offer entity for website display.
- */
-export type PromoOffer = {
-  id?: string
-  business_id: string
-  title: string
-  subtitle?: string | null
-  description?: string | null
-  offer_type: OfferType
-  price_label?: string | null
-  badge_text?: string | null
-  cta_text?: string
-  cta_link?: string | null
-  placement: PromoPlacement
-  /**
-   * Higher numbers = higher priority
-   */
-  priority?: number
-  target_services?: Array<string>
-  target_trades?: Array<string>
-  service_areas?: Array<string>
-  start_date?: string | null
-  end_date?: string | null
-  is_active?: boolean
-  is_featured?: boolean
-  view_count?: number
-  click_count?: number
-  conversion_count?: number
-  created_at?: string | null
-  updated_at?: string | null
-}
-
-/**
- * Website placement locations for promotional content.
- */
-export type PromoPlacement =
-  | "hero_banner"
-  | "promo_carousel"
-  | "sidebar"
-  | "footer"
-  | "popup"
-  | "inline"
-
-/**
  * Schema for purchase order line item.
  */
 export type PurchaseOrderLineItemSchema = {
@@ -7224,41 +7085,6 @@ export type QuickQuoteResponse = {
   recommendations?: {
     [key: string]: unknown
   } | null
-}
-
-/**
- * Review platforms for ratings snapshots.
- */
-export type RatingPlatform =
-  | "google"
-  | "yelp"
-  | "bbb"
-  | "angie"
-  | "facebook"
-  | "trustpilot"
-  | "homeadvisor"
-  | "thumbtack"
-
-/**
- * Rating snapshot from review platforms.
- */
-export type RatingSnapshot = {
-  id?: string
-  business_id: string
-  platform: RatingPlatform
-  rating: string
-  review_count: number
-  total_reviews?: number | null
-  display_name?: string | null
-  logo_url?: string | null
-  profile_url?: string | null
-  is_featured?: boolean
-  sort_order?: number
-  last_synced_at?: string | null
-  sync_frequency_hours?: number
-  is_active?: boolean
-  created_at?: string | null
-  updated_at?: string | null
 }
 
 /**
@@ -7799,6 +7625,36 @@ export type ServiceAreaCheckResponse = {
 }
 
 /**
+ * Service area coverage.
+ */
+export type ServiceAreaField = {
+  /**
+   * Postal/ZIP code
+   */
+  postal_code: string
+  /**
+   * Country code
+   */
+  country_code?: string
+  /**
+   * City name
+   */
+  city?: string | null
+  /**
+   * State/Province
+   */
+  region?: string | null
+  /**
+   * Emergency services available
+   */
+  emergency_services_available?: boolean
+  /**
+   * Regular services available
+   */
+  regular_services_available?: boolean
+}
+
+/**
  * Suggested nearby service area
  */
 export type ServiceAreaSuggestion = {
@@ -7834,20 +7690,6 @@ export type ServiceAreaUpdate = {
   emergency_services_available?: boolean | null
   regular_services_available?: boolean | null
   notes?: string | null
-}
-
-/**
- * Service category properties for template rendering.
- */
-export type ServiceCategoryProps = {
-  id: string
-  name: string
-  description?: string | null
-  icon_name?: string | null
-  slug: string
-  services_count?: number
-  is_featured?: boolean
-  sort_order?: number
 }
 
 /**
@@ -8374,26 +8216,6 @@ export type TeamAvailabilitySummary = {
 }
 
 /**
- * Complete template properties for website generation.
- */
-export type TemplateProps = {
-  business: BusinessProps
-  service_categories?: Array<ServiceCategoryProps>
-  promos?: Array<PromoOffer>
-  ratings?: Array<RatingSnapshot>
-  awards?: Array<AwardCertification>
-  partnerships?: Array<OEMPartnership>
-  testimonials?: Array<Testimonial>
-  locations?: Array<BusinessLocation>
-  template_name?: string
-  template_version?: string
-  generated_at?: string
-  meta_title?: string | null
-  meta_description?: string | null
-  canonical_url?: string | null
-}
-
-/**
  * Template response model.
  */
 export type TemplateResponse = {
@@ -8422,51 +8244,6 @@ export type TemplateResponse = {
   updated_at: string
   updated_by: string | null
 }
-
-/**
- * Customer testimonials entity.
- */
-export type Testimonial = {
-  id?: string
-  business_id: string
-  source_type: TestimonialSource
-  source_id?: string | null
-  source_url?: string | null
-  quote: string
-  full_review?: string | null
-  rating?: string | null
-  customer_name?: string | null
-  customer_initial?: string | null
-  customer_location?: string | null
-  customer_avatar_url?: string | null
-  service_performed?: string | null
-  service_date?: string | null
-  project_value?: string | null
-  trade_category?: string | null
-  is_featured?: boolean
-  is_verified?: boolean
-  display_on_website?: boolean
-  sort_order?: number
-  moderation_status?: ModerationStatus
-  moderated_by?: string | null
-  moderated_at?: string | null
-  is_active?: boolean
-  created_at?: string | null
-  updated_at?: string | null
-}
-
-/**
- * Sources of customer testimonials.
- */
-export type TestimonialSource =
-  | "google_review"
-  | "yelp_review"
-  | "facebook_review"
-  | "direct_feedback"
-  | "survey_response"
-  | "case_study"
-  | "referral_feedback"
-  | "manual_entry"
 
 /**
  * Schema for timeline entry response.
@@ -9256,179 +9033,6 @@ export type VoiceSessionStatusResponse = {
    * Whether LiveKit room is active
    */
   room_active: boolean
-}
-
-/**
- * Website deployment tracking entity.
- */
-export type WebsiteDeployment = {
-  id?: string
-  business_id: string
-  template_name: string
-  template_version?: string | null
-  deployment_type: DeploymentType
-  project_name: string
-  deploy_url: string
-  custom_domain?: string | null
-  build_id?: string | null
-  build_status?: BuildStatus
-  build_log?: string | null
-  build_duration_seconds?: number | null
-  lighthouse_json?: {
-    [key: string]: unknown
-  } | null
-  performance_score?: number | null
-  accessibility_score?: number | null
-  seo_score?: number | null
-  best_practices_score?: number | null
-  content_generated_at?: string | null
-  content_generation_model?: string | null
-  content_generation_tokens_used?: number | null
-  is_current?: boolean
-  error_message?: string | null
-  metadata?: {
-    [key: string]: unknown
-  }
-  deployed_by?: string | null
-  created_at?: string | null
-  updated_at?: string | null
-}
-
-/**
- * Request model for website deployment.
- */
-export type WebsiteDeploymentRequest = {
-  /**
-   * Business ID (if deploying for existing business)
-   */
-  business_id?: string | null
-  /**
-   * Business name
-   */
-  business_name: string
-  /**
-   * Primary trade (hvac, plumbing, electrical, etc.)
-   */
-  trade_type: string
-  /**
-   * Primary service location
-   */
-  location: string
-  /**
-   * Business phone number
-   */
-  phone_number: string
-  /**
-   * Business email address
-   */
-  email: string
-  /**
-   * Business address
-   */
-  address: string
-  /**
-   * Use real business data from Hero365 APIs
-   */
-  use_real_data?: boolean
-  /**
-   * Fetch real services data
-   */
-  fetch_services?: boolean
-  /**
-   * Fetch real products data
-   */
-  fetch_products?: boolean
-  /**
-   * Fetch real availability data
-   */
-  fetch_availability?: boolean
-  /**
-   * Custom domain (optional)
-   */
-  custom_domain?: string | null
-  /**
-   * Template variant
-   */
-  template_variant?: string | null
-  /**
-   * SEO target keywords
-   */
-  target_keywords?: Array<string> | null
-  /**
-   * Additional service areas
-   */
-  service_areas?: Array<string> | null
-  /**
-   * Primary brand color
-   */
-  primary_color?: string | null
-  /**
-   * Secondary brand color
-   */
-  secondary_color?: string | null
-  /**
-   * Logo URL
-   */
-  logo_url?: string | null
-  /**
-   * Include reviews section
-   */
-  include_reviews?: boolean
-  /**
-   * Include service areas
-   */
-  include_service_areas?: boolean
-  /**
-   * Include about section
-   */
-  include_about?: boolean
-  /**
-   * Highlight emergency service
-   */
-  emergency_service?: boolean
-}
-
-/**
- * Response DTO for website generation.
- */
-export type WebsiteGenerationResponse = {
-  job_id: string
-  business_id: string
-  template_props: TemplateProps
-  deployment?: WebsiteDeployment | null
-  content_tokens_used?: number | null
-  generation_time_seconds?: number | null
-}
-
-/**
- * Response model for website structure preview.
- */
-export type WebsiteStructureResponse = {
-  business_info: {
-    [key: string]: unknown
-  }
-  navigation_menu: Array<{
-    [key: string]: unknown
-  }>
-  service_categories: Array<{
-    [key: string]: unknown
-  }>
-  seo_data: {
-    [key: string]: unknown
-  }
-  estimated_pages: number
-  promotional_offers: Array<{
-    [key: string]: unknown
-  }>
-  trust_signals: {
-    [key: string]: unknown
-  }
-  service_areas: Array<{
-    [key: string]: unknown
-  }>
-  certifications: Array<{
-    [key: string]: unknown
-  }>
 }
 
 /**
@@ -10516,6 +10120,19 @@ export type ContractorsProductsGetProductCategoriesData = {
 export type ContractorsProductsGetProductCategoriesResponse =
   Array<ProductCategory>
 
+export type ContractorsProductsGetProductBySlugData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Product SEO slug
+   */
+  productSlug: string
+}
+
+export type ContractorsProductsGetProductBySlugResponse = ProductCatalogItem
+
 export type ContractorsProfileGetContractorProfileData = {
   /**
    * Business ID
@@ -10647,25 +10264,6 @@ export type ContractorsServicesGetServicePricingData = {
 }
 
 export type ContractorsServicesGetServicePricingResponse = ServicePricing
-
-export type DynamicWebsiteDeploymentCheckWebsiteGenerationReadinessResponse =
-  unknown
-
-export type DynamicWebsiteDeploymentGenerateWebsiteStructureResponse =
-  WebsiteStructureResponse
-
-export type DynamicWebsiteDeploymentDeployDynamicWebsiteData = {
-  requestBody: app__api__routes__dynamic_website_deployment__DynamicWebsiteRequest
-}
-
-export type DynamicWebsiteDeploymentDeployDynamicWebsiteResponse =
-  DynamicWebsiteResponse
-
-export type DynamicWebsiteDeploymentGetDeploymentStatusData = {
-  deploymentId: string
-}
-
-export type DynamicWebsiteDeploymentGetDeploymentStatusResponse = unknown
 
 export type CreateEstimateNoSlashData = {
   requestBody: CreateEstimateSchema
@@ -11577,6 +11175,34 @@ export type MobileVoiceIntegrationGetAgentCapabilitiesResponse = {
   [key: string]: unknown
 }
 
+export type MobileWebsiteDeploymentDeployWebsiteMobileData = {
+  requestBody: MobileWebsiteDeployRequest
+}
+
+export type MobileWebsiteDeploymentDeployWebsiteMobileResponse =
+  MobileWebsiteDeployResponse
+
+export type MobileWebsiteDeploymentGetDeploymentStatusMobileData = {
+  deploymentId: string
+}
+
+export type MobileWebsiteDeploymentGetDeploymentStatusMobileResponse =
+  DeploymentStatusResponse
+
+export type MobileWebsiteDeploymentListDeploymentsMobileData = {
+  limit?: number
+  skip?: number
+}
+
+export type MobileWebsiteDeploymentListDeploymentsMobileResponse =
+  DeploymentListResponse
+
+export type MobileWebsiteDeploymentCancelDeploymentMobileData = {
+  deploymentId: string
+}
+
+export type MobileWebsiteDeploymentCancelDeploymentMobileResponse = unknown
+
 export type CreateProductNoSlashData = {
   requestBody: CreateProductSchema
 }
@@ -11949,6 +11575,16 @@ export type ProjectsRemoveJobFromProject1Data = {
 }
 
 export type ProjectsRemoveJobFromProject1Response = ProjectActionResponse
+
+export type PublicWebsitesResolveWebsiteData = {
+  /**
+   * Full host, e.g., sub.hero365.app or customdomain.com
+   */
+  host: string
+  subdomain?: string | null
+}
+
+export type PublicWebsitesResolveWebsiteResponse = unknown
 
 export type PurchaseOrdersCreatePurchaseOrderData = {
   requestBody: CreatePurchaseOrderSchema
@@ -12671,66 +12307,3 @@ export type UtilsTestEmailData = {
 }
 
 export type UtilsTestEmailResponse = Message
-
-export type WebsiteDeploymentDeployWebsiteData = {
-  requestBody: WebsiteDeploymentRequest
-}
-
-export type WebsiteDeploymentDeployWebsiteResponse =
-  app__api__routes__website_deployment__WebsiteDeploymentResponse
-
-export type WebsiteDeploymentGetDeploymentStatusData = {
-  deploymentId: string
-}
-
-export type WebsiteDeploymentGetDeploymentStatusResponse = DeploymentStatus
-
-export type WebsiteDeploymentListDeploymentsData = {
-  limit?: number
-}
-
-export type WebsiteDeploymentListDeploymentsResponse = Array<DeploymentStatus>
-
-export type WebsiteDeploymentCancelDeploymentData = {
-  deploymentId: string
-}
-
-export type WebsiteDeploymentCancelDeploymentResponse = unknown
-
-export type WebsiteDeploymentPreviewWebsiteData = {
-  requestBody: WebsiteDeploymentRequest
-}
-
-export type WebsiteDeploymentPreviewWebsiteResponse = unknown
-
-export type WebsiteTemplatesPreviewWebsiteTemplateData = {
-  requestBody: app__domain__entities__website_template__DynamicWebsiteRequest
-}
-
-export type WebsiteTemplatesPreviewWebsiteTemplateResponse = TemplateProps
-
-export type WebsiteTemplatesGenerateWebsiteData = {
-  requestBody: app__domain__entities__website_template__DynamicWebsiteRequest
-}
-
-export type WebsiteTemplatesGenerateWebsiteResponse = WebsiteGenerationResponse
-
-export type WebsiteTemplatesDeployWebsiteData = {
-  requestBody: app__domain__entities__website_template__DynamicWebsiteRequest
-}
-
-export type WebsiteTemplatesDeployWebsiteResponse =
-  app__domain__entities__website_template__WebsiteDeploymentResponse
-
-export type WebsiteTemplatesGetDeploymentStatusData = {
-  jobId: string
-}
-
-export type WebsiteTemplatesGetDeploymentStatusResponse =
-  app__domain__entities__website_template__WebsiteDeploymentResponse
-
-export type WebsiteTemplatesDeleteDeploymentData = {
-  deploymentId: string
-}
-
-export type WebsiteTemplatesDeleteDeploymentResponse = unknown

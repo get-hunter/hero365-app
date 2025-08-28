@@ -235,20 +235,60 @@ export default function ProfessionalTemplate() {
           businessName={business.name}
         />
 
-        {/* Customer Reviews */}
-        <CustomerReviews testimonials={testimonials} />
+        {/* Customer Reviews - adapt fields to component's expected type */}
+        <CustomerReviews testimonials={testimonials.map((t: any) => ({
+          id: t.id,
+          quote: t.quote || t.review_text || '',
+          rating: t.rating,
+          customer_name: t.customer_name || t.customerName || 'Customer',
+          customer_location: t.customer_location,
+          service_performed: t.service_performed || t.service_type,
+          service_date: t.service_date,
+          is_featured: t.is_featured ?? false,
+          is_verified: t.is_verified ?? true
+        }))} />
 
         {/* Contact Section */}
         <ContactSection 
           business={business}
-          locations={locations}
+          locations={locations.map((l: any) => ({
+            id: l.id,
+            name: l.name || 'Primary Location',
+            address: l.address || '',
+            city: l.city || '',
+            state: l.state || '',
+            zip_code: l.zip_code,
+            latitude: l.latitude,
+            longitude: l.longitude,
+            service_radius_miles: l.service_radius_miles,
+            location_type: l.location_type || 'office',
+            is_primary: l.is_primary ?? true,
+            services_offered: l.services_offered || [],
+            trades_covered: l.trades_covered || [],
+            page_slug: l.page_slug
+          }))}
         />
 
         {/* Footer */}
         <ProfessionalFooter 
           business={business}
           serviceCategories={serviceCategories}
-          locations={locations}
+          locations={locations.map((l: any) => ({
+            id: l.id,
+            name: l.name || 'Primary Location',
+            address: l.address || '',
+            city: l.city || '',
+            state: l.state || '',
+            zip_code: l.zip_code,
+            latitude: l.latitude,
+            longitude: l.longitude,
+            service_radius_miles: l.service_radius_miles,
+            location_type: l.location_type || 'office',
+            is_primary: l.is_primary ?? true,
+            services_offered: l.services_offered || [],
+            trades_covered: l.trades_covered || [],
+            page_slug: l.page_slug
+          }))}
         />
       </main>
     </BookingWidgetProvider>

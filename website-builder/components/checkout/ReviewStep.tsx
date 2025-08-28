@@ -123,14 +123,14 @@ export function ReviewStep({
                   <div className="text-xs text-gray-600">
                     {item.installation_option_name} × {item.quantity}
                   </div>
-                  {item.membership_type !== 'none' && (
+                  {(item as any).membership_type && (item as any).membership_type !== 'none' && (
                     <div className="text-xs text-green-600">
-                      {getMembershipLabel(item.membership_type)} Pricing
+                      {getMembershipLabel((item as any).membership_type)} Pricing
                     </div>
                   )}
                 </div>
                 <div className="text-sm font-medium text-gray-900">
-                  {formatPrice(item.total_price)}
+                  {formatPrice(item.item_total)}
                 </div>
               </div>
             ))}

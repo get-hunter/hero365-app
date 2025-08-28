@@ -26,7 +26,9 @@
     "legacy:build-and-deploy:preview": "./scripts/build-and-deploy.sh --preview",
     "cf:deploy": "wrangler pages deploy out --project-name hero365-professional",
     "cf:deploy:preview": "wrangler pages deploy out --project-name hero365-professional --branch preview",
-    "test-deployment": "node scripts/test-deployment.js"
+    "test-deployment": "node scripts/test-deployment.js",
+    "build:ssr": "next build && npx @cloudflare/next-on-pages",
+    "deploy:ssr": "wrangler pages deploy .vercel/output/static --project-name hero365-professional"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.1",
