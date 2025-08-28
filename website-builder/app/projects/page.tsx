@@ -398,7 +398,8 @@ export default function ProjectsPage() {
             : "space-y-6"
           }>
             {filteredProjects.map((project) => (
-              <Card key={project.id} className={`group overflow-hidden hover:shadow-xl transition-all duration-300 ${
+              <Link href={`/projects/${project.seo_slug}`} key={project.id} className="block group">
+              <Card className={`overflow-hidden hover:shadow-xl transition-all duration-300 ${
                 viewMode === 'list' ? 'flex' : ''
               }`}>
                 <div className={`relative ${viewMode === 'list' ? 'w-80 flex-shrink-0' : ''}`}>
@@ -514,15 +515,14 @@ export default function ProjectsPage() {
                     </div>
                   )}
 
-                  {/* View Project Button */}
-                  <Link href={`/projects/${project.seo_slug}`}>
-                    <Button variant="outline" className="w-full group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                      View Project Details
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </Link>
+                  {/* View Project CTA (visual only; full card clickable) */}
+                  <div className="w-full border rounded-md text-center py-2 text-sm text-gray-700 group-hover:bg-blue-600 group-hover:text-white transition-colors pointer-events-none">
+                    View Project Details
+                    <ArrowRight className="w-4 h-4 inline-block ml-2" />
+                  </div>
                 </CardContent>
               </Card>
+              </Link>
             ))}
           </div>
         )}

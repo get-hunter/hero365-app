@@ -102,10 +102,8 @@ export class BookingApiClient {
    * Get booking details by ID
    */
   async getBooking(bookingId: string): Promise<Booking> {
-    const url = buildAuthApiUrl(`bookings/${bookingId}`);
-    const response = await fetch(url, {
+    const response = await fetch(`${this.baseUrl}/api/v1/bookings/${bookingId}`, {
       method: 'GET',
-      headers: getDefaultHeaders(),
     });
 
     if (!response.ok) {
@@ -125,7 +123,7 @@ export class BookingApiClient {
     reason?: string,
     notifyCustomer: boolean = true
   ): Promise<BookingResponse> {
-    const response = await fetch(buildAuthApiUrl(`bookings/${bookingId}/reschedule`), {
+    const response = await fetch(`${this.baseUrl}/api/v1/bookings/${bookingId}/reschedule`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -156,7 +154,7 @@ export class BookingApiClient {
     refundAmount?: number,
     notifyCustomer: boolean = true
   ): Promise<BookingResponse> {
-    const response = await fetch(buildAuthApiUrl(`bookings/${bookingId}/cancel`), {
+    const response = await fetch(`${this.baseUrl}/api/v1/bookings/${bookingId}/cancel`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

@@ -113,36 +113,38 @@ export default function MembershipPricingDisplay({
     }).format(price);
   };
 
+  if (!membershipPlans || membershipPlans.length === 0) return null;
+
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`space-y-4 ${className}`}>
       {/* Membership Plans Overview */}
-      <Card className="border-2 border-blue-200 bg-blue-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-800">
-            <Star className="w-5 h-5" />
+      <Card className="border border-blue-100 bg-blue-50/60">
+        <CardHeader className="py-3">
+          <CardTitle className="flex items-center gap-2 text-blue-800 text-base">
+            <Star className="w-4 h-4" />
             Member Exclusive Pricing
           </CardTitle>
-          <p className="text-blue-600 text-sm">
+          <p className="text-blue-700 text-xs">
             Join our membership program for instant savings on products and installation
           </p>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="pt-0">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 items-stretch">
             {/* Regular Pricing */}
-            <div className={`p-4 rounded-lg border-2 ${
+            <div className={`p-3 rounded-lg border ${
               selectedMembership === null 
-                ? 'border-gray-400 bg-gray-50' 
+                ? 'border-gray-300 bg-gray-50' 
                 : 'border-gray-200 bg-white hover:border-gray-300'
-            } transition-all cursor-pointer`}
+            } transition-all cursor-pointer h-full`}
             onClick={() => onMembershipSelect?.(null)}>
               <div className="text-center">
-                <h4 className="font-semibold text-gray-800 mb-2">Regular Price</h4>
-                <div className="text-2xl font-bold text-gray-900 mb-2">
+                <h4 className="font-medium text-gray-800 mb-1 text-sm">Regular Price</h4>
+                <div className="text-xl font-semibold text-gray-900 mb-1">
                   {formatPrice(regularPricing.total_amount)}
                 </div>
-                <p className="text-sm text-gray-600">No membership required</p>
+                <p className="text-xs text-gray-600">No membership required</p>
                 {selectedMembership === null && (
-                  <Badge variant="secondary" className="mt-2">Selected</Badge>
+                  <Badge variant="secondary" className="mt-2 text-[10px]">Selected</Badge>
                 )}
               </div>
             </div>
@@ -155,17 +157,17 @@ export default function MembershipPricingDisplay({
               return (
                 <div
                   key={plan.id}
-                  className={`p-4 rounded-lg border-2 ${
+                  className={`p-3 rounded-lg border ${
                     isSelected 
-                      ? 'border-blue-500 bg-blue-50 shadow-md' 
-                      : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm'
-                  } transition-all cursor-pointer relative`}
+                      ? 'border-blue-400 bg-blue-50 shadow-sm' 
+                      : 'border-gray-200 bg-white hover:border-blue-300'
+                  } transition-all cursor-pointer relative h-full`}
                   onClick={() => onMembershipSelect?.(plan.plan_type)}
                   style={{ borderColor: isSelected ? plan.color_scheme : undefined }}
                 >
                   {plan.popular_badge && (
                     <Badge 
-                      className="absolute -top-2 left-1/2 transform -translate-x-1/2"
+                      className="absolute -top-2 left-1/2 transform -translate-x-1/2 text-[10px]"
                       style={{ backgroundColor: plan.color_scheme }}
                     >
                       {plan.popular_badge}
@@ -173,16 +175,16 @@ export default function MembershipPricingDisplay({
                   )}
                   
                   <div className="text-center">
-                    <div className="flex items-center justify-center gap-2 mb-2">
+                    <div className="flex items-center justify-center gap-2 mb-1">
                       {getPlanIcon(plan.plan_type)}
-                      <h4 className="font-semibold text-gray-800">{plan.name}</h4>
+                      <h4 className="font-medium text-gray-800 text-sm">{plan.name}</h4>
                     </div>
                     
-                    <div className="mb-2">
-                      <div className="text-2xl font-bold" style={{ color: plan.color_scheme }}>
+                    <div className="mb-1">
+                      <div className="text-lg font-bold" style={{ color: plan.color_scheme }}>
                         {formatPrice(pricing.total_amount)}
                       </div>
-                      <div className="text-sm text-gray-500 line-through">
+                      <div className="text-xs text-gray-500 line-through">
                         {formatPrice(regularPricing.total_amount)}
                       </div>
                     </div>
@@ -190,16 +192,16 @@ export default function MembershipPricingDisplay({
                     <div className="space-y-1">
                       <Badge 
                         variant="secondary" 
-                        className="text-xs"
+                        className="text-[10px]"
                         style={{ backgroundColor: `${plan.color_scheme}20`, color: plan.color_scheme }}
                       >
                         Save {formatPrice(pricing.total_savings)} ({plan.discount_percentage}% off)
                       </Badge>
-                      <p className="text-xs text-gray-600">{plan.tagline}</p>
+                      <p className="text-[11px] text-gray-600">{plan.tagline}</p>
                     </div>
                     
                     {isSelected && (
-                      <Badge variant="default" className="mt-2" style={{ backgroundColor: plan.color_scheme }}>
+                      <Badge variant="default" className="mt-2 text-[10px]" style={{ backgroundColor: plan.color_scheme }}>
                         Selected
                       </Badge>
                     )}
@@ -210,7 +212,7 @@ export default function MembershipPricingDisplay({
           </div>
 
           {/* Membership Benefits Toggle */}
-          <div className="mt-6 text-center">
+          <div className="mt-4 text-center">
             <Button
               variant="outline"
               size="sm"
@@ -224,25 +226,25 @@ export default function MembershipPricingDisplay({
 
           {/* Detailed Benefits */}
           {showDetails && (
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
               {membershipPlans.map((plan) => (
                 <Card key={plan.id} className="border" style={{ borderColor: `${plan.color_scheme}40` }}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
                       {getPlanIcon(plan.plan_type)}
                       {plan.name}
                     </CardTitle>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium" style={{ color: plan.color_scheme }}>
+                      <span className="text-xs font-medium" style={{ color: plan.color_scheme }}>
                         {formatPrice(plan.price_monthly)}/month
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-[11px] text-gray-500">
                         or {formatPrice(plan.price_yearly)}/year
                       </span>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <ul className="space-y-2 text-sm">
+                    <ul className="space-y-2 text-xs">
                       <li className="flex items-center gap-2">
                         <Check className="w-4 h-4 text-green-500" />
                         {plan.discount_percentage}% off all services
@@ -289,8 +291,8 @@ export default function MembershipPricingDisplay({
       {/* Selected Pricing Breakdown */}
       {selectedMembership && (
         <Card className="border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle className="text-green-800 flex items-center gap-2">
+          <CardHeader className="py-3">
+            <CardTitle className="text-green-800 flex items-center gap-2 text-base">
               <Check className="w-5 h-5" />
               Your Membership Savings
             </CardTitle>
@@ -305,20 +307,20 @@ export default function MembershipPricingDisplay({
               return (
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Product Price:</span>
-                    <span className="font-medium">{formatPrice(pricing.product_unit_price)}</span>
+                    <span className="text-gray-600 text-sm">Product Price:</span>
+                    <span className="font-medium text-sm">{formatPrice(pricing.product_unit_price)}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Installation Price:</span>
-                    <span className="font-medium">{formatPrice(pricing.installation_base_price)}</span>
+                    <span className="text-gray-600 text-sm">Installation Price:</span>
+                    <span className="font-medium text-sm">{formatPrice(pricing.installation_base_price)}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm border-t pt-2">
                     <span className="text-gray-600">Subtotal:</span>
                     <span>{formatPrice(pricing.subtotal_before_discounts)}</span>
                   </div>
                   <div className="flex justify-between items-center text-green-600">
-                    <span>Member Discount ({selectedPlan.discount_percentage}%):</span>
-                    <span>-{formatPrice(pricing.total_discount_amount)}</span>
+                    <span className="text-sm">Member Discount ({selectedPlan.discount_percentage}%):</span>
+                    <span className="text-sm">-{formatPrice(pricing.total_discount_amount)}</span>
                   </div>
                   <div className="flex justify-between items-center text-lg font-bold border-t pt-2">
                     <span>Your Price:</span>

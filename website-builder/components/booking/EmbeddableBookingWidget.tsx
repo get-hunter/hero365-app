@@ -215,15 +215,9 @@ export default function EmbeddableBookingWidget({
           ) : (
             <BookingWizard
               businessId={businessId}
-              services={services.map(s => ({
-                id: s.id,
-                name: s.name,
-                category: s.category || 'General',
-                description: s.description,
-                duration_minutes: s.estimated_duration_minutes,
-                price_cents: Math.round((s.base_price || 0) * 100)
-              }))}
-              onComplete={handleBookingComplete}
+              services={services}
+              onBookingComplete={handleBookingComplete}
+              onBookingError={handleBookingError}
               className="max-w-none"
             />
           )}

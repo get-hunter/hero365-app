@@ -6,8 +6,6 @@
  */
 
 import React from 'react';
-export const dynamic = 'force-dynamic';
-export const runtime = 'edge';
 import { Metadata } from 'next';
 import { Phone, Star, Award } from 'lucide-react';
 import EliteHeader from '../../components/layout/EliteHeader';
@@ -19,7 +17,8 @@ import { getBusinessConfig } from '../../lib/config/api-config';
 
 import { ServicePricing, MembershipPlan } from '../../lib/types/membership';
 
-// Static export friendly: remove dynamic rendering
+// Force dynamic rendering for pricing page
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Prices - Professional Service Pricing & Membership Plans',

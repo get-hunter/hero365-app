@@ -1,12 +1,10 @@
-// Ensure types are imported only here; if duplicates arise, remove other local type declarations
-import type { Trade, TradeType, TradeConfiguration } from '../types/trade-config';
 /**
  * Trade-Specific Configurations
  * 
  * Defines the specific content, services, and branding for each trade
  */
 
-// Remove duplicate value import, only types needed
+import { TradeConfiguration, Trade } from '../types/trade-config';
 
 // HVAC Configuration
 const hvacConfig: TradeConfiguration = {

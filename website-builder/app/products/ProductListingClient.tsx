@@ -334,8 +334,11 @@ export default function ProductListingClient({
                     }}>
                       {product.name}
                     </h3>
-                    {/* Brand (optional, not present in ProductCatalogItem type) */}
-                    {/* Hidden until backend adds brand field */}
+                    {(product as any).brand && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {(product as any).brand}
+                      </p>
+                    )}
                   </div>
 
                   {/* Description */}

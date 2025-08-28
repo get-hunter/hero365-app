@@ -177,9 +177,9 @@ export function BookingWidgetProvider({
                       name: service.name,
                       category: service.category || 'General',
                       description: service.description,
-                      duration_minutes: service.estimated_duration_minutes,
-                      price_cents: Math.round((service.base_price || 0) * 100),
-                      // is_emergency not defined in BookableService; omit or infer later
+                      duration_minutes: service.min_duration_minutes,
+                      price_cents: (service as any).price_cents || 0,
+                      is_emergency: (service as any).is_emergency || false
                     }))}
                     onClose={closeBookingWidget}
                     onComplete={handleBookingComplete}

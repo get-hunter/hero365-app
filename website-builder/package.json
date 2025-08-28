@@ -4,31 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && next export",
     "start": "next start",
     "generate": "npm run build",
-    "deploy": "node scripts/deploy.js",
-    "deploy:dev": "node scripts/deploy.js --env=development --build-only",
-    "deploy:staging": "node scripts/deploy.js --env=staging --platform=cloudflare",
-    "deploy:production": "node scripts/deploy.js --env=production --platform=cloudflare",
-    "deploy:vercel": "node scripts/deploy.js --platform=vercel",
-    "config:dev": "node scripts/deploy.js --env=development --build-only",
-    "config:staging": "node scripts/deploy.js --env=staging --build-only",
-    "config:production": "node scripts/deploy.js --env=production --build-only",
-    "deploy:business": "node scripts/deploy-with-business.js",
-    "deploy:business:dev": "node scripts/deploy-with-business.js --env=development --build-only",
-    "deploy:business:staging": "node scripts/deploy-with-business.js --env=staging",
-    "deploy:business:production": "node scripts/deploy-with-business.js --env=production",
-    "legacy:deploy": "node scripts/deploy-to-cloudflare.js",
-    "legacy:deploy:preview": "node scripts/deploy-to-cloudflare.js --preview",
-    "legacy:deploy:verbose": "node scripts/deploy-to-cloudflare.js --verbose",
-    "legacy:build-and-deploy": "./scripts/build-and-deploy.sh",
-    "legacy:build-and-deploy:preview": "./scripts/build-and-deploy.sh --preview",
-    "cf:deploy": "wrangler pages deploy out --project-name hero365-professional",
-    "cf:deploy:preview": "wrangler pages deploy out --project-name hero365-professional --branch preview",
-    "test-deployment": "node scripts/test-deployment.js",
-    "build:ssr": "next build && npx @cloudflare/next-on-pages",
-    "deploy:ssr": "wrangler pages deploy .vercel/output/static --project-name hero365-professional"
+    "seo-generate": "tsx lib/build-time/seo-generator.ts",
+    "cf-deploy": "npx wrangler pages deploy out"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.1",
@@ -53,7 +33,8 @@
     "react-day-picker": "^9.1.3",
     "react-dom": "19.1.0",
     "tailwind-merge": "^2.5.4",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "web-vitals": "^5.1.0"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -62,6 +43,7 @@
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^3.99.0"
   }
 }
