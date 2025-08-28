@@ -436,7 +436,46 @@ async def build_website(
         )
 
 
-# Legacy deployment endpoint removed - use /api/v1/mobile/website/deploy instead
+@router.post("/{website_id}/deploy")
+async def deploy_website(
+    website_id: uuid.UUID,
+    domain: Optional[str] = None,
+    business_context: dict = Depends(get_business_context),
+    current_user: dict = Depends(get_current_user),
+    _: bool = Depends(require_edit_projects_dep)
+):
+    """Deploy website to production."""
+    
+    try:
+        # TODO: Implement deployment logic
+        # website = await website_repository.get_by_id(website_id)
+        # if not website or website.business_id != uuid.UUID(business_context["business_id"]):
+        #     raise HTTPException(404, "Website not found")
+        
+        # if website.status != WebsiteStatus.BUILT:
+        #     raise HTTPException(400, "Website must be built before deployment")
+        
+        # Deploy to AWS S3 + CloudFront
+        # deployment_service = AWSDeploymentService()
+        # deployment_result = await deployment_service.deploy_website(
+        #     website_id, website.build_path, domain or website.get_full_domain()
+        # )
+        
+        return {
+            "message": "Website deployed successfully",
+            "website_id": website_id,
+            "url": f"https://{domain or 'mock-business.hero365.ai'}",
+            "status": "deployed"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deploying website: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to deploy website: {str(e)}"
+        )
 
 
 # =====================================

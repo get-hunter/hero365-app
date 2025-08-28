@@ -26,8 +26,17 @@ from ...domain.repositories.business_repository import BusinessRepository
 from ...domain.repositories.cart_repository import CartRepository
 from ...domain.repositories.product_repository import ProductRepository
 from ...domain.entities.cart import ShoppingCart as CartEntity, CartItem as CartItemEntity
+from .installation_templates import get_template_by_id
 
 logger = logging.getLogger(__name__)
+
+
+def _is_valid_uuid(value: str) -> bool:
+    try:
+        uuid.UUID(value)
+        return True
+    except Exception:
+        return False
 
 
 class CartService:
@@ -194,7 +203,24 @@ class CartService:
                 except Exception as e:
                     logger.warning(f"Failed to fetch product details for {add_item_dto.product_id}: {str(e)}")
             
-            # Create cart item entity with real product data
+            # Determine installation pricing and name from template if provided
+            installation_price = Decimal('0')
+            installation_name = None
+            if add_item_dto.installation_option_id:
+                try:
+                    template = get_template_by_id(add_item_dto.installation_option_id)
+                    if template:
+                        # template.base_price might be Decimal or numeric
+                        installation_price = Decimal(str(template.base_price))
+                        installation_name = template.name
+                    else:
+                        installation_price = Decimal('150.00')
+                        installation_name = 'Standard Installation'
+                except Exception:
+                    installation_price = Decimal('150.00')
+                    installation_name = 'Standard Installation'
+
+            # Create cart item entity with real product and installation data
             cart_item_entity = CartItemEntity(
                 id=uuid.uuid4(),
                 cart_id=cart_uuid,
@@ -203,9 +229,14 @@ class CartService:
                 product_sku=product_sku,
                 quantity=add_item_dto.quantity,
                 unit_price=Decimal(str(unit_price)),
-                installation_option_id=uuid.UUID(add_item_dto.installation_option_id) if add_item_dto.installation_option_id else None,
-                installation_option_name=add_item_dto.installation_name,
-                installation_price=Decimal(str(add_item_dto.installation_price or 0.0)),
+                # Only set installation_option_id if it's a valid UUID; otherwise leave None (template IDs are strings)
+                installation_option_id=(
+                    uuid.UUID(add_item_dto.installation_option_id)
+                    if add_item_dto.installation_option_id and _is_valid_uuid(add_item_dto.installation_option_id)
+                    else None
+                ),
+                installation_option_name=installation_name,
+                installation_price=installation_price,
                 membership_plan_id=uuid.UUID(add_item_dto.membership_plan_id) if add_item_dto.membership_plan_id else None,
                 discount_percentage=add_item_dto.discount_percentage or 0
             )
@@ -413,6 +444,7 @@ class CartService:
                 cart_id=str(item_entity.cart_id),
                 product_id=str(item_entity.product_id),
                 product_name=item_entity.product_name,
+                product_sku=item_entity.product_sku,
                 quantity=item_entity.quantity,
                 unit_price=float(item_entity.unit_price),
                 installation_option_id=str(item_entity.installation_option_id) if item_entity.installation_option_id else None,

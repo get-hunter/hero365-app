@@ -504,8 +504,8 @@ class ProductService:
     
     def _convert_product_to_catalog_dto(self, product: Product, business_id: uuid.UUID) -> ProductCatalogDTO:
         """Convert product entity to ProductCatalogDTO."""
-        # Temporarily disable installation options to debug
-        # installation_options = self._get_installation_options_for_product(product)
+        # Include installation options derived from product
+        installation_options = self._get_installation_options_for_product(product)
         
         # Use exact same mapping as working ProductItemDTO but for ProductCatalogDTO fields
         return ProductCatalogDTO(
@@ -523,7 +523,20 @@ class ProductService:
             specifications=getattr(product, 'specifications', {}) or {},
             warranty_years=getattr(product, 'warranty_years', None),
             energy_rating=getattr(product, 'energy_rating', None),
-            images=[],
+            images=getattr(product, 'image_urls', []) or [],
+            installation_options=[
+                ProductInstallationOptionDTO(
+                    id=opt.id,
+                    name=opt.name,
+                    description=opt.description,
+                    base_install_price=opt.base_install_price,
+                    estimated_duration_hours=int(opt.estimated_duration_hours),
+                    requires_permit=getattr(opt, 'requires_permit', False),
+                    includes_materials=getattr(opt, 'includes_materials', True),
+                    warranty_years=getattr(opt, 'warranty_years', 1),
+                    is_default=getattr(opt, 'is_default', False)
+                ) for opt in installation_options
+            ],
             has_variations=False,
             is_featured=False,
             tags=[]

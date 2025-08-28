@@ -16,6 +16,7 @@ class CartItemDTO(BaseModel):
     cart_id: str = Field(..., description="Cart ID")
     product_id: str = Field(..., description="Product ID")
     product_name: str = Field(..., description="Product name")
+    product_sku: str = Field(default="", description="Product SKU")
     quantity: int = Field(..., ge=1, description="Item quantity")
     unit_price: float = Field(..., ge=0, description="Product unit price")
     installation_option_id: Optional[str] = Field(None, description="Installation option ID")

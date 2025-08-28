@@ -8,7 +8,7 @@ and lead processing for the Hero365 Website Builder system.
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from decimal import Decimal
 import uuid
 
@@ -625,6 +625,401 @@ def monitor_core_web_vitals_task(website_id: str):
 
 
 # =====================================
+# MOBILE SEO GENERATION TASKS
+# =====================================
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=120)
+def generate_seo_pages_task(self, task_data: Dict[str, Any]):
+    """
+    Generate SEO-focused pages and deploy to Cloudflare subdomain.
+    
+    Called from mobile app API to generate only SEO content pages
+    without rebuilding core website functionality.
+    """
+    
+    generation_id = task_data.get("generation_id")
+    business_id = task_data.get("business_id")
+    cloudflare_subdomain = task_data.get("cloudflare_subdomain")
+    
+    logger.info(f"Starting SEO page generation: {generation_id}")
+    
+    try:
+        # Import the update function (circular import avoidance)
+        from ..api.routes.website_seo import update_generation_status
+        
+        # Step 1: Fetch comprehensive business data
+        asyncio.run(update_generation_status(
+            generation_id, "fetching_data", 15, 
+            "Fetching business data from Hero365 API"
+        ))
+        
+        from ..application.services.professional_data_service import ProfessionalDataService
+        data_service = ProfessionalDataService()
+        business_data = asyncio.run(
+            data_service.get_complete_professional_data(business_id)
+        )
+        
+        if not business_data or not business_data.get("profile"):
+            raise Exception(f"No business data found for {business_id}")
+        
+        business_name = business_data["profile"].get("business_name", "Professional Services")
+        logger.info(f"Fetched data for: {business_name}")
+        
+        # Step 2: Build Next.js website with TypeScript SEO generation
+        asyncio.run(update_generation_status(
+            generation_id, "generating", 35,
+            "Building Next.js website with TypeScript SEO generator"
+        ))
+        
+        # The TypeScript generator handles both SEO page generation AND Next.js build
+        build_result = _build_nextjs_website_with_seo(business_data, [], task_data)  # Empty seo_pages since TS generator handles it
+        
+        if not build_result.get("success"):
+            raise Exception(f"Website build failed: {build_result.get('error', 'Unknown error')}")
+        
+        # Step 4: Deploy to Cloudflare Pages
+        asyncio.run(update_generation_status(
+            generation_id, "deploying", 80,
+            "Deploying to Cloudflare Pages"
+        ))
+        
+        deployment_result = _deploy_to_cloudflare_pages(
+            cloudflare_subdomain, 
+            build_result.get("build_path"),
+            task_data
+        )
+        
+        if not deployment_result.get("success"):
+            raise Exception(f"Cloudflare deployment failed: {deployment_result.get('error', 'Unknown error')}")
+        
+        # Step 5: Success
+        website_url = deployment_result.get("website_url")
+        pages_generated = build_result.get("pages_generated", 0)
+        
+        asyncio.run(update_generation_status(
+            generation_id, "completed", 100,
+            "SEO pages deployed successfully",
+            website_url=website_url,
+            pages_generated=pages_generated,
+            completed_at=datetime.utcnow(),
+            project_name=deployment_result.get("project_name"),
+            deployment_id=deployment_result.get("deployment_id")
+        ))
+        
+        logger.info(f"SEO generation completed: {generation_id} -> {website_url} ({pages_generated} pages)")
+        
+        return {
+            "success": True,
+            "generation_id": generation_id,
+            "website_url": website_url,
+            "pages_generated": pages_generated,
+            "project_name": deployment_result.get("project_name")
+        }
+        
+    except Exception as e:
+        logger.error(f"SEO generation failed: {generation_id} - {str(e)}")
+        
+        # Update status to failed
+        from ..api.routes.website_seo import update_generation_status
+        asyncio.run(update_generation_status(
+            generation_id, "failed", 0,
+            "SEO generation failed",
+            error_message=str(e),
+            completed_at=datetime.utcnow()
+        ))
+        
+        # Retry on failure
+        if self.request.retries < self.max_retries:
+            logger.info(f"Retrying SEO generation: {generation_id} (attempt {self.request.retries + 1})")
+            raise self.retry(countdown=120 * (self.request.retries + 1))
+        
+        raise
+
+
+# Legacy SEO generation functions removed - replaced by TypeScript generator
+
+
+def _build_nextjs_website_with_seo(
+    business_data: Dict[str, Any], 
+    seo_pages: List[Dict[str, Any]], 
+    task_data: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Build Next.js website with SEO pages using TypeScript generator."""
+    
+    import subprocess
+    import os
+    import json
+    import tempfile
+    from pathlib import Path
+    from ..core.config import settings
+    
+    try:
+        # Find website-builder directory
+        backend_path = Path(__file__).parent.parent.parent.parent
+        website_builder_path = backend_path / "website-builder"
+        
+        if not website_builder_path.exists():
+            raise Exception(f"Website builder not found at {website_builder_path}")
+        
+        # Prepare input data for TypeScript generator
+        generator_input = {
+            "generation_id": task_data.get("generation_id"),
+            "business_id": task_data.get("business_id"),
+            "contractor_data": business_data,
+            "seo_options": task_data.get("seo_options", {}),
+            "cloudflare_subdomain": task_data.get("cloudflare_subdomain")
+        }
+        
+        # Create temporary build directory
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            
+            # Copy website-builder to temp directory for isolated build
+            import shutil
+            build_path = temp_path / "build"
+            shutil.copytree(website_builder_path, build_path)
+            
+            # Write input for TypeScript generator
+            input_file = temp_path / "generator-input.json"
+            with open(input_file, 'w') as f:
+                json.dump(generator_input, f, indent=2)
+            
+            # Change to build directory
+            original_cwd = os.getcwd()
+            os.chdir(build_path)
+            
+            try:
+                # Set environment variables
+                env = os.environ.copy()
+                env.update({
+                    "HERO365_BUSINESS_ID": task_data.get("business_id"),
+                    "NEXT_PUBLIC_BUSINESS_ID": task_data.get("business_id"),
+                    "BUILD_MODE": "seo_generation",
+                    "NODE_ENV": "production"
+                })
+                
+                # Step 1: Install dependencies if needed
+                if not (build_path / "node_modules").exists():
+                    logger.info("Installing Node.js dependencies...")
+                    install_result = subprocess.run(
+                        ["npm", "install"],
+                        cwd=build_path,
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                        timeout=300  # 5 minutes for npm install
+                    )
+                    
+                    if install_result.returncode != 0:
+                        raise Exception(f"npm install failed: {install_result.stderr}")
+                
+                # Step 2: Generate SEO pages using TypeScript generator
+                logger.info("Generating SEO pages with TypeScript generator...")
+                seo_generate_result = subprocess.run(
+                    ["npx", "tsx", "lib/build-time/seo-generator.ts", "--input", str(input_file)],
+                    cwd=build_path,
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    timeout=60  # 1 minute for SEO generation
+                )
+                
+                if seo_generate_result.returncode != 0:
+                    raise Exception(f"SEO generation failed: {seo_generate_result.stderr}")
+                
+                logger.info(f"SEO generation output: {seo_generate_result.stdout}")
+                
+                # Step 3: Build the Next.js website
+                logger.info("Building Next.js website...")
+                build_result = subprocess.run(
+                    ["npm", "run", "build"],
+                    cwd=build_path,
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    timeout=600  # 10 minutes for build
+                )
+                
+                if build_result.returncode != 0:
+                    raise Exception(f"Website build failed: {build_result.stderr}")
+                
+                logger.info("Next.js build completed successfully")
+                
+                # Step 4: Copy built files to permanent location
+                output_dir = backend_path / "build_output" / task_data.get("generation_id")
+                output_dir.mkdir(parents=True, exist_ok=True)
+                
+                # Copy the 'out' directory (Next.js static export)
+                out_dir = build_path / "out"
+                if out_dir.exists():
+                    shutil.copytree(out_dir, output_dir / "website", dirs_exist_ok=True)
+                    logger.info(f"Build output copied to: {output_dir / 'website'}")
+                else:
+                    # Fallback: try .next directory
+                    next_dir = build_path / ".next"
+                    if next_dir.exists():
+                        shutil.copytree(next_dir, output_dir / "website", dirs_exist_ok=True)
+                        logger.info(f"Fallback: .next directory copied to: {output_dir / 'website'}")
+                    else:
+                        raise Exception("No build output found (neither 'out' nor '.next' directory exists)")
+                
+                return {
+                    "success": True,
+                    "build_path": str(output_dir / "website"),
+                    "pages_generated": len(seo_pages),
+                    "build_logs": f"SEO Generation:\n{seo_generate_result.stdout}\n\nBuild:\n{build_result.stdout}",
+                    "seo_logs": seo_generate_result.stdout
+                }
+                
+            finally:
+                os.chdir(original_cwd)
+                
+    except Exception as e:
+        logger.error(f"Website build failed: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+def _deploy_to_cloudflare_pages(
+    subdomain: str, 
+    build_path: str, 
+    task_data: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Deploy website to Cloudflare Pages using TypeScript deployer."""
+    
+    import subprocess
+    import os
+    import json
+    import tempfile
+    from pathlib import Path
+    from ..core.config import settings
+    
+    try:
+        # Validate Cloudflare configuration
+        if not settings.cloudflare_enabled:
+            raise Exception("Cloudflare is not properly configured. Missing API token or account ID.")
+        
+        # Find website-builder directory for the TypeScript deployer
+        backend_path = Path(__file__).parent.parent.parent.parent
+        website_builder_path = backend_path / "website-builder"
+        
+        if not website_builder_path.exists():
+            raise Exception(f"Website builder not found at {website_builder_path}")
+        
+        # Prepare deployment configuration
+        deployment_target = task_data.get("deployment_target", "production")
+        project_name = f"{settings.CLOUDFLARE_PROJECT_NAME_PREFIX}-{subdomain}"
+        branch = "main" if deployment_target == "production" else "staging"
+        
+        # Set up environment with Cloudflare credentials
+        env = os.environ.copy()
+        env.update({
+            "CLOUDFLARE_API_TOKEN": settings.CLOUDFLARE_API_TOKEN,
+            "CLOUDFLARE_ACCOUNT_ID": settings.CLOUDFLARE_ACCOUNT_ID,
+            "NODE_ENV": "production"
+        })
+        
+        logger.info(f"Deploying to Cloudflare Pages: {project_name} ({branch})")
+        
+        # Use TypeScript deployer
+        deploy_command = [
+            "npx", "tsx", 
+            "lib/build-time/cloudflare-deployer.ts",
+            "--build-dir", build_path,
+            "--project", project_name,
+            "--branch", branch,
+            "--json"  # Output JSON for parsing
+        ]
+        
+        # Execute deployment
+        deploy_result = subprocess.run(
+            deploy_command,
+            cwd=website_builder_path,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=300  # 5 minutes for deployment
+        )
+        
+        if deploy_result.returncode != 0:
+            raise Exception(f"TypeScript deployer failed: {deploy_result.stderr}")
+        
+        # Parse JSON output from TypeScript deployer
+        try:
+            # Extract JSON from stdout (may contain other log messages)
+            stdout_lines = deploy_result.stdout.strip().split('\n')
+            json_output = None
+            
+            for line in reversed(stdout_lines):  # Start from the end to find JSON
+                if line.strip().startswith('{'):
+                    json_output = line.strip()
+                    break
+            
+            if not json_output:
+                raise Exception("No JSON output found from TypeScript deployer")
+            
+            result = json.loads(json_output)
+            
+            if not result.get("success"):
+                raise Exception(f"Deployment failed: {result.get('error', 'Unknown error')}")
+            
+            logger.info(f"Deployment successful: {result.get('url')}")
+            
+            return {
+                "success": True,
+                "website_url": result.get("url"),
+                "deployment_id": result.get("deployment_id"),
+                "deployment_logs": deploy_result.stdout,
+                "duration_ms": result.get("duration_ms"),
+                "project_name": project_name
+            }
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse deployment result JSON: {e}")
+            logger.error(f"Raw output: {deploy_result.stdout}")
+            
+            # Fallback: try to extract URL manually
+            website_url = None
+            for line in deploy_result.stdout.split('\n'):
+                if 'https://' in line and '.pages.dev' in line:
+                    import re
+                    url_match = re.search(r'https://[^\s]+\.pages\.dev[^\s]*', line)
+                    if url_match:
+                        website_url = url_match.group(0)
+                        break
+            
+            if not website_url:
+                website_url = f"https://{project_name}.pages.dev"
+            
+            return {
+                "success": True,
+                "website_url": website_url,
+                "deployment_logs": deploy_result.stdout,
+                "project_name": project_name
+            }
+        
+    except Exception as e:
+        logger.error(f"Cloudflare deployment failed: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+def _get_pages_breakdown(seo_pages: List[Dict[str, Any]]) -> Dict[str, int]:
+    """Get breakdown of pages by type."""
+    
+    breakdown = {}
+    for page in seo_pages:
+        page_type = page.get("type", "unknown")
+        breakdown[page_type] = breakdown.get(page_type, 0) + 1
+    
+    return breakdown
+
+
+# =====================================
 # CONVERSION TRACKING TASKS
 # =====================================
 
@@ -767,243 +1162,6 @@ def _determine_priority(form_data: Dict[str, Any]) -> str:
         return "medium"
     else:
         return "low"
-
-
-# =====================================
-# MOBILE WEBSITE DEPLOYMENT TASKS
-# =====================================
-
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
-def publish_website_task(self, deployment_id: str, business_id: str, request_data: Dict[str, Any]):
-    """
-    Publish website from mobile app data.
-    
-    This task orchestrates the complete mobile website deployment:
-    1. Persist business data to database tables
-    2. Generate website content and structure
-    3. Build Next.js static site
-    4. Deploy to Cloudflare Pages
-    5. Update deployment status
-    """
-    
-    logger.info(f"Starting mobile website deployment {deployment_id} for business {business_id}")
-    
-    try:
-        # Update deployment status to building
-        _update_deployment_status(deployment_id, "building", 10, "Starting deployment")
-        
-        # Step 1: Persist business data
-        _update_deployment_status(deployment_id, "building", 20, "Saving business data")
-        asyncio.run(_persist_mobile_business_data(business_id, request_data))
-        
-        # Step 2: Generate website content
-        _update_deployment_status(deployment_id, "building", 40, "Generating website content")
-        content = asyncio.run(_generate_mobile_website_content(business_id, request_data))
-        
-        # Step 3: Build Next.js site
-        _update_deployment_status(deployment_id, "building", 60, "Building website")
-        build_result = asyncio.run(_build_mobile_website(deployment_id, content))
-        
-        if not build_result.success:
-            raise Exception(f"Website build failed: {build_result.error_message}")
-        
-        # Step 4: Deploy to Cloudflare Pages
-        _update_deployment_status(deployment_id, "deploying", 80, "Deploying to Cloudflare")
-        deploy_result = asyncio.run(_deploy_mobile_website(deployment_id, business_id, build_result.build_path))
-        
-        if not deploy_result.success:
-            raise Exception(f"Deployment failed: {deploy_result.error_message}")
-        
-        # Step 5: Finalize deployment
-        _update_deployment_status(deployment_id, "completed", 100, "Deployment completed", 
-                                website_url=deploy_result.website_url)
-        
-        logger.info(f"Mobile website deployment {deployment_id} completed successfully")
-        
-        return {
-            "success": True,
-            "deployment_id": deployment_id,
-            "website_url": deploy_result.website_url
-        }
-        
-    except Exception as e:
-        logger.error(f"Mobile website deployment {deployment_id} failed: {str(e)}")
-        
-        # Update deployment status to failed
-        _update_deployment_status(deployment_id, "failed", 0, "Deployment failed", 
-                                error_message=str(e))
-        
-        # Retry if possible
-        if self.request.retries < self.max_retries:
-            logger.info(f"Retrying mobile deployment: {deployment_id} (attempt {self.request.retries + 1})")
-            raise self.retry(countdown=60 * (self.request.retries + 1))
-        
-        return {
-            "success": False,
-            "deployment_id": deployment_id,
-            "error": str(e)
-        }
-
-
-async def _persist_mobile_business_data(business_id: str, request_data: Dict[str, Any]):
-    """Persist mobile request data to database tables."""
-    
-    try:
-        from ..infrastructure.repositories.business_repository import BusinessRepository
-        
-        business_repo = BusinessRepository()
-        business_uuid = uuid.UUID(business_id)
-        
-        # TODO: Implement data persistence:
-        # 1. service_areas from request_data['service_areas']
-        # 2. business_services from request_data['services'] 
-        # 3. products from request_data['products'] (if provided)
-        # 4. business_locations from request_data['locations']
-        # 5. business_hours from request_data['hours']
-        # 6. business_branding from request_data['branding'] (if provided)
-        # 7. business_websites upsert with subdomain
-        
-        logger.info(f"Persisted mobile business data for {business_id}")
-        
-    except Exception as e:
-        logger.error(f"Failed to persist mobile business data: {str(e)}")
-        raise
-
-
-async def _generate_mobile_website_content(business_id: str, request_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate website content from mobile business data."""
-    
-    try:
-        from ..application.services.dynamic_website_builder_service import DynamicWebsiteBuilderService
-        from ..infrastructure.repositories.business_repository import BusinessRepository
-        
-        # Get business entity
-        business_repo = BusinessRepository()
-        business = await business_repo.get_by_id(uuid.UUID(business_id))
-        
-        if not business:
-            raise Exception(f"Business {business_id} not found")
-        
-        # Generate website structure using existing service
-        website_builder = DynamicWebsiteBuilderService()
-        structure = await website_builder.generate_website_structure(business)
-        
-        logger.info(f"Generated website content for {business_id}")
-        return structure.__dict__
-        
-    except Exception as e:
-        logger.error(f"Failed to generate mobile website content: {str(e)}")
-        raise
-
-
-async def _build_mobile_website(deployment_id: str, content: Dict[str, Any]):
-    """Build Next.js website from generated content."""
-    
-    try:
-        from ..application.services.website_builder_service import WebsiteBuilderService
-        
-        # Use existing website builder service
-        builder_service = WebsiteBuilderService()
-        
-        # TODO: Adapt builder service for mobile content format
-        # For now, return mock success
-        
-        build_result = type('BuildResult', (), {
-            'success': True,
-            'build_path': f'/tmp/mobile-builds/{deployment_id}',
-            'error_message': None
-        })()
-        
-        logger.info(f"Built mobile website for deployment {deployment_id}")
-        return build_result
-        
-    except Exception as e:
-        logger.error(f"Failed to build mobile website: {str(e)}")
-        raise
-
-
-async def _deploy_mobile_website(deployment_id: str, business_id: str, build_path: str):
-    """Deploy built website to Cloudflare Pages."""
-    
-    try:
-        from ..application.services.cloudflare_pages_deployment_service import CloudflarePagesDeploymentService
-        from pathlib import Path
-        
-        # Use existing Cloudflare deployment service
-        cloudflare_service = CloudflarePagesDeploymentService()
-        
-        # Deploy to Cloudflare Pages
-        deployment_result = await cloudflare_service.deploy_to_pages(
-            build_dir=Path(build_path),
-            business_name=f"mobile-{business_id[:8]}",
-            deployment_type="production"
-        )
-        
-        if deployment_result.build_status == "SUCCESS":
-            deploy_result = type('DeployResult', (), {
-                'success': True,
-                'website_url': deployment_result.deploy_url,
-                'error_message': None
-            })()
-        else:
-            deploy_result = type('DeployResult', (), {
-                'success': False,
-                'website_url': None,
-                'error_message': deployment_result.error_message
-            })()
-        
-        logger.info(f"Deployed mobile website for deployment {deployment_id}")
-        return deploy_result
-        
-    except Exception as e:
-        logger.error(f"Failed to deploy mobile website: {str(e)}")
-        raise
-
-
-def _update_deployment_status(
-    deployment_id: str,
-    status: str,
-    progress: int,
-    step: str,
-    website_url: Optional[str] = None,
-    error_message: Optional[str] = None
-):
-    """Update deployment status in database."""
-    
-    try:
-        from ..domain.entities.website_deployment import DeploymentStatus
-        from ..infrastructure.database.repositories.supabase_website_deployment_repository import SupabaseWebsiteDeploymentRepository
-        
-        # Update deployment status
-        deployment_repo = SupabaseWebsiteDeploymentRepository()
-        deployment_status = DeploymentStatus(status)
-        
-        # Run async operation in sync context
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        try:
-            success = loop.run_until_complete(
-                deployment_repo.update_status(
-                    deployment_id=uuid.UUID(deployment_id),
-                    status=deployment_status,
-                    progress=progress,
-                    current_step=step,
-                    error_message=error_message
-                )
-            )
-            
-            if success:
-                logger.info(f"Updated deployment {deployment_id}: {status} ({progress}%) - {step}")
-            else:
-                logger.warning(f"Failed to update deployment {deployment_id} status")
-                
-        finally:
-            loop.close()
-        
-    except Exception as e:
-        logger.error(f"Failed to update deployment status: {str(e)}")
 
 
 # =====================================

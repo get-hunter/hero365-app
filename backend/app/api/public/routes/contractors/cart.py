@@ -200,7 +200,7 @@ async def get_shopping_cart(
                 id=item_dto.id,
                 product_id=item_dto.product_id,
                 product_name=item_dto.product_name,
-                product_sku="",  # TODO: Add to DTO
+                product_sku=item_dto.product_sku,
                 unit_price=item_dto.unit_price,
                 installation_option_id=item_dto.installation_option_id,
                 installation_option_name=item_dto.installation_name,
@@ -291,7 +291,7 @@ async def add_item_to_cart(
                 id=item_dto.id,
                 product_id=item_dto.product_id,
                 product_name=item_dto.product_name,
-                product_sku="",  # TODO: Add to DTO
+                product_sku=item_dto.product_sku,
                 unit_price=item_dto.unit_price,
                 installation_option_id=item_dto.installation_option_id,
                 installation_option_name=item_dto.installation_name,
@@ -384,15 +384,16 @@ async def update_cart_item(
                 id=item_dto.id,
                 product_id=item_dto.product_id,
                 product_name=item_dto.product_name,
-                quantity=item_dto.quantity,
+                product_sku=getattr(item_dto, "product_sku", ""),
                 unit_price=item_dto.unit_price,
                 installation_option_id=item_dto.installation_option_id,
-                installation_name=item_dto.installation_name,
+                installation_option_name=item_dto.installation_name,
                 installation_price=item_dto.installation_price,
-                membership_plan_id=item_dto.membership_plan_id,
-                discount_percentage=item_dto.discount_percentage,
-                created_at=item_dto.created_at.isoformat() if item_dto.created_at else None,
-                updated_at=item_dto.updated_at.isoformat() if item_dto.updated_at else None
+                quantity=item_dto.quantity,
+                item_total=item_dto.unit_price * item_dto.quantity,
+                discount_amount=0.0,
+                membership_discount=0.0,
+                bundle_savings=0.0
             )
             cart_items.append(cart_item)
         
@@ -457,15 +458,16 @@ async def remove_item_from_cart(
                 id=item_dto.id,
                 product_id=item_dto.product_id,
                 product_name=item_dto.product_name,
-                quantity=item_dto.quantity,
+                product_sku=getattr(item_dto, "product_sku", ""),
                 unit_price=item_dto.unit_price,
                 installation_option_id=item_dto.installation_option_id,
-                installation_name=item_dto.installation_name,
+                installation_option_name=item_dto.installation_name,
                 installation_price=item_dto.installation_price,
-                membership_plan_id=item_dto.membership_plan_id,
-                discount_percentage=item_dto.discount_percentage,
-                created_at=item_dto.created_at.isoformat() if item_dto.created_at else None,
-                updated_at=item_dto.updated_at.isoformat() if item_dto.updated_at else None
+                quantity=item_dto.quantity,
+                item_total=item_dto.unit_price * item_dto.quantity,
+                discount_amount=0.0,
+                membership_discount=0.0,
+                bundle_savings=0.0
             )
             cart_items.append(cart_item)
         

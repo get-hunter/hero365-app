@@ -413,23 +413,40 @@ async def get_product_pricing(
             quantity=quantity
         )
         
+        # Map DTO to public schema (normalized fields expected by the website)
+        product_unit_price = pricing_dto.unit_price
+        installation_base_price = pricing_dto.installation_price or 0
+        product_subtotal = pricing_dto.product_subtotal
+        installation_subtotal = pricing_dto.installation_price or 0
+        subtotal_before = pricing_dto.subtotal
+        total_discount = pricing_dto.discount_amount or 0
+        subtotal_after = subtotal_before - total_discount
+        tax_rate = pricing_dto.tax_rate
+        tax_amount = pricing_dto.tax_amount
+        total_amount = pricing_dto.total
+        total_savings = total_discount
+        savings_pct = (total_savings / subtotal_before * 100) if subtotal_before and subtotal_before > 0 else 0
+
         pricing_breakdown = PricingBreakdown(
-            product_id=pricing_dto.product_id,
-            product_name=pricing_dto.product_name,
-            quantity=pricing_dto.quantity,
-            unit_price=pricing_dto.unit_price,
-            product_subtotal=pricing_dto.product_subtotal,
-            installation_option_id=pricing_dto.installation_option_id,
-            installation_name=pricing_dto.installation_name,
-            installation_price=pricing_dto.installation_price,
-            subtotal=pricing_dto.subtotal,
-            membership_plan_id=pricing_dto.membership_plan_id,
-            membership_plan_name=pricing_dto.membership_plan_name,
-            discount_percentage=pricing_dto.discount_percentage,
-            discount_amount=pricing_dto.discount_amount,
-            tax_rate=pricing_dto.tax_rate,
-            tax_amount=pricing_dto.tax_amount,
-            total=pricing_dto.total
+            product_unit_price=float(product_unit_price),
+            installation_base_price=float(installation_base_price),
+            quantity=int(pricing_dto.quantity),
+            product_subtotal=float(product_subtotal),
+            installation_subtotal=float(installation_subtotal),
+            subtotal_before_discounts=float(subtotal_before),
+            membership_type=None,
+            product_discount_amount=0.0,
+            installation_discount_amount=float(total_discount),
+            total_discount_amount=float(total_discount),
+            bundle_savings=0.0,
+            subtotal_after_discounts=float(subtotal_after),
+            tax_rate=float(tax_rate),
+            tax_amount=float(tax_amount),
+            total_amount=float(total_amount),
+            total_savings=float(total_savings),
+            savings_percentage=float(savings_pct),
+            formatted_display_price=f"${total_amount:,.0f}",
+            price_display_type="fixed"
         )
         
         return pricing_breakdown
