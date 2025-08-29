@@ -69,20 +69,69 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def all_cors_origins(self) -> list[str]:
-        cors_origins = [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS] + [
-            self.FRONTEND_HOST
-        ]
+        """
+        Centralized CORS origins configuration.
+        Single source of truth for all allowed origins across environments.
+        """
+        cors_origins = []
         
-        # Add custom domain to CORS origins for production only
+        # 1. Environment variable origins (from .env BACKEND_CORS_ORIGINS)
+        if self.BACKEND_CORS_ORIGINS:
+            cors_origins.extend([str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS])
+        
+        # 2. Frontend host (from FRONTEND_HOST env var)
+        if self.FRONTEND_HOST:
+            cors_origins.append(self.FRONTEND_HOST.rstrip("/"))
+        
+        # 3. Development origins (always included for local environment)
+        if self.ENVIRONMENT == "local":
+            cors_origins.extend([
+                "http://localhost:3000",
+                "http://localhost:3001", 
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:3001",
+                "https://localhost:3000",
+                "https://localhost:5173"
+            ])
+        
+        # 4. Cloudflare Pages domains (for website deployments)
+        cors_origins.extend([
+            "https://hero365-contractors-webs.pages.dev",  # Main project domain
+            # Current active deployments (add new ones as needed):
+            "https://bb076026.hero365-contractors-webs.pages.dev",
+            "https://4b916b7d.hero365-contractors-webs.pages.dev",
+        ])
+        
+        # 5. Production domains (only in production)
         if self.ENVIRONMENT == "production":
             cors_origins.extend([
                 f"https://{self.API_DOMAIN}",
                 "https://hero365.ai",
                 "https://www.hero365.ai",
-                "https://app.hero365.ai"  # In case you have a separate app domain
+                "https://app.hero365.ai"
             ])
         
-        return cors_origins
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_origins = []
+        for origin in cors_origins:
+            if origin and origin not in seen:
+                seen.add(origin)
+                unique_origins.append(origin)
+        
+        return unique_origins
+    
+    def add_cloudflare_deployment_url(self, deployment_url: str) -> None:
+        """
+        Helper method to add a new Cloudflare Pages deployment URL to CORS origins.
+        This is useful for dynamically adding new deployment URLs without code changes.
+        
+        Args:
+            deployment_url: The full deployment URL (e.g., "https://abc123.hero365-contractors-webs.pages.dev")
+        """
+        # This would require implementing a dynamic CORS update mechanism
+        # For now, new deployment URLs should be added to the all_cors_origins method above
+        pass
 
     PROJECT_NAME: str
     SENTRY_DSN: HttpUrl | None = None

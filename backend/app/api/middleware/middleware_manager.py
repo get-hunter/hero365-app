@@ -71,33 +71,8 @@ class MiddlewareConfig:
     
     @property
     def cors_origins(self) -> List[str]:
-        """CORS allowed origins."""
-        origins = []
-        
-        # Always include development origins for local environment
-        if settings.ENVIRONMENT == "local":
-            origins.extend([
-                "http://localhost:3000",
-                "http://localhost:3001", 
-                "http://127.0.0.1:3000",
-                "http://127.0.0.1:3001"
-            ])
-        
-        # Add configured origins
-        if settings.BACKEND_CORS_ORIGINS:
-            origins.extend([str(origin).strip("/") for origin in settings.BACKEND_CORS_ORIGINS])
-            
-        # Add production origins
-        if settings.ENVIRONMENT == "production":
-            origins.extend([
-                "https://api.hero365.ai",
-                "https://hero365.ai",
-                "https://www.hero365.ai", 
-                "https://app.hero365.ai"
-            ])
-            
-        # Remove duplicates
-        return list(set(origins))
+        """CORS allowed origins from settings."""
+        return settings.all_cors_origins
 
 
 class MiddlewareManager:

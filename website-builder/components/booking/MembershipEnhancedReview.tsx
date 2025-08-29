@@ -10,7 +10,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Separator } from '../ui/separator';
 import { 
   Star, 
   Shield, 
@@ -47,7 +46,7 @@ export default function MembershipEnhancedReview({
   servicePricing = [],
   customerMembershipType = null
 }: MembershipEnhancedReviewProps) {
-  const { state, nextStep, setLoading, setError, updateTermsAccepted } = useBookingWizard();
+  const { state, nextStep, setLoading, setError, updateFlags } = useBookingWizard();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMembershipOffer, setShowMembershipOffer] = useState(false);
 
@@ -112,7 +111,7 @@ export default function MembershipEnhancedReview({
 
     setIsSubmitting(true);
     setLoading(true);
-    setError(null);
+    setError(undefined);
 
     try {
       // Include membership information in booking request
@@ -133,12 +132,12 @@ export default function MembershipEnhancedReview({
           region: state.address?.region || '',
           postal_code: state.address?.postalCode || '',
           country_code: state.address?.countryCode || 'US',
-          notes: state.address?.notes
+          access_notes: state.address?.accessNotes
         },
         scheduled_at: state.slot?.start || new Date().toISOString(),
         timezone: state.zipInfo?.timezone || 'America/New_York',
         problem_description: state.details?.notes || '',
-        urgency_level: state.details?.urgency || 'normal',
+        urgency_level: state.details?.urgencyLevel || 'normal',
         // Membership specific fields
         customer_membership_type: customerMembershipType,
         member_pricing_applied: pricing?.hasSavings || false,
@@ -193,7 +192,7 @@ export default function MembershipEnhancedReview({
             )}
           </div>
 
-          <Separator />
+          <div className="h-px w-full bg-gray-200 my-2" />
 
           {/* Location */}
           <div className="flex items-start gap-3">
@@ -377,7 +376,7 @@ export default function MembershipEnhancedReview({
               type="checkbox"
               id="terms"
               checked={state.termsAccepted}
-              onChange={(e) => updateTermsAccepted(e.target.checked)}
+              onChange={(e) => updateFlags({ termsAccepted: e.target.checked })}
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-0.5"
             />
             <label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">

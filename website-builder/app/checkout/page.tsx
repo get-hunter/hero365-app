@@ -8,6 +8,7 @@ import { CartProvider } from '@/lib/contexts/CartContext';
 
 // Force dynamic rendering for checkout page
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 async function loadBusinessProfile(businessId: string) {
   try {

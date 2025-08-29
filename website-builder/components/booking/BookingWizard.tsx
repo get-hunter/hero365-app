@@ -7,6 +7,7 @@
 'use client';
 
 import React from 'react';
+import type { BookableService } from '../../lib/types/booking';
 import { X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { 
@@ -29,15 +30,7 @@ interface BookingWizardProps {
   businessName?: string;
   businessPhone?: string;
   businessEmail?: string;
-  services?: Array<{
-    id: string;
-    name: string;
-    category: string;
-    description?: string;
-    duration_minutes?: number;
-    price_cents?: number;
-    is_emergency?: boolean;
-  }>;
+  services?: BookableService[];
   onClose?: () => void;
   onComplete?: (bookingData: any) => void;
   className?: string;
@@ -71,7 +64,15 @@ function BookingWizardContent({
         return (
           <ServiceCategoryStep
             businessId={businessId}
-            services={services}
+            services={services?.map((s) => ({
+              id: s.id,
+              name: s.name,
+              category: s.category ?? 'General',
+              description: s.description,
+              duration_minutes: s.estimated_duration_minutes,
+              price_cents: typeof s.base_price === 'number' ? Math.round(s.base_price * 100) : undefined,
+              is_emergency: false
+            }))}
           />
         );
       

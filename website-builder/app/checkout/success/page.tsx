@@ -8,6 +8,7 @@ import { getBusinessConfig, getBackendUrl } from '@/lib/config/api-config';
 
 // Force dynamic rendering for checkout success page
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 async function loadBusinessProfile(businessId: string) {
   try {

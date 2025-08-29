@@ -4,11 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && next export",
+    "prebuild": "node ./scripts/set-ngrok-env.mjs",
+    "prebuild:ssr": "node ./scripts/set-ngrok-env.mjs",
+    "build": "next build",
     "start": "next start",
     "generate": "npm run build",
     "seo-generate": "tsx lib/build-time/seo-generator.ts",
-    "cf-deploy": "npx wrangler pages deploy out"
+    "cf-deploy": "npx wrangler pages deploy out",
+    "build:ssr": "next build && npx @cloudflare/next-on-pages",
+    "deploy:ssr": "wrangler pages deploy .vercel/output/static --project-name hero365-contractors-webs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.1",
@@ -37,6 +41,7 @@
     "web-vitals": "^5.1.0"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -44,6 +49,6 @@
     "postcss": "^8.4.31",
     "tailwindcss": "^3.4.0",
     "typescript": "^5",
-    "wrangler": "^3.99.0"
+    "wrangler": "^4.33.1"
   }
 }

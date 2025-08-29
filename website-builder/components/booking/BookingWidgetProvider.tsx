@@ -172,15 +172,7 @@ export function BookingWidgetProvider({
                     businessName={companyName}
                     businessPhone={companyPhone}
                     businessEmail={companyEmail}
-                    services={filteredServices.map(service => ({
-                      id: service.id,
-                      name: service.name,
-                      category: service.category || 'General',
-                      description: service.description,
-                      duration_minutes: service.min_duration_minutes,
-                      price_cents: (service as any).price_cents || 0,
-                      is_emergency: (service as any).is_emergency || false
-                    }))}
+                    services={filteredServices}
                     onClose={closeBookingWidget}
                     onComplete={handleBookingComplete}
                     className="h-full"

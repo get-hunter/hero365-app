@@ -187,6 +187,36 @@ export function getCurrentBusinessId(): string {
 }
 
 /**
+ * Resolve business id from the request host via backend resolver (cached on client).
+ * Falls back to env/default config when resolver is unavailable.
+ */
+let cachedResolvedBusinessId: string | null = null;
+export async function resolveBusinessIdFromHost(): Promise<string> {
+  if (cachedResolvedBusinessId) return cachedResolvedBusinessId;
+  try {
+    if (typeof window === 'undefined') {
+      // Server-side: return configured id
+      return getCurrentBusinessId();
+    }
+    const host = window.location.host;
+    const backendUrl = getBackendUrl();
+    const url = `${backendUrl}/api/v1/public/websites/resolve?host=${encodeURIComponent(host)}`;
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (res.ok) {
+      const data = await res.json();
+      const id = data.business_id || data.businessId || data.id;
+      if (id) {
+        cachedResolvedBusinessId = id as string;
+        return cachedResolvedBusinessId;
+      }
+    }
+  } catch (err) {
+    // ignore and fallback
+  }
+  return getCurrentBusinessId();
+}
+
+/**
  * Build API URL for a specific endpoint
  */
 export function buildApiUrl(endpoint: string): string {

@@ -3,4 +3,5 @@ alwaysApply: true
 ---
 
 The environment files are in the root of the project on the folder /environments.
-We have two files: .env and production.env 
+We have two files: .env and production.env. 
+NEVER MODIFY OR DELETE .ENV OR PRODUCTION.ENV FILES. ASK TO THE USER TO ADD THE ENV VARIABLE YOU WANT TO ADD.

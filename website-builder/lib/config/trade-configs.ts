@@ -5,6 +5,7 @@
  */
 
 import { TradeConfiguration, Trade } from '../types/trade-config';
+import type { TradeType } from '../types/trade-config';
 
 // HVAC Configuration
 const hvacConfig: TradeConfiguration = {

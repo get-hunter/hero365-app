@@ -216,8 +216,7 @@ export default function EmbeddableBookingWidget({
             <BookingWizard
               businessId={businessId}
               services={services}
-              onBookingComplete={handleBookingComplete}
-              onBookingError={handleBookingError}
+              onComplete={handleBookingComplete}
               className="max-w-none"
             />
           )}

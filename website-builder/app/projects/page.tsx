@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar, MapPin, Clock, Star, Search, Filter, Grid, List, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getCurrentBusinessId } from '@/lib/config/api-config';
+import { getCurrentBusinessId, resolveBusinessIdFromHost } from '@/lib/config/api-config';
 import EliteHeader from '@/components/layout/EliteHeader';
 import ProfessionalFooter from '@/components/professional/ProfessionalFooter';
 import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvider';
@@ -80,9 +80,11 @@ export default function ProjectsPage() {
   const projectsPerPage = 12;
 
   // Get business ID from configuration
-  const businessId = getCurrentBusinessId();
+  const [businessId, setBusinessId] = useState<string>(getCurrentBusinessId());
 
   useEffect(() => {
+    // Resolve tenant by host on the client for multi-tenant Pages
+    resolveBusinessIdFromHost().then(setBusinessId);
     fetchProjects();
     fetchCategories();
     fetchTags();

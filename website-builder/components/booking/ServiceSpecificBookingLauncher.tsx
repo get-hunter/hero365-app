@@ -19,7 +19,7 @@ import {
   Crown,
   Zap
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+// Replacing missing dialog with inline modal container
 import { ServicePricing, MembershipPlan } from '../../lib/types/membership';
 import BookingWizard from './BookingWizard';
 import { cn } from '../../lib/utils';
@@ -34,7 +34,7 @@ interface ServiceSpecificBookingLauncherProps {
   membershipPlans?: MembershipPlan[];
   
   // Styling
-  variant?: 'primary' | 'outline' | 'ghost';
+  variant?: 'default' | 'outline' | 'ghost' | 'secondary' | 'destructive' | 'link';
   size?: 'sm' | 'default' | 'lg';
   showPricing?: boolean;
   showMembershipBadge?: boolean;
@@ -53,7 +53,7 @@ export default function ServiceSpecificBookingLauncher({
   businessEmail,
   customerMembershipType = null,
   membershipPlans = [],
-  variant = 'primary',
+  variant = 'default',
   size = 'default',
   showPricing = true,
   showMembershipBadge = true,
@@ -136,9 +136,17 @@ export default function ServiceSpecificBookingLauncher({
       };
     }
     
-    if (service.is_emergency_service) {
+    if (service.price_display === 'quote_required') {
       return {
-        text: 'Book Emergency Service',
+        text: 'Request a Quote',
+        icon: Phone,
+        urgency: false
+      };
+    }
+
+    if (service.base_price >= 500 && customerMembershipType === 'premium') {
+      return {
+        text: 'Priority Booking',
         icon: Phone,
         urgency: true
       };
@@ -261,47 +269,59 @@ export default function ServiceSpecificBookingLauncher({
         )}
       </div>
 
-      {/* Booking Dialog */}
-      <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
-          <DialogHeader className="p-6 pb-0">
-            <DialogTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-blue-600" />
-              Book {service.service_name}
-            </DialogTitle>
-            <DialogDescription>
-              {service.description}
-              {customerMembershipType && (
-                <Badge className="ml-2 bg-blue-100 text-blue-800">
-                  <MembershipIcon className="h-3 w-3 mr-1" />
-                  {customerMembershipType.charAt(0).toUpperCase() + customerMembershipType.slice(1)} Member
-                </Badge>
+      {/* Booking Modal (inline) */}
+      {isBookingOpen && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsBookingOpen(false)} />
+          <div className="relative z-10 mx-auto mt-10 max-w-4xl w-[95%] bg-white rounded-xl shadow-2xl overflow-hidden">
+            <div className="p-6 border-b">
+              <div className="flex items-center gap-2 text-lg font-semibold">
+                <Calendar className="h-5 w-5 text-blue-600" />
+                Book {service.service_name}
+                {customerMembershipType && (
+                  <Badge className="ml-2 bg-blue-100 text-blue-800">
+                    <MembershipIcon className="h-3 w-3 mr-1" />
+                    {customerMembershipType.charAt(0).toUpperCase() + customerMembershipType.slice(1)} Member
+                  </Badge>
+                )}
+              </div>
+              {service.description && (
+                <p className="text-sm text-gray-600 mt-1">{service.description}</p>
               )}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto">
-            <BookingWizard
-              businessId={businessId}
-              businessName={businessName}
-              businessPhone={businessPhone}
-              businessEmail={businessEmail}
-              services={[{
-                id: service.id,
-                name: service.service_name,
-                category: service.category,
-                description: service.description,
-                duration_minutes: service.duration_estimate ? 
-                  parseInt(service.duration_estimate.replace(/\D/g, '')) * 60 : 90,
-                price_cents: (customerMembershipType ? pricing.member : pricing.base) * 100,
-                is_emergency: service.is_emergency_service
-              }]}
-              onComplete={handleBookingSuccess}
-              className="h-full"
-            />
+            </div>
+            <div className="max-h-[80vh] overflow-y-auto">
+              <BookingWizard
+                businessId={businessId}
+                businessName={businessName}
+                businessPhone={businessPhone}
+                businessEmail={businessEmail}
+                services={[{
+                  id: service.id,
+                  business_id: businessId,
+                  name: service.service_name,
+                  category: service.category,
+                  description: service.description,
+                  is_bookable: true,
+                  requires_site_visit: true,
+                  estimated_duration_minutes: service.duration_estimate ? 
+                    parseInt(service.duration_estimate.replace(/\D/g, '')) * 60 : 90,
+                  base_price: (customerMembershipType ? pricing.member : pricing.base),
+                  price_type: 'fixed',
+                  required_skills: [],
+                  min_technicians: 1,
+                  max_technicians: 2,
+                  min_lead_time_hours: 2,
+                  max_advance_days: 60,
+                  available_days: [1,2,3,4,5],
+                  available_times: { start: '08:00', end: '17:00' }
+                }]}
+                onComplete={handleBookingSuccess}
+                className="h-full"
+              />
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </>
   );
 }
