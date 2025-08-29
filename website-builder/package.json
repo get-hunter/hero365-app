@@ -12,7 +12,9 @@
     "seo-generate": "tsx lib/build-time/seo-generator.ts",
     "cf-deploy": "npx wrangler pages deploy out",
     "build:ssr": "next build && npx @cloudflare/next-on-pages",
-    "deploy:ssr": "wrangler pages deploy .vercel/output/static --project-name hero365-contractors-webs"
+    "deploy:ssr": "wrangler pages deploy .vercel/output/static --project-name hero365-contractors-webs",
+    "deploy": "./scripts/deploy-cloudflare.sh",
+    "deploy:help": "./scripts/deploy-cloudflare.sh --help"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.1",

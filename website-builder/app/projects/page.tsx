@@ -45,7 +45,7 @@ async function loadProjectData(businessId: string) {
     if (projectsResponse.ok) {
       projects = await projectsResponse.json();
       console.log('✅ [PROJECTS] Projects loaded:', projects.length, 'items');
-    } else {
+      } else {
       console.warn('⚠️ [PROJECTS] Failed to load projects:', projectsResponse.status);
     }
     
@@ -134,14 +134,14 @@ export default async function ProjectsPage() {
 
   return (
     <CartProvider businessId={businessId}>
-      <BookingWidgetProvider 
+      <BookingWidgetProvider
         businessId={businessId}
         services={[]} // Will be loaded by the provider
         companyName={profile.business_name}
         companyPhone={profile.phone}
       >
-        <div className="min-h-screen bg-white">
-          <EliteHeader 
+      <div className="min-h-screen bg-white">
+        <EliteHeader 
             businessName={headerData.businessName}
             city={headerData.serviceAreas[0]?.split(',')[0] || 'Austin'}
             state={headerData.serviceAreas[0]?.split(',')[1]?.trim() || 'TX'}
@@ -156,12 +156,12 @@ export default async function ProjectsPage() {
             hasRealData={serverProjects.length > 0}
           />
 
-          <ProfessionalFooter 
+      <ProfessionalFooter 
             business={footerBusinessData}
-            serviceCategories={[]}
-            locations={[]}
-          />
-        </div>
+        serviceCategories={[]}
+        locations={[]}
+      />
+      </div>
       </BookingWidgetProvider>
     </CartProvider>
   );
