@@ -6,6 +6,8 @@
 
 'use client';
 
+// Static generation enabled for Cloudflare Pages
+
 import React, { useEffect, useState } from 'react';
 import ProfessionalHero from '../../../components/professional/ProfessionalHero';
 import ServicesGrid from '../../../components/professional/ServicesGrid';

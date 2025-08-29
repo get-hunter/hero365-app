@@ -7,6 +7,7 @@ import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvide
 import { CartProvider } from '@/lib/contexts/CartContext';
 import ProjectDetailClient from './ProjectDetailClient';
 
+// Configure for Edge Runtime (required for Cloudflare Pages)
 export const runtime = 'edge';
 
 async function loadProjectData(businessId: string, projectSlug: string) {

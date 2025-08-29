@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Hero365 Cloudflare Pages Deployment Script
-# This script automates the build and deployment process for the contractor website
+# Hero365 Development Deployment Script
+# DEVELOPMENT ONLY: Uses ngrok for quick testing deployments
+# For production deployments, use: node scripts/deploy-with-business.js
 
 set -e  # Exit on any error
 
@@ -12,9 +13,9 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Default values
+# Default values (DEVELOPMENT ONLY)
 DEFAULT_BUSINESS_ID="a1b2c3d4-e5f6-7890-1234-567890abcdef"
-PROJECT_NAME="hero365-contractors-webs"
+PROJECT_NAME="hero365-contractors-webs-dev"
 
 # Function to print colored output
 print_status() {

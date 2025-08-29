@@ -6,6 +6,8 @@
 
 'use client';
 
+// Static generation enabled for Cloudflare Pages
+
 import React from 'react';
 import BookingWizard from '../../components/booking/BookingWizard';
 import { BookableService } from '../../lib/types/booking';

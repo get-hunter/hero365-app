@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
-import { getBusinessConfig } from '@/lib/config/api-config';
+import { getBusinessConfig, getBackendUrl } from '@/lib/config/api-config';
 import { CartPageClient } from './CartPageClient';
+
+// Static generation enabled for Cloudflare Pages
 import EliteHeader from '@/components/layout/EliteHeader';
 import ProfessionalFooter from '@/components/professional/ProfessionalFooter';
 import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvider';
@@ -8,7 +10,7 @@ import { CartProvider } from '@/lib/contexts/CartContext';
 
 async function loadBusinessProfile(businessId: string) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    const backendUrl = getBackendUrl();
     
     const response = await fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
       headers: { 'Content-Type': 'application/json' }

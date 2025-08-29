@@ -30,14 +30,26 @@ export interface EnvironmentConfig {
 
 /**
  * Get the current environment
+ * SSR-compatible: ensures consistent environment detection
  */
 function getEnvironment(): 'development' | 'staging' | 'production' {
-  if (typeof window === 'undefined') {
-    // Server-side: use NODE_ENV
-    return (process.env.NODE_ENV as any) || 'development';
+  // HIGHEST PRIORITY: Explicit environment variable (set during deployment)
+  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_ENVIRONMENT) {
+    return process.env.NEXT_PUBLIC_ENVIRONMENT as 'development' | 'staging' | 'production';
   }
   
-  // Client-side: detect from hostname
+  // SECOND PRIORITY: NODE_ENV for server-side consistency
+  if (typeof window === 'undefined') {
+    // Server-side: use NODE_ENV
+    const nodeEnv = process.env.NODE_ENV;
+    if (nodeEnv === 'production') {
+      return 'production';
+    } else {
+      return 'development';
+    }
+  }
+  
+  // FALLBACK: Client-side hostname detection (for development only)
   const hostname = window.location.hostname;
   
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
@@ -51,26 +63,34 @@ function getEnvironment(): 'development' | 'staging' | 'production' {
 
 /**
  * Get API base URL based on environment
+ * SSR-compatible: prioritizes explicit env vars to ensure consistency
  */
 function getApiBaseUrl(environment: string): string {
-  // Check for explicit environment variable first (highest priority)
+  // HIGHEST PRIORITY: Explicit API URL set during build/deployment
   if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   
-  // Environment-specific defaults
+  // SECOND PRIORITY: Environment-specific API URLs  
+  if (typeof process !== 'undefined') {
+    if (process.env.NEXT_PUBLIC_STAGING_API_URL && environment === 'staging') {
+      return process.env.NEXT_PUBLIC_STAGING_API_URL;
+    }
+    if (process.env.NEXT_PUBLIC_PRODUCTION_API_URL && environment === 'production') {
+      return process.env.NEXT_PUBLIC_PRODUCTION_API_URL;
+    }
+  }
+  
+  // FALLBACK: Environment-based defaults (consistent for SSR)
   switch (environment) {
     case 'development':
-      return 'http://localhost:8000';  // Global default for development
-    
+      return 'http://localhost:8000';
     case 'staging':
-      return process.env.NEXT_PUBLIC_STAGING_API_URL || 'https://api-staging.hero365.ai';
-    
+      return 'https://api-staging.hero365.ai';
     case 'production':
-      return process.env.NEXT_PUBLIC_PRODUCTION_API_URL || 'https://api.hero365.ai';
-    
+      return 'https://api.hero365.ai';
     default:
-      return 'http://localhost:8000';  // Fallback to localhost
+      return 'http://localhost:8000';
   }
 }
 

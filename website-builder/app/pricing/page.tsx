@@ -13,7 +13,7 @@ import ProfessionalFooter from '../../components/professional/ProfessionalFooter
 import { BookingWidgetProvider } from '../../components/booking/BookingWidgetProvider';
 import { CartProvider } from '../../lib/contexts/CartContext';
 import PricingPageClient from './PricingPageClient';
-import { getBusinessConfig } from '../../lib/config/api-config';
+import { getBusinessConfig, getBackendUrl } from '../../lib/config/api-config';
 
 import { ServicePricing, MembershipPlan } from '../../lib/types/membership';
 
@@ -32,7 +32,7 @@ async function loadBusinessData(businessId: string) {
     console.log('🔄 [PRICING] Environment:', process.env.NODE_ENV);
     
     // Make direct API calls to the backend (server-to-server)
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    const backendUrl = getBackendUrl();
     console.log('🔄 [PRICING] Backend URL:', backendUrl);
     
     const [profileResponse, servicesResponse, membershipResponse, pricingResponse] = await Promise.all([

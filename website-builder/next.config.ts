@@ -1,12 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Only use static export for production builds
-  ...(process.env.NODE_ENV === 'production' && process.env.NEXT_BUILD_MODE === 'export' ? {
-    output: 'export',
-    distDir: 'out',
-    trailingSlash: true,
-  } : {}),
+  // Use Next-on-Pages for optimal Cloudflare Pages deployment with Edge SSR + ISR
+  // This gives us the best of both worlds: pre-rendered pages + dynamic capabilities
   
   images: {
     unoptimized: true,

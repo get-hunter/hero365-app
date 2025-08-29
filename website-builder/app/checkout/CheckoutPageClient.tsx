@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/lib/contexts/CartContext';
 import { CheckoutFormData, CheckoutStep, CheckoutValidation, CheckoutResponse } from '@/lib/types/checkout';
 import { ShoppingCart } from '@/lib/types/products';
+import { getBackendUrl } from '@/lib/config/api-config';
 
 // Import checkout step components (we'll create these next)
 import { CustomerInfoStep } from '@/components/checkout/CustomerInfoStep';
@@ -149,7 +150,7 @@ export function CheckoutPageClient({ businessProfile }: CheckoutPageClientProps)
     setIsProcessing(true);
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const backendUrl = getBackendUrl();
 
       const response = await fetch(`${backendUrl}/api/v1/public/contractors/${businessProfile.business_id}/checkout/process`, {
         method: 'POST',

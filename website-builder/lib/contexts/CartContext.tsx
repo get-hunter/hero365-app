@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { ShoppingCart, CartItem, CartSummary, MembershipType } from '@/lib/types/products';
+import { getBackendUrl } from '@/lib/config/api-config';
 
 interface CartContextType {
   cart: ShoppingCart | null;
@@ -73,7 +74,7 @@ interface CartProviderProps {
 export function CartProvider({ children, businessId }: CartProviderProps) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
 
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const backendUrl = getBackendUrl();
 
   // Get or create cart ID from localStorage
   const getCartId = (): string | null => {

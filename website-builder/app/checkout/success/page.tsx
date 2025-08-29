@@ -6,8 +6,7 @@ import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvide
 import { CartProvider } from '@/lib/contexts/CartContext';
 import { getBusinessConfig, getBackendUrl } from '@/lib/config/api-config';
 
-// Force dynamic rendering for checkout success page
-export const dynamic = 'force-dynamic';
+// Configure for Edge Runtime (required for Cloudflare Pages)
 export const runtime = 'edge';
 
 async function loadBusinessProfile(businessId: string) {
@@ -23,7 +22,7 @@ async function loadBusinessProfile(businessId: string) {
       
     const response = await fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
       headers: { 'Content-Type': 'application/json' },
-      cache: 'no-store'
+      next: { revalidate: 3600, tags: ['profile', businessId] } // 1 hour ISR
     });
 
     if (!response.ok) {

@@ -32,15 +32,33 @@ async function main() {
       publicUrl = httpsTunnel.public_url;
     }
 
-    const envLines = [
-      `NEXT_PUBLIC_API_URL=${publicUrl}`,
-      `NEXT_PUBLIC_API_VERSION=${process.env.NEXT_PUBLIC_API_VERSION || 'v1'}`,
-    ];
-
     const envPath = path.resolve(process.cwd(), '.env.local');
-    const contents = envLines.join('\n') + '\n';
+    
+    // Read existing .env.local if it exists
+    let existingEnv = {};
+    if (fs.existsSync(envPath)) {
+      const existingContent = fs.readFileSync(envPath, 'utf8');
+      existingContent.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const [key, ...valueParts] = trimmed.split('=');
+          if (key && valueParts.length > 0) {
+            existingEnv[key.trim()] = valueParts.join('=').trim();
+          }
+        }
+      });
+    }
+    
+    // Update only the API URL, preserve other variables
+    existingEnv['NEXT_PUBLIC_API_URL'] = publicUrl;
+    existingEnv['NEXT_PUBLIC_API_VERSION'] = process.env.NEXT_PUBLIC_API_VERSION || 'v1';
+    
+    // Write back all environment variables
+    const allEnvLines = Object.entries(existingEnv).map(([key, value]) => `${key}=${value}`);
+    const contents = allEnvLines.join('\n') + '\n';
+    
     fs.writeFileSync(envPath, contents, 'utf8');
-    console.log(`Wrote ${envPath} with NEXT_PUBLIC_API_URL=${publicUrl}`);
+    console.log(`Updated ${envPath} with NEXT_PUBLIC_API_URL=${publicUrl}, preserved ${Object.keys(existingEnv).length - 2} existing variables`);
   } catch (err) {
     console.warn('Skipping ngrok env injection:', err?.message || err);
     // Do not fail the build; keep existing .env.local if present

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Enhanced Deployment Script with Business ID Configuration
+ *  Deployment Script with Business ID Configuration
  * 
  * This script allows deploying websites with specific business IDs,
  * automatically configuring the frontend to use the correct business data.
@@ -189,8 +189,9 @@ async function generateBusinessConfig(deploymentConfig) {
   
   // Try to fetch real business data
   let businessData = null;
-  if (envConfig.api?.baseUrl) {
-    businessData = await fetchBusinessData(CONFIG.businessId, envConfig.api.baseUrl);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || envConfig.api?.baseUrl;
+  if (apiUrl) {
+    businessData = await fetchBusinessData(CONFIG.businessId, apiUrl);
   }
   
   // Create business configuration
@@ -231,7 +232,8 @@ function generateEnvironmentConfig(deploymentConfig, businessConfig) {
   const envConfig = deploymentConfig.environments[CONFIG.environment];
   
   const envVars = {
-    // Environment
+    // Environment (critical for SSR consistency)
+    NODE_ENV: CONFIG.environment === 'development' ? 'development' : 'production',
     NEXT_PUBLIC_ENVIRONMENT: CONFIG.environment,
     
     // API Configuration
@@ -288,7 +290,7 @@ function buildWebsite() {
   log('🔨 Building Next.js website...', 'info');
   
   try {
-    const buildCommand = 'npm run build';
+    const buildCommand = 'npm run build && npx @cloudflare/next-on-pages';
     verbose(`Executing: ${buildCommand}`);
     
     const output = execSync(buildCommand, { 
@@ -301,9 +303,10 @@ function buildWebsite() {
       verbose(output);
     }
     
-    // Verify build output
-    if (!fs.existsSync(PATHS.buildOutput)) {
-      throw new Error('Build output directory not found');
+    // Verify build output (Next-on-Pages creates .vercel/output/static)
+    const nextOnPagesOutput = path.resolve(__dirname, '../.vercel/output/static');
+    if (!fs.existsSync(nextOnPagesOutput)) {
+      throw new Error('Next-on-Pages build output directory not found at .vercel/output/static');
     }
     
     log('✅ Website build completed successfully', 'success');
@@ -337,8 +340,8 @@ function deployToCloudflare(businessConfig) {
       projectName = `hero365-${businessName}`;
     }
     
-    // Build deployment command
-    let deployCommand = `wrangler pages deploy ${PATHS.buildOutput} --project-name ${projectName}`;
+    // Build deployment command using Next-on-Pages for optimal Cloudflare integration
+    let deployCommand = `npx @cloudflare/next-on-pages && wrangler pages deploy .vercel/output/static --project-name ${projectName}`;
     
     // Add preview flag if specified
     if (CONFIG.preview && CONFIG.environment === 'staging') {
@@ -354,7 +357,7 @@ function deployToCloudflare(businessConfig) {
     });
     
     // Extract deployment URL from output
-    const urlMatch = output.match(/https:\/\/[^\s]+/);
+    const urlMatch = output && typeof output === 'string' ? output.match(/https:\/\/[^\s]+/) : null;
     const deploymentUrl = urlMatch ? urlMatch[0] : null;
     
     log('✅ Deployment completed successfully', 'success');

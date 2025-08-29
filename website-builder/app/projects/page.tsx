@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { getBusinessConfig } from '@/lib/config/api-config';
+import { getBusinessConfig, getBackendUrl } from '@/lib/config/api-config';
 import EliteHeader from '@/components/layout/EliteHeader';
 import ProfessionalFooter from '@/components/professional/ProfessionalFooter';
 import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvider';
@@ -16,24 +16,24 @@ async function loadProjectData(businessId: string) {
   try {
     console.log('🔄 [PROJECTS] Loading project data for:', businessId);
     
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    const backendUrl = getBackendUrl();
     
     const [projectsResponse, categoriesResponse, tagsResponse, profileResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}?limit=12&offset=0&featured_only=true`, {
         headers: { 'Content-Type': 'application/json' },
-        next: { revalidate: 300 } // Cache for 5 minutes
+        next: { revalidate: 600, tags: ['projects', businessId] } // 10 min ISR
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/project-categories/${businessId}`, {
         headers: { 'Content-Type': 'application/json' },
-        next: { revalidate: 600 } // Cache for 10 minutes
+        next: { revalidate: 86400, tags: ['categories', businessId] } // 1 day ISR
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/project-tags/${businessId}`, {
         headers: { 'Content-Type': 'application/json' },
-        next: { revalidate: 600 } // Cache for 10 minutes
+        next: { revalidate: 86400, tags: ['tags', businessId] } // 1 day ISR
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
         headers: { 'Content-Type': 'application/json' },
-        next: { revalidate: 600 } // Cache for 10 minutes
+        next: { revalidate: 3600, tags: ['profile', businessId] } // 1 hour ISR
       })
     ]);
     
