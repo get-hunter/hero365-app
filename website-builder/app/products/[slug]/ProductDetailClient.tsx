@@ -35,13 +35,15 @@ interface ProductDetailClientProps {
   businessId: string;
   businessProfile: any;
   categories: ProductCategory[];
+  membershipPlans: any[];
 }
 
 export function ProductDetailClient({ 
   product, 
   businessId, 
   businessProfile,
-  categories 
+  categories,
+  membershipPlans 
 }: ProductDetailClientProps) {
   const [selectedInstallation, setSelectedInstallation] = useState<ProductInstallationOption | null>(
     product.installation_options?.find(opt => opt.is_default) || product.installation_options?.[0] || null
@@ -53,28 +55,9 @@ export function ProductDetailClient({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [variantPrice, setVariantPrice] = useState(product.unit_price);
-  const [membershipPlans, setMembershipPlans] = useState<any[]>([]);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   
   const { addToCart } = useCart();
-
-  // Load membership plans
-  useEffect(() => {
-    const loadMembershipPlans = async () => {
-      try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-        const response = await fetch(`${backendUrl}/api/v1/public/contractors/membership-plans/${businessId}`);
-        if (response.ok) {
-          const plans = await response.json();
-          setMembershipPlans(plans);
-        }
-      } catch (error) {
-        console.error('Failed to load membership plans:', error);
-      }
-    };
-    
-    loadMembershipPlans();
-  }, [businessId]);
 
   // Get all images (featured + gallery)
   const allImages = [

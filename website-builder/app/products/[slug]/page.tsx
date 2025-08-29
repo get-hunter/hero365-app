@@ -35,12 +35,30 @@ async function getBusinessProfile(businessId: string) {
   return res.json();
 }
 
+async function getMembershipPlans(businessId: string) {
+  try {
+    const base = getBackendUrl();
+    const url = `${base}/api/v1/public/contractors/membership-plans/${businessId}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch (error) {
+    console.error('Failed to load membership plans:', error);
+    return [];
+  }
+}
+
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const businessId = getBusinessConfig().defaultBusinessId;
   const { slug } = await params;
-  const [product, profile] = await Promise.all([
+  const [product, profile, membershipPlans] = await Promise.all([
     getProduct(businessId, slug),
-    getBusinessProfile(businessId)
+    getBusinessProfile(businessId),
+    getMembershipPlans(businessId)
   ]);
 
   if (!product) {
@@ -86,6 +104,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             businessId={businessId}
             businessProfile={businessProfile}
             categories={categories}
+            membershipPlans={membershipPlans}
           />
 
           <ProfessionalFooter 
