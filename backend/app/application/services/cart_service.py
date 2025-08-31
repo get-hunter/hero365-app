@@ -19,9 +19,9 @@ from ..dto.cart_dto import (
 from ..exceptions.application_exceptions import (
     ApplicationError,
     ValidationError,
-    EntityNotFoundError,
     BusinessRuleError
 )
+from ...domain.exceptions.domain_exceptions import EntityNotFoundError
 from ...domain.repositories.business_repository import BusinessRepository
 from ...domain.repositories.cart_repository import CartRepository
 from ...domain.repositories.product_repository import ProductRepository
@@ -276,25 +276,16 @@ class CartService:
             ApplicationError: If operation fails
         """
         try:
-            # Get existing cart
-            cart = await self.get_cart(cart_id)
-            if not cart:
-                raise EntityNotFoundError(f"Cart not found: {cart_id}")
+            # Use repository to remove item
+            updated_cart_entity = await self.cart_repository.remove_item_from_cart(
+                uuid.UUID(cart_id), 
+                uuid.UUID(item_id)
+            )
             
-            # Find and remove item
-            item_found = False
-            cart.items = [item for item in cart.items if item.id != item_id]
-            
-            if len(cart.items) == len([item for item in cart.items if item.id != item_id]):
-                raise EntityNotFoundError(f"Item not found in cart: {item_id}")
-            
-            # Recalculate cart totals
-            cart = self._recalculate_cart_totals(cart)
-            cart.updated_at = datetime.now(timezone.utc)
-            
-            # TODO: Save to repository
+            # Convert entity to DTO
+            updated_cart_dto = self._convert_cart_entity_to_dto(updated_cart_entity)
             logger.info(f"Removed item {item_id} from cart {cart_id}")
-            return cart
+            return updated_cart_dto
             
         except (EntityNotFoundError, ValidationError):
             raise
@@ -328,30 +319,17 @@ class CartService:
             if quantity <= 0:
                 raise ValidationError("Quantity must be greater than 0")
             
-            # Get existing cart
-            cart = await self.get_cart(cart_id)
-            if not cart:
-                raise EntityNotFoundError(f"Cart not found: {cart_id}")
+            # Use repository to update item quantity
+            updated_cart_entity = await self.cart_repository.update_item_quantity(
+                uuid.UUID(cart_id), 
+                uuid.UUID(item_id), 
+                quantity
+            )
             
-            # Find and update item
-            item_found = False
-            for item in cart.items:
-                if item.id == item_id:
-                    item.quantity = quantity
-                    item.updated_at = datetime.now(timezone.utc)
-                    item_found = True
-                    break
-            
-            if not item_found:
-                raise EntityNotFoundError(f"Item not found in cart: {item_id}")
-            
-            # Recalculate cart totals
-            cart = self._recalculate_cart_totals(cart)
-            cart.updated_at = datetime.now(timezone.utc)
-            
-            # TODO: Save to repository
+            # Convert entity to DTO
+            updated_cart_dto = self._convert_cart_entity_to_dto(updated_cart_entity)
             logger.info(f"Updated item {item_id} quantity to {quantity} in cart {cart_id}")
-            return cart
+            return updated_cart_dto
             
         except (EntityNotFoundError, ValidationError):
             raise

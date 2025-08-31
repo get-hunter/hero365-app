@@ -1,0 +1,4 @@
+Usage: uvicorn [OPTIONS] APP
+Try 'uvicorn --help' for help.
+
+Error: Got unexpected extra arguments (uv run uvicorn app.main:app)

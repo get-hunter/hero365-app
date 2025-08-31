@@ -179,6 +179,18 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
         itemCount: cart.item_count, 
         items: cart.items?.length || 0 
       });
+      console.log('🛒 [CART-CONTEXT] Full cart data:', cart);
+      console.log('🛒 [CART-CONTEXT] Cart items:', cart.items);
+      if (cart.items && cart.items.length > 0) {
+        cart.items.forEach((item: any, index: number) => {
+          console.log(`🛒 [CART-CONTEXT] Item ${index}:`, {
+            id: item.id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price
+          });
+        });
+      }
       dispatch({ type: 'SET_CART', payload: cart });
       
       // Also get cart summary
@@ -243,22 +255,34 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     const cartId = getCartId();
     if (!cartId) return;
 
+    console.log('🛒 [CART] Updating item quantity:', { cartId, itemId, quantity });
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}/items/${itemId}?quantity=${quantity}&business_id=${businessId}`, {
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}/items/${itemId}`, {
         method: 'PUT',
-        headers: getDefaultHeaders()
+        headers: getDefaultHeaders(),
+        body: JSON.stringify({ quantity })
       });
 
+      console.log('🛒 [CART] Update response:', response.status, response.statusText);
+
       if (!response.ok) {
-        throw new Error('Failed to update cart item');
+        const errorText = await response.text();
+        console.error('❌ [CART] Update failed:', response.status, errorText);
+        throw new Error(`Failed to update cart item: ${response.status} ${errorText}`);
       }
 
+      console.log('✅ [CART] Item updated successfully');
       // Refresh the cart to get updated data
       await refreshCart();
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to update cart item' });
+      console.error('❌ [CART] Failed to update item:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update cart item';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+      throw new Error(errorMessage);
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
