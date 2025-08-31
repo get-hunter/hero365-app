@@ -7,7 +7,7 @@ import { CartProvider } from '@/lib/contexts/CartContext';
 import { getBusinessConfig, getBackendUrl } from '@/lib/config/api-config';
 
 // Configure for Edge Runtime (required for Cloudflare Pages)
-export const runtime = 'edge';
+// Note: Using Node.js runtime for OpenNext compatibility
 
 async function loadBusinessProfile(businessId: string) {
   try {

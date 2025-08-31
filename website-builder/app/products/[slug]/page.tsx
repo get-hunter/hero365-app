@@ -6,7 +6,7 @@ import EliteHeader from '@/components/layout/EliteHeader';
 import ProfessionalFooter from '@/components/professional/ProfessionalFooter';
 
 export const revalidate = 300;
-export const runtime = 'edge';
+// Note: Using Node.js runtime for OpenNext compatibility
 
 async function getProduct(businessId: string, slug: string) {
   // Call backend API directly (CORS is allowed in local env), absolute URL required on server

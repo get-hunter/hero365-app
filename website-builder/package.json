@@ -5,21 +5,20 @@
   "scripts": {
     "dev": "next dev",
     "prebuild": "node ./scripts/set-ngrok-env.mjs",
-    "prebuild:ssr": "node ./scripts/set-ngrok-env.mjs",
     "build": "next build",
     "start": "next start",
     "generate": "npm run build",
     "seo-generate": "tsx lib/build-time/seo-generator.ts",
-    "cf-deploy": "npx wrangler pages deploy out",
-    "build:ssr": "next build && npx @cloudflare/next-on-pages",
-    "deploy:ssr": "wrangler pages deploy .vercel/output/static --project-name hero365-contractors-webs",
-    "deploy": "node scripts/deploy-with-business.js",
-    "deploy:production": "node scripts/deploy-with-business.js --env=production",
-    "deploy:staging": "node scripts/deploy-with-business.js --env=staging",
-    "deploy:dev": "./scripts/deploy-cloudflare.sh",
-    "deploy:help": "node scripts/deploy-with-business.js --help"
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "deploy:production": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env production",
+    "deploy:staging": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env staging",
+    "deploy:preview": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env preview",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "deploy:help": "opennextjs-cloudflare --help"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.6.5",
     "@radix-ui/react-accordion": "^1.2.1",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-avatar": "^1.1.1",
@@ -46,11 +45,11 @@
     "web-vitals": "^5.1.0"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.14",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.16",
+    "esbuild": "^0.25.9",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.4.0",
     "typescript": "^5",

@@ -8,7 +8,7 @@ import { CartProvider } from '@/lib/contexts/CartContext';
 import ProjectDetailClient from './ProjectDetailClient';
 
 // Configure for Edge Runtime (required for Cloudflare Pages)
-export const runtime = 'edge';
+// Note: Using Node.js runtime for OpenNext compatibility
 
 async function loadProjectData(businessId: string, projectSlug: string) {
   try {

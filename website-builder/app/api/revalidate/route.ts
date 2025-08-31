@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 
-// Configure for Edge Runtime (required for Cloudflare Pages)
-export const runtime = 'edge';
+// Note: Using Node.js runtime for OpenNext compatibility
+// Edge runtime functions need to be defined separately for OpenNext
 
 /**
  * On-demand ISR revalidation endpoint

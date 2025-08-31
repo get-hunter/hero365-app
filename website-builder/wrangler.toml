@@ -1,21 +1,41 @@
-name = "hero365-contractors-webs"
-compatibility_date = "2024-01-25"
+main = ".open-next/worker.js"
+name = "hero365-website"
+compatibility_date = "2025-03-25"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".vercel/output/static"
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
 
 [env.production]
-name = "hero365-contractors-webs"
+name = "hero365-website-production"
 
-[env.preview]  
-name = "hero365-contractors-webs-preview"
+[env.preview]
+name = "hero365-website-preview"
 
-# Pages configuration
-# Note: Pages projects do not support [build] in wrangler.toml; build is run prior to deploy
+[env.staging]
+name = "hero365-website-staging"
 
-# Custom domain configuration (optional)
-# [env.production.route]
-# pattern = "*.yourdomain.com/*"
+# Multi-tenant routing - configure domains as needed
+# [env.production.routes]
+# pattern = "*.hero365.app/*"
+# zone_id = "YOUR_ZONE_ID"
 
-# Environment variables (if needed)
-# [env.production.vars]
-# API_URL = "https://api.hero365.ai"
+# Environment variables
+[vars]
+NEXT_PUBLIC_API_URL = "https://api.hero365.ai"
+NEXT_PUBLIC_API_VERSION = "v1"
+NEXT_PUBLIC_DEBUG_MODE = "false"
+NEXT_PUBLIC_ANALYTICS_ENABLED = "true"
+
+[env.preview.vars]
+NEXT_PUBLIC_API_URL = "https://api-preview.hero365.ai"
+NEXT_PUBLIC_API_VERSION = "v1"
+NEXT_PUBLIC_DEBUG_MODE = "true"
+NEXT_PUBLIC_ANALYTICS_ENABLED = "false"
+
+[env.staging.vars]
+NEXT_PUBLIC_API_URL = "https://api-staging.hero365.ai"
+NEXT_PUBLIC_API_VERSION = "v1"
+NEXT_PUBLIC_DEBUG_MODE = "true"
+NEXT_PUBLIC_ANALYTICS_ENABLED = "false"

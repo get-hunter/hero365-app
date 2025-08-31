@@ -19,7 +19,7 @@ import { ServicePricing, MembershipPlan } from '../../lib/types/membership';
 
 // Force dynamic rendering for pricing page
 export const dynamic = 'force-dynamic';
-export const runtime = 'edge';
+// Note: Using Node.js runtime for OpenNext compatibility
 
 export const metadata: Metadata = {
   title: 'Prices - Professional Service Pricing & Membership Plans',

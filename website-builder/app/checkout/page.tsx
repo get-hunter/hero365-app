@@ -7,7 +7,7 @@ import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvide
 import { CartProvider } from '@/lib/contexts/CartContext';
 
 // Configure for Edge Runtime (required for Cloudflare Pages)
-export const runtime = 'edge';
+// Note: Using Node.js runtime for OpenNext compatibility
 
 async function loadBusinessProfile(businessId: string) {
   try {

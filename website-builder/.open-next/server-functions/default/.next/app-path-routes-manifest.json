@@ -1,0 +1,19 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/favicon.ico/route": "/favicon.ico",
+  "/api/revalidate/route": "/api/revalidate",
+  "/cart/page": "/cart",
+  "/widget-demo/page": "/widget-demo",
+  "/booking/page": "/booking",
+  "/page": "/",
+  "/templates/professional/page": "/templates/professional",
+  "/checkout/page": "/checkout",
+  "/templates/professional/booking/page": "/templates/professional/booking",
+  "/products/[slug]/page": "/products/[slug]",
+  "/pricing/page": "/pricing",
+  "/projects/[slug]/page": "/projects/[slug]",
+  "/checkout/success/page": "/checkout/success",
+  "/projects/page": "/projects",
+  "/products/page": "/products",
+  "/widget/page": "/widget"
+}
