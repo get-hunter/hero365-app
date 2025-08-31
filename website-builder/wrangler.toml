@@ -35,7 +35,7 @@ NEXT_PUBLIC_DEBUG_MODE = "true"
 NEXT_PUBLIC_ANALYTICS_ENABLED = "false"
 
 [env.staging.vars]
-NEXT_PUBLIC_API_URL = "https://api-staging.hero365.ai"
+NEXT_PUBLIC_API_URL = "https://73d34a85b4db.ngrok-free.app"
 NEXT_PUBLIC_API_VERSION = "v1"
 NEXT_PUBLIC_DEBUG_MODE = "true"
 NEXT_PUBLIC_ANALYTICS_ENABLED = "false"

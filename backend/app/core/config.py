@@ -91,7 +91,15 @@ class Settings(BaseSettings):
                 "http://127.0.0.1:3000",
                 "http://127.0.0.1:3001",
                 "https://localhost:3000",
-                "https://localhost:5173"
+                "https://localhost:5173",
+                "http://localhost:8787",  # Cloudflare Workers preview (default)
+                "http://127.0.0.1:8787",  # Cloudflare Workers preview (alternative)
+                # Dynamic ports for Wrangler preview (common range)
+                "http://localhost:57808", # Current dynamic port
+                "http://localhost:57809",
+                "http://localhost:57810",
+                "http://localhost:57811",
+                "http://localhost:57812"
             ])
         
         # 4. Cloudflare Pages domains (for website deployments)
@@ -102,7 +110,14 @@ class Settings(BaseSettings):
             "https://4b916b7d.hero365-contractors-webs.pages.dev",
         ])
         
-        # 5. Production domains (only in production)
+        # 5. Cloudflare Workers domains (for Next.js on Workers)
+        cors_origins.extend([
+            "https://hero365-website-staging.hero365.workers.dev",    # Staging Workers
+            "https://hero365-website-preview.hero365.workers.dev",    # Preview Workers
+            "https://hero365-website-production.hero365.workers.dev", # Production Workers (when ready)
+        ])
+        
+        # 6. Production domains (only in production)
         if self.ENVIRONMENT == "production":
             cors_origins.extend([
                 f"https://{self.API_DOMAIN}",
