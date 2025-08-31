@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ProductCatalogItem, ProductCategory, MembershipType, ProductInstallationOption } from '@/lib/types/products';
 import { BookingCTAButton } from '@/components/booking/BookingWidgetProvider';
 import { useCart } from '@/lib/contexts/CartContext';
+import { getDefaultHeaders } from '@/lib/config/api-config';
 import MembershipPricingDisplay from '@/components/ecommerce/MembershipPricingDisplay';
 import ProductVariantSelector from '@/components/ecommerce/ProductVariantSelector';
 import ProductSchema from '@/components/seo/ProductSchema';
@@ -105,7 +106,9 @@ export function ProductDetailClient({
         installation_option_id: selectedInstallation.id,
         quantity: String(quantity)
       });
-      const response = await fetch(`${backendUrl}/api/v1/public/contractors/product-pricing/${businessId}/${product.id}?${params.toString()}`);
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/product-pricing/${businessId}/${product.id}?${params.toString()}`, {
+        headers: getDefaultHeaders()
+      });
       
       if (response.ok) {
         const pricing = await response.json();

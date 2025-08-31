@@ -13,7 +13,7 @@ import ProfessionalFooter from '../../components/professional/ProfessionalFooter
 import { BookingWidgetProvider } from '../../components/booking/BookingWidgetProvider';
 import { CartProvider } from '../../lib/contexts/CartContext';
 import PricingPageClient from './PricingPageClient';
-import { getBusinessConfig, getBackendUrl } from '../../lib/config/api-config';
+import { getBusinessConfig, getBackendUrl, getDefaultHeaders } from '../../lib/config/api-config';
 
 import { ServicePricing, MembershipPlan } from '../../lib/types/membership';
 
@@ -37,16 +37,16 @@ async function loadBusinessData(businessId: string) {
     
     const [profileResponse, servicesResponse, membershipResponse, pricingResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' }
+        headers: getDefaultHeaders()
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/services/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' }
+        headers: getDefaultHeaders()
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/membership-plans/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' }
+        headers: getDefaultHeaders()
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/service-pricing/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' }
+        headers: getDefaultHeaders()
       })
     ]);
     

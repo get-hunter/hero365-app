@@ -9,7 +9,7 @@
     "start": "next start",
     "generate": "npm run build",
     "seo-generate": "tsx lib/build-time/seo-generator.ts",
-    "preview": "NODE_NO_WARNINGS=1 opennextjs-cloudflare build && NODE_NO_WARNINGS=1 opennextjs-cloudflare preview --port 8787",
+    "preview": "NODE_NO_WARNINGS=1 opennextjs-cloudflare build && NODE_NO_WARNINGS=1 opennextjs-cloudflare preview --port 8787 --env staging",
     "deploy": "NODE_NO_WARNINGS=1 opennextjs-cloudflare build && NODE_NO_WARNINGS=1 opennextjs-cloudflare deploy",
     "deploy:production": "NODE_NO_WARNINGS=1 opennextjs-cloudflare build && NODE_NO_WARNINGS=1 opennextjs-cloudflare deploy --env production",
     "deploy:staging": "NODE_NO_WARNINGS=1 opennextjs-cloudflare build && NODE_NO_WARNINGS=1 opennextjs-cloudflare deploy --env staging",

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Clock, Star, ArrowRight, Play } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getBackendUrl } from '@/lib/config/api-config';
+import { getBackendUrl, getDefaultHeaders } from '@/lib/config/api-config';
 
 interface FeaturedProject {
   id: string;
@@ -72,7 +72,7 @@ export default function FeaturedProjectsGrid({
         const response = await fetch(
           `${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}?${params}`,
           {
-            headers: { 'Content-Type': 'application/json' }
+            headers: getDefaultHeaders()
           }
         );
         

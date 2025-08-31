@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { getBusinessConfig } from '@/lib/config/api-config';
+import { getBusinessConfig, getDefaultHeaders } from '@/lib/config/api-config';
 import EliteHeader from '@/components/layout/EliteHeader';
 import ProfessionalFooter from '@/components/professional/ProfessionalFooter';
 import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvider';
@@ -18,11 +18,11 @@ async function loadProjectData(businessId: string, projectSlug: string) {
     
     const [projectResponse, profileResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}/${projectSlug}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         next: { revalidate: 300 } // Cache for 5 minutes
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         next: { revalidate: 600 } // Cache for 10 minutes
       })
     ]);

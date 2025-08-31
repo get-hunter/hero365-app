@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { ShoppingCart, CartItem, CartSummary, MembershipType } from '@/lib/types/products';
-import { getBackendUrl } from '@/lib/config/api-config';
+import { getBackendUrl, getDefaultHeaders } from '@/lib/config/api-config';
 
 interface CartContextType {
   cart: ShoppingCart | null;
@@ -99,7 +99,7 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
       const sessionId = `session_${Date.now()}`;
       const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/create?session_id=${sessionId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: getDefaultHeaders()
       });
 
       if (!response.ok) {
@@ -134,7 +134,9 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
 
   const getCartSummary = async (cartId: string): Promise<void> => {
     try {
-      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}/summary`);
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}/summary`, {
+        headers: getDefaultHeaders()
+      });
       
       if (response.ok) {
         const summary = await response.json();
@@ -156,7 +158,9 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}`);
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}`, {
+        headers: getDefaultHeaders()
+      });
       
       if (!response.ok) {
         if (response.status === 404) {
@@ -213,7 +217,7 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
       console.log('🛒 [CART] Adding item to cart:', cartId, item);
       const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}/items?business_id=${businessId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         body: JSON.stringify(item)
       });
 
@@ -244,7 +248,7 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     try {
       const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}/items/${itemId}?quantity=${quantity}&business_id=${businessId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' }
+        headers: getDefaultHeaders()
       });
 
       if (!response.ok) {
@@ -266,7 +270,8 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     
     try {
       const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}/items/${itemId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getDefaultHeaders()
       });
 
       if (!response.ok) {
@@ -288,7 +293,8 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     
     try {
       const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/${cartId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getDefaultHeaders()
       });
 
       if (!response.ok) {

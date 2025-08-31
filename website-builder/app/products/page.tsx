@@ -5,7 +5,7 @@ import ProfessionalFooter from '../../components/professional/ProfessionalFooter
 import { BookingWidgetProvider } from '../../components/booking/BookingWidgetProvider';
 import { CartProvider } from '../../lib/contexts/CartContext';
 import ProductListingClient from './ProductListingClient';
-import { getBusinessConfig } from '../../lib/config/api-config';
+import { getBusinessConfig, getDefaultHeaders } from '../../lib/config/api-config';
 
 export const metadata: Metadata = {
   title: 'Professional Products & Installation Services - Shop Online',
@@ -20,15 +20,15 @@ async function loadProductData(businessId: string) {
     
     const [catalogResponse, categoriesResponse, profileResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/product-catalog/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         next: { revalidate: 300 } // Cache for 5 minutes
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/product-categories/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         next: { revalidate: 600 } // Cache for 10 minutes
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         next: { revalidate: 600 } // Cache for 10 minutes
       })
     ]);

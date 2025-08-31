@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/lib/contexts/CartContext';
 import { CheckoutFormData, CheckoutStep, CheckoutValidation, CheckoutResponse } from '@/lib/types/checkout';
 import { ShoppingCart } from '@/lib/types/products';
-import { getBackendUrl } from '@/lib/config/api-config';
+import { getBackendUrl, getDefaultHeaders } from '@/lib/config/api-config';
 
 // Import checkout step components (we'll create these next)
 import { CustomerInfoStep } from '@/components/checkout/CustomerInfoStep';
@@ -154,7 +154,7 @@ export function CheckoutPageClient({ businessProfile }: CheckoutPageClientProps)
 
       const response = await fetch(`${backendUrl}/api/v1/public/contractors/${businessProfile.business_id}/checkout/process`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         body: JSON.stringify({
           cart_id: cart.id,
           customer: formData.customer,

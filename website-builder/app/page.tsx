@@ -18,7 +18,7 @@ import { BookingWidgetProvider } from '../components/booking/BookingWidgetProvid
 import { CartProvider } from '../lib/contexts/CartContext';
 import { professionalApi, ProfessionalProfile, ServiceItem } from '../lib/api/professional-client';
 import { BookableService } from '../lib/types/booking';
-import { getBusinessConfig, getBackendUrl } from '../lib/config/api-config';
+import { getBusinessConfig, getBackendUrl, getDefaultHeaders } from '../lib/config/api-config';
 
 async function loadBusinessData(businessId: string) {
   try {
@@ -31,15 +31,15 @@ async function loadBusinessData(businessId: string) {
     
     const [profileResponse, servicesResponse, productsResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         next: { revalidate: 3600, tags: ['profile', businessId] } // 1 hour ISR
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/services/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         next: { revalidate: 1800, tags: ['services', businessId] } // 30 min ISR
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/product-catalog/${businessId}?featured_only=true&limit=6`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         next: { revalidate: 900, tags: ['products', businessId] } // 15 min ISR
       })
     ]);

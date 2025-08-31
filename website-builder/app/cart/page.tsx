@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getBusinessConfig, getBackendUrl } from '@/lib/config/api-config';
+import { getBusinessConfig, getBackendUrl, getDefaultHeaders } from '@/lib/config/api-config';
 import { CartPageClient } from './CartPageClient';
 
 // Static generation enabled for Cloudflare Pages
@@ -13,7 +13,7 @@ async function loadBusinessProfile(businessId: string) {
     const backendUrl = getBackendUrl();
     
     const response = await fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
-      headers: { 'Content-Type': 'application/json' }
+      headers: getDefaultHeaders()
     });
     
     if (response.ok) {

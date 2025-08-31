@@ -4,7 +4,7 @@ import EliteHeader from '@/components/layout/EliteHeader';
 import ProfessionalFooter from '@/components/professional/ProfessionalFooter';
 import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvider';
 import { CartProvider } from '@/lib/contexts/CartContext';
-import { getBusinessConfig, getBackendUrl } from '@/lib/config/api-config';
+import { getBusinessConfig, getBackendUrl, getDefaultHeaders } from '@/lib/config/api-config';
 
 // Configure for Edge Runtime (required for Cloudflare Pages)
 // Note: Using Node.js runtime for OpenNext compatibility
@@ -21,7 +21,7 @@ async function loadBusinessProfile(businessId: string) {
     });
       
     const response = await fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: getDefaultHeaders(),
       next: { revalidate: 3600, tags: ['profile', businessId] } // 1 hour ISR
     });
 

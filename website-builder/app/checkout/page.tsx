@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getBusinessConfig, getBackendUrl } from '@/lib/config/api-config';
+import { getBusinessConfig, getBackendUrl, getDefaultHeaders } from '@/lib/config/api-config';
 import { CheckoutPageClient } from './CheckoutPageClient';
 import EliteHeader from '@/components/layout/EliteHeader';
 import ProfessionalFooter from '@/components/professional/ProfessionalFooter';
@@ -21,7 +21,7 @@ async function loadBusinessProfile(businessId: string) {
     });
       
     const response = await fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: getDefaultHeaders(),
       next: { revalidate: 3600, tags: ['profile', businessId] } // 1 hour ISR
     });
 

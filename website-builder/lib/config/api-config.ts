@@ -310,6 +310,12 @@ export function getDefaultHeaders(): Record<string, string> {
   // Add version header
   headers['X-API-Version'] = getApiConfig().apiVersion;
 
+  // Add ngrok header if using ngrok tunnel
+  const apiUrl = getApiConfig().baseUrl;
+  if (apiUrl.includes('ngrok')) {
+    headers['ngrok-skip-browser-warning'] = 'true';
+  }
+
   return headers;
 }
 

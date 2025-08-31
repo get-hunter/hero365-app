@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { getBusinessConfig, getBackendUrl } from '@/lib/config/api-config';
+import { getBusinessConfig, getBackendUrl, getDefaultHeaders } from '@/lib/config/api-config';
 import EliteHeader from '@/components/layout/EliteHeader';
 import ProfessionalFooter from '@/components/professional/ProfessionalFooter';
 import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvider';
@@ -20,19 +20,19 @@ async function loadProjectData(businessId: string) {
     
     const [projectsResponse, categoriesResponse, tagsResponse, profileResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}?limit=12&offset=0&featured_only=true`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         next: { revalidate: 600, tags: ['projects', businessId] } // 10 min ISR
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/project-categories/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         next: { revalidate: 86400, tags: ['categories', businessId] } // 1 day ISR
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/project-tags/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         next: { revalidate: 86400, tags: ['tags', businessId] } // 1 day ISR
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: getDefaultHeaders(),
         next: { revalidate: 3600, tags: ['profile', businessId] } // 1 hour ISR
       })
     ]);
