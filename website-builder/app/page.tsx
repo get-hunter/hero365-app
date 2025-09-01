@@ -25,6 +25,9 @@ async function loadBusinessData(businessId: string) {
     console.log('🔄 [SERVER] Loading business data for:', businessId);
     console.log('🔄 [SERVER] Environment:', process.env.NODE_ENV);
     
+    // Try API calls during build time for hybrid rendering
+    // Only fall back to demo data if API is actually unavailable
+    
     // Make direct API calls to the backend (server-to-server)
     const backendUrl = getBackendUrl();
     console.log('🔄 [SERVER] Backend URL:', backendUrl);
@@ -33,14 +36,23 @@ async function loadBusinessData(businessId: string) {
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
         headers: getDefaultHeaders(),
         next: { revalidate: 3600, tags: ['profile', businessId] } // 1 hour ISR
+      }).catch(err => {
+        console.log('⚠️ [SERVER] Profile API failed:', err.message);
+        return { ok: false };
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/services/${businessId}`, {
         headers: getDefaultHeaders(),
         next: { revalidate: 1800, tags: ['services', businessId] } // 30 min ISR
+      }).catch(err => {
+        console.log('⚠️ [SERVER] Services API failed:', err.message);
+        return { ok: false };
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/product-catalog/${businessId}?featured_only=true&limit=6`, {
         headers: getDefaultHeaders(),
         next: { revalidate: 900, tags: ['products', businessId] } // 15 min ISR
+      }).catch(err => {
+        console.log('⚠️ [SERVER] Products API failed:', err.message);
+        return { ok: false };
       })
     ]);
     

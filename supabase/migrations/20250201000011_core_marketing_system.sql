@@ -31,10 +31,21 @@ CREATE TABLE IF NOT EXISTS featured_projects (
     -- Media
     featured_image_url TEXT,
     gallery_images TEXT[], -- Array of image URLs
+    before_images TEXT[] DEFAULT '{}', -- Array of before project images
+    after_images TEXT[] DEFAULT '{}', -- Array of after project images
     video_url TEXT,
+    
+    -- Project Details
+    project_duration TEXT, -- Human readable duration (e.g., "3 days", "2 weeks")
+    challenges_faced TEXT[] DEFAULT '{}', -- Array of challenges encountered
+    solutions_provided TEXT[] DEFAULT '{}', -- Array of solutions implemented
+    equipment_installed TEXT[] DEFAULT '{}', -- Array of equipment/systems installed
+    warranty_info TEXT, -- Warranty information
+    tags TEXT[] DEFAULT '{}', -- Array of tags for categorization
     
     -- SEO
     slug VARCHAR(255) UNIQUE,
+    seo_slug VARCHAR(255), -- Alias for slug for API compatibility
     meta_description TEXT,
     
     -- Display

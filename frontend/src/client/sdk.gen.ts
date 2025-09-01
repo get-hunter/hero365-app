@@ -501,6 +501,10 @@ import type {
   PurchaseOrdersGetPendingApprovalOrdersResponse,
   PurchaseOrdersGetPendingReceiptOrdersData,
   PurchaseOrdersGetPendingReceiptOrdersResponse,
+  SeoGetSeoPagesData,
+  SeoGetSeoPagesResponse,
+  SeoGetSeoPageContentData,
+  SeoGetSeoPageContentResponse,
   ServiceAreasCheckServiceAreaSupportData,
   ServiceAreasCheckServiceAreaSupportResponse,
   ServiceAreasCreateAvailabilityRequestData,
@@ -7597,6 +7601,76 @@ export class PurchaseOrdersService {
         page: data.page,
         page_size: data.pageSize,
         overdue_only: data.overdueOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class SeoService {
+  /**
+   * Get Seo Pages
+   * Get SEO page data for a business.
+   *
+   * Returns generated SEO pages for static site generation.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   *
+   * Returns:
+   * Dict containing SEO page data
+   *
+   * Raises:
+   * HTTPException: If business not found or retrieval fails
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getSeoPages(
+    data: SeoGetSeoPagesData,
+  ): CancelablePromise<SeoGetSeoPagesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/seo/pages/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Seo Page Content
+   * Get content for a specific SEO page.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * page_path: The page path to get content for
+   *
+   * Returns:
+   * Dict containing page content
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.pagePath
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getSeoPageContent(
+    data: SeoGetSeoPageContentData,
+  ): CancelablePromise<SeoGetSeoPageContentResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/seo/page-content/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        page_path: data.pagePath,
       },
       errors: {
         422: "Validation Error",

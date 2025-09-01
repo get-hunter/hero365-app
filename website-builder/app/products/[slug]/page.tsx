@@ -9,33 +9,49 @@ export const revalidate = 300;
 // Note: Using Node.js runtime for OpenNext compatibility
 
 async function getProduct(businessId: string, slug: string) {
-  // Call backend API directly (CORS is allowed in local env), absolute URL required on server
-  const base = getBackendUrl();
-  const url = `${base}/api/v1/public/contractors/product-by-slug/${businessId}/${encodeURIComponent(slug)}`;
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: { 'Accept': 'application/json' },
-    cache: 'no-store'
-  });
-  if (!res.ok) {
+  // Try API calls during build time for hybrid rendering
+
+  try {
+    // Call backend API directly (CORS is allowed in local env), absolute URL required on server
+    const base = getBackendUrl();
+    const url = `${base}/api/v1/public/contractors/product-by-slug/${businessId}/${encodeURIComponent(slug)}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+    if (!res.ok) {
+      return null;
+    }
+    return res.json();
+  } catch (error) {
+    console.log('⚠️ [PRODUCT] Product API failed:', error.message);
     return null;
   }
-  return res.json();
 }
 
 async function getBusinessProfile(businessId: string) {
-  const base = getBackendUrl();
-  const url = `${base}/api/v1/public/contractors/profile/${businessId}`;
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: { 'Accept': 'application/json' },
-    cache: 'no-store'
-  });
-  if (!res.ok) return null;
-  return res.json();
+  // Try API calls during build time for hybrid rendering
+
+  try {
+    const base = getBackendUrl();
+    const url = `${base}/api/v1/public/contractors/profile/${businessId}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch (error) {
+    console.log('⚠️ [PRODUCT] Profile API failed:', error.message);
+    return null;
+  }
 }
 
 async function getMembershipPlans(businessId: string) {
+  // Try API calls during build time for hybrid rendering
+
   try {
     const base = getBackendUrl();
     const url = `${base}/api/v1/public/contractors/membership-plans/${businessId}`;
@@ -47,7 +63,7 @@ async function getMembershipPlans(businessId: string) {
     if (!res.ok) return [];
     return res.json();
   } catch (error) {
-    console.error('Failed to load membership plans:', error);
+    console.log('⚠️ [PRODUCT] Membership plans API failed:', error.message);
     return [];
   }
 }

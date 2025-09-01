@@ -31,6 +31,9 @@ async function loadBusinessData(businessId: string) {
     console.log('🔄 [PRICING] Loading business data for:', businessId);
     console.log('🔄 [PRICING] Environment:', process.env.NODE_ENV);
     
+    // Try API calls during build time for hybrid rendering
+    // Only fall back to demo data if API is actually unavailable
+    
     // Make direct API calls to the backend (server-to-server)
     const backendUrl = getBackendUrl();
     console.log('🔄 [PRICING] Backend URL:', backendUrl);
@@ -38,15 +41,27 @@ async function loadBusinessData(businessId: string) {
     const [profileResponse, servicesResponse, membershipResponse, pricingResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
         headers: getDefaultHeaders()
+      }).catch(err => {
+        console.log('⚠️ [PRICING] Profile API failed:', err.message);
+        return { ok: false };
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/services/${businessId}`, {
         headers: getDefaultHeaders()
+      }).catch(err => {
+        console.log('⚠️ [PRICING] Services API failed:', err.message);
+        return { ok: false };
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/membership-plans/${businessId}`, {
         headers: getDefaultHeaders()
+      }).catch(err => {
+        console.log('⚠️ [PRICING] Membership API failed:', err.message);
+        return { ok: false };
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/service-pricing/${businessId}`, {
         headers: getDefaultHeaders()
+      }).catch(err => {
+        console.log('⚠️ [PRICING] Pricing API failed:', err.message);
+        return { ok: false };
       })
     ]);
     

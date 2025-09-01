@@ -8,11 +8,13 @@ import { CartProvider } from '@/lib/contexts/CartContext';
 import ProjectDetailClient from './ProjectDetailClient';
 
 // Note: Using Node.js runtime for OpenNext compatibility
-// Edge runtime functions need to be defined separately for OpenNext
 
 async function loadProjectData(businessId: string, projectSlug: string) {
   try {
     console.log('🔄 [PROJECT DETAIL] Loading project data for:', businessId, projectSlug);
+    
+    // Try API calls during build time for hybrid rendering
+    // Only fall back to demo data if API is actually unavailable
     
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
     
@@ -20,10 +22,16 @@ async function loadProjectData(businessId: string, projectSlug: string) {
       fetch(`${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}/${projectSlug}`, {
         headers: getDefaultHeaders(),
         next: { revalidate: 300 } // Cache for 5 minutes
+      }).catch(err => {
+        console.log('⚠️ [PROJECT DETAIL] Project API failed:', err.message);
+        return { ok: false };
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
         headers: getDefaultHeaders(),
         next: { revalidate: 600 } // Cache for 10 minutes
+      }).catch(err => {
+        console.log('⚠️ [PROJECT DETAIL] Profile API failed:', err.message);
+        return { ok: false };
       })
     ]);
     
@@ -195,12 +203,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const businessId = businessConfig.defaultBusinessId;
   const projectSlug = resolvedParams.slug;
 
+  // Try to load metadata from API during build time
+
   try {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     const response = await fetch(
       `${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}/${projectSlug}`,
       { headers: { 'Content-Type': 'application/json' }, cache: 'no-store' }
-    );
+    ).catch(err => {
+      console.log('⚠️ [METADATA] Project API failed:', err.message);
+      return { ok: false };
+    });
+    
     if (response.ok) {
       const project = await response.json();
       return {

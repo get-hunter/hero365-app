@@ -25,28 +25,32 @@ let seoPages: Record<string, SEOPageData> = {}
  */
 export async function loadSEOPages(businessId: string): Promise<void> {
   try {
-    // During build time, use demo data directly
-    if (typeof window === 'undefined' && !process.env.NEXT_PUBLIC_API_URL) {
+    // During build time (server-side), always use demo data for reliability
+    const isServerSide = typeof window === 'undefined'
+    
+    if (isServerSide) {
+      // Use demo data during build time to ensure reliable builds
       seoPages = generateDemoSEOPages()
+      console.log('🔧 [SEO] Using demo data during build time for reliability')
       return
     }
     
-    // In production, this would fetch from the API
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+    // Only try API calls on the client side at runtime
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || window.location.origin
     const response = await fetch(`${baseUrl}/api/seo/pages/${businessId}`, {
-      next: { revalidate: 300 } // Revalidate every 5 minutes
+      cache: 'no-store' // Don't cache during development
     })
     
     if (response.ok) {
       const data = await response.json()
       seoPages = data.pages || {}
+      console.log('✅ [SEO] Loaded SEO pages from API:', Object.keys(seoPages).length, 'pages')
     } else {
-      // Fallback to demo data
+      console.log('⚠️ [SEO] API call failed, using demo data')
       seoPages = generateDemoSEOPages()
     }
   } catch (error) {
-    console.error('Failed to load SEO pages:', error)
-    // Use demo data as fallback
+    console.log('⚠️ [SEO] Failed to load SEO pages, using demo data:', error.message)
     seoPages = generateDemoSEOPages()
   }
 }

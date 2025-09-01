@@ -86,7 +86,7 @@ function getApiBaseUrl(environment: string): string {
     case 'development':
       return 'http://localhost:8000';
     case 'staging':
-      return 'https://api-staging.hero365.ai';
+      return 'http://localhost:8000';  // Use localhost for staging builds
     case 'production':
       return 'https://api.hero365.ai';
     default:
@@ -333,7 +333,7 @@ export const DEPLOYMENT_CONFIGS = {
     }
   },
   staging: {
-    apiUrl: 'https://api-staging.hero365.ai',
+    apiUrl: 'http://localhost:8000',
     websiteUrl: 'https://staging.hero365.ai',
     features: {
       analytics: true,

@@ -45,8 +45,10 @@ async function loadProjectData(businessId: string) {
     if (projectsResponse.ok) {
       projects = await projectsResponse.json();
       console.log('✅ [PROJECTS] Projects loaded:', projects.length, 'items');
-      } else {
+    } else {
       console.warn('⚠️ [PROJECTS] Failed to load projects:', projectsResponse.status);
+      // Use demo projects data as fallback
+      projects = [];
     }
     
     if (categoriesResponse.ok) {

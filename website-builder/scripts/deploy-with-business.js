@@ -187,9 +187,9 @@ async function fetchBusinessData(businessId, apiBaseUrl) {
 async function generateBusinessConfig(deploymentConfig) {
   const envConfig = deploymentConfig.environments[CONFIG.environment];
   
-  // Try to fetch real business data
+  // Try to fetch real business data using ngrok-aware API URL
   let businessData = null;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || envConfig.api?.baseUrl;
+  const apiUrl = getApiUrlForEnvironment(CONFIG.environment);
   if (apiUrl) {
     businessData = await fetchBusinessData(CONFIG.businessId, apiUrl);
   }
@@ -231,13 +231,16 @@ async function generateBusinessConfig(deploymentConfig) {
 function generateEnvironmentConfig(deploymentConfig, businessConfig) {
   const envConfig = deploymentConfig.environments[CONFIG.environment];
   
+  // Get the correct API URL (with ngrok support for staging/production)
+  const apiUrl = getApiUrlForEnvironment(CONFIG.environment);
+  
   const envVars = {
     // Environment (critical for SSR consistency)
     NODE_ENV: CONFIG.environment === 'development' ? 'development' : 'production',
     NEXT_PUBLIC_ENVIRONMENT: CONFIG.environment,
     
     // API Configuration
-    NEXT_PUBLIC_API_URL: envConfig.api.baseUrl,
+    NEXT_PUBLIC_API_URL: apiUrl,
     NEXT_PUBLIC_API_TIMEOUT: envConfig.api.timeout.toString(),
     
     // Business Configuration
@@ -290,7 +293,8 @@ function buildWebsite() {
   log('🔨 Building Next.js website...', 'info');
   
   try {
-    const buildCommand = 'npm run build && npx @cloudflare/next-on-pages';
+    // Use the standard Next.js build for OpenNext
+    const buildCommand = 'npm run build';
     verbose(`Executing: ${buildCommand}`);
     
     const output = execSync(buildCommand, { 
@@ -303,12 +307,6 @@ function buildWebsite() {
       verbose(output);
     }
     
-    // Verify build output (Next-on-Pages creates .vercel/output/static)
-    const nextOnPagesOutput = path.resolve(__dirname, '../.vercel/output/static');
-    if (!fs.existsSync(nextOnPagesOutput)) {
-      throw new Error('Next-on-Pages build output directory not found at .vercel/output/static');
-    }
-    
     log('✅ Website build completed successfully', 'success');
     return true;
   } catch (error) {
@@ -318,7 +316,79 @@ function buildWebsite() {
 }
 
 /**
- * Deploy to Cloudflare Pages
+ * Update wrangler.toml with business-specific configuration
+ */
+function updateWranglerConfig(businessConfig) {
+  try {
+    const wranglerPath = path.resolve(PATHS.root, 'wrangler.toml');
+    
+    // Read current wrangler.toml
+    let wranglerContent = fs.readFileSync(wranglerPath, 'utf8');
+    
+    // Update business-specific environment variables
+    const businessId = businessConfig.businessId;
+    const businessName = businessConfig.businessData.business_name;
+    
+    // Update the staging environment variables
+    const envSection = `[env.${CONFIG.environment}.vars]`;
+    const newVars = `
+NEXT_PUBLIC_BUSINESS_ID = "${businessId}"
+NEXT_PUBLIC_BUSINESS_NAME = "${businessName}"
+NEXT_PUBLIC_BUSINESS_PHONE = "${businessConfig.businessData.phone || ''}"
+NEXT_PUBLIC_BUSINESS_EMAIL = "${businessConfig.businessData.email || ''}"
+NEXT_PUBLIC_API_URL = "${getApiUrlForEnvironment(CONFIG.environment)}"
+NEXT_PUBLIC_API_VERSION = "v1"
+NEXT_PUBLIC_DEBUG_MODE = "${CONFIG.environment === 'production' ? 'false' : 'true'}"
+NEXT_PUBLIC_ANALYTICS_ENABLED = "true"
+NEXT_PUBLIC_ENVIRONMENT = "${CONFIG.environment}"
+`;
+
+    // Replace or add the environment section
+    const envSectionRegex = new RegExp(`\\[env\\.${CONFIG.environment}\\.vars\\][\\s\\S]*?(?=\\n\\[|$)`, 'g');
+    if (wranglerContent.match(envSectionRegex)) {
+      wranglerContent = wranglerContent.replace(envSectionRegex, envSection + newVars);
+    } else {
+      wranglerContent += '\n' + envSection + newVars;
+    }
+    
+    // Write updated wrangler.toml
+    fs.writeFileSync(wranglerPath, wranglerContent);
+    log('✅ Updated wrangler.toml with business configuration', 'success');
+    
+  } catch (error) {
+    log(`⚠️ Failed to update wrangler.toml: ${error.message}`, 'warning');
+  }
+}
+
+/**
+ * Get API URL for environment
+ */
+function getApiUrlForEnvironment(environment) {
+  // For staging/production, try to get ngrok URL first
+  if (environment === 'staging' || environment === 'production') {
+    const ngrokUrl = process.env.NGROK_PUBLIC_URL;
+    if (ngrokUrl) {
+      log(`🌐 Using ngrok URL for ${environment}: ${ngrokUrl}`, 'info');
+      return ngrokUrl;
+    }
+  }
+  
+  switch (environment) {
+    case 'development':
+      return 'http://127.0.0.1:8000';
+    case 'staging':
+      // Fallback to localhost if no ngrok URL available
+      log('⚠️  No NGROK_PUBLIC_URL found, falling back to localhost (may cause CORS issues)', 'warn');
+      return 'http://127.0.0.1:8000';
+    case 'production':
+      return 'https://api.hero365.ai';
+    default:
+      return 'http://127.0.0.1:8000';
+  }
+}
+
+/**
+ * Deploy to Cloudflare Workers
  */
 function deployToCloudflare(businessConfig) {
   if (CONFIG.buildOnly) {
@@ -326,26 +396,18 @@ function deployToCloudflare(businessConfig) {
     return { success: true, buildOnly: true };
   }
   
-  log('🚀 Deploying to Cloudflare Pages...', 'info');
+  log('🚀 Deploying to Cloudflare Workers...', 'info');
   
   try {
-    // Generate project name
-    let projectName = CONFIG.projectName;
-    if (!projectName) {
-      const businessName = businessConfig.businessData.business_name
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-      projectName = `hero365-${businessName}`;
-    }
+    // Update wrangler.toml with business-specific configuration
+    updateWranglerConfig(businessConfig);
     
-    // Build deployment command using Next-on-Pages for optimal Cloudflare integration
-    let deployCommand = `npx @cloudflare/next-on-pages && wrangler pages deploy .vercel/output/static --project-name ${projectName}`;
+    // Build deployment command using OpenNext for Cloudflare Workers
+    let deployCommand = `npm run deploy:${CONFIG.environment}`;
     
-    // Add preview flag if specified
-    if (CONFIG.preview && CONFIG.environment === 'staging') {
-      deployCommand += ' --branch preview';
+    // Fallback to generic deploy if environment-specific command doesn't exist
+    if (!['development', 'staging', 'production'].includes(CONFIG.environment)) {
+      deployCommand = 'npm run deploy';
     }
     
     verbose(`Executing: ${deployCommand}`);
@@ -366,10 +428,14 @@ function deployToCloudflare(businessConfig) {
       log(`🌐 Website URL: ${deploymentUrl}`, 'success');
     }
     
+    // Generate expected worker URL based on environment
+    const workerName = `hero365-website-${CONFIG.environment}`;
+    const expectedUrl = `https://${workerName}.hero365.workers.dev`;
+    
     return {
       success: true,
-      projectName,
-      deploymentUrl,
+      workerName,
+      deploymentUrl: deploymentUrl || expectedUrl,
       output: CONFIG.verbose ? null : output
     };
   } catch (error) {

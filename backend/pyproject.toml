@@ -45,6 +45,7 @@ dependencies = [
     "beautifulsoup4>=4.13.4",
     "requests>=2.32.4",
     "boto3>=1.40.14",
+    "rich>=14.1.0",
 ]
 
 [tool.uv]

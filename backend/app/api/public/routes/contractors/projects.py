@@ -84,7 +84,7 @@ async def get_featured_projects(
                 location=project_dto.location,
                 completion_date=project_dto.completion_date,
                 project_duration=project_dto.project_duration or "",
-                project_value=float(project_dto.project_value) if project_dto.project_value else None,
+                project_value=float(project_dto.project_value) if project_dto.project_value is not None else None,
                 customer_name=project_dto.customer_name,
                 customer_testimonial=project_dto.customer_testimonial,
                 before_images=project_dto.before_images,

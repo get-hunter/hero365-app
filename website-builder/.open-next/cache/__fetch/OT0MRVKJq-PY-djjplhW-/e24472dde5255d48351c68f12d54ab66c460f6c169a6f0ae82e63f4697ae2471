@@ -1,0 +1,1 @@
+{"kind":"FETCH","data":{"headers":{"content-length":"2","content-type":"application/json","date":"Mon, 01 Sep 2025 14:54:20 GMT","server":"uvicorn"},"body":"W10=","status":200,"url":"http://127.0.0.1:8000/api/v1/public/contractors/product-categories/550e8400-e29b-41d4-a716-446655440011"},"revalidate":600,"tags":[]}

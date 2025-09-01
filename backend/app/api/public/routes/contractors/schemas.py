@@ -419,7 +419,7 @@ class FeaturedProject(BaseModel):
     trade: str = Field(..., description="Trade type")
     service_category: str = Field(..., description="Service category")
     location: str = Field(..., description="Project location")
-    completion_date: date = Field(..., description="Project completion date")
+    completion_date: Optional[date] = Field(None, description="Project completion date")
     project_duration: str = Field(..., description="Project duration")
     project_value: Optional[float] = Field(None, description="Project value")
     customer_name: Optional[str] = Field(None, description="Customer name")

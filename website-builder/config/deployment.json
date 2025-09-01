@@ -27,7 +27,7 @@
     "staging": {
       "name": "Staging",
       "api": {
-        "baseUrl": "https://api-staging.hero365.ai",
+        "baseUrl": "http://127.0.0.1:8000",
         "timeout": 20000,
         "retries": 2
       },

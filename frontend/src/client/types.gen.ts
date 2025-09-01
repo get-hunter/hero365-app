@@ -4177,7 +4177,7 @@ export type FeaturedProject = {
   /**
    * Project completion date
    */
-  completion_date: string
+  completion_date?: string | null
   /**
    * Project duration
    */
@@ -11654,6 +11654,29 @@ export type PurchaseOrdersGetPendingReceiptOrdersData = {
 
 export type PurchaseOrdersGetPendingReceiptOrdersResponse =
   PurchaseOrderListResponseSchema
+
+export type SeoGetSeoPagesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type SeoGetSeoPagesResponse = {
+  [key: string]: unknown
+}
+
+export type SeoGetSeoPageContentData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  pagePath?: string
+}
+
+export type SeoGetSeoPageContentResponse = {
+  [key: string]: unknown
+}
 
 export type ServiceAreasCheckServiceAreaSupportData = {
   /**

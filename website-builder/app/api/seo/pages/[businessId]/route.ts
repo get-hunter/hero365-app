@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Note: Using Node.js runtime for OpenNext compatibility
+// Edge runtime API routes need to be defined separately for OpenNext
+
 /**
  * SEO Pages API Endpoint
  * Serves generated SEO page data for dynamic routing

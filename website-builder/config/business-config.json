@@ -2,20 +2,22 @@
   "businessId": "550e8400-e29b-41d4-a716-446655440010",
   "environment": "staging",
   "businessData": {
-    "business_name": "Staging HVAC Services",
-    "phone": "+1-555-STAGING",
-    "email": "staging@hero365.ai",
-    "trade_type": "HVAC",
-    "description": "Professional service provider committed to excellence.",
-    "service_areas": [
-      "Local Area"
-    ],
+    "business_id": "550e8400-e29b-41d4-a716-446655440010",
+    "business_name": "Elite HVAC Austin",
+    "trade_type": "hvac",
+    "description": "Professional HVAC provider",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "website": "https://elitehvac.com/",
+    "service_areas": [],
     "emergency_service": true,
     "years_in_business": 10,
-    "license_number": "Licensed & Insured",
-    "insurance_verified": true,
+    "license_number": null,
+    "insurance_verified": false,
     "average_rating": 4.8,
-    "total_reviews": 150
+    "total_reviews": 150,
+    "certifications": []
   },
   "apiConfig": {
     "baseUrl": "http://127.0.0.1:8000",
@@ -32,5 +34,5 @@
     "voiceAgent": true,
     "bookingWidget": true
   },
-  "generatedAt": "2025-09-01T07:27:20.826Z"
+  "generatedAt": "2025-09-01T16:12:32.633Z"
 }

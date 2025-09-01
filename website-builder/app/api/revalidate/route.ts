@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 
 // Note: Using Node.js runtime for OpenNext compatibility
-// Edge runtime functions need to be defined separately for OpenNext
+// Edge runtime API routes need to be defined separately for OpenNext
 
 /**
  * On-demand ISR revalidation endpoint

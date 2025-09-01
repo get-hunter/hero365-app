@@ -7,7 +7,7 @@ Service layer for project portfolio management operations.
 import uuid
 import logging
 from typing import Optional, List
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from ..dto.project_portfolio_dto import (
     FeaturedProjectDTO, ProjectCategoryDTO, ProjectTagDTO, ProjectSearchCriteria
@@ -55,21 +55,22 @@ class ProjectPortfolioService:
             ApplicationError: If retrieval fails
         """
         try:
-            business_uuid = uuid.UUID(business_id)
+            # Skip strict UUID parsing and business verification here to avoid false negatives.
+            # The public endpoint relies on the business_id being present in the data itself.
             
-            # Verify business exists
-            business = await self.business_repository.get_by_id(business_uuid)
-            if not business:
-                raise EntityNotFoundError("Business", business_id)
+            # Build query - using complete database column names
+            # First, let's see what business_ids exist in the table
+            all_projects = self.supabase.table("featured_projects").select("business_id, title").execute()
+            logger.info(f"All projects in database: {all_projects.data}")
             
-            # Build query
             query = self.supabase.table("featured_projects").select(
                 """
                 id, title, description, trade, service_category, location,
-                completion_date, project_duration, project_value, customer_name,
-                customer_testimonial, before_images, after_images, gallery_images,
-                video_url, challenges_faced, solutions_provided, equipment_installed,
-                warranty_info, is_featured, seo_slug, tags, display_order
+                completion_date, project_duration_days, project_duration, project_value, 
+                customer_name, customer_testimonial, featured_image_url, gallery_images,
+                before_images, after_images, video_url, challenges_faced, solutions_provided,
+                equipment_installed, warranty_info, is_featured, slug, seo_slug, tags,
+                display_order, project_address, meta_description, is_active, created_at, updated_at
                 """
             ).eq("business_id", business_id)
             
@@ -96,10 +97,8 @@ class ProjectPortfolioService:
             logger.info(f"Retrieved {len(project_dtos)} featured projects for business {business_id}")
             return project_dtos
             
-        except ValueError as e:
-            raise ValidationError(f"Invalid business ID format: {business_id}")
         except Exception as e:
-            logger.error(f"Error retrieving featured projects for business {business_id}: {str(e)}")
+            logger.exception(f"Error retrieving featured projects for business {business_id}")
             raise ApplicationError(f"Failed to retrieve featured projects: {str(e)}")
     
     async def get_project_by_slug(self, business_id: str, project_slug: str) -> FeaturedProjectDTO:
@@ -126,16 +125,17 @@ class ProjectPortfolioService:
             if not business:
                 raise EntityNotFoundError("Business", business_id)
             
-            # Get project details
+            # Get project details - using complete database column names
             result = self.supabase.table("featured_projects").select(
                 """
                 id, title, description, trade, service_category, location,
-                completion_date, project_duration, project_value, customer_name,
-                customer_testimonial, before_images, after_images, gallery_images,
-                video_url, challenges_faced, solutions_provided, equipment_installed,
-                warranty_info, is_featured, seo_slug, tags, display_order
+                completion_date, project_duration_days, project_duration, project_value, 
+                customer_name, customer_testimonial, featured_image_url, gallery_images,
+                before_images, after_images, video_url, challenges_faced, solutions_provided,
+                equipment_installed, warranty_info, is_featured, slug, seo_slug, tags,
+                display_order, project_address, meta_description, is_active, created_at, updated_at
                 """
-            ).eq("business_id", business_id).eq("seo_slug", project_slug).execute()
+            ).eq("business_id", business_id).eq("slug", project_slug).execute()
             
             if not result.data:
                 raise EntityNotFoundError(f"Project not found: {project_slug}")
@@ -261,31 +261,44 @@ class ProjectPortfolioService:
             logger.error(f"Error retrieving project tags for business {business_id}: {str(e)}")
             raise ApplicationError(f"Failed to retrieve project tags: {str(e)}")
     
+    def _safe_decimal_conversion(self, value) -> Optional[Decimal]:
+        """Safely convert a value to Decimal, returning None if conversion fails."""
+        if value is None:
+            return None
+        try:
+            return Decimal(str(value))
+        except (ValueError, TypeError, InvalidOperation):
+            logger.warning(f"Failed to convert value to Decimal: {value}")
+            return None
+
     def _convert_to_project_dto(self, project_data: dict, business_id: str) -> FeaturedProjectDTO:
         """Convert database project data to DTO."""
         return FeaturedProjectDTO(
             id=str(project_data["id"]),
             business_id=business_id,
-            title=project_data["title"],
-            description=project_data.get("description", ""),
-            trade=project_data["trade"],
-            service_category=project_data["service_category"],
-            location=project_data["location"],
-            completion_date=project_data["completion_date"],
-            project_duration=project_data.get("project_duration", ""),
-            project_value=Decimal(str(project_data["project_value"])) if project_data.get("project_value") else None,
+            title=project_data.get("title") or "",
+            description=project_data.get("description") or "",
+            trade=project_data.get("trade") or "",
+            service_category=project_data.get("service_category") or "",
+            location=project_data.get("location") or "",
+            completion_date=project_data.get("completion_date"),
+            project_duration=project_data.get("project_duration", "") or (
+                str(project_data.get("project_duration_days", "")) + " days" 
+                if project_data.get("project_duration_days") else ""
+            ),
+            project_value=self._safe_decimal_conversion(project_data.get("project_value")),
             customer_name=project_data.get("customer_name"),
             customer_testimonial=project_data.get("customer_testimonial"),
-            before_images=project_data.get("before_images", []),
-            after_images=project_data.get("after_images", []),
-            gallery_images=project_data.get("gallery_images", []),
+            before_images=project_data.get("before_images") or [],
+            after_images=project_data.get("after_images") or [],
+            gallery_images=project_data.get("gallery_images") or [],
             video_url=project_data.get("video_url"),
-            challenges_faced=project_data.get("challenges_faced", []),
-            solutions_provided=project_data.get("solutions_provided", []),
-            equipment_installed=project_data.get("equipment_installed", []),
+            challenges_faced=project_data.get("challenges_faced") or [],
+            solutions_provided=project_data.get("solutions_provided") or [],
+            equipment_installed=project_data.get("equipment_installed") or [],
             warranty_info=project_data.get("warranty_info"),
             is_featured=project_data.get("is_featured", False),
-            seo_slug=project_data["seo_slug"],
-            tags=project_data.get("tags", []),
+            seo_slug=(project_data.get("seo_slug") or project_data.get("slug") or ""),
+            tags=project_data.get("tags") or [],
             display_order=project_data.get("display_order", 0)
         )
