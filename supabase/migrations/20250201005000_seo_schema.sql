@@ -88,7 +88,7 @@ CREATE TABLE service_location_pages (
 CREATE TABLE generated_seo_pages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-    website_id UUID REFERENCES business_websites(id), -- Link to website builder
+    website_config_id UUID REFERENCES website_configurations(id), -- Link to website builder
     page_url VARCHAR(500) NOT NULL,
     page_type VARCHAR(50) NOT NULL, -- 'service_location', 'service', 'location', etc.
     
@@ -136,7 +136,7 @@ CREATE INDEX idx_service_location_service ON service_location_pages(service_slug
 CREATE INDEX idx_service_location_location ON service_location_pages(location_slug);
 
 CREATE INDEX idx_generated_pages_business_url ON generated_seo_pages(business_id, page_url);
-CREATE INDEX idx_generated_pages_website ON generated_seo_pages(website_id);
+CREATE INDEX idx_generated_pages_website ON generated_seo_pages(website_config_id);
 CREATE INDEX idx_generated_pages_type ON generated_seo_pages(page_type);
 CREATE INDEX idx_generated_pages_method ON generated_seo_pages(generation_method);
 

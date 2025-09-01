@@ -316,4 +316,88 @@ INSERT INTO awards_certifications (
  'membership', false, 3)
 ON CONFLICT (id) DO NOTHING;
 
+-- =============================================
+-- WEBSITE BUILDER DEMO DATA
+-- =============================================
+
+-- Website Configuration for Demo Business
+INSERT INTO website_configurations (business_id, subdomain, deployment_status, enabled_pages, seo_config, content_overrides, monthly_conversions, estimated_monthly_revenue) VALUES
+(
+    (SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1),
+    'elite-hvac-austin',
+    'deployed',
+    '{
+        "home": true,
+        "services": true,
+        "projects": true,
+        "contact": true,
+        "about": true,
+        "booking": true,
+        "locations": ["austin-tx", "round-rock-tx", "cedar-park-tx"]
+    }',
+    '{
+        "title_template": "HVAC Services in {city} | Elite HVAC Austin",
+        "meta_description": "Professional HVAC services in Austin, TX. Licensed, insured, 24/7 emergency service. Same day repairs and installations.",
+        "keywords": ["hvac", "austin", "air conditioning", "heating", "emergency", "repair"],
+        "google_analytics_id": "G-DEMO123456"
+    }',
+    '{
+        "hero_title": "Elite HVAC Austin",
+        "hero_subtitle": "24/7 Emergency Service • Same Day Repairs • Licensed & Insured",
+        "cta_text": "Get Free Estimate",
+        "phone_display": "(512) 555-0100"
+    }',
+    15,
+    4500.00
+);
+
+-- Website Conversions Demo Data
+INSERT INTO website_conversions (business_id, conversion_type, conversion_value, source_page, visitor_data, conversion_data, created_at) VALUES
+-- Elite HVAC Austin conversions
+(
+    (SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1),
+    'phone_call',
+    450.00,
+    '/',
+    '{"userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)", "referrer": "https://google.com", "trafficSource": "organic"}',
+    '{"contact_info": {"phone": "(512) 555-1234", "service_needed": "AC Repair"}}',
+    NOW() - INTERVAL '2 days'
+),
+(
+    (SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1),
+    'form_submit',
+    850.00,
+    '/services',
+    '{"userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "referrer": "https://facebook.com", "trafficSource": "social"}',
+    '{"contact_info": {"name": "Sarah Johnson", "phone": "(512) 555-5678", "email": "sarah@example.com", "service_needed": "AC Installation"}}',
+    NOW() - INTERVAL '1 day'
+),
+(
+    (SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1),
+    'booking',
+    200.00,
+    '/booking',
+    '{"userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", "referrer": "", "trafficSource": "direct"}',
+    '{"contact_info": {"name": "Mike Chen", "phone": "(512) 555-9012", "service_needed": "Maintenance"}}',
+    NOW() - INTERVAL '6 hours'
+),
+(
+    (SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1),
+    'phone_call',
+    320.00,
+    '/',
+    '{"userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)", "referrer": "https://google.com", "trafficSource": "organic"}',
+    '{"contact_info": {"phone": "(512) 555-3456", "service_needed": "Emergency Repair"}}',
+    NOW() - INTERVAL '3 days'
+),
+(
+    (SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1),
+    'form_submit',
+    180.00,
+    '/contact',
+    '{"userAgent": "Mozilla/5.0 (Android 12; Mobile)", "referrer": "https://bing.com", "trafficSource": "organic"}',
+    '{"contact_info": {"name": "Lisa Rodriguez", "phone": "(512) 555-7890", "email": "lisa@example.com", "service_needed": "Maintenance Check"}}',
+    NOW() - INTERVAL '12 hours'
+);
+
 COMMIT;

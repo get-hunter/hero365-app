@@ -36,6 +36,14 @@ import type {
   ActivitiesMarkReminderSentData,
   ActivitiesMarkReminderSentResponse,
   ActivitiesGetDashboardActivitiesResponse,
+  AnalyticsRoiTrackConversionData,
+  AnalyticsRoiTrackConversionResponse,
+  AnalyticsRoiGetAnalyticsData,
+  AnalyticsRoiGetAnalyticsResponse,
+  AnalyticsRoiGetRoiMetricsData,
+  AnalyticsRoiGetRoiMetricsResponse,
+  AnalyticsRoiGetDashboardDataData,
+  AnalyticsRoiGetDashboardDataResponse,
   AuthSignUpData,
   AuthSignUpResponse,
   AuthSignUpWithPhoneData,
@@ -1121,6 +1129,117 @@ export class ActivitiesService {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/activities/dashboard",
+    })
+  }
+}
+
+export class AnalyticsRoiService {
+  /**
+   * Track Conversion
+   * Track a conversion event from the website
+   * This endpoint is called by the ConversionTracker component
+   * @param data The data for the request.
+   * @param data.businessId Business ID for the website
+   * @param data.requestBody
+   * @returns ConversionTrackResponse Successful Response
+   * @throws ApiError
+   */
+  public static trackConversion(
+    data: AnalyticsRoiTrackConversionData,
+  ): CancelablePromise<AnalyticsRoiTrackConversionResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/analytics/track-conversion",
+      query: {
+        business_id: data.businessId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Analytics
+   * Get conversion analytics for the business dashboard
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.days Number of days to analyze
+   * @returns AnalyticsResponse Successful Response
+   * @throws ApiError
+   */
+  public static getAnalytics(
+    data: AnalyticsRoiGetAnalyticsData,
+  ): CancelablePromise<AnalyticsRoiGetAnalyticsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/analytics/analytics/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        days: data.days,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Roi Metrics
+   * Get ROI metrics for the business website
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.days Number of days to analyze
+   * @returns ROIResponse Successful Response
+   * @throws ApiError
+   */
+  public static getRoiMetrics(
+    data: AnalyticsRoiGetRoiMetricsData,
+  ): CancelablePromise<AnalyticsRoiGetRoiMetricsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/analytics/roi/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        days: data.days,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Dashboard Data
+   * Get complete dashboard data (analytics + ROI) in one call
+   * Optimized for mobile app dashboard
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.days Number of days to analyze
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getDashboardData(
+    data: AnalyticsRoiGetDashboardDataData,
+  ): CancelablePromise<AnalyticsRoiGetDashboardDataResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/analytics/dashboard/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        days: data.days,
+      },
+      errors: {
+        422: "Validation Error",
+      },
     })
   }
 }

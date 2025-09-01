@@ -1,14 +1,17 @@
 -- =============================================
--- CORE ADVANCED TEMPLATE SYSTEM
+-- CORE DOCUMENT TEMPLATE SYSTEM (SIMPLIFIED)
 -- =============================================
--- Advanced template configuration and customization
+-- Keep only document templates, remove website template complexity
 -- Depends on: templates table from core_document_tables
 
+-- Note: Website templates have been simplified and moved to website_configurations
+-- This file now only contains document template enhancements
+
 -- =============================================
--- TEMPLATE LAYOUTS
+-- DOCUMENT TEMPLATE LAYOUTS (INVOICES/ESTIMATES ONLY)
 -- =============================================
 
-CREATE TABLE template_layouts (
+CREATE TABLE document_template_layouts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     template_id UUID NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
     
@@ -62,7 +65,7 @@ CREATE TABLE template_layouts (
 -- TEMPLATE COLOR SCHEMES
 -- =============================================
 
-CREATE TABLE template_color_schemes (
+CREATE TABLE document_template_color_schemes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     template_id UUID NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
     
@@ -111,7 +114,7 @@ CREATE TABLE template_color_schemes (
 -- TEMPLATE TYPOGRAPHY
 -- =============================================
 
-CREATE TABLE template_typography (
+CREATE TABLE document_template_typography (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     template_id UUID NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
     
@@ -158,7 +161,7 @@ CREATE TABLE template_typography (
 -- TEMPLATE CUSTOM FIELDS
 -- =============================================
 
-CREATE TABLE template_custom_fields (
+CREATE TABLE document_template_custom_fields (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     template_id UUID NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
     
@@ -200,7 +203,7 @@ CREATE TABLE template_custom_fields (
 -- TEMPLATE SECTIONS
 -- =============================================
 
-CREATE TABLE template_sections (
+CREATE TABLE document_template_sections (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     template_id UUID NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
     
@@ -237,57 +240,31 @@ CREATE TABLE template_sections (
 );
 
 -- =============================================
--- BUSINESS TEMPLATE PREFERENCES
+-- NOTE: Business template preferences removed
 -- =============================================
-
-CREATE TABLE business_template_preferences (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-    template_id UUID NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
-    
-    -- Preference Configuration
-    is_default BOOLEAN DEFAULT FALSE,
-    is_favorite BOOLEAN DEFAULT FALSE,
-    usage_count INTEGER DEFAULT 0,
-    
-    -- Customizations
-    custom_color_scheme_id UUID REFERENCES template_color_schemes(id),
-    custom_layout_overrides JSONB DEFAULT '{}',
-    custom_field_values JSONB DEFAULT '{}',
-    
-    -- Metadata
-    last_used_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
-    UNIQUE(business_id, template_id)
-);
+-- Website preferences are now handled by website_configurations table
+-- Document template preferences can be added later if needed
 
 -- =============================================
 -- INDEXES
 -- =============================================
 
-CREATE INDEX idx_template_layouts_template ON template_layouts(template_id);
+CREATE INDEX idx_document_template_layouts_template ON document_template_layouts(template_id);
 
-CREATE INDEX idx_template_color_schemes_template ON template_color_schemes(template_id);
-CREATE INDEX idx_template_color_schemes_default ON template_color_schemes(is_default);
-CREATE INDEX idx_template_color_schemes_active ON template_color_schemes(is_active);
+CREATE INDEX idx_document_template_color_schemes_template ON document_template_color_schemes(template_id);
+CREATE INDEX idx_document_template_color_schemes_default ON document_template_color_schemes(is_default);
+CREATE INDEX idx_document_template_color_schemes_active ON document_template_color_schemes(is_active);
 
-CREATE INDEX idx_template_typography_template ON template_typography(template_id);
+CREATE INDEX idx_document_template_typography_template ON document_template_typography(template_id);
 
-CREATE INDEX idx_template_custom_fields_template ON template_custom_fields(template_id);
-CREATE INDEX idx_template_custom_fields_group ON template_custom_fields(field_group);
-CREATE INDEX idx_template_custom_fields_order ON template_custom_fields(display_order);
-CREATE INDEX idx_template_custom_fields_active ON template_custom_fields(is_active);
+CREATE INDEX idx_document_template_custom_fields_template ON document_template_custom_fields(template_id);
+CREATE INDEX idx_document_template_custom_fields_group ON document_template_custom_fields(field_group);
+CREATE INDEX idx_document_template_custom_fields_order ON document_template_custom_fields(display_order);
+CREATE INDEX idx_document_template_custom_fields_active ON document_template_custom_fields(is_active);
 
-CREATE INDEX idx_template_sections_template ON template_sections(template_id);
-CREATE INDEX idx_template_sections_type ON template_sections(section_type);
-CREATE INDEX idx_template_sections_order ON template_sections(display_order);
-CREATE INDEX idx_template_sections_active ON template_sections(is_active);
-
-CREATE INDEX idx_business_template_preferences_business ON business_template_preferences(business_id);
-CREATE INDEX idx_business_template_preferences_template ON business_template_preferences(template_id);
-CREATE INDEX idx_business_template_preferences_default ON business_template_preferences(is_default);
-CREATE INDEX idx_business_template_preferences_favorite ON business_template_preferences(is_favorite);
+CREATE INDEX idx_document_template_sections_template ON document_template_sections(template_id);
+CREATE INDEX idx_document_template_sections_type ON document_template_sections(section_type);
+CREATE INDEX idx_document_template_sections_order ON document_template_sections(display_order);
+CREATE INDEX idx_document_template_sections_active ON document_template_sections(is_active);
 
 COMMIT;

@@ -781,6 +781,23 @@ export type AdvancePaymentSchema_Output = {
 }
 
 /**
+ * Response model for analytics data
+ */
+export type AnalyticsResponse = {
+  period_days: number
+  total_conversions: number
+  total_value: number
+  average_conversion_value: number
+  conversions_by_type: {
+    [key: string]: unknown
+  }
+  conversions_by_page: {
+    [key: string]: unknown
+  }
+  daily_conversions: Array<unknown>
+}
+
+/**
  * Service category with services.
  */
 export type app__api__public__routes__contractors__schemas__ServiceCategory = {
@@ -3317,6 +3334,45 @@ export type ConversationEntry = {
   metadata?: {
     [key: string]: unknown
   } | null
+}
+
+/**
+ * Request model for tracking conversions
+ */
+export type ConversionTrackRequest = {
+  /**
+   * Type of conversion (contact, quote, booking, etc.)
+   */
+  type: string
+  /**
+   * Estimated value of the conversion
+   */
+  value?: number
+  /**
+   * Source page where conversion happened
+   */
+  page?: string
+  /**
+   * Visitor data (IP, user agent, etc.)
+   */
+  visitor?: {
+    [key: string]: unknown
+  }
+  /**
+   * Additional conversion details
+   */
+  details?: {
+    [key: string]: unknown
+  }
+}
+
+/**
+ * Response model for conversion tracking
+ */
+export type ConversionTrackResponse = {
+  success: boolean
+  conversion_id: string
+  message: string
 }
 
 /**
@@ -7282,6 +7338,19 @@ export type RevenueImpact = {
 }
 
 /**
+ * Response model for ROI metrics
+ */
+export type ROIResponse = {
+  period_days: number
+  total_revenue: number
+  estimated_cost: number
+  net_profit: number
+  roi_percentage: number
+  cost_per_conversion: number
+  revenue_per_conversion: number
+}
+
+/**
  * Response for scheduling analytics.
  */
 export type SchedulingAnalyticsResponse = {
@@ -9411,6 +9480,46 @@ export type ActivitiesMarkReminderSentResponse =
 
 export type ActivitiesGetDashboardActivitiesResponse =
   DashboardActivitiesResponse
+
+export type AnalyticsRoiTrackConversionData = {
+  /**
+   * Business ID for the website
+   */
+  businessId: string
+  requestBody: ConversionTrackRequest
+}
+
+export type AnalyticsRoiTrackConversionResponse = ConversionTrackResponse
+
+export type AnalyticsRoiGetAnalyticsData = {
+  businessId: string
+  /**
+   * Number of days to analyze
+   */
+  days?: number
+}
+
+export type AnalyticsRoiGetAnalyticsResponse = AnalyticsResponse
+
+export type AnalyticsRoiGetRoiMetricsData = {
+  businessId: string
+  /**
+   * Number of days to analyze
+   */
+  days?: number
+}
+
+export type AnalyticsRoiGetRoiMetricsResponse = ROIResponse
+
+export type AnalyticsRoiGetDashboardDataData = {
+  businessId: string
+  /**
+   * Number of days to analyze
+   */
+  days?: number
+}
+
+export type AnalyticsRoiGetDashboardDataResponse = unknown
 
 export type AuthSignUpData = {
   requestBody: SignUpRequest
