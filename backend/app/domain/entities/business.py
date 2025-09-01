@@ -28,6 +28,13 @@ class TradeCategory(Enum):
     RESIDENTIAL = "residential"
 
 
+class MarketFocus(Enum):
+    """Enumeration for market focus - which customer segments the business serves."""
+    RESIDENTIAL = "residential"
+    COMMERCIAL = "commercial" 
+    BOTH = "both"
+
+
 class CommercialTrade(Enum):
     """Enumeration for commercial trades."""
     MECHANICAL = "mechanical"
@@ -103,8 +110,12 @@ class Business(BaseModel):
     
     # Trade Information
     trade_category: Optional[TradeCategory] = None
+    market_focus: MarketFocus = Field(default=MarketFocus.BOTH, description="Which customer segments the business serves")
     commercial_trades: List[CommercialTrade] = Field(default_factory=list)
     residential_trades: List[ResidentialTrade] = Field(default_factory=list)
+    # New service-based approach (will replace trades eventually)
+    residential_services: List[ResidentialTrade] = Field(default_factory=list, description="Residential services offered")
+    commercial_services: List[CommercialTrade] = Field(default_factory=list, description="Commercial services offered")
     service_areas: List[str] = Field(default_factory=list)  # Geographic areas served
     
     # Business Identity
@@ -170,9 +181,11 @@ class Business(BaseModel):
         if self.industry and self.industry.lower() == 'custom' and not self.custom_industry:
             raise ValueError("Custom industry must be specified when industry is 'custom'")
         
-        # At least one trade must be specified
-        if not (self.commercial_trades or self.residential_trades):
-            raise ValueError("Business must have at least one trade specified")
+        # At least one trade/service must be specified
+        if not (self.commercial_trades or self.residential_trades or 
+                self.commercial_services or self.residential_services or 
+                self.industry):
+            raise ValueError("Business must have at least one trade or service specified")
         
         # Trade category consistency validation
         if self.trade_category == TradeCategory.COMMERCIAL:
@@ -415,4 +428,184 @@ class Business(BaseModel):
     def __repr__(self) -> str:
         trades = self.get_all_trades()
         return (f"Business(id={self.id}, name='{self.name}', industry='{self.industry}', "
-                f"trades={trades}, is_active={self.is_active})") 
+                f"trades={trades}, is_active={self.is_active})")
+    
+    # New methods for market focus and service-based approach
+    
+    def get_all_services(self) -> List[str]:
+        """Get all services as string values (new service-based approach)."""
+        services = []
+        if self.residential_services:
+            services.extend([service.value if hasattr(service, 'value') else service for service in self.residential_services])
+        if self.commercial_services:
+            services.extend([service.value if hasattr(service, 'value') else service for service in self.commercial_services])
+        return services
+    
+    def get_residential_services(self) -> List[str]:
+        """Get residential services as string values."""
+        if not self.residential_services:
+            return []
+        return [service.value if hasattr(service, 'value') else service for service in self.residential_services]
+    
+    def get_commercial_services(self) -> List[str]:
+        """Get commercial services as string values."""
+        if not self.commercial_services:
+            return []
+        return [service.value if hasattr(service, 'value') else service for service in self.commercial_services]
+    
+    def serves_residential_market(self) -> bool:
+        """Check if business serves residential customers."""
+        return self.market_focus in [MarketFocus.RESIDENTIAL, MarketFocus.BOTH]
+    
+    def serves_commercial_market(self) -> bool:
+        """Check if business serves commercial customers."""
+        return self.market_focus in [MarketFocus.COMMERCIAL, MarketFocus.BOTH]
+    
+    def has_service(self, service_name: str) -> bool:
+        """Check if business offers a specific service."""
+        all_services = self.get_all_services()
+        return service_name.lower() in [service.lower() for service in all_services]
+    
+    def add_residential_service(self, service: ResidentialTrade) -> 'Business':
+        """Add a residential service to the business."""
+        if service not in self.residential_services:
+            return self.model_copy(update={
+                'residential_services': self.residential_services + [service]
+            })
+        return self
+    
+    def add_commercial_service(self, service: CommercialTrade) -> 'Business':
+        """Add a commercial service to the business."""
+        if service not in self.commercial_services:
+            return self.model_copy(update={
+                'commercial_services': self.commercial_services + [service]
+            })
+        return self
+    
+    def remove_residential_service(self, service: ResidentialTrade) -> 'Business':
+        """Remove a residential service from the business."""
+        if service in self.residential_services:
+            new_services = [s for s in self.residential_services if s != service]
+            return self.model_copy(update={'residential_services': new_services})
+        return self
+    
+    def remove_commercial_service(self, service: CommercialTrade) -> 'Business':
+        """Remove a commercial service from the business."""
+        if service in self.commercial_services:
+            new_services = [s for s in self.commercial_services if s != service]
+            return self.model_copy(update={'commercial_services': new_services})
+        return self
+    
+    def set_market_focus(self, focus: MarketFocus) -> 'Business':
+        """Set the market focus for the business."""
+        return self.model_copy(update={'market_focus': focus})
+    
+    def auto_assign_default_services(self) -> 'Business':
+        """
+        Auto-assign default services based on primary_trade and secondary_trades.
+        This provides a better onboarding experience - users get pre-selected services
+        and can unselect what they don't offer.
+        """
+        from ..services.default_services_mapping import DefaultServicesMapping
+        
+        # Get all existing trades (combine commercial and residential)
+        all_trades = []
+        if self.industry:
+            all_trades.append(self.industry)
+        
+        # Add existing trades as secondary trades
+        for trade in self.commercial_trades:
+            if trade.value not in all_trades:
+                all_trades.append(trade.value)
+        for trade in self.residential_trades:
+            if trade.value not in all_trades:
+                all_trades.append(trade.value)
+        
+        # Get default services for all trades
+        default_services = DefaultServicesMapping.get_default_services_for_business(
+            primary_trade=self.industry or "",
+            secondary_trades=all_trades[1:] if len(all_trades) > 1 else [],  # Skip primary trade
+            market_focus=self.market_focus
+        )
+        
+        # Auto-assign based on primary and secondary trades
+        residential_services = []
+        commercial_services = []
+        
+        # Map primary trade to services
+        if self.industry:
+            if self.market_focus in [MarketFocus.RESIDENTIAL, MarketFocus.BOTH]:
+                try:
+                    residential_trade = ResidentialTrade(self.industry.lower())
+                    residential_services.append(residential_trade)
+                except ValueError:
+                    pass
+            
+            if self.market_focus in [MarketFocus.COMMERCIAL, MarketFocus.BOTH]:
+                try:
+                    commercial_trade = CommercialTrade(self.industry.lower())
+                    commercial_services.append(commercial_trade)
+                except ValueError:
+                    pass
+        
+        # Map existing trades to services (skip primary trade since it's already handled)
+        existing_trades = all_trades[1:] if len(all_trades) > 1 else []
+        for trade in existing_trades:
+                if self.market_focus in [MarketFocus.RESIDENTIAL, MarketFocus.BOTH]:
+                    try:
+                        residential_trade = ResidentialTrade(trade.lower())
+                        if residential_trade not in residential_services:
+                            residential_services.append(residential_trade)
+                    except ValueError:
+                        pass
+                
+                if self.market_focus in [MarketFocus.COMMERCIAL, MarketFocus.BOTH]:
+                    try:
+                        commercial_trade = CommercialTrade(trade.lower())
+                        if commercial_trade not in commercial_services:
+                            commercial_services.append(commercial_trade)
+                    except ValueError:
+                        pass
+        
+        return self.model_copy(update={
+            'residential_services': residential_services,
+            'commercial_services': commercial_services
+        })
+    
+    @classmethod
+    def create_with_default_services(
+        cls,
+        owner_id: uuid.UUID,
+        name: str,
+        primary_trade: str,
+        market_focus: MarketFocus,
+        **kwargs
+    ) -> 'Business':
+        """
+        Create a new business with auto-assigned default services.
+        This is the recommended way to create businesses for better UX.
+        """
+        from datetime import datetime
+        
+        # Set default values for required fields
+        defaults = {
+            'id': uuid.uuid4(),
+            'owner_id': owner_id,
+            'name': name,
+            'industry': primary_trade,
+            'market_focus': market_focus,
+            'residential_services': [],
+            'commercial_services': [],
+            'company_size': CompanySize.SMALL,  # Default company size
+            'created_date': datetime.utcnow(),
+            'last_modified': datetime.utcnow()
+        }
+        
+        # Override with any provided kwargs
+        defaults.update(kwargs)
+        
+        # Create business with basic info
+        business = cls(**defaults)
+        
+        # Auto-assign default services
+        return business.auto_assign_default_services() 

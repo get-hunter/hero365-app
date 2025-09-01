@@ -70,7 +70,7 @@ class ContractorService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # TODO: Implement proper service repository
             # For now, return sample data
@@ -160,7 +160,7 @@ class ContractorService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # TODO: Implement proper service category repository
             # For now, return sample data
@@ -232,7 +232,7 @@ class ContractorService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # TODO: Get service from repository
             # For now, use sample pricing

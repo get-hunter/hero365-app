@@ -71,7 +71,7 @@ class MembershipService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # Get active plans
             plans = await self.membership_repository.get_active_plans_by_business(business_uuid)
@@ -141,7 +141,7 @@ class MembershipService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # Create domain entity
             plan = CustomerMembershipPlan(
@@ -235,7 +235,7 @@ class MembershipService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             base_total = product_price + installation_price
             

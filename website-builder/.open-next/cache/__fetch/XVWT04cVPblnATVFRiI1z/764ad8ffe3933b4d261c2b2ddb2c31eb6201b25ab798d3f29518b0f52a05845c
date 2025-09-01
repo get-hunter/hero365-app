@@ -1,1 +1,0 @@
-{"kind":"FETCH","data":{"headers":{"content-length":"2","content-type":"application/json","date":"Mon, 01 Sep 2025 13:02:23 GMT","ngrok-agent-ips":"47.63.23.128","server":"uvicorn"},"body":"W10=","status":200,"url":"https://73d34a85b4db.ngrok-free.app/api/v1/public/contractors/product-categories/a1b2c3d4-e5f6-7890-1234-567890abcdef"},"revalidate":600,"tags":[]}

@@ -50,7 +50,7 @@ class ProfileService:
             # Get business from repository
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # Convert domain entity to DTO
             profile_dto = BusinessProfileDTO(
@@ -100,7 +100,7 @@ class ProfileService:
             # Get business from repository
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # Convert to summary DTO
             summary_dto = ProfileSummaryDTO(

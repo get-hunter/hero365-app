@@ -1,5 +1,5 @@
 {
-  "businessId": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+  "businessId": "550e8400-e29b-41d4-a716-446655440010",
   "environment": "staging",
   "businessData": {
     "business_name": "Staging HVAC Services",
@@ -18,7 +18,7 @@
     "total_reviews": 150
   },
   "apiConfig": {
-    "baseUrl": "https://api-staging.hero365.ai",
+    "baseUrl": "http://127.0.0.1:8000",
     "timeout": 20000,
     "retries": 2
   },

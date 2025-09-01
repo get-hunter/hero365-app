@@ -60,7 +60,7 @@ class AvailabilityService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # Get business hours for the date range
             business_hours = await self._get_business_hours(business_id)
@@ -106,7 +106,7 @@ class AvailabilityService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             return await self._get_business_hours(business_id)
             
@@ -146,7 +146,7 @@ class AvailabilityService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # Create search criteria for the specific slot
             end_time = (datetime.combine(slot_date, start_time) + timedelta(minutes=duration_minutes)).time()

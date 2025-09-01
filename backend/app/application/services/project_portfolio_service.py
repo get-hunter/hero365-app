@@ -60,7 +60,7 @@ class ProjectPortfolioService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # Build query
             query = self.supabase.table("featured_projects").select(
@@ -124,7 +124,7 @@ class ProjectPortfolioService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # Get project details
             result = self.supabase.table("featured_projects").select(
@@ -175,7 +175,7 @@ class ProjectPortfolioService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # Get categories with project counts
             categories_result = self.supabase.table("project_categories").select(
@@ -233,7 +233,7 @@ class ProjectPortfolioService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # Get tags with usage counts
             result = self.supabase.table("project_tags").select(

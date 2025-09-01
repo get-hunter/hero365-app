@@ -824,24 +824,6 @@ export type app__api__public__routes__contractors__schemas__ServiceCategory = {
 }
 
 /**
- * Request model for service bookings.
- */
-export type app__api__routes__websites__BookingRequest = {
-  website_id: string
-  service_type: string
-  appointment_date: string
-  start_time: string
-  duration_minutes: number
-  customer_name: string
-  customer_email?: string | null
-  customer_phone: string
-  service_address: string
-  booking_notes?: string | null
-  special_requirements?: string | null
-  access_instructions?: string | null
-}
-
-/**
  * Schema for simple message responses.
  */
 export type app__api__schemas__activity_schemas__MessageResponse = {
@@ -919,32 +901,6 @@ export type app__api__schemas__scheduling_schemas__TimeSlot = {
    * Additional notes about this slot
    */
   notes?: string | null
-}
-
-/**
- * Customer booking request
- */
-export type app__domain__entities__booking__BookingRequest = {
-  business_id: string
-  service_id: string
-  requested_at: string
-  customer_name: string
-  customer_email?: string | null
-  customer_phone: string
-  service_address: string
-  service_city?: string | null
-  service_state?: string | null
-  service_zip?: string | null
-  problem_description?: string | null
-  special_instructions?: string | null
-  access_instructions?: string | null
-  preferred_contact_method?: ContactMethod
-  sms_consent?: boolean
-  email_consent?: boolean
-  source?: BookingSource
-  user_agent?: string | null
-  ip_address?: string | null
-  idempotency_key?: string | null
 }
 
 /**
@@ -1041,6 +997,24 @@ export type AuthUserResponse = {
   is_superuser: boolean
   supabase_id?: string | null
   last_login?: string | null
+}
+
+/**
+ * Request to auto-assign default services
+ */
+export type AutoAssignServicesRequest = {
+  /**
+   * Primary trade of the business
+   */
+  primary_trade: string
+  /**
+   * Secondary trades
+   */
+  secondary_trades?: Array<string> | null
+  /**
+   * Market focus
+   */
+  market_focus: MarketFocus
 }
 
 /**
@@ -1445,21 +1419,6 @@ export type Body_Service_Areas_import_service_areas_csv = {
   file: Blob | File
 }
 
-export type Body_Website_Management_search_domains = {
-  /**
-   * Business name for domain suggestions
-   */
-  business_name: string
-  /**
-   * Business location
-   */
-  location?: string | null
-  /**
-   * Maximum number of suggestions
-   */
-  max_results?: number
-}
-
 /**
  * Customer booking/appointment
  */
@@ -1537,6 +1496,32 @@ export type BookingListResponse = {
 }
 
 /**
+ * Customer booking request
+ */
+export type BookingRequest = {
+  business_id: string
+  service_id: string
+  requested_at: string
+  customer_name: string
+  customer_email?: string | null
+  customer_phone: string
+  service_address: string
+  service_city?: string | null
+  service_state?: string | null
+  service_zip?: string | null
+  problem_description?: string | null
+  special_instructions?: string | null
+  access_instructions?: string | null
+  preferred_contact_method?: ContactMethod
+  sms_consent?: boolean
+  email_consent?: boolean
+  source?: BookingSource
+  user_agent?: string | null
+  ip_address?: string | null
+  idempotency_key?: string | null
+}
+
+/**
  * Request to reschedule a booking
  */
 export type BookingRescheduleRequest = {
@@ -1576,37 +1561,6 @@ export type BookingStatus =
   | "completed"
   | "cancelled"
   | "no_show"
-
-/**
- * Website build configuration.
- */
-export type BuildConfiguration = {
-  /**
-   * Output format: static, spa, ssr
-   */
-  output_format?: string
-  /**
-   * Build optimization level
-   */
-  optimization_level?: string
-  enable_compression?: boolean
-  enable_minification?: boolean
-  enable_tree_shaking?: boolean
-  enable_code_splitting?: boolean
-  generate_sitemap?: boolean
-  generate_robots_txt?: boolean
-  enable_meta_tags?: boolean
-  enable_schema_markup?: boolean
-  enable_pwa?: boolean
-  enable_offline_support?: boolean
-  enable_analytics?: boolean
-  analytics_provider?: string
-  custom_css?: string | null
-  custom_js?: string | null
-  environment_variables?: {
-    [key: string]: string
-  }
-}
 
 /**
  * Adopt multiple service templates at once (useful for onboarding).
@@ -1989,6 +1943,40 @@ export type BusinessService = {
 }
 
 /**
+ * Response containing current business services
+ */
+export type BusinessServicesResponse = {
+  /**
+   * Business identifier
+   */
+  business_id: string
+  /**
+   * Business market focus
+   */
+  market_focus: MarketFocus
+  /**
+   * Current residential services
+   */
+  residential_services: Array<string>
+  /**
+   * Current commercial services
+   */
+  commercial_services: Array<string>
+  /**
+   * All available residential services by trade
+   */
+  available_residential_services: {
+    [key: string]: Array<ServiceInfo>
+  }
+  /**
+   * All available commercial services by trade
+   */
+  available_commercial_services: {
+    [key: string]: Array<ServiceInfo>
+  }
+}
+
+/**
  * Response schema for business summary information.
  */
 export type BusinessSummaryResponse = {
@@ -2348,17 +2336,6 @@ export type CompanySizeSchema =
   | "medium"
   | "large"
   | "enterprise"
-
-export type CompetitiveAnalysis = {
-  market_share: number
-  competitor_comparison: Array<CompetitorData>
-}
-
-export type CompetitorData = {
-  competitor: string
-  estimated_traffic: number
-  our_advantage: string
-}
 
 /**
  * Schema for contact activity summary response.
@@ -3285,26 +3262,6 @@ export type ContactUpdateRequest = {
 }
 
 /**
- * Response model for listing available content providers.
- */
-export type ContentProviderListResponse = {
-  current_provider: string
-  available_providers: {
-    [key: string]: ContentProviderResponse
-  }
-}
-
-/**
- * Response model for content provider information.
- */
-export type ContentProviderResponse = {
-  name: string
-  configured: boolean
-  adapter_class: string
-  description: string
-}
-
-/**
  * Single conversation entry
  */
 export type ConversationEntry = {
@@ -3828,14 +3785,6 @@ export type CreateWorkingHoursTemplateRequest = {
   max_overtime_hours_per_day?: number
 }
 
-export type DailyMetric = {
-  date: string
-  impressions: number
-  clicks: number
-  conversions: number
-  revenue: number
-}
-
 /**
  * Daily performance metrics.
  */
@@ -3908,28 +3857,31 @@ export type DashboardActivitiesResponse = {
   completion_rate: number
 }
 
-export type DashboardResponse = {
-  business_id: string
-  website_status: string
-  website_url: string
-  deployment_date: string
-  seo_metrics: SEOMetrics
-  traffic_growth: TrafficGrowth
-  revenue_impact: RevenueImpact
-  top_performing_pages: Array<TopPerformingPage>
-  keyword_rankings: Array<KeywordRanking>
-  recent_deployments: Array<RecentDeployment>
+/**
+ * Response containing default services for trades
+ */
+export type DefaultServicesResponse = {
+  /**
+   * Residential services organized by trade
+   */
+  residential_services: {
+    [key: string]: Array<ServiceInfo>
+  }
+  /**
+   * Commercial services organized by trade
+   */
+  commercial_services: {
+    [key: string]: Array<ServiceInfo>
+  }
 }
 
 export type DeploymentStatusResponse = {
   deployment_id: string
   status: string
-  progress?: number
-  message: string
-  pages_generated?: number
-  estimated_completion?: string | null
+  progress: number
   website_url?: string | null
   error_message?: string | null
+  logs?: Array<string>
 }
 
 /**
@@ -4013,71 +3965,6 @@ export type DisruptionType =
   | "resource_unavailable"
   | "customer_reschedule"
   | "equipment_failure"
-
-/**
- * Request model for domain registration.
- */
-export type DomainRegistrationRequest = {
-  /**
-   * Domain name to register
-   */
-  domain: string
-  /**
-   * Registration period in years
-   */
-  years?: number
-  /**
-   * Enable auto-renewal
-   */
-  auto_renew?: boolean
-  /**
-   * Enable WHOIS privacy
-   */
-  privacy_protection?: boolean
-}
-
-/**
- * Response model for domain search results.
- */
-export type DomainSearchResponse = {
-  primary_suggestions: Array<DomainSuggestion>
-  other_suggestions: Array<DomainSuggestion>
-  recommended: DomainSuggestion | null
-  business_trades: Array<string>
-  search_metadata: {
-    [key: string]: unknown
-  }
-}
-
-/**
- * Model for domain name suggestions.
- */
-export type DomainSuggestion = {
-  /**
-   * Suggested domain name
-   */
-  domain: string
-  /**
-   * Whether the domain is available
-   */
-  available: boolean
-  /**
-   * Registration price if available
-   */
-  price?: number | null
-  /**
-   * Top-level domain (e.g., .com, .net)
-   */
-  tld: string
-  /**
-   * How relevant this suggestion is (0-1)
-   */
-  relevance_score: number
-  /**
-   * Category of suggestion (exact, similar, creative)
-   */
-  category: string
-}
 
 /**
  * Schema for estimate action responses.
@@ -4355,21 +4242,6 @@ export type FeaturedProject = {
    * Display order
    */
   display_order?: number
-}
-
-/**
- * Request model for form submissions from websites.
- */
-export type FormSubmissionRequest = {
-  website_id: string
-  business_id: string
-  form_type: string
-  form_data: {
-    [key: string]: unknown
-  }
-  visitor_info?: {
-    [key: string]: unknown
-  }
 }
 
 /**
@@ -5203,14 +5075,6 @@ export type JobWorkloadResponse = {
   completion_rate: number
 }
 
-export type KeywordRanking = {
-  keyword: string
-  position: number
-  monthly_searches: number
-  difficulty: string
-  trend: string
-}
-
 /**
  * Lifecycle stage enumeration.
  */
@@ -5263,6 +5127,11 @@ export type LocationUpdateRequest = {
    */
   status: string
 }
+
+/**
+ * Enumeration for market focus - which customer segments the business serves.
+ */
+export type MarketFocus = "residential" | "commercial" | "both"
 
 /**
  * Customer membership plan information.
@@ -5681,14 +5550,6 @@ export type OTPVerificationRequest = {
   token: string
 }
 
-export type PagePerformance = {
-  total_pages: number
-  high_performers: number
-  medium_performers: number
-  low_performers: number
-  not_indexed: number
-}
-
 /**
  * Schema for payment responses.
  */
@@ -5766,16 +5627,6 @@ export type PerformanceMetrics = {
    * Battery drain rate per hour
    */
   battery_drain_rate?: number | null
-}
-
-export type PerformanceResponse = {
-  business_id: string
-  date_range: {
-    [key: string]: unknown
-  }
-  daily_metrics: Array<DailyMetric>
-  page_performance: PagePerformance
-  competitive_analysis: CompetitiveAnalysis
 }
 
 export type PhoneSignInRequest = {
@@ -7253,14 +7104,6 @@ export type ReceivePurchaseOrderSchema = {
   partial_receipt?: boolean
 }
 
-export type RecentDeployment = {
-  deployment_id: string
-  date: string
-  status: string
-  pages_generated: number
-  deployment_time: number
-}
-
 export type RecurrenceType =
   | "none"
   | "daily"
@@ -7328,13 +7171,6 @@ export type ReorderSuggestionsResponseSchema = {
   medium_priority_count: number
   low_priority_count: number
   generated_at: string
-}
-
-export type RevenueImpact = {
-  estimated_monthly_revenue: number
-  estimated_annual_revenue: number
-  cost_per_acquisition: number
-  return_on_investment: number
 }
 
 /**
@@ -7522,24 +7358,6 @@ export type SendOTPRequest = {
   phone: string
 }
 
-export type SEOMetrics = {
-  total_pages: number
-  pages_indexed: number
-  average_ranking: number
-  monthly_impressions: number
-  monthly_clicks: number
-  click_through_rate: number
-  conversion_rate: number
-}
-
-export type SEOSettings = {
-  generate_service_pages?: boolean
-  generate_location_pages?: boolean
-  enable_llm_enhancement?: boolean
-  target_keywords?: Array<string>
-  enhancement_budget?: number
-}
-
 /**
  * Complete service area model with database fields
  */
@@ -7700,13 +7518,6 @@ export type ServiceAreaCheckResponse = {
   message?: string | null
 }
 
-export type ServiceAreaConfig = {
-  city: string
-  state: string
-  zip_codes?: Array<string>
-  service_radius_miles?: number
-}
-
 /**
  * Suggested nearby service area
  */
@@ -7772,6 +7583,24 @@ export type ServiceCategoryWithServices = {
   updated_at: string
   services?: Array<BusinessService>
   service_count?: number
+}
+
+/**
+ * Information about a service
+ */
+export type ServiceInfo = {
+  /**
+   * Service key/identifier
+   */
+  key: string
+  /**
+   * Human-readable service name
+   */
+  display_name: string
+  /**
+   * Trade category this service belongs to
+   */
+  trade_category: string
 }
 
 /**
@@ -8213,16 +8042,6 @@ export type SwitchBusinessContextRequest = {
 }
 
 /**
- * Request model for switching content generation provider.
- */
-export type SwitchProviderRequest = {
-  /**
-   * Provider name (openai, claude, gemini)
-   */
-  provider: string
-}
-
-/**
  * Team availability summary.
  */
 export type TeamAvailabilitySummary = {
@@ -8615,20 +8434,36 @@ export type TimeWindow = {
   end_time: string
 }
 
-export type TopPerformingPage = {
-  url: string
-  title: string
-  monthly_visitors: number
-  ranking: number
-  conversions: number
-  revenue_generated: number
-}
-
-export type TrafficGrowth = {
-  current_month: number
-  previous_month: number
-  growth_percentage: number
-  trend: string
+/**
+ * Preview of services that would be assigned for given trades
+ */
+export type TradeServicesPreviewResponse = {
+  /**
+   * Primary trade
+   */
+  primary_trade: string
+  /**
+   * Secondary trades
+   */
+  secondary_trades: Array<string>
+  /**
+   * Market focus
+   */
+  market_focus: MarketFocus
+  /**
+   * Residential services that would be assigned
+   */
+  residential_services: Array<string>
+  /**
+   * Commercial services that would be assigned
+   */
+  commercial_services: Array<string>
+  /**
+   * Details for all services
+   */
+  service_details: {
+    [key: string]: ServiceInfo
+  }
 }
 
 /**
@@ -8655,6 +8490,20 @@ export type TrendAnalysis = {
    * Significance level
    */
   significance_level: string
+}
+
+/**
+ * Request to update business services
+ */
+export type UpdateBusinessServicesRequest = {
+  /**
+   * Residential services to set (trade keys)
+   */
+  residential_services?: Array<string> | null
+  /**
+   * Commercial services to set (trade keys)
+   */
+  commercial_services?: Array<string> | null
 }
 
 /**
@@ -9114,90 +8963,26 @@ export type VoiceSessionStatusResponse = {
   room_active: boolean
 }
 
-/**
- * Request model for creating a new website.
- */
-export type WebsiteCreateRequest = {
-  template_id?: string | null
-  /**
-   * Subdomain for hero365.ai
-   */
-  subdomain?: string | null
-  /**
-   * Custom domain name
-   */
-  custom_domain?: string | null
-  theme_overrides?: {
-    [key: string]: unknown
-  }
-  content_overrides?: {
-    [key: string]: unknown
-  }
-  target_keywords?: Array<string>
-  target_locations?: Array<string>
-  /**
-   * Start building immediately
-   */
-  build_immediately?: boolean
-}
-
 export type WebsiteDeploymentRequest = {
   business_id: string
-  services: Array<string>
-  service_areas: Array<ServiceAreaConfig>
+  /**
+   * basic or full_seo
+   */
   deployment_type?: string
   custom_domain?: string | null
-  seo_settings?: SEOSettings
+  /**
+   * Force rebuild even if already deployed
+   */
+  force_rebuild?: boolean
 }
 
-/**
- * Response model for website data.
- */
-export type WebsiteResponse = {
-  id: string
-  business_id: string
-  template_id: string | null
-  domain: string | null
-  subdomain: string | null
-  status: WebsiteStatus
-  primary_trade: string | null
-  secondary_trades: Array<string>
-  service_areas: Array<string>
-  website_url: string | null
-  preview_url: string | null
-  last_build_at: string | null
-  last_deploy_at: string | null
-  build_duration_seconds: number | null
-  lighthouse_score: number | null
-  seo_keywords: Array<string>
-  created_at: string
-  updated_at: string
-}
-
-/**
- * Website build and deployment status.
- */
-export type WebsiteStatus =
-  | "draft"
-  | "building"
-  | "built"
-  | "deploying"
-  | "deployed"
-  | "error"
-
-/**
- * Request model for updating website settings.
- */
-export type WebsiteUpdateRequest = {
-  theme_overrides?: {
-    [key: string]: unknown
-  } | null
-  content_overrides?: {
-    [key: string]: unknown
-  } | null
-  seo_keywords?: Array<string> | null
-  target_locations?: Array<string> | null
-  google_site_verification?: string | null
+export type WebsiteDeploymentResponse = {
+  success: boolean
+  deployment_id: string
+  website_url?: string | null
+  status: string
+  message: string
+  estimated_completion_time?: number | null
 }
 
 /**
@@ -9635,7 +9420,7 @@ export type BookingsCreateBookingData = {
    * Auto-confirm if slot is available
    */
   autoConfirm?: boolean
-  requestBody: app__domain__entities__booking__BookingRequest
+  requestBody: BookingRequest
 }
 
 export type BookingsCreateBookingResponse = BookingResponse
@@ -11870,87 +11655,6 @@ export type PurchaseOrdersGetPendingReceiptOrdersData = {
 export type PurchaseOrdersGetPendingReceiptOrdersResponse =
   PurchaseOrderListResponseSchema
 
-export type SeoAnalyticsGetSeoDashboardData = {
-  businessId: string
-}
-
-export type SeoAnalyticsGetSeoDashboardResponse = DashboardResponse
-
-export type SeoAnalyticsGetPerformanceMetricsData = {
-  businessId: string
-  /**
-   * Number of days to analyze
-   */
-  days?: number
-}
-
-export type SeoAnalyticsGetPerformanceMetricsResponse = PerformanceResponse
-
-export type SeoAnalyticsGetKeywordPerformanceData = {
-  businessId: string
-  /**
-   * Number of keywords to return
-   */
-  limit?: number
-}
-
-export type SeoAnalyticsGetKeywordPerformanceResponse = unknown
-
-export type SeoAnalyticsGetCompetitorAnalysisData = {
-  businessId: string
-  /**
-   * Filter by location (e.g., 'austin-tx')
-   */
-  location?: string | null
-}
-
-export type SeoAnalyticsGetCompetitorAnalysisResponse = unknown
-
-export type SeoAnalyticsGetRevenueAttributionData = {
-  businessId: string
-  /**
-   * Time period for analysis
-   */
-  period?: string
-}
-
-export type SeoAnalyticsGetRevenueAttributionResponse = unknown
-
-export type SeoAnalyticsTrackConversionData = {
-  businessId: string
-  conversionType: string
-  conversionValue: number
-  pageUrl: string
-}
-
-export type SeoAnalyticsTrackConversionResponse = unknown
-
-export type SeoWebsiteDeploymentDeploySeoWebsiteData = {
-  requestBody: WebsiteDeploymentRequest
-}
-
-export type SeoWebsiteDeploymentDeploySeoWebsiteResponse =
-  DeploymentStatusResponse
-
-export type SeoWebsiteDeploymentStreamDeploymentStatusData = {
-  deploymentId: string
-}
-
-export type SeoWebsiteDeploymentStreamDeploymentStatusResponse = unknown
-
-export type SeoWebsiteDeploymentGetDeploymentStatusData = {
-  deploymentId: string
-}
-
-export type SeoWebsiteDeploymentGetDeploymentStatusResponse =
-  DeploymentStatusResponse
-
-export type SeoWebsiteDeploymentGetGeneratedPagesData = {
-  businessId: string
-}
-
-export type SeoWebsiteDeploymentGetGeneratedPagesResponse = unknown
-
 export type ServiceAreasCheckServiceAreaSupportData = {
   /**
    * Business UUID
@@ -12157,6 +11861,39 @@ export type ServiceDiscoveryGetTemplatesByCategory1Data = {
 
 export type ServiceDiscoveryGetTemplatesByCategory1Response =
   Array<ServiceTemplate>
+
+export type ServiceManagementGetDefaultServicesResponse =
+  DefaultServicesResponse
+
+export type ServiceManagementPreviewServicesForTradesData = {
+  requestBody: AutoAssignServicesRequest
+}
+
+export type ServiceManagementPreviewServicesForTradesResponse =
+  TradeServicesPreviewResponse
+
+export type ServiceManagementGetBusinessServicesData = {
+  businessId: string
+}
+
+export type ServiceManagementGetBusinessServicesResponse =
+  BusinessServicesResponse
+
+export type ServiceManagementUpdateBusinessServicesData = {
+  businessId: string
+  requestBody: UpdateBusinessServicesRequest
+}
+
+export type ServiceManagementUpdateBusinessServicesResponse =
+  BusinessServicesResponse
+
+export type ServiceManagementAutoAssignServicesData = {
+  businessId: string
+  requestBody: AutoAssignServicesRequest
+}
+
+export type ServiceManagementAutoAssignServicesResponse =
+  BusinessServicesResponse
 
 export type ServicesListServicesData = {
   /**
@@ -12556,102 +12293,20 @@ export type UtilsTestEmailData = {
 
 export type UtilsTestEmailResponse = Message
 
-export type WebsiteManagementGetWebsitesResponse = Array<WebsiteResponse>
-
-export type WebsiteManagementCreateWebsiteData = {
-  requestBody: WebsiteCreateRequest
+export type WebsiteBuilderDeployWebsiteData = {
+  requestBody: WebsiteDeploymentRequest
 }
 
-export type WebsiteManagementCreateWebsiteResponse = WebsiteResponse
+export type WebsiteBuilderDeployWebsiteResponse = WebsiteDeploymentResponse
 
-export type WebsiteManagementGetWebsiteData = {
-  websiteId: string
+export type WebsiteBuilderGetDeploymentStatusData = {
+  deploymentId: string
 }
 
-export type WebsiteManagementGetWebsiteResponse = WebsiteResponse
+export type WebsiteBuilderGetDeploymentStatusResponse = DeploymentStatusResponse
 
-export type WebsiteManagementUpdateWebsiteData = {
-  requestBody: WebsiteUpdateRequest
-  websiteId: string
+export type WebsiteBuilderPreviewWebsiteData = {
+  businessId: string
 }
 
-export type WebsiteManagementUpdateWebsiteResponse = WebsiteResponse
-
-export type WebsiteManagementBuildWebsiteData = {
-  requestBody?: BuildConfiguration | null
-  websiteId: string
-}
-
-export type WebsiteManagementBuildWebsiteResponse = unknown
-
-export type WebsiteManagementDeployWebsiteData = {
-  domain?: string | null
-  websiteId: string
-}
-
-export type WebsiteManagementDeployWebsiteResponse = unknown
-
-export type WebsiteManagementSearchDomainsData = {
-  requestBody: Body_Website_Management_search_domains
-}
-
-export type WebsiteManagementSearchDomainsResponse = DomainSearchResponse
-
-export type WebsiteManagementRegisterDomainData = {
-  requestBody: DomainRegistrationRequest
-}
-
-export type WebsiteManagementRegisterDomainResponse = unknown
-
-export type WebsiteManagementGetDomainsResponse = unknown
-
-export type WebsiteManagementSubmitFormData = {
-  requestBody: FormSubmissionRequest
-}
-
-export type WebsiteManagementSubmitFormResponse = unknown
-
-export type WebsiteManagementCreateBookingData = {
-  requestBody: app__api__routes__websites__BookingRequest
-}
-
-export type WebsiteManagementCreateBookingResponse = unknown
-
-export type WebsiteManagementGetWebsiteAnalyticsData = {
-  /**
-   * Start date for analytics
-   */
-  dateFrom: string
-  /**
-   * End date for analytics
-   */
-  dateTo: string
-  /**
-   * Metrics to include
-   */
-  metrics?: Array<string>
-  websiteId: string
-}
-
-export type WebsiteManagementGetWebsiteAnalyticsResponse = unknown
-
-export type WebsiteManagementGetSeoKeywordsData = {
-  websiteId: string
-}
-
-export type WebsiteManagementGetSeoKeywordsResponse = unknown
-
-export type WebsiteManagementGetContentProvidersResponse =
-  ContentProviderListResponse
-
-export type WebsiteManagementSwitchContentProviderData = {
-  requestBody: SwitchProviderRequest
-}
-
-export type WebsiteManagementSwitchContentProviderResponse = unknown
-
-export type WebsiteManagementTestContentProviderData = {
-  provider: string
-}
-
-export type WebsiteManagementTestContentProviderResponse = unknown
+export type WebsiteBuilderPreviewWebsiteResponse = unknown

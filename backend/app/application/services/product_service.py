@@ -250,7 +250,7 @@ class ProductService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # Get product from repository
             product = await self.product_repository.get_by_id(business_uuid, product_uuid)

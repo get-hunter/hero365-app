@@ -227,14 +227,7 @@ class ConflictError(ApplicationException):
         super().__init__(message, "CONFLICT_ERROR")
 
 
-class NotFoundError(ApplicationException):
-    """Generic not found error."""
-    
-    def __init__(self, resource_type: str, identifier: str):
-        message = f"{resource_type} not found: {identifier}"
-        super().__init__(message, "NOT_FOUND")
-        self.resource_type = resource_type
-        self.identifier = identifier
+# Removed duplicate NotFoundError class - using the one at line 149
 
 
 class ValidationError(ApplicationException):

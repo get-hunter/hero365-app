@@ -12,7 +12,7 @@ from typing import Optional
 from ...dto.business_dto import BusinessCreateDTO, BusinessResponseDTO
 from app.domain.repositories.business_repository import BusinessRepository
 from app.domain.repositories.business_membership_repository import BusinessMembershipRepository
-from app.domain.entities.business import Business, CompanySize, ReferralSource
+from app.domain.entities.business import Business, CompanySize, ReferralSource, MarketFocus
 from app.domain.entities.business_membership import BusinessMembership, BusinessRole, get_default_permissions_for_role
 from app.domain.exceptions.domain_exceptions import DomainValidationError, DuplicateEntityError
 from ...exceptions.application_exceptions import (
@@ -137,17 +137,23 @@ class CreateBusinessUseCase:
         logger.info("Business name uniqueness validated successfully")
     
     def _create_business_entity(self, dto: BusinessCreateDTO) -> Business:
-        """Create business entity from DTO."""
+        """Create business entity from DTO with auto-assigned default services."""
         logger.info("Creating business entity from DTO")
         
         now = datetime.utcnow()
         
-        business = Business(
-            id=uuid.uuid4(),
+        # Determine market focus based on industry
+        market_focus = self._determine_market_focus(dto.industry)
+        logger.info(f"Determined market focus: {market_focus.value} for industry: {dto.industry}")
+        
+        # Use the new factory method that auto-assigns services
+        business = Business.create_with_default_services(
+            owner_id=uuid.uuid4(),  # Temporary - will be handled via memberships
             name=dto.name.strip(),
-            industry=dto.industry.strip(),
+            primary_trade=dto.industry.strip(),
+            market_focus=market_focus,
+            # Additional fields
             company_size=dto.company_size,
-            # owner_id removed - handled via business_memberships
             custom_industry=dto.custom_industry.strip() if dto.custom_industry else None,
             description=dto.description.strip() if dto.description else None,
             phone_number=dto.phone_number.strip() if dto.phone_number else None,
@@ -163,7 +169,35 @@ class CreateBusinessUseCase:
         )
         
         logger.info(f"Business entity created with ID: {business.id}")
+        logger.info(f"Auto-assigned services - Residential: {[s.value for s in business.residential_services]}")
+        logger.info(f"Auto-assigned services - Commercial: {[s.value for s in business.commercial_services]}")
         return business
+    
+    def _determine_market_focus(self, industry: str) -> MarketFocus:
+        """
+        Determine market focus based on industry.
+        This provides smart defaults for better UX.
+        """
+        industry_lower = industry.lower()
+        
+        # Industries that are typically residential-only
+        residential_only = ['hvac', 'chimney', 'garage_door', 'septic', 'pest_control', 'irrigation', 'painting']
+        
+        # Industries that are typically commercial-only  
+        commercial_only = ['refrigeration', 'kitchen_equipment', 'water_treatment', 'security_systems']
+        
+        # Industries that commonly serve both markets
+        both_markets = ['plumbing', 'electrical', 'roofing', 'landscaping', 'mechanical', 'pool_spa']
+        
+        if industry_lower in residential_only:
+            return MarketFocus.RESIDENTIAL
+        elif industry_lower in commercial_only:
+            return MarketFocus.COMMERCIAL
+        elif industry_lower in both_markets:
+            return MarketFocus.BOTH
+        else:
+            # Default to both for unknown industries
+            return MarketFocus.BOTH
     
     async def _create_owner_membership(self, business: Business, owner_id: str) -> None:
         """Create owner membership for the business."""
@@ -193,7 +227,6 @@ class CreateBusinessUseCase:
             name=business.name,
             industry=business.industry,
             company_size=business.company_size,
-            # owner_id removed - use business_memberships for ownership queries
             custom_industry=business.custom_industry,
             description=business.description,
             phone_number=business.phone_number,

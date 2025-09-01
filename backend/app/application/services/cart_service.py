@@ -88,7 +88,7 @@ class CartService:
             # Verify business exists
             business = await self.business_repository.get_by_id(business_uuid)
             if not business:
-                raise EntityNotFoundError(f"Business not found: {business_id}")
+                raise EntityNotFoundError("Business", business_id)
             
             # Create cart entity
             cart_id = uuid.uuid4()
