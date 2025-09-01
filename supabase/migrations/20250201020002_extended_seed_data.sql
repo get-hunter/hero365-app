@@ -151,24 +151,24 @@ ON CONFLICT (business_id, name) DO NOTHING;
 
 -- Products (inventory items)
 INSERT INTO products (
-    id, business_id, name, description, sku, category, price, cost_price,
-    track_inventory, inventory_quantity, low_stock_threshold, status, is_featured
+    id, business_id, name, description, sku, category, unit_price, cost_price,
+    track_inventory, current_stock, low_stock_threshold, is_active, is_featured
 ) VALUES
 ('550e8400-e29b-41d4-a716-446655440150', '550e8400-e29b-41d4-a716-446655440010',
  'R-410A Refrigerant (25lb)', 'R-410A refrigerant cylinder for residential AC systems', 'REF-410A-25',
- 'Refrigerants', 180.00, 120.00, true, 12, 5, 'active', false),
+ 'Refrigerants', 180.00, 120.00, true, 12, 5, true, false),
 
 ('550e8400-e29b-41d4-a716-446655440151', '550e8400-e29b-41d4-a716-446655440010',
  'MERV 8 Air Filter 16x25x1', 'Standard efficiency air filter', 'FILT-16X25-M8',
- 'Filters', 8.50, 4.25, true, 48, 10, 'active', false),
+ 'Filters', 8.50, 4.25, true, 48, 10, true, false),
 
 ('550e8400-e29b-41d4-a716-446655440152', '550e8400-e29b-41d4-a716-446655440010',
  'Contactor 30A 24V', 'Single pole contactor for HVAC systems', 'CONT-30A-24V',
- 'Electrical', 35.00, 18.50, true, 8, 3, 'active', false),
+ 'Electrical', 35.00, 18.50, true, 8, 3, true, false),
 
 ('550e8400-e29b-41d4-a716-446655440153', '550e8400-e29b-41d4-a716-446655440010',
  'Trane 3-Ton Heat Pump', 'High-efficiency heat pump system 16 SEER', 'TRANE-HP-3TON',
- 'Equipment', 4500.00, 3200.00, true, 2, 1, 'active', true)
+ 'Equipment', 4500.00, 3200.00, true, 2, 1, true, true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Purchase orders
@@ -335,7 +335,7 @@ INSERT INTO business_services (business_id, service_name, service_slug, category
 ON CONFLICT (business_id, service_slug) DO NOTHING;
 
 -- Enhanced Business Locations for Multi-Location SEO Testing
-INSERT INTO business_locations (business_id, name, address, city, state, zip_code, is_primary, service_radius) VALUES
+INSERT INTO business_locations (business_id, name, address, city, state, postal_code, is_primary, service_radius) VALUES
 ((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Austin Main Office', '123 Main St', 'Austin', 'TX', '78701', true, 25),
 ((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Round Rock Branch', '456 Round Rock Ave', 'Round Rock', 'TX', '78664', false, 20),
 ((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Cedar Park Office', '789 Cedar Park Blvd', 'Cedar Park', 'TX', '78613', false, 15);

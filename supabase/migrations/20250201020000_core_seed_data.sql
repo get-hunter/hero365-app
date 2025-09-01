@@ -41,7 +41,7 @@ INSERT INTO businesses (
     address, 
     city, 
     state, 
-    zip_code, 
+    postal_code, 
     primary_trade, 
     secondary_trades, 
     market_focus,
@@ -92,7 +92,7 @@ INSERT INTO businesses (
     address, 
     city, 
     state, 
-    zip_code, 
+    postal_code, 
     primary_trade, 
     secondary_trades, 
     market_focus,
@@ -141,7 +141,7 @@ INSERT INTO businesses (
     address, 
     city, 
     state, 
-    zip_code, 
+    postal_code, 
     primary_trade, 
     secondary_trades, 
     market_focus,
@@ -192,7 +192,7 @@ INSERT INTO businesses (
     address, 
     city, 
     state, 
-    zip_code, 
+    postal_code, 
     primary_trade, 
     secondary_trades, 
     market_focus,
@@ -241,7 +241,7 @@ INSERT INTO businesses (
     address, 
     city, 
     state, 
-    zip_code, 
+    postal_code, 
     primary_trade, 
     secondary_trades, 
     market_focus,
@@ -300,7 +300,7 @@ INSERT INTO business_services (business_id, service_name, service_slug, descript
 ON CONFLICT (business_id, service_slug) DO NOTHING;
 
 -- Business locations
-INSERT INTO business_locations (business_id, name, city, state, zip_code, county, is_primary, service_radius, is_active) VALUES
+INSERT INTO business_locations (business_id, name, city, state, postal_code, county, is_primary, service_radius, is_active) VALUES
 ('550e8400-e29b-41d4-a716-446655440010', 'Main Office', 'Austin', 'TX', '78701', 'Travis', true, 25, true),
 ('550e8400-e29b-41d4-a716-446655440010', 'North Austin Service Area', 'Round Rock', 'TX', '78664', 'Williamson', false, 15, true),
 ('550e8400-e29b-41d4-a716-446655440010', 'West Austin Service Area', 'Cedar Park', 'TX', '78613', 'Williamson', false, 15, true)
@@ -312,7 +312,7 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO contacts (
     id, business_id, user_id, first_name, last_name, full_name, email, phone, 
-    address, city, state, zip_code, contact_type, contact_source, lead_status,
+    address, city, state, postal_code, contact_type, contact_source, lead_status,
     customer_since, total_jobs, total_revenue, is_active
 ) VALUES 
 ('550e8400-e29b-41d4-a716-446655440020', '550e8400-e29b-41d4-a716-446655440010', '550e8400-e29b-41d4-a716-446655440003', 

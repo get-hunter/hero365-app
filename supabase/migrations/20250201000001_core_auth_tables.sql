@@ -14,7 +14,9 @@ CREATE TABLE users (
     full_name VARCHAR(255),
     display_name VARCHAR(255),
     avatar_url TEXT,
-    phone VARCHAR(20),
+    phone VARCHAR(20), -- E.164
+    phone_country_code VARCHAR(3),
+    phone_display VARCHAR(30),
     
     -- User Type Management
     user_type VARCHAR(20) NOT NULL DEFAULT 'contractor', -- 'contractor', 'client', 'supplier', 'admin'
@@ -36,6 +38,121 @@ CREATE TABLE users (
     
     CONSTRAINT users_user_type_check CHECK (user_type IN ('contractor', 'client', 'supplier', 'admin'))
 );
+
+-- =============================================
+-- INTERNATIONAL PHONE HELPERS (COMMON)
+-- =============================================
+
+-- Function to validate E.164 phone number format
+CREATE OR REPLACE FUNCTION is_valid_e164_phone(phone_number TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN phone_number ~ '^\+[1-9]\d{6,14}$';
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Function to extract country code from E.164 phone number
+CREATE OR REPLACE FUNCTION extract_country_code(phone_number TEXT)
+RETURNS TEXT AS $$
+BEGIN
+    IF NOT is_valid_e164_phone(phone_number) THEN
+        RETURN NULL;
+    END IF;
+    RETURN SUBSTRING(phone_number FROM 2 FOR 3);
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Function to format phone number for display
+CREATE OR REPLACE FUNCTION format_phone_display(phone_number TEXT)
+RETURNS TEXT AS $$
+DECLARE
+    cc TEXT;
+    national_number TEXT;
+BEGIN
+    IF NOT is_valid_e164_phone(phone_number) THEN
+        RETURN phone_number;
+    END IF;
+    cc := extract_country_code(phone_number);
+    national_number := SUBSTRING(phone_number FROM LENGTH(cc) + 2);
+    RETURN '+' || cc || ' ' || national_number;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Function to normalize phone number to E.164 format
+CREATE OR REPLACE FUNCTION normalize_phone_to_e164(
+    phone_input TEXT,
+    default_country_code TEXT DEFAULT '1'
+)
+RETURNS TEXT AS $$
+DECLARE
+    cleaned TEXT;
+    result TEXT;
+BEGIN
+    cleaned := REGEXP_REPLACE(phone_input, '[^\d+]', '', 'g');
+    IF cleaned ~ '^\+' THEN
+        IF is_valid_e164_phone(cleaned) THEN
+            RETURN cleaned;
+        ELSE
+            RETURN NULL;
+        END IF;
+    END IF;
+    IF LENGTH(cleaned) > 10 THEN
+        result := '+' || cleaned;
+        IF is_valid_e164_phone(result) THEN
+            RETURN result;
+        END IF;
+    END IF;
+    IF LENGTH(cleaned) >= 7 THEN
+        result := '+' || default_country_code || cleaned;
+        IF is_valid_e164_phone(result) THEN
+            RETURN result;
+        END IF;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- International phone support for users
+ALTER TABLE users 
+ADD CONSTRAINT users_phone_valid 
+CHECK (phone IS NULL OR is_valid_e164_phone(phone));
+
+CREATE OR REPLACE FUNCTION auto_normalize_user_phone()
+RETURNS TRIGGER AS $$
+DECLARE
+    normalized_phone TEXT;
+    country_code TEXT;
+    display_phone TEXT;
+    original_phone TEXT;
+BEGIN
+    original_phone := NEW.phone;
+    IF NEW.phone IS NOT NULL THEN
+        IF is_valid_e164_phone(NEW.phone) THEN
+            normalized_phone := NEW.phone;
+        ELSE
+            normalized_phone := normalize_phone_to_e164(NEW.phone, '1');
+        END IF;
+
+        IF normalized_phone IS NOT NULL THEN
+            country_code := extract_country_code(normalized_phone);
+            display_phone := format_phone_display(normalized_phone);
+
+            NEW.phone := normalized_phone;
+            NEW.phone_country_code := country_code;
+            NEW.phone_display := display_phone;
+        ELSE
+            RAISE EXCEPTION 'Invalid phone number format: %. Please provide a valid phone number.', original_phone;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER users_phone_normalize
+    BEFORE INSERT OR UPDATE ON users
+    FOR EACH ROW
+    WHEN (NEW.phone IS NOT NULL)
+    EXECUTE FUNCTION auto_normalize_user_phone();
 
 -- =============================================
 -- USER PROFILES (EXTENDED INFO)
@@ -69,6 +186,8 @@ CREATE TABLE user_profiles (
     -- Emergency Contact (for technicians)
     emergency_contact_name VARCHAR(100),
     emergency_contact_phone VARCHAR(20),
+    emergency_contact_phone_country_code VARCHAR(3),
+    emergency_contact_phone_display VARCHAR(30),
     emergency_contact_relationship VARCHAR(50),
     
     -- Onboarding & Status

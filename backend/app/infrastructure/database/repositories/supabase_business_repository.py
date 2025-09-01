@@ -419,15 +419,12 @@ class SupabaseBusinessRepository(BusinessRepository):
             "company_size": business.company_size.value,
             # owner_id removed - use business_memberships instead
             "description": business.description,
-            # Persist to both 'phone' (canonical) and 'phone_number' (legacy) for compatibility
+            # Canonical columns
             "phone": business.phone_number,
-            "phone_number": business.phone_number,
-            "business_address": business.business_address,
+            "address": business.business_address,
             "website": business.website,
             "logo_url": business.logo_url,
-            # Persist to both 'email' (canonical) and 'business_email' (legacy) for compatibility
             "email": business.business_email,
-            "business_email": business.business_email,
             "business_registration_number": business.business_registration_number,
             "tax_id": business.tax_id,
             "business_license": business.business_license,
@@ -479,11 +476,11 @@ class SupabaseBusinessRepository(BusinessRepository):
             # owner_id removed - use business_memberships instead
             custom_industry=data.get("custom_industry"),
             description=data.get("description"),
-            phone_number= data.get("phone_number") or data.get("phone"),
-            business_address=data.get("business_address"),
+            phone_number=data.get("phone"),
+            business_address=data.get("address"),
             website=data.get("website"),
             logo_url=data.get("logo_url"),
-            business_email=data.get("business_email") or data.get("email"),
+            business_email=data.get("email"),
             business_registration_number=data.get("business_registration_number"),
             tax_id=data.get("tax_id"),
             business_license=data.get("business_license"),

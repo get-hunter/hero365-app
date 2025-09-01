@@ -18,13 +18,15 @@ CREATE TABLE contacts (
     last_name VARCHAR(100),
     full_name VARCHAR(255),
     email VARCHAR(255),
-    phone VARCHAR(20),
+    phone VARCHAR(20), -- E.164
+    phone_country_code VARCHAR(3),
+    phone_display VARCHAR(30),
     
     -- Address
     address TEXT,
     city VARCHAR(100),
-    state VARCHAR(2),
-    zip_code VARCHAR(10),
+    state VARCHAR(100),
+    postal_code VARCHAR(20),
     
     -- Contact Details
     contact_type VARCHAR(50) DEFAULT 'customer', -- 'customer', 'lead', 'vendor', 'partner', 'supplier'
@@ -52,6 +54,48 @@ CREATE TABLE contacts (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- International phone support for contacts
+ALTER TABLE contacts 
+ADD CONSTRAINT contacts_phone_valid 
+CHECK (phone IS NULL OR is_valid_e164_phone(phone));
+
+CREATE OR REPLACE FUNCTION auto_normalize_contact_phone()
+RETURNS TRIGGER AS $$
+DECLARE
+    normalized_phone TEXT;
+    country_code TEXT;
+    display_phone TEXT;
+    original_phone TEXT;
+BEGIN
+    original_phone := NEW.phone;
+    IF NEW.phone IS NOT NULL THEN
+        IF is_valid_e164_phone(NEW.phone) THEN
+            normalized_phone := NEW.phone;
+        ELSE
+            normalized_phone := normalize_phone_to_e164(NEW.phone, '1');
+        END IF;
+
+        IF normalized_phone IS NOT NULL THEN
+            country_code := extract_country_code(normalized_phone);
+            display_phone := format_phone_display(normalized_phone);
+
+            NEW.phone := normalized_phone;
+            NEW.phone_country_code := country_code;
+            NEW.phone_display := display_phone;
+        ELSE
+            RAISE EXCEPTION 'Invalid phone number format: %. Please provide a valid phone number.', original_phone;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER contacts_phone_normalize
+    BEFORE INSERT OR UPDATE ON contacts
+    FOR EACH ROW
+    WHEN (NEW.phone IS NOT NULL)
+    EXECUTE FUNCTION auto_normalize_contact_phone();
 
 -- =============================================
 -- CONTACT NOTES

@@ -14,6 +14,7 @@ CREATE TABLE businesses (
     
     -- Basic Info
     name VARCHAR(255) NOT NULL,
+    display_name VARCHAR(255),
     email VARCHAR(255),
     phone VARCHAR(20) NOT NULL, -- E.164 format: +1234567890
     phone_country_code VARCHAR(3), -- Country code: 1, 44, 49, etc.
@@ -23,9 +24,10 @@ CREATE TABLE businesses (
     -- Address
     address TEXT,
     city VARCHAR(100),
-    state VARCHAR(2),
-    zip_code VARCHAR(10),
-    country VARCHAR(2) DEFAULT 'US',
+    state VARCHAR(100),
+    postal_code VARCHAR(20),
+    country VARCHAR(100) DEFAULT 'US',
+    timezone VARCHAR(100) DEFAULT 'UTC',
     
     -- Business Details
     primary_trade VARCHAR(100),
@@ -56,10 +58,12 @@ CREATE TABLE businesses (
     -- Status
     is_active BOOLEAN DEFAULT true,
     is_verified BOOLEAN DEFAULT false,
+    onboarding_completed BOOLEAN DEFAULT false,
+    referral_source VARCHAR(100),
     
     -- Metadata
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    created_date TIMESTAMPTZ DEFAULT NOW(),
+    last_modified TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- =============================================
@@ -136,8 +140,8 @@ CREATE TABLE business_locations (
     name VARCHAR(255), -- "Main Office", "Austin Service Area"
     address TEXT,
     city VARCHAR(100) NOT NULL,
-    state VARCHAR(2) NOT NULL,
-    zip_code VARCHAR(10),
+    state VARCHAR(100) NOT NULL,
+    postal_code VARCHAR(20),
     county VARCHAR(100),
     
     -- Service Area

@@ -84,13 +84,13 @@ CREATE TABLE products (
     brand VARCHAR(100),
     
     -- Pricing
-    price DECIMAL(10,2) NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
     compare_at_price DECIMAL(10,2), -- Original price for discounts
     cost_price DECIMAL(10,2), -- For profit calculations
     
     -- Inventory
     track_inventory BOOLEAN DEFAULT true,
-    inventory_quantity INTEGER DEFAULT 0,
+    current_stock DECIMAL(10,2) DEFAULT 0,
     low_stock_threshold INTEGER DEFAULT 10,
     
     -- Physical Properties
@@ -116,7 +116,7 @@ CREATE TABLE products (
     meta_description VARCHAR(300),
     
     -- Status
-    status VARCHAR(20) DEFAULT 'active', -- 'active', 'inactive', 'discontinued'
+    is_active BOOLEAN DEFAULT true,
     is_featured BOOLEAN DEFAULT false,
     
     -- Metadata
@@ -176,7 +176,7 @@ SELECT
     address,
     city,
     state,
-    zip_code,
+    postal_code,
     contact_type,
     contact_source,
     is_active,
@@ -223,7 +223,7 @@ CREATE INDEX idx_cart_items_product ON cart_items(product_type, product_id);
 
 CREATE INDEX idx_products_business ON products(business_id);
 CREATE INDEX idx_products_category ON products(category);
-CREATE INDEX idx_products_status ON products(status);
+CREATE INDEX idx_products_active ON products(is_active);
 CREATE INDEX idx_products_featured ON products(is_featured);
 CREATE INDEX idx_products_sku ON products(sku);
 CREATE INDEX idx_products_slug ON products(slug);
