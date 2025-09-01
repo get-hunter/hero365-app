@@ -395,14 +395,6 @@ import type {
   MobileVoiceIntegrationEndVoiceSessionResponse,
   MobileVoiceIntegrationVoiceSystemHealthResponse,
   MobileVoiceIntegrationGetAgentCapabilitiesResponse,
-  MobileWebsiteDeploymentDeployWebsiteMobileData,
-  MobileWebsiteDeploymentDeployWebsiteMobileResponse,
-  MobileWebsiteDeploymentGetDeploymentStatusMobileData,
-  MobileWebsiteDeploymentGetDeploymentStatusMobileResponse,
-  MobileWebsiteDeploymentListDeploymentsMobileData,
-  MobileWebsiteDeploymentListDeploymentsMobileResponse,
-  MobileWebsiteDeploymentCancelDeploymentMobileData,
-  MobileWebsiteDeploymentCancelDeploymentMobileResponse,
   CreateProductNoSlashData,
   CreateProductNoSlashResponse,
   ListProductsNoSlashData,
@@ -483,8 +475,6 @@ import type {
   ProjectsRemoveJobFromProjectResponse,
   ProjectsRemoveJobFromProject1Data,
   ProjectsRemoveJobFromProject1Response,
-  PublicWebsitesResolveWebsiteData,
-  PublicWebsitesResolveWebsiteResponse,
   PurchaseOrdersCreatePurchaseOrderData,
   PurchaseOrdersCreatePurchaseOrderResponse,
   PurchaseOrdersListPurchaseOrdersData,
@@ -503,6 +493,26 @@ import type {
   PurchaseOrdersGetPendingApprovalOrdersResponse,
   PurchaseOrdersGetPendingReceiptOrdersData,
   PurchaseOrdersGetPendingReceiptOrdersResponse,
+  SeoAnalyticsGetSeoDashboardData,
+  SeoAnalyticsGetSeoDashboardResponse,
+  SeoAnalyticsGetPerformanceMetricsData,
+  SeoAnalyticsGetPerformanceMetricsResponse,
+  SeoAnalyticsGetKeywordPerformanceData,
+  SeoAnalyticsGetKeywordPerformanceResponse,
+  SeoAnalyticsGetCompetitorAnalysisData,
+  SeoAnalyticsGetCompetitorAnalysisResponse,
+  SeoAnalyticsGetRevenueAttributionData,
+  SeoAnalyticsGetRevenueAttributionResponse,
+  SeoAnalyticsTrackConversionData,
+  SeoAnalyticsTrackConversionResponse,
+  SeoWebsiteDeploymentDeploySeoWebsiteData,
+  SeoWebsiteDeploymentDeploySeoWebsiteResponse,
+  SeoWebsiteDeploymentStreamDeploymentStatusData,
+  SeoWebsiteDeploymentStreamDeploymentStatusResponse,
+  SeoWebsiteDeploymentGetDeploymentStatusData,
+  SeoWebsiteDeploymentGetDeploymentStatusResponse,
+  SeoWebsiteDeploymentGetGeneratedPagesData,
+  SeoWebsiteDeploymentGetGeneratedPagesResponse,
   ServiceAreasCheckServiceAreaSupportData,
   ServiceAreasCheckServiceAreaSupportResponse,
   ServiceAreasCreateAvailabilityRequestData,
@@ -628,6 +638,35 @@ import type {
   UsersUpdateUserBusinessContextResponse,
   UtilsTestEmailData,
   UtilsTestEmailResponse,
+  WebsiteManagementGetWebsitesResponse,
+  WebsiteManagementCreateWebsiteData,
+  WebsiteManagementCreateWebsiteResponse,
+  WebsiteManagementGetWebsiteData,
+  WebsiteManagementGetWebsiteResponse,
+  WebsiteManagementUpdateWebsiteData,
+  WebsiteManagementUpdateWebsiteResponse,
+  WebsiteManagementBuildWebsiteData,
+  WebsiteManagementBuildWebsiteResponse,
+  WebsiteManagementDeployWebsiteData,
+  WebsiteManagementDeployWebsiteResponse,
+  WebsiteManagementSearchDomainsData,
+  WebsiteManagementSearchDomainsResponse,
+  WebsiteManagementRegisterDomainData,
+  WebsiteManagementRegisterDomainResponse,
+  WebsiteManagementGetDomainsResponse,
+  WebsiteManagementSubmitFormData,
+  WebsiteManagementSubmitFormResponse,
+  WebsiteManagementCreateBookingData,
+  WebsiteManagementCreateBookingResponse,
+  WebsiteManagementGetWebsiteAnalyticsData,
+  WebsiteManagementGetWebsiteAnalyticsResponse,
+  WebsiteManagementGetSeoKeywordsData,
+  WebsiteManagementGetSeoKeywordsResponse,
+  WebsiteManagementGetContentProvidersResponse,
+  WebsiteManagementSwitchContentProviderData,
+  WebsiteManagementSwitchContentProviderResponse,
+  WebsiteManagementTestContentProviderData,
+  WebsiteManagementTestContentProviderResponse,
 } from "./types.gen"
 
 export class ActivitiesService {
@@ -6204,110 +6243,6 @@ export class MobileVoiceIntegrationService {
   }
 }
 
-export class MobileWebsiteDeploymentService {
-  /**
-   * Deploy Website Mobile
-   * Deploy website from mobile app with collected business data.
-   *
-   * This endpoint:
-   * 1. Validates business readiness and subdomain availability
-   * 2. Reserves the subdomain
-   * 3. Persists business data to appropriate tables
-   * 4. Enqueues background deployment job
-   * 5. Returns deployment tracking information
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns MobileWebsiteDeployResponse Successful Response
-   * @throws ApiError
-   */
-  public static deployWebsiteMobile(
-    data: MobileWebsiteDeploymentDeployWebsiteMobileData,
-  ): CancelablePromise<MobileWebsiteDeploymentDeployWebsiteMobileResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/mobile/website/deploy",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Deployment Status Mobile
-   * Get deployment status for mobile app polling.
-   *
-   * Returns current status, progress, and website URL when completed.
-   * @param data The data for the request.
-   * @param data.deploymentId
-   * @returns DeploymentStatusResponse Successful Response
-   * @throws ApiError
-   */
-  public static getDeploymentStatusMobile(
-    data: MobileWebsiteDeploymentGetDeploymentStatusMobileData,
-  ): CancelablePromise<MobileWebsiteDeploymentGetDeploymentStatusMobileResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/mobile/website/deployments/{deployment_id}",
-      path: {
-        deployment_id: data.deploymentId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * List Deployments Mobile
-   * List recent deployments for the current business.
-   * @param data The data for the request.
-   * @param data.limit
-   * @param data.skip
-   * @returns DeploymentListResponse Successful Response
-   * @throws ApiError
-   */
-  public static listDeploymentsMobile(
-    data: MobileWebsiteDeploymentListDeploymentsMobileData = {},
-  ): CancelablePromise<MobileWebsiteDeploymentListDeploymentsMobileResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/mobile/website/deployments",
-      query: {
-        limit: data.limit,
-        skip: data.skip,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Cancel Deployment Mobile
-   * Cancel a pending or in-progress deployment.
-   * @param data The data for the request.
-   * @param data.deploymentId
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static cancelDeploymentMobile(
-    data: MobileWebsiteDeploymentCancelDeploymentMobileData,
-  ): CancelablePromise<MobileWebsiteDeploymentCancelDeploymentMobileResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/mobile/website/deployments/{deployment_id}/cancel",
-      path: {
-        deployment_id: data.deploymentId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-}
-
 export class ProductsService {
   /**
    * Create Product
@@ -7350,32 +7285,6 @@ export class ProjectsService {
   }
 }
 
-export class PublicWebsitesService {
-  /**
-   * Resolve Website
-   * @param data The data for the request.
-   * @param data.host Full host, e.g., sub.hero365.app or customdomain.com
-   * @param data.subdomain
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static resolveWebsite(
-    data: PublicWebsitesResolveWebsiteData,
-  ): CancelablePromise<PublicWebsitesResolveWebsiteResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/api/v1/public/websites/resolve",
-      query: {
-        host: data.host,
-        subdomain: data.subdomain,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-}
-
 export class PurchaseOrdersService {
   /**
    * Create Purchase Order
@@ -7603,6 +7512,291 @@ export class PurchaseOrdersService {
         page: data.page,
         page_size: data.pageSize,
         overdue_only: data.overdueOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class SeoAnalyticsService {
+  /**
+   * Get Seo Dashboard
+   * 📊 Get comprehensive SEO dashboard data for mobile app
+   *
+   * Returns:
+   * - Website status and metrics
+   * - Traffic growth and revenue impact
+   * - Top performing pages and keywords
+   * - Recent deployment history
+   * @param data The data for the request.
+   * @param data.businessId
+   * @returns DashboardResponse Successful Response
+   * @throws ApiError
+   */
+  public static getSeoDashboard(
+    data: SeoAnalyticsGetSeoDashboardData,
+  ): CancelablePromise<SeoAnalyticsGetSeoDashboardResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/api/v1/seo/analytics/dashboard/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Performance Metrics
+   * 📈 Get detailed performance metrics over time
+   *
+   * Parameters:
+   * - days: Number of days to analyze (1-365)
+   *
+   * Returns:
+   * - Daily performance metrics
+   * - Page performance breakdown
+   * - Competitive analysis
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.days Number of days to analyze
+   * @returns PerformanceResponse Successful Response
+   * @throws ApiError
+   */
+  public static getPerformanceMetrics(
+    data: SeoAnalyticsGetPerformanceMetricsData,
+  ): CancelablePromise<SeoAnalyticsGetPerformanceMetricsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/api/v1/seo/analytics/performance/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        days: data.days,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Keyword Performance
+   * 🔍 Get keyword ranking performance
+   *
+   * Returns top-performing keywords with rankings, search volume, and trends
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.limit Number of keywords to return
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getKeywordPerformance(
+    data: SeoAnalyticsGetKeywordPerformanceData,
+  ): CancelablePromise<SeoAnalyticsGetKeywordPerformanceResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/api/v1/seo/analytics/keywords/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Competitor Analysis
+   * 🏆 Get competitive analysis data
+   *
+   * Shows how the business compares to local competitors
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.location Filter by location (e.g., 'austin-tx')
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getCompetitorAnalysis(
+    data: SeoAnalyticsGetCompetitorAnalysisData,
+  ): CancelablePromise<SeoAnalyticsGetCompetitorAnalysisResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/api/v1/seo/analytics/competitors/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        location: data.location,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Revenue Attribution
+   * 💰 Get revenue attribution from SEO efforts
+   *
+   * Shows how much revenue is directly attributable to SEO pages
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.period Time period for analysis
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getRevenueAttribution(
+    data: SeoAnalyticsGetRevenueAttributionData,
+  ): CancelablePromise<SeoAnalyticsGetRevenueAttributionResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/api/v1/seo/analytics/revenue-attribution/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        period: data.period,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Track Conversion
+   * 📊 Track a conversion from an SEO page
+   *
+   * Called when a lead or sale is generated from an SEO page
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.pageUrl
+   * @param data.conversionType
+   * @param data.conversionValue
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static trackConversion(
+    data: SeoAnalyticsTrackConversionData,
+  ): CancelablePromise<SeoAnalyticsTrackConversionResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/api/v1/seo/analytics/track-conversion",
+      query: {
+        business_id: data.businessId,
+        page_url: data.pageUrl,
+        conversion_type: data.conversionType,
+        conversion_value: data.conversionValue,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class SeoWebsiteDeploymentService {
+  /**
+   * Deploy Seo Website
+   * Trigger full SEO website generation and deployment
+   *
+   * This endpoint:
+   * 1. Validates business ownership and configuration
+   * 2. Creates deployment record in Supabase
+   * 3. Queues background job for page generation
+   * 4. Returns deployment ID for status tracking
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns DeploymentStatusResponse Successful Response
+   * @throws ApiError
+   */
+  public static deploySeoWebsite(
+    data: SeoWebsiteDeploymentDeploySeoWebsiteData,
+  ): CancelablePromise<SeoWebsiteDeploymentDeploySeoWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/api/v1/seo/deploy",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Stream Deployment Status
+   * 🔄 Server-sent events stream for real-time deployment status
+   * Provides live updates to mobile app during SEO generation
+   * @param data The data for the request.
+   * @param data.deploymentId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static streamDeploymentStatus(
+    data: SeoWebsiteDeploymentStreamDeploymentStatusData,
+  ): CancelablePromise<SeoWebsiteDeploymentStreamDeploymentStatusResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/api/v1/seo/deployment-status/{deployment_id}",
+      path: {
+        deployment_id: data.deploymentId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Deployment Status
+   * Get current deployment status (one-time request)
+   * Simplified version for demo purposes
+   * @param data The data for the request.
+   * @param data.deploymentId
+   * @returns DeploymentStatusResponse Successful Response
+   * @throws ApiError
+   */
+  public static getDeploymentStatus(
+    data: SeoWebsiteDeploymentGetDeploymentStatusData,
+  ): CancelablePromise<SeoWebsiteDeploymentGetDeploymentStatusResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/api/v1/seo/deployment/{deployment_id}",
+      path: {
+        deployment_id: data.deploymentId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Generated Pages
+   * Get all generated SEO pages for a business (simplified demo version)
+   * @param data The data for the request.
+   * @param data.businessId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getGeneratedPages(
+    data: SeoWebsiteDeploymentGetGeneratedPagesData,
+  ): CancelablePromise<SeoWebsiteDeploymentGetGeneratedPagesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/api/v1/seo/pages/{business_id}",
+      path: {
+        business_id: data.businessId,
       },
       errors: {
         422: "Validation Error",
@@ -9249,6 +9443,710 @@ export class UtilsService {
       url: "/api/v1/utils/test-email/",
       query: {
         email_to: data.emailTo,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class WebsiteManagementService {
+  /**
+   * Get Websites
+   * Get all websites for the current business.
+   * @returns WebsiteResponse Successful Response
+   * @throws ApiError
+   */
+  public static getWebsites(): CancelablePromise<WebsiteManagementGetWebsitesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/websites/websites",
+    })
+  }
+
+  /**
+   * Create Website
+   * Create a new website for the business.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns WebsiteResponse Successful Response
+   * @throws ApiError
+   */
+  public static createWebsite(
+    data: WebsiteManagementCreateWebsiteData,
+  ): CancelablePromise<WebsiteManagementCreateWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Website
+   * Get a specific website by ID.
+   * @param data The data for the request.
+   * @param data.websiteId
+   * @returns WebsiteResponse Successful Response
+   * @throws ApiError
+   */
+  public static getWebsite(
+    data: WebsiteManagementGetWebsiteData,
+  ): CancelablePromise<WebsiteManagementGetWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/websites/websites/{website_id}",
+      path: {
+        website_id: data.websiteId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Website
+   * Update website settings.
+   * @param data The data for the request.
+   * @param data.websiteId
+   * @param data.requestBody
+   * @returns WebsiteResponse Successful Response
+   * @throws ApiError
+   */
+  public static updateWebsite(
+    data: WebsiteManagementUpdateWebsiteData,
+  ): CancelablePromise<WebsiteManagementUpdateWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/websites/websites/{website_id}",
+      path: {
+        website_id: data.websiteId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Build Website
+   * Trigger a website build.
+   * @param data The data for the request.
+   * @param data.websiteId
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static buildWebsite(
+    data: WebsiteManagementBuildWebsiteData,
+  ): CancelablePromise<WebsiteManagementBuildWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/{website_id}/build",
+      path: {
+        website_id: data.websiteId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Deploy Website
+   * Deploy website to production.
+   * @param data The data for the request.
+   * @param data.websiteId
+   * @param data.domain
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static deployWebsite(
+    data: WebsiteManagementDeployWebsiteData,
+  ): CancelablePromise<WebsiteManagementDeployWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/{website_id}/deploy",
+      path: {
+        website_id: data.websiteId,
+      },
+      query: {
+        domain: data.domain,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search Domains
+   * Search for available domains with trade-based SEO scoring.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns DomainSearchResponse Successful Response
+   * @throws ApiError
+   */
+  public static searchDomains(
+    data: WebsiteManagementSearchDomainsData,
+  ): CancelablePromise<WebsiteManagementSearchDomainsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/domains/search",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Register Domain
+   * Register a domain with Cloudflare.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static registerDomain(
+    data: WebsiteManagementRegisterDomainData,
+  ): CancelablePromise<WebsiteManagementRegisterDomainResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/domains/register",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Domains
+   * Get all domains for the business.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getDomains(): CancelablePromise<WebsiteManagementGetDomainsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/websites/websites/domains",
+    })
+  }
+
+  /**
+   * Submit Form
+   * Handle form submissions from websites (public endpoint).
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static submitForm(
+    data: WebsiteManagementSubmitFormData,
+  ): CancelablePromise<WebsiteManagementSubmitFormResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/forms/submit",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Booking
+   * Create a service booking from website (public endpoint).
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static createBooking(
+    data: WebsiteManagementCreateBookingData,
+  ): CancelablePromise<WebsiteManagementCreateBookingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/bookings",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Website Analytics
+   * Get website analytics and performance metrics.
+   * @param data The data for the request.
+   * @param data.websiteId
+   * @param data.dateFrom Start date for analytics
+   * @param data.dateTo End date for analytics
+   * @param data.metrics Metrics to include
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getWebsiteAnalytics(
+    data: WebsiteManagementGetWebsiteAnalyticsData,
+  ): CancelablePromise<WebsiteManagementGetWebsiteAnalyticsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/websites/websites/{website_id}/analytics",
+      path: {
+        website_id: data.websiteId,
+      },
+      query: {
+        date_from: data.dateFrom,
+        date_to: data.dateTo,
+        metrics: data.metrics,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Seo Keywords
+   * Get SEO keyword tracking for website.
+   * @param data The data for the request.
+   * @param data.websiteId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getSeoKeywords(
+    data: WebsiteManagementGetSeoKeywordsData,
+  ): CancelablePromise<WebsiteManagementGetSeoKeywordsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/websites/websites/{website_id}/seo/keywords",
+      path: {
+        website_id: data.websiteId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Available Content Generation Providers
+   * Get information about available AI content generation providers and their configuration status.
+   * @returns ContentProviderListResponse Successful Response
+   * @throws ApiError
+   */
+  public static getContentProviders(): CancelablePromise<WebsiteManagementGetContentProvidersResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/websites/websites/content-providers",
+    })
+  }
+
+  /**
+   * Switch Content Generation Provider
+   * Switch to a different AI content generation provider for website building.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static switchContentProvider(
+    data: WebsiteManagementSwitchContentProviderData,
+  ): CancelablePromise<WebsiteManagementSwitchContentProviderResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/content-providers/switch",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Test Content Generation Provider
+   * Test a content generation provider to ensure it's working correctly.
+   * @param data The data for the request.
+   * @param data.provider
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static testContentProvider(
+    data: WebsiteManagementTestContentProviderData,
+  ): CancelablePromise<WebsiteManagementTestContentProviderResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/content-providers/test/{provider}",
+      path: {
+        provider: data.provider,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class WebsitesService {
+  /**
+   * Get Websites
+   * Get all websites for the current business.
+   * @returns WebsiteResponse Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementGetWebsites(): CancelablePromise<WebsiteManagementGetWebsitesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/websites/websites",
+    })
+  }
+
+  /**
+   * Create Website
+   * Create a new website for the business.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns WebsiteResponse Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementCreateWebsite(
+    data: WebsiteManagementCreateWebsiteData,
+  ): CancelablePromise<WebsiteManagementCreateWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Website
+   * Get a specific website by ID.
+   * @param data The data for the request.
+   * @param data.websiteId
+   * @returns WebsiteResponse Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementGetWebsite(
+    data: WebsiteManagementGetWebsiteData,
+  ): CancelablePromise<WebsiteManagementGetWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/websites/websites/{website_id}",
+      path: {
+        website_id: data.websiteId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Website
+   * Update website settings.
+   * @param data The data for the request.
+   * @param data.websiteId
+   * @param data.requestBody
+   * @returns WebsiteResponse Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementUpdateWebsite(
+    data: WebsiteManagementUpdateWebsiteData,
+  ): CancelablePromise<WebsiteManagementUpdateWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/websites/websites/{website_id}",
+      path: {
+        website_id: data.websiteId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Build Website
+   * Trigger a website build.
+   * @param data The data for the request.
+   * @param data.websiteId
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementBuildWebsite(
+    data: WebsiteManagementBuildWebsiteData,
+  ): CancelablePromise<WebsiteManagementBuildWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/{website_id}/build",
+      path: {
+        website_id: data.websiteId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Deploy Website
+   * Deploy website to production.
+   * @param data The data for the request.
+   * @param data.websiteId
+   * @param data.domain
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementDeployWebsite(
+    data: WebsiteManagementDeployWebsiteData,
+  ): CancelablePromise<WebsiteManagementDeployWebsiteResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/{website_id}/deploy",
+      path: {
+        website_id: data.websiteId,
+      },
+      query: {
+        domain: data.domain,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search Domains
+   * Search for available domains with trade-based SEO scoring.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns DomainSearchResponse Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementSearchDomains(
+    data: WebsiteManagementSearchDomainsData,
+  ): CancelablePromise<WebsiteManagementSearchDomainsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/domains/search",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Register Domain
+   * Register a domain with Cloudflare.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementRegisterDomain(
+    data: WebsiteManagementRegisterDomainData,
+  ): CancelablePromise<WebsiteManagementRegisterDomainResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/domains/register",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Domains
+   * Get all domains for the business.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementGetDomains(): CancelablePromise<WebsiteManagementGetDomainsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/websites/websites/domains",
+    })
+  }
+
+  /**
+   * Submit Form
+   * Handle form submissions from websites (public endpoint).
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementSubmitForm(
+    data: WebsiteManagementSubmitFormData,
+  ): CancelablePromise<WebsiteManagementSubmitFormResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/forms/submit",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Booking
+   * Create a service booking from website (public endpoint).
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementCreateBooking(
+    data: WebsiteManagementCreateBookingData,
+  ): CancelablePromise<WebsiteManagementCreateBookingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/bookings",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Website Analytics
+   * Get website analytics and performance metrics.
+   * @param data The data for the request.
+   * @param data.websiteId
+   * @param data.dateFrom Start date for analytics
+   * @param data.dateTo End date for analytics
+   * @param data.metrics Metrics to include
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementGetWebsiteAnalytics(
+    data: WebsiteManagementGetWebsiteAnalyticsData,
+  ): CancelablePromise<WebsiteManagementGetWebsiteAnalyticsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/websites/websites/{website_id}/analytics",
+      path: {
+        website_id: data.websiteId,
+      },
+      query: {
+        date_from: data.dateFrom,
+        date_to: data.dateTo,
+        metrics: data.metrics,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Seo Keywords
+   * Get SEO keyword tracking for website.
+   * @param data The data for the request.
+   * @param data.websiteId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementGetSeoKeywords(
+    data: WebsiteManagementGetSeoKeywordsData,
+  ): CancelablePromise<WebsiteManagementGetSeoKeywordsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/websites/websites/{website_id}/seo/keywords",
+      path: {
+        website_id: data.websiteId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Available Content Generation Providers
+   * Get information about available AI content generation providers and their configuration status.
+   * @returns ContentProviderListResponse Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementGetContentProviders(): CancelablePromise<WebsiteManagementGetContentProvidersResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/websites/websites/content-providers",
+    })
+  }
+
+  /**
+   * Switch Content Generation Provider
+   * Switch to a different AI content generation provider for website building.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementSwitchContentProvider(
+    data: WebsiteManagementSwitchContentProviderData,
+  ): CancelablePromise<WebsiteManagementSwitchContentProviderResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/content-providers/switch",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Test Content Generation Provider
+   * Test a content generation provider to ensure it's working correctly.
+   * @param data The data for the request.
+   * @param data.provider
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static websiteManagementTestContentProvider(
+    data: WebsiteManagementTestContentProviderData,
+  ): CancelablePromise<WebsiteManagementTestContentProviderResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/websites/websites/content-providers/test/{provider}",
+      path: {
+        provider: data.provider,
       },
       errors: {
         422: "Validation Error",
