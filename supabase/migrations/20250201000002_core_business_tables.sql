@@ -37,8 +37,10 @@ CREATE TABLE businesses (
     
     -- Market Focus & Services (New Structure)
     market_focus VARCHAR(20) DEFAULT 'both' CHECK (market_focus IN ('residential', 'commercial', 'both')),
-    residential_services JSONB DEFAULT '[]', -- Array of residential services
-    commercial_services JSONB DEFAULT '[]', -- Array of commercial services
+    residential_services JSONB DEFAULT '[]', -- Array of residential trade enums (legacy)
+    commercial_services JSONB DEFAULT '[]', -- Array of commercial trade enums (legacy)
+    selected_residential_service_keys JSONB DEFAULT '[]', -- Array of residential service keys from DefaultServicesMapping
+    selected_commercial_service_keys JSONB DEFAULT '[]', -- Array of commercial service keys from DefaultServicesMapping
     
     -- Experience & Credentials
     years_in_business INTEGER DEFAULT 0,
@@ -331,6 +333,8 @@ CREATE INDEX idx_businesses_city_state ON businesses(city, state);
 CREATE INDEX idx_businesses_market_focus ON businesses(market_focus);
 CREATE INDEX idx_businesses_residential_services ON businesses USING GIN(residential_services);
 CREATE INDEX idx_businesses_commercial_services ON businesses USING GIN(commercial_services);
+CREATE INDEX idx_businesses_selected_residential_keys ON businesses USING GIN(selected_residential_service_keys);
+CREATE INDEX idx_businesses_selected_commercial_keys ON businesses USING GIN(selected_commercial_service_keys);
 CREATE INDEX idx_businesses_phone ON businesses(phone);
 CREATE INDEX idx_businesses_phone_country ON businesses(phone_country_code);
 
@@ -345,5 +349,22 @@ CREATE INDEX idx_business_services_slug ON business_services(service_slug);
 CREATE INDEX idx_business_locations_business ON business_locations(business_id);
 CREATE INDEX idx_business_locations_city_state ON business_locations(city, state);
 CREATE INDEX idx_business_locations_primary ON business_locations(is_primary);
+
+-- =============================================
+-- UTILITY FUNCTIONS
+-- =============================================
+
+-- Function to convert snake_case to kebab-case for service slugs
+CREATE OR REPLACE FUNCTION snake_to_kebab(input_text TEXT)
+RETURNS TEXT AS $$
+BEGIN
+    IF input_text IS NULL THEN
+        RETURN NULL;
+    END IF;
+    
+    -- Replace underscores with hyphens
+    RETURN REPLACE(LOWER(input_text), '_', '-');
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 COMMIT;

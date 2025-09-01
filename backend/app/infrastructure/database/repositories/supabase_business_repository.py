@@ -446,6 +446,12 @@ class SupabaseBusinessRepository(BusinessRepository):
             "trade_category": business.trade_category.value if business.trade_category else None,
             "commercial_trades": [trade.value if hasattr(trade, 'value') else trade for trade in business.commercial_trades] if business.commercial_trades else [],
             "residential_trades": [trade.value if hasattr(trade, 'value') else trade for trade in business.residential_trades] if business.residential_trades else [],
+            # New service-based fields (persist enums as strings)
+            "residential_services": [service.value if hasattr(service, 'value') else service for service in business.residential_services] if business.residential_services else [],
+            "commercial_services": [service.value if hasattr(service, 'value') else service for service in business.commercial_services] if business.commercial_services else [],
+            # Service key fields (persist as string arrays)
+            "selected_residential_service_keys": business.selected_residential_service_keys or [],
+            "selected_commercial_service_keys": business.selected_commercial_service_keys or [],
             "service_areas": business.service_areas or [],
             
             "created_date": business.created_date.isoformat() if business.created_date else None,
@@ -506,6 +512,9 @@ class SupabaseBusinessRepository(BusinessRepository):
             # New service-based fields
             residential_services=self._parse_residential_services(data),
             commercial_services=self._parse_commercial_services(data),
+            # Service key fields
+            selected_residential_service_keys=safe_json_parse(data.get("selected_residential_service_keys"), []),
+            selected_commercial_service_keys=safe_json_parse(data.get("selected_commercial_service_keys"), []),
             service_areas=safe_json_parse(data.get("service_areas"), []),
             
             created_date=datetime.fromisoformat(data["created_date"]) if data.get("created_date") else None,

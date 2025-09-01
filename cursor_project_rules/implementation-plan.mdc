@@ -1,250 +1,86 @@
-## Website Generator + Cloudflare Deployment: Implementation Plan (Trackable)
-
-Guideline: After completing each task, replace Status with "Done" and add a two-line summary under Notes.
 
 ---
 
-### 0) Governance, Environments, and Conventions
-- Task: Establish working conventions (this document) and logging discipline
+### 1) Service Assignment & SEO Seeds Improvements (Trackable)
+- Task: Data model alignment (service keys vs trade enums)
   - Status: Done
-  - Acceptance: This doc used as the single source of truth; every step updated with Done + 2-line summary
-  - Notes: Created comprehensive implementation plan with checkable tasks and acceptance criteria.
-    Document established as single source of truth for website generator implementation.
-- Task: Verify env files exist and secrets are available
+  - Acceptance: Business has `selected_residential_service_keys`/`selected_commercial_service_keys` JSONB persisted; trade enums remain intact
+  - Notes: Added new JSONB fields to Business entity and updated auto_assign_default_services to populate both trade enums and service keys.
+    Migration 20250201020004_add_service_key_fields.sql adds the new columns with proper indexes.
+
+- Task: Repository support for service key JSONB
+  - Status: Done
+  - Acceptance: Read/write round-trip for service key arrays; mapping helpers in place
+  - Notes: Updated SupabaseBusinessRepository to persist and read selected_*_service_keys arrays.
+    Repository now handles both legacy trade enums and new service key arrays for backward compatibility.
+
+- Task: Materialization service + endpoint
   - Status: Done
   - Steps:
-    - Ensure `/environments/.env` and `/environments/production.env` exist with required backend, Supabase, and Cloudflare secrets
-    - Confirm `CLOUDFLARE_API_TOKEN` and account details are stored securely for CI use
-  - Acceptance: Local backend runs; Wrangler can authenticate non-interactively in CI
-  - Notes: Environment structure confirmed in /environments/ folder with production.env and template files.
-    Need to add CLOUDFLARE_API_TOKEN to environment files for deployment automation.
-- Task: Confirm we follow clean architecture boundaries
-  - Status: Done
-  - Acceptance: New services added in `backend/app/application/services`, Pydantic DTOs in `domain`, adapters in `infrastructure`
-  - Notes: Project follows clean architecture with clear separation: domain/entities, application/services, infrastructure/adapters, api/routes.
-    Business entity is rich with domain logic and SEO helpers already implemented for website templates.
+    - App service computes defaults from trade(s)+market_focus and upserts `business_services`
+    - POST `/services/business/{business_id}/materialize-defaults` triggers service
+  - Acceptance: Idempotent creation of `business_services` matching mapping; business JSONB keys synced
+  - Notes: Created ServiceMaterializationService with intelligent pricing logic and proper market flag setting.
+    Added POST endpoint that creates business_services entries and updates business JSONB keys atomically.
 
----
-
-### 1) Supabase Schema (Data Model for Template-Driven Sites)
-- Task: Define template-driven content model tables
+- Task: Slug normalization (kebab-case)
   - Status: Done
   - Steps:
-    - Confirm/extend existing migrations in `supabase/migrations/` for:
-      - `businesses` (branding, contacts, support hours)
-      - `service_categories`, `services` (residential/commercial flags, featured)
-      - `promos_offers` (title, subtitle, price/label, badges, CTA, start/end, placement)
-      - `ratings_snapshot` (platform, rating, count, last_synced_at)
-      - `awards_certifications` (name, logo_url, order)
-      - `oem_partnerships` (name, logo_url, link_url, order)
-      - `locations` (primary city, service areas)
-      - `testimonials` (source, quote, author, rating)
-      - `website_deployments` (business_id, template, project_name, deploy_url, lighthouse_json, status)
-    - Create a new migration if needed
-  - Acceptance: `npx supabase db push` applies locally; tables match DTOs below
-  - Notes: Created comprehensive migration 20250207000006_create_website_content_tables.sql with all required tables.
-    Added promos_offers, ratings_snapshot, awards_certifications, oem_partnerships, testimonials, website_deployments, business_locations with proper indexes and helper functions.
-- Task: Data sync jobs for ratings (Phase 2)
-  - Status: Pending
-  - Acceptance: Nightly sync blueprint written; execution can be added later
-  - Notes:
+    - Backend slug utility; migration to normalize existing underscore slugs
+  - Acceptance: Single canonical slug format across `business_services`, SEO tables, builder
+  - Notes: Created SlugUtils class for consistent kebab-case slug generation across the platform.
+    Migration 20250201020005_normalize_service_slugs.sql converts existing snake_case slugs to kebab-case.
 
----
-
-### 2) Backend API (FastAPI)
-- Task: Define Pydantic DTOs (request/response)
-  - Status: Done
-  - Files:
-    - `backend/app/domain/entities/website_template.py` (TemplateProps, BusinessProps, ServiceCategoryProps, Promo, Rating, Award, Partnership)
-    - `backend/app/api/routes/dynamic_website_deployment.py` (or new route group `website_templates.py`)
-  - Acceptance: DTOs cover all props required by the builder; mypy passes; unit tests in `tests/api`
-  - Notes: Created comprehensive website_template.py with all required DTOs matching Supabase schema.
-    Added TemplateProps, BusinessProps, ServiceCategoryProps and all content entities with proper validation and helper methods.
-- Task: Implement endpoints
-  - Status: Done
-  - Endpoints:
-    - POST `/website-templates/preview` → returns composed `TemplateProps` without persisting
-    - POST `/website-templates/generate` → writes a build job row and artifacts for builder
-    - POST `/website-templates/deploy` → builds SSG and deploys to Cloudflare Pages (returns URL)
-    - GET `/website-templates/status/{job_id}` → returns logs, deployment URL, Lighthouse scores
-  - Acceptance: Happy-path tested locally with `uv run`/`uvicorn`; OpenAPI reflects endpoints
-  - Notes: Created complete API endpoints in website_templates.py with background task support.
-    Added preview, generate, deploy, status, and delete endpoints with proper error handling and database integration.
-- Task: Application services
-  - Status: Done
-  - Services:
-    - `TemplateCompositionService` (fetch data from Supabase, compose DTOs)
-    - `StaticSiteBuilderService` (emit JSON artifacts, route manifest, run Next.js build)
-    - `CloudflarePagesDeploymentService` (create/update project, deploy via Wrangler or API)
-  - Acceptance: Each service tested in isolation (unit) and in one e2e smoke
-  - Notes: Created TemplateCompositionService for data fetching and DTO composition from Supabase.
-    Created StaticSiteBuilderService for Next.js build process with JSON artifacts, route manifest, and build orchestration.
-- Task: OpenAPI + client generation
+- Task: Seed expansion and correctness
   - Status: Done
   - Steps:
-    - Run `/backend/scripts/generate-openapi.sh` to update openapi.json
-    - If applicable, regenerate mobile client (Swift) and website-builder client (TS)
-  - Acceptance: New endpoints present; clients compile without type errors
-  - Notes: Successfully generated OpenAPI documentation with new website template endpoints.
-    Frontend TypeScript client updated with new API endpoints for preview, generate, deploy, and status operations.
+    - Set `is_residential`/`is_commercial` flags consistently per service
+    - Add coverage for all listed trades (commercial + residential)
+  - Acceptance: Demo data covers all trades; flags correct; idempotent seeds
+  - Notes: Updated seed migration 20250201020003_default_services_seed.sql with kebab-case slugs and proper market flags.
+    Consolidated all improvements into existing core migrations (20250201000002_core_business_tables.sql and 20250201020000_core_seed_data.sql) to avoid redundant files.
 
----
-
-### 3) Website Builder (Next.js + Tailwind + shadcn/ui)
-- Task: Project foundation
+- Task: SEO scaffolding precompute
   - Status: Done
   - Steps:
-    - Next.js 15 App Router with `output: 'export'`, Tailwind v3, PostCSS, autoprefixer
-    - shadcn/ui installed for Buttons, Cards, Badges, Sheet, Accordion, Carousel, Tabs, Dialog
-    - Theme tokens (colors, radii, spacing) configurable per-business
-  - Acceptance: `npm run build` yields fully static `out/`
-  - Notes: Updated package.json with shadcn/ui dependencies, configured Tailwind CSS v3 with proper theme tokens.
-    Created utility functions and base UI components (Button, Card, Badge) with proper styling system.
-- Task: Template professional v1 (components)
-  - Status: Done
-  - Components (inspired by professional service websites):
-    - Global: Topbar (city, 24/7 phone), Header/Nav (mega menu), Sticky CTA rail, Footer
-    - Home: Hero, Promo Carousel, Trust Strip, Services Grid, Why-Us Features, Reviews Snapshot, Partnerships strip, Service Areas grid
-    - Inner pages: Category listing, Service detail (+FAQs), Reviews, Rebates, Financing, About, Contact/Booking (with SMS consent block)
-  - Acceptance: All components accept typed props from DTOs; Storybook (optional) showcases variants
-  - Notes: Created comprehensive professional template components: ProfessionalHero, ServicesGrid, TrustRatingDisplay, CustomerReviews, ContactSection, ProfessionalFooter.
-    All components use shadcn/ui, accept typed props from backend DTOs, and follow professional service website patterns.
-- Task: Data contract and SSG
-  - Status: Done
-  - Steps:
-    - In `website-builder/lib/types/`, mirror backend DTOs in TS
-    - Write artifact loader to consume `/lib/data/*.json` generated by backend
-    - Implement `getStaticPaths`-like route generation via a manifest file for:
-      - `/`, `/about`, `/contact`, `/reviews`, `/rebates`, `/financing`
-      - `/services/[category]` and `/services/[category]/[slug]`
-      - `/locations/[city]`
-  - Acceptance: Full site statically exported; routes match manifest
-  - Notes: Created comprehensive data-loader.ts with TypeScript interfaces matching backend DTOs.
-    Implemented loadTemplateData() function to consume JSON artifacts generated by StaticSiteBuilderService.
-- Task: Forms (Contact/Booking)
+    - Generate `service_location_pages` for service x location
+    - Seed `service_seo_config` for top-priority services
+  - Acceptance: Pages matrix ready for builder; priority captured
+  - Notes: Enhanced WebsiteConfigurationService to automatically generate service_location_pages matrix and service_seo_config entries during website creation. Integrated with existing workflow instead of creating separate service.
+
+- Task: Website builder integration preference
+  - Status: Pending
+  - Acceptance: Builder prefers `business_services` for grids/pages; falls back to selected service keys when empty
+  - Notes:
+
+- Task: API preview & management
   - Status: Pending
   - Steps:
-    - UI with validation; SMS consent disclaimer; post to FastAPI endpoint
-    - Turnstile (Cloudflare) or hCaptcha integration; rate limiting server-side
-  - Acceptance: Submissions reach backend and persist; basic spam controls in place
+    - GET `/services/business/{business_id}/defaults/preview` returns keys + display names + would-create set
+    - PUT `/services/business/{business_id}` accepts keys; validates; syncs JSONB and (optionally) prunes catalog (flagged)
+  - Acceptance: Clear preview/update flow; OpenAPI reflects endpoints
   - Notes:
 
----
-
-### 4) Deployment Pipeline (Cloudflare Pages)
-- Task: Non-interactive deploy flow (CI + local)
+- Task: Tests (unit + integration)
   - Status: Pending
   - Steps:
-    - Wrangler auth via API token in CI; store token as secret
-    - Project naming convention `hero365-{business_slug}` (per-tenant) or a multi-tenant single project (Phase 2)
-    - CLI: `wrangler pages deploy out --project-name <project>`
-  - Acceptance: One-click deploy from backend endpoint; URL persisted in Supabase
+    - Unit: mapping per trade+market_focus
+    - Integration: materialize → assert `business_services`, SEO rows, JSONB keys
+  - Acceptance: CI green; coverage for mapping and materialization path
   - Notes:
-- Task: Custom domains (optional Phase 2)
+
+- Task: Migrations & backfill
   - Status: Pending
-  - Steps: Map domain → Pages project; manage DNS via Cloudflare API adapter already present in repo
-  - Acceptance: Domain shows site; HTTPS ok
+  - Steps:
+    - Add new JSONB fields (if needed); run slug normalization; backfill flags
+    - Re-run seeds; ensure idempotency
+  - Acceptance: `npx supabase db push` clean; no duplicates; consistent slugs/flags
   - Notes:
-- Task: Observability
+
+- Task: Docs & client regeneration
   - Status: Pending
-  - Steps: Store deployment id/url; run Lighthouse CI post-deploy; save JSON and scores
-  - Acceptance: Scores saved ≥ target thresholds (Perf ≥ 90, A11y ≥ 95, SEO ≥ 95)
+  - Steps:
+    - Document endpoints and contracts in `docs/api/`
+    - Run `scripts/generate-openapi.sh`; update mobile client
+  - Acceptance: Docs published; client compiles without type issues
   - Notes:
-
----
-
-### 5) SEO, Accessibility, and Performance
-- Task: SEO foundations
-  - Status: Pending
-  - Steps: Per-page meta, canonical, robots, sitemap.xml, JSON-LD (LocalBusiness, Service, Product)
-  - Acceptance: Pages validate in Google Rich Results test
-  - Notes:
-- Task: Accessibility
-  - Status: Pending
-  - Steps: Semantic landmarks, keyboard focus, aria labels; color contrast checks
-  - Acceptance: A11y score ≥ 95; axe clean on templates
-  - Notes:
-- Task: Performance
-  - Status: Pending
-  - Steps: Pre-size images, lazy loading where needed, minimize CLS; static export only
-  - Acceptance: Lighthouse Perf ≥ 90 on Cloudflare Pages
-  - Notes:
-
----
-
-### 6) Testing & QA
-- Task: Unit & Integration Tests
-  - Status: Pending
-  - Backend: DTO tests; service composition; endpoint tests (FastAPI TestClient)
-  - Frontend: Component render tests; route generation integrity
-  - Acceptance: CI green on push
-  - Notes:
-- Task: E2E + Visual
-  - Status: Pending
-  - Steps: Playwright flows (nav, CTAs, forms); visual snapshots of key sections
-  - Acceptance: Baselines approved; PRs must not regress
-  - Notes:
-- Task: Post-Deploy Validation
-  - Status: Pending
-  - Steps: Synthetic checks for homepage and contact submit
-  - Acceptance: Health checks pass
-  - Notes:
-
----
-
-### 7) Rollout & Milestones
-- Milestone 1 (Week 1):
-  - Schema ready; DTOs ready; Template skeleton (global layout, hero, promo, trust, services grid, footer)
-  - One demo business SSG → deployed on Cloudflare Pages from backend endpoint
-  - Acceptance: Public URL; basic content; working nav and CTAs
-  - Status: Done
-  - Notes: Successfully completed all core infrastructure and professional template components.
-    Static site generation working with sample data, ready for backend integration and Cloudflare deployment.
-- Milestone 2 (Week 2):
-  - Category + Service pages; Reviews; Warranty/Financing pages; Locations; Contact form (with consent)
-  - Acceptance: Full site skeleton complete for one business
-  - Status: Pending
-  - Notes:
-- Milestone 3 (Week 3):
-  - Partnerships, awards; SEO JSON-LD; A11y; Lighthouse CI; admin endpoints for generate/deploy; nightly rating sync blueprint
-  - Acceptance: Scores ≥ targets; end-to-end deploy via API
-  - Status: Pending
-  - Notes:
-- Milestone 4 (Week 4):
-  - Multi-tenant support; optional custom domain; documentation for ops and mobile client integration
-  - Acceptance: Second business live; docs published
-  - Status: Pending
-  - Notes:
-
----
-
-### 8) Commands & Routines (Reference)
-- Backend run (local):
-  - `uv run uvicorn app.api.main:app --reload`
-- OpenAPI regeneration:
-  - `bash backend/scripts/generate-openapi.sh`
-- Supabase migrations:
-  - `npx supabase db push`
-- Builder (local):
-  - `npm ci && npm run build` (Next.js → `out/`)
-- Deploy (manual):
-  - `wrangler pages deploy out --project-name hero365-<slug>`
-
----
-
-### 9) Risks & Mitigations
-- Risk: Ratings/platform logos use third-party IP
-  - Mitigation: Use public review counts via platform APIs where allowed; store snapshots; use permitted logos
-- Risk: Overfitting to single design inspiration
-  - Mitigation: Keep template configurable; avoid content lock-in; design generic components
-- Risk: CI token leakage
-  - Mitigation: Store secrets in CI vault; minimize scopes
-
----
-
-### 10) Definition of Done (Project)
-- One-click API from backend creates, builds, and deploys a site for a business to Cloudflare Pages
-- Site structure replicates key professional service conversion patterns
-- Lighthouse: Perf ≥ 90, A11y ≥ 95, SEO ≥ 95
-- SSG-only export; zero runtime dependencies
-- Documentation and this plan updated with "Done" notes for each task

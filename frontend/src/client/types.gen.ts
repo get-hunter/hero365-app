@@ -11918,6 +11918,12 @@ export type ServiceManagementAutoAssignServicesData = {
 export type ServiceManagementAutoAssignServicesResponse =
   BusinessServicesResponse
 
+export type ServiceManagementMaterializeDefaultServicesData = {
+  businessId: string
+}
+
+export type ServiceManagementMaterializeDefaultServicesResponse = unknown
+
 export type ServicesListServicesData = {
   /**
    * Filter by category

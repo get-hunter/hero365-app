@@ -3,10 +3,11 @@ Website Configuration Service - 10X Engineer Approach
 Handles website configuration logic for the simplified website builder
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from uuid import UUID
 import logging
 from supabase import Client
+from app.application.services.seo_scaffolding_service import SEOScaffoldingService
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ class WebsiteConfigurationService:
     
     def __init__(self, db: Client):
         self.db = db
+        self.seo_scaffolding_service = SEOScaffoldingService(db)
     
     async def get_or_create_website_config(
         self,
@@ -73,6 +75,10 @@ class WebsiteConfigurationService:
             
             # Generate SEO configuration
             seo_config = self._generate_seo_config(business_data, services, locations)
+            
+            # Precompute SEO scaffolding (service_location_pages and service_seo_config)
+            seo_scaffolding_results = await self.seo_scaffolding_service.precompute_seo_scaffolding(business_id, business_data, services, locations)
+            logger.info(f"SEO scaffolding precompute results: {seo_scaffolding_results}")
             
             # Create subdomain
             subdomain = self._generate_subdomain(business_data)
@@ -150,7 +156,7 @@ class WebsiteConfigurationService:
                     "streetAddress": business_data.get('address', ''),
                     "addressLocality": business_data.get('city', ''),
                     "addressRegion": business_data.get('state', ''),
-                    "postalCode": business_data.get('zip_code', '')
+                    "postalCode": business_data.get('postal_code', '')
                 }
             }
         }

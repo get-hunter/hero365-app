@@ -19,7 +19,8 @@ from app.api.dtos.service_management_dtos import (
 from app.domain.repositories.business_repository import BusinessRepository
 from app.domain.services.default_services_mapping import DefaultServicesMapping
 from app.domain.entities.business import MarketFocus, ResidentialTrade, CommercialTrade
-from app.api.deps import get_current_user
+from app.application.services.service_materialization_service import ServiceMaterializationService
+from app.api.deps import get_current_user, get_supabase_client
 from app.infrastructure.config.dependency_injection import get_business_repository
 
 router = APIRouter(prefix="/services", tags=["Service Management"])
@@ -321,4 +322,67 @@ async def auto_assign_services(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to auto-assign services: {str(e)}"
+        )
+
+
+@router.post("/business/{business_id}/materialize-defaults")
+async def materialize_default_services(
+    business_id: str,
+    business_repository: BusinessRepository = Depends(get_business_repository),
+    supabase_client = Depends(get_supabase_client),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Materialize default services into business_services table.
+    Creates actual service catalog entries based on business trades and market focus.
+    """
+    try:
+        current_user_id = current_user.get('id')
+        business_uuid = uuid.UUID(business_id)
+        
+        # Get business and check access
+        business = await business_repository.get_by_id(business_uuid)
+        if not business:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Business not found"
+            )
+        
+        # Check if user has access to this business
+        if str(business.owner_id) != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
+        
+        # Initialize materialization service
+        materialization_service = ServiceMaterializationService(
+            business_repository=business_repository,
+            supabase_client=supabase_client
+        )
+        
+        # Materialize services
+        result = await materialization_service.materialize_default_services(business_uuid)
+        
+        return {
+            "success": True,
+            "business_id": business_id,
+            "message": "Default services materialized successfully",
+            **result
+        }
+        
+    except ValueError as e:
+        if "not found" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to materialize services: {str(e)}"
         )

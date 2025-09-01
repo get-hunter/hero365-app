@@ -113,9 +113,14 @@ class Business(BaseModel):
     market_focus: MarketFocus = Field(default=MarketFocus.BOTH, description="Which customer segments the business serves")
     commercial_trades: List[CommercialTrade] = Field(default_factory=list)
     residential_trades: List[ResidentialTrade] = Field(default_factory=list)
-    # New service-based approach (will replace trades eventually)
-    residential_services: List[ResidentialTrade] = Field(default_factory=list, description="Residential services offered")
-    commercial_services: List[CommercialTrade] = Field(default_factory=list, description="Commercial services offered")
+    # Trade-based approach (enum selections)
+    residential_services: List[ResidentialTrade] = Field(default_factory=list, description="Residential trade categories selected")
+    commercial_services: List[CommercialTrade] = Field(default_factory=list, description="Commercial trade categories selected")
+    
+    # Service key approach (actual service offerings)
+    selected_residential_service_keys: List[str] = Field(default_factory=list, description="Selected residential service keys from mapping")
+    selected_commercial_service_keys: List[str] = Field(default_factory=list, description="Selected commercial service keys from mapping")
+    
     service_areas: List[str] = Field(default_factory=list)  # Geographic areas served
     
     # Business Identity
@@ -433,25 +438,19 @@ class Business(BaseModel):
     # New methods for market focus and service-based approach
     
     def get_all_services(self) -> List[str]:
-        """Get all services as string values (new service-based approach)."""
+        """Get all services as string values (service key approach)."""
         services = []
-        if self.residential_services:
-            services.extend([service.value if hasattr(service, 'value') else service for service in self.residential_services])
-        if self.commercial_services:
-            services.extend([service.value if hasattr(service, 'value') else service for service in self.commercial_services])
+        services.extend(self.selected_residential_service_keys)
+        services.extend(self.selected_commercial_service_keys)
         return services
     
     def get_residential_services(self) -> List[str]:
-        """Get residential services as string values."""
-        if not self.residential_services:
-            return []
-        return [service.value if hasattr(service, 'value') else service for service in self.residential_services]
+        """Get residential services as string values (service key approach)."""
+        return self.selected_residential_service_keys.copy()
     
     def get_commercial_services(self) -> List[str]:
-        """Get commercial services as string values."""
-        if not self.commercial_services:
-            return []
-        return [service.value if hasattr(service, 'value') else service for service in self.commercial_services]
+        """Get commercial services as string values (service key approach)."""
+        return self.selected_commercial_service_keys.copy()
     
     def serves_residential_market(self) -> bool:
         """Check if business serves residential customers."""
@@ -569,7 +568,9 @@ class Business(BaseModel):
         
         return self.model_copy(update={
             'residential_services': residential_services,
-            'commercial_services': commercial_services
+            'commercial_services': commercial_services,
+            'selected_residential_service_keys': default_services['residential'],
+            'selected_commercial_service_keys': default_services['commercial']
         })
     
     @classmethod

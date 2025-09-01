@@ -558,6 +558,8 @@ import type {
   ServiceManagementUpdateBusinessServicesResponse,
   ServiceManagementAutoAssignServicesData,
   ServiceManagementAutoAssignServicesResponse,
+  ServiceManagementMaterializeDefaultServicesData,
+  ServiceManagementMaterializeDefaultServicesResponse,
   ServicesListServicesData,
   ServicesListServicesResponse,
   ServicesListServices1Data,
@@ -8372,6 +8374,30 @@ export class ServiceManagementService {
       },
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Materialize Default Services
+   * Materialize default services into business_services table.
+   * Creates actual service catalog entries based on business trades and market focus.
+   * @param data The data for the request.
+   * @param data.businessId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static materializeDefaultServices(
+    data: ServiceManagementMaterializeDefaultServicesData,
+  ): CancelablePromise<ServiceManagementMaterializeDefaultServicesResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/services/business/{business_id}/materialize-defaults",
+      path: {
+        business_id: data.businessId,
+      },
       errors: {
         422: "Validation Error",
       },
