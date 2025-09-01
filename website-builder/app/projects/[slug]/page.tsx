@@ -7,8 +7,8 @@ import { BookingWidgetProvider } from '@/components/booking/BookingWidgetProvide
 import { CartProvider } from '@/lib/contexts/CartContext';
 import ProjectDetailClient from './ProjectDetailClient';
 
-// Configure for Edge Runtime (required for Cloudflare Pages)
 // Note: Using Node.js runtime for OpenNext compatibility
+// Edge runtime functions need to be defined separately for OpenNext
 
 async function loadProjectData(businessId: string, projectSlug: string) {
   try {

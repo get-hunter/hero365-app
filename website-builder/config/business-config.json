@@ -1,44 +1,36 @@
 {
   "businessId": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-  "environment": "production",
+  "environment": "staging",
   "businessData": {
-    "business_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-    "business_name": "Austin Elite Home Services",
-    "trade_type": "hvac",
-    "description": "Premier HVAC, electrical, and plumbing services for Austin homes and businesses. Specializing in energy-efficient installations, emergency repairs, and preventative maintenance across all home systems.",
-    "phone": "(888) 343-7969",
-    "email": "info@austinelitehvac.com",
-    "address": "123 Main St",
-    "website": "https://www.austinelitehvac.com/",
+    "business_name": "Staging HVAC Services",
+    "phone": "+1-555-STAGING",
+    "email": "staging@hero365.ai",
+    "trade_type": "HVAC",
+    "description": "Professional service provider committed to excellence.",
     "service_areas": [
-      "Austin",
-      "Round Rock",
-      "Cedar Park",
-      "Pflugerville",
-      "Georgetown"
+      "Local Area"
     ],
     "emergency_service": true,
     "years_in_business": 10,
-    "license_number": "TACLA123456",
-    "insurance_verified": false,
+    "license_number": "Licensed & Insured",
+    "insurance_verified": true,
     "average_rating": 4.8,
-    "total_reviews": 150,
-    "certifications": []
+    "total_reviews": 150
   },
   "apiConfig": {
-    "baseUrl": "https://api.hero365.ai",
-    "timeout": 15000,
-    "retries": 3
+    "baseUrl": "https://api-staging.hero365.ai",
+    "timeout": 20000,
+    "retries": 2
   },
   "websiteConfig": {
-    "baseUrl": "https://hero365.ai"
+    "baseUrl": "https://staging.hero365.ai"
   },
   "features": {
     "analytics": true,
     "errorReporting": true,
-    "debugMode": false,
+    "debugMode": true,
     "voiceAgent": true,
     "bookingWidget": true
   },
-  "generatedAt": "2025-08-29T10:52:31.450Z"
+  "generatedAt": "2025-09-01T07:27:20.826Z"
 }

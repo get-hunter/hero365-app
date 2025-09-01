@@ -5,11 +5,11 @@
       "NEXT_PUBLIC_API_URL": "https://73d34a85b4db.ngrok-free.app",
       "NEXT_PUBLIC_API_VERSION": "v1",
       "NEXT_PUBLIC_DEBUG_MODE": "true",
-      "NEXT_PUBLIC_ANALYTICS_ENABLED": "false",
+      "NEXT_PUBLIC_ANALYTICS_ENABLED": "true",
       "NEXT_PUBLIC_BUSINESS_ID": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-      "NEXT_PUBLIC_BUSINESS_NAME": "Austin Elite Home Services",
-      "NEXT_PUBLIC_BUSINESS_EMAIL": "info@austinelitehvac.com",
-      "NEXT_PUBLIC_BUSINESS_PHONE": "(888) 343-7969"
+      "NEXT_PUBLIC_BUSINESS_NAME": "Staging HVAC Services",
+      "NEXT_PUBLIC_BUSINESS_EMAIL": "staging@hero365.ai",
+      "NEXT_PUBLIC_BUSINESS_PHONE": "+1-555-STAGING"
     },
     "webpack": null,
     "eslint": {
