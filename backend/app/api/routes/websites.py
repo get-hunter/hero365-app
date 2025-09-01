@@ -103,6 +103,17 @@ class WebsiteResponse(BaseModel):
     updated_at: datetime
 
 
+class DomainSuggestion(BaseModel):
+    """Model for domain name suggestions."""
+    
+    domain: str = Field(..., description="Suggested domain name")
+    available: bool = Field(..., description="Whether the domain is available")
+    price: Optional[float] = Field(None, description="Registration price if available")
+    tld: str = Field(..., description="Top-level domain (e.g., .com, .net)")
+    relevance_score: float = Field(..., description="How relevant this suggestion is (0-1)")
+    category: str = Field(..., description="Category of suggestion (exact, similar, creative)")
+
+
 class DomainSearchResponse(BaseModel):
     """Response model for domain search results."""
     
