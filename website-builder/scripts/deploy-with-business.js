@@ -194,24 +194,35 @@ async function generateBusinessConfig(deploymentConfig) {
     businessData = await fetchBusinessData(CONFIG.businessId, apiUrl);
   }
   
-  // Create business configuration
+  // Create business configuration with override support
+  const defaultBusinessData = {
+    business_name: CONFIG.businessOverrides.name || envConfig.business?.defaultBusinessName || 'Professional Services',
+    phone: CONFIG.businessOverrides.phone || envConfig.business?.defaultBusinessPhone || '+1-555-123-4567',
+    email: CONFIG.businessOverrides.email || envConfig.business?.defaultBusinessEmail || 'contact@example.com',
+    trade_type: 'HVAC',
+    description: 'Professional service provider committed to excellence.',
+    service_areas: ['Local Area'],
+    emergency_service: true,
+    years_in_business: 10,
+    license_number: 'Licensed & Insured',
+    insurance_verified: true,
+    average_rating: 4.8,
+    total_reviews: 150
+  };
+
+  // Merge fetched data with overrides and defaults
+  const finalBusinessData = businessData ? {
+    ...businessData,
+    // Override empty fields with provided values
+    business_name: businessData.business_name || CONFIG.businessOverrides.name || defaultBusinessData.business_name,
+    phone: businessData.phone || CONFIG.businessOverrides.phone || defaultBusinessData.phone,
+    email: businessData.email || CONFIG.businessOverrides.email || defaultBusinessData.email
+  } : defaultBusinessData;
+
   const businessConfig = {
     businessId: CONFIG.businessId,
     environment: CONFIG.environment,
-    businessData: businessData || {
-      business_name: CONFIG.businessOverrides.name || envConfig.business?.defaultBusinessName || 'Professional Services',
-      phone: CONFIG.businessOverrides.phone || envConfig.business?.defaultBusinessPhone || '+1-555-123-4567',
-      email: CONFIG.businessOverrides.email || envConfig.business?.defaultBusinessEmail || 'contact@example.com',
-      trade_type: 'HVAC',
-      description: 'Professional service provider committed to excellence.',
-      service_areas: ['Local Area'],
-      emergency_service: true,
-      years_in_business: 10,
-      license_number: 'Licensed & Insured',
-      insurance_verified: true,
-      average_rating: 4.8,
-      total_reviews: 150
-    },
+    businessData: finalBusinessData,
     apiConfig: envConfig.api,
     websiteConfig: envConfig.website,
     features: envConfig.features,

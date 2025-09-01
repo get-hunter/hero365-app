@@ -8,8 +8,8 @@
       "NEXT_PUBLIC_ANALYTICS_ENABLED": "true",
       "NEXT_PUBLIC_BUSINESS_ID": "550e8400-e29b-41d4-a716-446655440010",
       "NEXT_PUBLIC_BUSINESS_NAME": "Elite HVAC Austin",
-      "NEXT_PUBLIC_BUSINESS_EMAIL": "",
-      "NEXT_PUBLIC_BUSINESS_PHONE": ""
+      "NEXT_PUBLIC_BUSINESS_EMAIL": "info@elitehvac.com",
+      "NEXT_PUBLIC_BUSINESS_PHONE": "+15125550100"
     },
     "webpack": null,
     "eslint": {

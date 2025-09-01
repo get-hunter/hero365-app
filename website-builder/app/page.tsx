@@ -8,6 +8,7 @@
 import React from 'react';
 import EliteHeader from '../components/layout/EliteHeader';
 import EliteHero from '../components/hero/EliteHero';
+import { formatPhoneForDisplay, normalizeToE164 } from '../lib/phone';
 import EliteServicesGrid from '../components/services/EliteServicesGrid';
 import TrustRatingDisplay from '../components/professional/TrustRatingDisplay';
 import CustomerReviews from '../components/professional/CustomerReviews';
@@ -60,18 +61,18 @@ async function loadBusinessData(businessId: string) {
     let services = [];
     let products = [];
     
-    if (profileResponse.ok) {
-      profile = await profileResponse.json();
+    if (profileResponse && 'ok' in profileResponse && profileResponse.ok) {
+      profile = await (profileResponse as Response).json();
       console.log('✅ [SERVER] Profile loaded:', profile.business_name);
     }
     
-    if (servicesResponse.ok) {
-      services = await servicesResponse.json();
+    if (servicesResponse && 'ok' in servicesResponse && servicesResponse.ok) {
+      services = await (servicesResponse as Response).json();
       console.log('✅ [SERVER] Services loaded:', services.length, 'items');
     }
 
-    if (productsResponse.ok) {
-      products = await productsResponse.json();
+    if (productsResponse && 'ok' in productsResponse && productsResponse.ok) {
+      products = await (productsResponse as Response).json();
       console.log('✅ [SERVER] Products loaded:', products.length, 'items');
     }
     
@@ -161,21 +162,21 @@ export default async function HomePage() {
   // Error state - show fallback content with default configuration
   if (error || !profile || !generatedContent) {
     const fallbackContent = {
-      businessName: businessConfig.defaultBusinessName,
+      businessName: profile?.business_name || businessConfig.defaultBusinessName,
       tagline: "Professional Home Services",
-      description: "Quality service you can trust. Licensed, insured, and committed to excellence.",
-      phone: businessConfig.defaultBusinessPhone,
-      email: businessConfig.defaultBusinessEmail,
-      address: "Serving Your Local Area",
-      serviceAreas: ["Local Area"],
-      emergencyService: true,
-      yearsInBusiness: 10,
-      licenseNumber: "Licensed & Insured",
-      insuranceVerified: true,
-      averageRating: 4.8,
-      totalReviews: 150,
-      certifications: ["Licensed Professional", "Insured"],
-      website: undefined
+      description: profile?.description || "Quality service you can trust. Licensed, insured, and committed to excellence.",
+      phone: (profile?.phone && profile.phone.trim()) || businessConfig.defaultBusinessPhone,
+      email: (profile?.email && profile.email.trim()) || businessConfig.defaultBusinessEmail,
+      address: profile?.address || "Serving Your Local Area",
+      serviceAreas: profile?.service_areas || ["Local Area"],
+      emergencyService: profile?.emergency_service ?? true,
+      yearsInBusiness: profile?.years_in_business || 10,
+      licenseNumber: profile?.license_number || "Licensed & Insured",
+      insuranceVerified: profile?.insurance_verified ?? true,
+      averageRating: profile?.average_rating || 4.8,
+      totalReviews: profile?.total_reviews || 150,
+      certifications: profile?.certifications || ["Licensed Professional", "Insured"],
+      website: profile?.website
     };
 
     const fallbackServices = [
@@ -472,10 +473,10 @@ export default async function HomePage() {
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <a 
-                      href={`tel:${generatedContent.phone}`}
+                      href={`tel:${normalizeToE164(generatedContent.phone)}`}
                       className="px-6 py-2 bg-white border border-blue-300 text-blue-700 font-medium rounded-lg hover:bg-blue-50 transition-colors"
                     >
-                      Call {generatedContent.phone}
+                      Call {formatPhoneForDisplay(generatedContent.phone)}
                     </a>
                     <a 
                       href="/products"

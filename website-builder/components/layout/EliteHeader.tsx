@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { Phone, MapPin, Menu, X, ChevronDown, ShoppingBag } from 'lucide-react';
 import { Button } from '../ui/button';
 import { BookingCTAButton } from '../booking/BookingWidgetProvider';
+import { formatPhoneForDisplay, normalizeToE164 } from '../../lib/phone';
 import { CartIndicator } from '../cart/CartIndicator';
 
 interface EliteHeaderProps {
@@ -46,6 +47,9 @@ export default function EliteHeader({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const displayPhone = formatPhoneForDisplay(phone);
+  const telPhone = normalizeToE164(phone);
 
   // Handle scroll effect
   useEffect(() => {
@@ -136,10 +140,10 @@ export default function EliteHeader({
             <div className="hidden md:flex items-center">
               <span className="text-green-400 font-medium">Support {supportHours}:</span>
               <a 
-                href={`tel:${phone}`}
+                href={`tel:${telPhone}`}
                 className="ml-2 text-white hover:text-blue-400 transition-colors font-bold"
               >
-                {phone}
+                {displayPhone}
               </a>
             </div>
           </div>

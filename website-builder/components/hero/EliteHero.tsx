@@ -11,6 +11,7 @@ import { Star, Award, Shield, Clock, Phone, Calendar, ArrowRight } from 'lucide-
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { BookingCTAButton } from '../booking/BookingWidgetProvider';
+import { formatPhoneForDisplay, normalizeToE164 } from '../../lib/phone';
 import PromotionalBannerSystem, { Promotion, getSeasonalPromotions } from './PromotionalBannerSystem';
 
 interface EliteHeroProps {
@@ -45,6 +46,8 @@ export default function EliteHero({
   
   // Enhanced promotional system with seasonal offers
   const enhancedPromotions = getSeasonalPromotions(promotions);
+  const displayPhone = formatPhoneForDisplay(phone);
+  const telPhone = normalizeToE164(phone);
 
   return (
     <div className="relative">
@@ -145,7 +148,7 @@ export default function EliteHero({
                   className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold border-2 border-white text-white hover:bg-white hover:text-blue-900 rounded-md transition-colors duration-200"
                 >
                   <Phone className="w-5 h-5 mr-2" />
-                  Call {phone}
+                  Call {displayPhone}
                 </a>
               </div>
 

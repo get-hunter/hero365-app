@@ -1,6 +1,7 @@
 import React from 'react';
 import { Phone, Mail, MapPin, Clock, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 import { BusinessData, ServiceCategory, Location } from '../../lib/data-loader';
+import { formatPhoneForDisplay, normalizeToE164 } from '../../lib/phone';
 
 interface ProfessionalFooterProps {
   business: BusinessData;
@@ -41,10 +42,10 @@ export default function ProfessionalFooter({ business, serviceCategories = [], l
                 <div className="flex items-center text-gray-300">
                   <Phone className="w-4 h-4 mr-3 text-blue-400" />
                   <a 
-                    href={`tel:${business.phone_number}`}
+                    href={`tel:${normalizeToE164(business.phone_number)}`}
                     className="hover:text-white transition-colors"
                   >
-                    {business.phone_number}
+                    {formatPhoneForDisplay(business.phone_number)}
                   </a>
                 </div>
               )}
@@ -179,7 +180,7 @@ export default function ProfessionalFooter({ business, serviceCategories = [], l
               <p className="text-red-100">Don't wait - call us now for immediate assistance</p>
             </div>
             <a
-              href={`tel:${business.phone_number}`}
+              href={`tel:${normalizeToE164(business.phone_number || '')}`}
               className="bg-white text-red-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
             >
               Call Emergency Line

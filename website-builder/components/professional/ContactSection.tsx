@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Phone, Mail, MapPin, Clock, MessageSquare } from 'lucide-react';
 import { BusinessData, Location } from '../../lib/data-loader';
+import { formatPhoneForDisplay, normalizeToE164 } from '../../lib/phone';
 
 interface ContactSectionProps {
   business: BusinessData;
@@ -168,10 +169,10 @@ export default function ContactSection({ business, locations = [] }: ContactSect
                       <div>
                         <p className="font-semibold text-gray-900">Call Us</p>
                         <a 
-                          href={`tel:${business.phone_number}`}
+                          href={`tel:${normalizeToE164(business.phone_number)}`}
                           className="text-blue-600 hover:text-blue-800 text-lg font-medium"
                         >
-                          {business.phone_number}
+                          {formatPhoneForDisplay(business.phone_number)}
                         </a>
                       </div>
                     </div>

@@ -6,8 +6,8 @@
     "business_name": "Elite HVAC Austin",
     "trade_type": "hvac",
     "description": "Professional HVAC provider",
-    "phone": "",
-    "email": "",
+    "phone": "+15125550100",
+    "email": "info@elitehvac.com",
     "address": "",
     "website": "https://elitehvac.com/",
     "service_areas": [],
@@ -34,5 +34,5 @@
     "voiceAgent": true,
     "bookingWidget": true
   },
-  "generatedAt": "2025-09-01T16:12:32.633Z"
+  "generatedAt": "2025-09-01T16:24:04.050Z"
 }
