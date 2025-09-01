@@ -20,6 +20,14 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/api/seo/pages/[businessId]",
+      "regex": "^/api/seo/pages/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPbusinessId": "nxtPbusinessId"
+      },
+      "namedRegex": "^/api/seo/pages/(?<nxtPbusinessId>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/products/[slug]",
       "regex": "^/products/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -34,6 +42,14 @@
         "nxtPslug": "nxtPslug"
       },
       "namedRegex": "^/projects/(?<nxtPslug>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/[...slug]",
+      "regex": "^/(.+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPslug": "nxtPslug"
+      },
+      "namedRegex": "^/(?<nxtPslug>.+?)(?:/)?$"
     }
   ],
   "staticRoutes": [

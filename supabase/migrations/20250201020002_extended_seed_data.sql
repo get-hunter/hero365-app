@@ -320,7 +320,69 @@ ON CONFLICT (id) DO NOTHING;
 -- WEBSITE BUILDER DEMO DATA
 -- =============================================
 
--- Website Configuration for Demo Business
+-- Enhanced Business Services for Website Builder Testing
+INSERT INTO business_services (business_id, service_name, service_slug, category, description, price_type, price_min, price_max, price_unit) VALUES
+-- Core HVAC Services
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'AC Repair', 'ac-repair', 'Repair', 'Emergency air conditioning repair and diagnostics', 'range', 150, 800, 'job'),
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Heating Repair', 'heating-repair', 'Repair', 'Furnace and heating system repair services', 'range', 175, 900, 'job'),
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'HVAC Installation', 'hvac-installation', 'Installation', 'Complete HVAC system installation and replacement', 'range', 3500, 12000, 'job'),
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Duct Cleaning', 'duct-cleaning', 'Maintenance', 'Professional air duct cleaning and sanitization', 'range', 200, 600, 'job'),
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Preventive Maintenance', 'preventive-maintenance', 'Maintenance', 'Seasonal HVAC tune-ups and maintenance', 'range', 120, 250, 'job'),
+-- Additional Services
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Indoor Air Quality', 'indoor-air-quality', 'Installation', 'Air purification and filtration system installation', 'range', 500, 2500, 'job'),
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Thermostat Installation', 'thermostat-installation', 'Installation', 'Smart and programmable thermostat installation', 'range', 150, 400, 'job'),
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Emergency Service', 'emergency-service', 'Emergency', '24/7 emergency HVAC repair services', 'range', 200, 1200, 'job')
+ON CONFLICT (business_id, service_slug) DO NOTHING;
+
+-- Enhanced Business Locations for Multi-Location SEO Testing
+INSERT INTO business_locations (business_id, name, address, city, state, zip_code, is_primary, service_radius) VALUES
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Austin Main Office', '123 Main St', 'Austin', 'TX', '78701', true, 25),
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Round Rock Branch', '456 Round Rock Ave', 'Round Rock', 'TX', '78664', false, 20),
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Cedar Park Office', '789 Cedar Park Blvd', 'Cedar Park', 'TX', '78613', false, 15);
+
+-- Enhanced Featured Projects for Website Builder
+INSERT INTO featured_projects (business_id, title, description, trade, completion_date, project_value, gallery_images, location, is_featured, display_order) VALUES
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Luxury Home HVAC System', 'Complete HVAC system installation for 4,500 sq ft luxury home with zoned climate control', 'HVAC', '2024-01-15', 15000.00, '{"https://example.com/project1.jpg"}', 'West Lake Hills, TX', true, 1),
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Commercial Office Building', 'Multi-zone HVAC system for 20,000 sq ft office complex with energy-efficient design', 'HVAC', '2023-12-10', 45000.00, '{"https://example.com/project2.jpg"}', 'Downtown Austin, TX', true, 2),
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Emergency AC Repair', 'Emergency repair of commercial AC system during Texas heat wave, completed in 4 hours', 'HVAC', '2024-01-20', 2800.00, '{"https://example.com/project3.jpg"}', 'South Austin, TX', true, 3),
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Smart Home Integration', 'Integration of smart thermostats and air quality monitoring for modern home', 'HVAC', '2024-01-05', 3200.00, '{"https://example.com/project4.jpg"}', 'Mueller, Austin, TX', false, 4);
+
+-- Enhanced Business Branding for Website Builder
+INSERT INTO business_branding (business_id, name, description, color_scheme, typography, assets, website_settings) VALUES
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Elite HVAC Austin', 'Professional HVAC services with 24/7 emergency support',
+'{
+    "primary": "#1E40AF",
+    "secondary": "#DC2626", 
+    "accent": "#0EA5E9",
+    "neutral": "#6B7280",
+    "success": "#10B981",
+    "warning": "#F59E0B",
+    "error": "#EF4444"
+}',
+'{
+    "heading": "Inter",
+    "body": "Inter",
+    "accent": "Inter"
+}',
+'{
+    "logo_url": "https://example.com/elite-hvac-logo.png",
+    "favicon_url": "https://example.com/favicon.ico",
+    "hero_image": "https://example.com/hero-hvac.jpg"
+}',
+'{
+    "tagline": "Your Comfort, Our Priority",
+    "value_proposition": "Professional HVAC services with 24/7 emergency support",
+    "key_benefits": ["Licensed & Insured", "24/7 Emergency Service", "Same Day Service", "Free Estimates"],
+    "brand_voice": {
+        "tone": "professional",
+        "personality": ["trustworthy", "reliable", "expert", "responsive"],
+        "communication_style": "clear and direct"
+    }
+}'
+)
+ON CONFLICT (business_id) DO NOTHING;
+
+-- Website Configurations for Demo Business
 INSERT INTO website_configurations (business_id, subdomain, deployment_status, enabled_pages, seo_config, content_overrides, monthly_conversions, estimated_monthly_revenue) VALUES
 (
     (SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1),
@@ -333,23 +395,34 @@ INSERT INTO website_configurations (business_id, subdomain, deployment_status, e
         "contact": true,
         "about": true,
         "booking": true,
+        "products": false,
+        "pricing": false,
         "locations": ["austin-tx", "round-rock-tx", "cedar-park-tx"]
     }',
     '{
         "title_template": "HVAC Services in {city} | Elite HVAC Austin",
         "meta_description": "Professional HVAC services in Austin, TX. Licensed, insured, 24/7 emergency service. Same day repairs and installations.",
-        "keywords": ["hvac", "austin", "air conditioning", "heating", "emergency", "repair"],
-        "google_analytics_id": "G-DEMO123456"
+        "keywords": ["hvac", "austin", "emergency", "repair", "installation", "maintenance", "licensed", "insured"],
+        "business_schema": {
+            "@type": "LocalBusiness",
+            "name": "Elite HVAC Austin",
+            "telephone": "(512) 555-0100",
+            "address": {
+                "streetAddress": "123 Main St",
+                "addressLocality": "Austin",
+                "addressRegion": "TX",
+                "postalCode": "78701"
+            }
+        }
     }',
-    '{
-        "hero_title": "Elite HVAC Austin",
-        "hero_subtitle": "24/7 Emergency Service • Same Day Repairs • Licensed & Insured",
-        "cta_text": "Get Free Estimate",
-        "phone_display": "(512) 555-0100"
-    }',
-    15,
-    4500.00
-);
+    '{}',
+    45,
+    6750.00
+)
+ON CONFLICT (business_id) DO NOTHING;
+
+-- Note: website_pages table removed in simplified website builder
+-- Pages are now generated dynamically based on enabled_pages configuration
 
 -- Website Conversions Demo Data
 INSERT INTO website_conversions (business_id, conversion_type, conversion_value, source_page, visitor_data, conversion_data, created_at) VALUES
@@ -398,6 +471,7 @@ INSERT INTO website_conversions (business_id, conversion_type, conversion_value,
     '{"userAgent": "Mozilla/5.0 (Android 12; Mobile)", "referrer": "https://bing.com", "trafficSource": "organic"}',
     '{"contact_info": {"name": "Lisa Rodriguez", "phone": "(512) 555-7890", "email": "lisa@example.com", "service_needed": "Maintenance Check"}}',
     NOW() - INTERVAL '12 hours'
-);
+)
+ON CONFLICT DO NOTHING;
 
 COMMIT;

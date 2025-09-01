@@ -921,7 +921,7 @@ def _deploy_to_cloudflare_pages(
             "NODE_ENV": "production"
         })
         
-        logger.info(f"Deploying to Cloudflare Pages: {project_name} ({branch})")
+        logger.info(f"Deploying to Cloudflare Pages (Legacy): {project_name} ({branch})")
         
         # Use TypeScript deployer
         deploy_command = [
