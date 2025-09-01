@@ -1,6 +1,6 @@
 {
   "businessId": "550e8400-e29b-41d4-a716-446655440010",
-  "environment": "staging",
+  "environment": "development",
   "businessData": {
     "business_id": "550e8400-e29b-41d4-a716-446655440010",
     "business_name": "Elite HVAC Austin",
@@ -8,7 +8,7 @@
     "description": "Professional HVAC provider",
     "phone": "+15125550100",
     "email": "info@elitehvac.com",
-    "address": "",
+    "address": "123 Main St",
     "website": "https://elitehvac.com/",
     "service_areas": [],
     "emergency_service": true,
@@ -21,18 +21,18 @@
   },
   "apiConfig": {
     "baseUrl": "http://127.0.0.1:8000",
-    "timeout": 20000,
-    "retries": 2
+    "timeout": 30000,
+    "retries": 1
   },
   "websiteConfig": {
-    "baseUrl": "https://staging.hero365.ai"
+    "baseUrl": "http://localhost:3001"
   },
   "features": {
-    "analytics": true,
-    "errorReporting": true,
+    "analytics": false,
+    "errorReporting": false,
     "debugMode": true,
-    "voiceAgent": true,
+    "voiceAgent": false,
     "bookingWidget": true
   },
-  "generatedAt": "2025-09-01T16:24:04.050Z"
+  "generatedAt": "2025-09-01T19:46:21.945Z"
 }

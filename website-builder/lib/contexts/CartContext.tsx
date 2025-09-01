@@ -97,7 +97,7 @@ export function CartProvider({ children, businessId }: CartProviderProps) {
     
     try {
       const sessionId = `session_${Date.now()}`;
-      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/create?session_id=${sessionId}`, {
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/shopping-cart/create?business_id=${businessId}&session_id=${sessionId}`, {
         method: 'POST',
         headers: getDefaultHeaders()
       });
