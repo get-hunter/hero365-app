@@ -75,19 +75,24 @@ export default function ProfessionalFooter({ business, serviceCategories = [], l
           <div>
             <h4 className="text-lg font-semibold mb-6">Our Services</h4>
             <ul className="space-y-3">
-              {serviceCategories.slice(0, 6).map((category) => (
-                <li key={category.id}>
-                  <a 
-                    href={`/services/${category.slug}`}
+              {(
+                // Flatten services across categories and take top 6 for the footer
+                (serviceCategories as any[])
+                  .flatMap((cat) => (cat?.services || []))
+                  .slice(0, 6)
+              ).map((service: any, idx: number) => (
+                <li key={`${service?.slug || service?.name}-${idx}`}>
+                  <a
+                    href={service?.url || `/services/${service?.slug || ''}`}
                     className="text-gray-300 hover:text-white transition-colors"
                   >
-                    {category.name}
+                    {service?.name}
                   </a>
                 </li>
               ))}
-              {serviceCategories.length > 6 && (
+              {((serviceCategories as any[]).flatMap((c) => (c?.services || [])).length > 6) && (
                 <li>
-                  <a 
+                  <a
                     href="/services"
                     className="text-blue-400 hover:text-blue-300 transition-colors font-medium"
                   >
