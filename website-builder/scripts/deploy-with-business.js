@@ -213,8 +213,8 @@ async function fetchSEOPages(businessId, apiUrl) {
       log(`⚠️ SEO deployment failed: ${deployResponse.status}, trying direct fetch...`, 'warn');
     }
     
-    // Fallback: try to get existing SEO pages
-    const pagesUrl = `${apiUrl}/api/v1/seo/pages/${businessId}`;
+    // Fallback: try to get existing SEO pages with content blocks
+    const pagesUrl = `${apiUrl}/api/v1/seo/pages/${businessId}?include_content=true`;
     const pagesResponse = await fetch(pagesUrl, {
       headers: {
         'Accept': 'application/json',
@@ -381,6 +381,8 @@ export const navigation = ${JSON.stringify(content.navigation || {}, null, 2)};
 
 export const navigationCategories = ${JSON.stringify(content.navigation?.categories || [], null, 2)};
 
+export const contentBlocks = ${JSON.stringify(content.content_blocks || {}, null, 2)};
+
 export function getSEOPageData(urlPath) {
   return seoPages[urlPath] || null;
 }
@@ -399,6 +401,14 @@ export function getNavigation() {
 
 export function getNavigationCategories() {
   return navigationCategories;
+}
+
+export function getContentBlocks(urlPath) {
+  return contentBlocks[urlPath] || null;
+}
+
+export function getAllContentBlocks() {
+  return contentBlocks;
 }
 `;
     

@@ -14,6 +14,8 @@ from app.api.deps import get_supabase_client
 from app.application.services.service_materialization_service import ServiceMaterializationService
 from app.application.services.seo_scaffolding_service import SEOScaffoldingService
 from app.infrastructure.database.repositories.supabase_business_repository import SupabaseBusinessRepository
+from app.application.services.llm_orchestrator import LLMContentOrchestrator
+from app.domain.entities.service_page_content import ServicePageContent
 from app.domain.services.service_taxonomy import (
     get_services_by_category, 
     get_ordered_categories, 
@@ -101,6 +103,7 @@ def _build_navigation_data(pages: Dict[str, Any], business_name: str) -> Dict[st
 @router.get("/pages/{business_id}")
 async def get_seo_pages(
     business_id: str = Path(..., description="Business ID"),
+    include_content: bool = False,
     supabase: Client = Depends(get_supabase_client),
 ) -> Dict[str, Any]:
     """
@@ -204,7 +207,7 @@ async def get_seo_pages(
         # Build navigation data
         navigation = _build_navigation_data(pages, business_name)
         
-        return {
+        result = {
             "pages": pages,
             "business_id": business_id,
             "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -212,9 +215,158 @@ async def get_seo_pages(
             "navigation": navigation,
         }
         
+        # Include rich content blocks if requested
+        if include_content:
+            content_blocks = await _get_content_blocks(business_id, supabase)
+            result["content_blocks"] = content_blocks
+        
+        return result
+        
     except Exception as e:
         logger.error(f"Error retrieving SEO pages for business {business_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve SEO pages")
+
+
+async def _get_content_blocks(business_id: str, supabase: Client) -> Dict[str, Any]:
+    """Get rich content blocks for service pages."""
+    try:
+        # Query service_page_contents table
+        content_result = supabase.table("service_page_contents").select(
+            "service_slug,location_slug,content_blocks,schema_blocks,metrics,status"
+        ).eq("business_id", business_id).eq("status", "published").execute()
+        
+        content_blocks = {}
+        
+        for row in content_result.data:
+            service_slug = row.get("service_slug")
+            location_slug = row.get("location_slug")
+            
+            # Build page key
+            if location_slug:
+                page_key = f"/services/{service_slug}/{location_slug}"
+            else:
+                page_key = f"/services/{service_slug}"
+            
+            content_blocks[page_key] = {
+                "content_blocks": row.get("content_blocks", []),
+                "schema_blocks": row.get("schema_blocks", []),
+                "metrics": row.get("metrics", {}),
+                "status": row.get("status", "draft")
+            }
+        
+        return content_blocks
+        
+    except Exception as e:
+        logger.error(f"Error retrieving content blocks: {e}")
+        return {}
+
+
+@router.post("/content/{business_id}/generate")
+async def generate_content(
+    business_id: str = Path(..., description="Business ID"),
+    service_slugs: List[str] = None,
+    location_slugs: List[str] = None,
+    supabase: Client = Depends(get_supabase_client)
+) -> Dict[str, Any]:
+    """Generate rich content for service pages using LLM."""
+    try:
+        # Get business info for context
+        biz = supabase.table("businesses").select(
+            "name,city,state,phone,email"
+        ).eq("id", business_id).execute()
+        
+        if not biz.data:
+            raise HTTPException(status_code=404, detail="Business not found")
+        
+        business_info = biz.data[0]
+        
+        # Initialize LLM orchestrator
+        orchestrator = LLMContentOrchestrator()
+        
+        # Get services to generate content for
+        services_query = supabase.table("business_services").select(
+            "service_slug,service_name,category"
+        ).eq("business_id", business_id).eq("is_active", True)
+        
+        if service_slugs:
+            services_query = services_query.in_("service_slug", service_slugs)
+        
+        services_result = services_query.execute()
+        
+        generated_count = 0
+        
+        for service in services_result.data:
+            service_slug = service["service_slug"]
+            
+            # Prepare context
+            context = {
+                "business_name": business_info["name"],
+                "service_name": service["service_name"],
+                "city": business_info["city"],
+                "state": business_info["state"],
+                "phone": business_info["phone"],
+                "email": business_info["email"]
+            }
+            
+            # Generate for service overview page
+            try:
+                page_content = await orchestrator.generate_service_page_content(
+                    business_id=business_id,
+                    service_slug=service_slug,
+                    context=context,
+                    target_keywords=[service["service_name"], business_info["city"]]
+                )
+                
+                # Save to database
+                await _save_service_page_content(page_content, supabase)
+                generated_count += 1
+                
+                logger.info(f"Generated content for {service_slug}")
+                
+            except Exception as e:
+                logger.error(f"Failed to generate content for {service_slug}: {e}")
+        
+        return {
+            "business_id": business_id,
+            "generated_count": generated_count,
+            "total_services": len(services_result.data),
+            "generated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating content for business {business_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate content")
+
+
+async def _save_service_page_content(page_content: ServicePageContent, supabase: Client):
+    """Save service page content to database."""
+    try:
+        # Convert to database format
+        data = {
+            "business_id": page_content.business_id,
+            "service_slug": page_content.service_slug,
+            "location_slug": page_content.location_slug,
+            "title": page_content.title,
+            "meta_description": page_content.meta_description,
+            "canonical_url": page_content.canonical_url,
+            "target_keywords": page_content.target_keywords,
+            "content_blocks": [block.dict() for block in page_content.content_blocks],
+            "schema_blocks": [schema.dict() for schema in page_content.schema_blocks],
+            "content_source": page_content.content_source if isinstance(page_content.content_source, str) else page_content.content_source.value,
+            "revision": page_content.revision,
+            "content_hash": page_content.content_hash,
+            "metrics": page_content.metrics.dict(),
+            "status": "published"
+        }
+        
+        # Upsert (insert or update)
+        result = supabase.table("service_page_contents").upsert(data).execute()
+        
+        logger.info(f"Saved content for {page_content.service_slug}")
+        
+    except Exception as e:
+        logger.error(f"Error saving service page content: {e}")
+        raise
 
 
 @router.get("/page-content/{business_id}")

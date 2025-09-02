@@ -1,4 +1,9 @@
 import React from 'react'
+import { getContentBlocks } from '@/lib/generated/seo-pages'
+import ServiceHero from './seo/ServiceHero'
+import BenefitsGrid from './seo/BenefitsGrid'
+import ProcessSteps from './seo/ProcessSteps'
+import FAQAccordion from './seo/FAQAccordion'
 
 interface SEOPageData {
   title: string
