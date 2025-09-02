@@ -242,9 +242,6 @@ export default function EliteHeader({
                             <h3 className="font-semibold text-gray-900 mb-3">
                               {category.name}
                             </h3>
-                            <p className="text-sm text-gray-600 mb-3">
-                              {category.description}
-                            </p>
                             <ul className="space-y-2">
                               {category.services.map((service) => (
                                 <li key={service.name}>

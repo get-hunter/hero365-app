@@ -1,7 +1,8 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getSEOPageData, getAllSEOPages } from '@/lib/seo-data'
-import SEOPage from '@/components/SEOPage'
+import SEOPageLayout from '@/components/layout/SEOPageLayout'
+import SEOPageContent from '@/components/SEOPageContent'
 
 interface DynamicPageProps {
   params: {
@@ -65,5 +66,9 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     notFound()
   }
 
-  return <SEOPage data={pageData} />
+  return (
+    <SEOPageLayout data={pageData}>
+      <SEOPageContent data={pageData} />
+    </SEOPageLayout>
+  )
 }
