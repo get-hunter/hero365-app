@@ -503,8 +503,12 @@ import type {
   PurchaseOrdersGetPendingReceiptOrdersResponse,
   SeoGetSeoPagesData,
   SeoGetSeoPagesResponse,
+  SeoGenerateContentData,
+  SeoGenerateContentResponse,
   SeoGetSeoPageContentData,
   SeoGetSeoPageContentResponse,
+  SeoTriggerRevalidationData,
+  SeoTriggerRevalidationResponse,
   SeoDeploySeoPipelineData,
   SeoDeploySeoPipelineResponse,
   ServiceAreasCheckServiceAreaSupportData,
@@ -7623,6 +7627,7 @@ export class SeoService {
    * 2) Construct from business_services (service pages) + service_location_pages (combos)
    * @param data The data for the request.
    * @param data.businessId Business ID
+   * @param data.includeContent
    * @returns unknown Successful Response
    * @throws ApiError
    */
@@ -7635,6 +7640,35 @@ export class SeoService {
       path: {
         business_id: data.businessId,
       },
+      query: {
+        include_content: data.includeContent,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Generate Content
+   * Generate rich content for service pages using LLM.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static generateContent(
+    data: SeoGenerateContentData,
+  ): CancelablePromise<SeoGenerateContentResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/seo/content/{business_id}/generate",
+      path: {
+        business_id: data.businessId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },
@@ -7669,6 +7703,35 @@ export class SeoService {
       query: {
         page_path: data.pagePath,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Trigger Revalidation
+   * Trigger revalidation of website pages.
+   *
+   * Args:
+   * page_paths: List of page paths to revalidate
+   * tags: List of tags to revalidate
+   *
+   * Returns:
+   * Dict containing revalidation results
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static triggerRevalidation(
+    data: SeoTriggerRevalidationData = {},
+  ): CancelablePromise<SeoTriggerRevalidationResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/seo/revalidate",
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },

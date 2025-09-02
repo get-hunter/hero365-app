@@ -4,6 +4,7 @@ import ProfessionalFooter from '../professional/ProfessionalFooter'
 import { CartProvider } from '@/lib/contexts/CartContext'
 import { BookingWidgetProvider } from '../booking/BookingWidgetProvider'
 import { getServiceCategoriesForFooter, getLocations } from '@/lib/navigation-loader'
+import { generateJSONLD } from '@/lib/json-ld-generator'
 
 interface SEOPageData {
   title: string
@@ -19,12 +20,22 @@ interface SEOPageData {
   created_at: string
 }
 
+interface ContentBlocks {
+  content_blocks: Array<{
+    type: string
+    order: number
+    content: any
+    visible: boolean
+  }>
+}
+
 interface SEOPageLayoutProps {
   data: SEOPageData
+  contentBlocks?: ContentBlocks | null
   children: React.ReactNode
 }
 
-export default async function SEOPageLayout({ data, children }: SEOPageLayoutProps) {
+export default async function SEOPageLayout({ data, contentBlocks, children }: SEOPageLayoutProps) {
   // Load navigation data for footer
   const [serviceCategories, locations] = await Promise.all([
     getServiceCategoriesForFooter(),
@@ -63,11 +74,17 @@ export default async function SEOPageLayout({ data, children }: SEOPageLayoutPro
             supportHours="24/7"
           />
 
-          {/* Schema Markup for SEO */}
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(data.schema_markup || {}) }}
-          />
+          {/* Enhanced JSON-LD Schema Markup */}
+          {(() => {
+            const jsonLdItems = generateJSONLD(data, contentBlocks, businessConfig)
+            return jsonLdItems.map((schema, index) => (
+              <script
+                key={index}
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+              />
+            ))
+          })()}
 
           {/* Main Content */}
           {children}

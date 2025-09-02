@@ -1,5 +1,4 @@
 import React from 'react'
-import { getContentBlocks } from '../lib/generated/seo-pages'
 import ServiceHero from './seo/ServiceHero'
 import BenefitsGrid from './seo/BenefitsGrid'
 import ProcessSteps from './seo/ProcessSteps'
@@ -19,14 +18,21 @@ interface SEOPageData {
   created_at: string
 }
 
-interface EnhancedSEOPageContentProps {
-  data: SEOPageData
+interface ContentBlocks {
+  content_blocks: Array<{
+    type: string
+    order: number
+    content: any
+    visible: boolean
+  }>
 }
 
-export default function EnhancedSEOPageContent({ data }: EnhancedSEOPageContentProps) {
-  // Get rich content blocks for this page
-  const contentBlocks = getContentBlocks(data.page_url)
-  
+interface EnhancedSEOPageContentProps {
+  data: SEOPageData
+  contentBlocks: ContentBlocks | null
+}
+
+export default function EnhancedSEOPageContent({ data, contentBlocks }: EnhancedSEOPageContentProps) {
   // If we have rich content blocks, render them
   if (contentBlocks && contentBlocks.content_blocks && contentBlocks.content_blocks.length > 0) {
     return (

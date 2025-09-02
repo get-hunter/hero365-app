@@ -13,6 +13,7 @@ class ContentSource(str, Enum):
     """Source of content generation."""
     TEMPLATE = "template"
     LLM = "llm"
+    RAG_ENHANCED = "rag_enhanced"
     MIXED = "mixed"
     MANUAL = "manual"
 
@@ -231,6 +232,10 @@ class ServicePageContent(BaseModel):
         if not block.order:
             block.order = len(self.content_blocks)
         self.content_blocks.append(block)
+    
+    def add_schema_block(self, schema: SchemaBlock) -> None:
+        """Add schema block."""
+        self.schema_blocks.append(schema)
     
     def get_schema_by_type(self, schema_type: SchemaType) -> Optional[SchemaBlock]:
         """Get first schema block of specified type."""

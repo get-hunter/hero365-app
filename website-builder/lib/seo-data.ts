@@ -19,6 +19,7 @@ interface SEOPageData {
 
 // This would be populated by the SEO generator service
 let seoPages: Record<string, SEOPageData> = {}
+let contentBlocks: Record<string, any> = {}
 
 /**
  * Load SEO pages from generated content or fallback
@@ -30,14 +31,16 @@ export async function loadSEOPages(businessId: string): Promise<void> {
     // Always try backend API first (both server and client)
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || (isServerSide ? 'http://127.0.0.1:8000' : window.location.origin)
-      const response = await fetch(`${baseUrl}/api/v1/seo/pages/${businessId}`, {
+      const response = await fetch(`${baseUrl}/api/v1/seo/pages/${businessId}?include_content=true`, {
         cache: 'no-store'
       })
 
       if (response.ok) {
         const data = await response.json()
         seoPages = data.pages || {}
+        contentBlocks = data.content_blocks || {}
         console.log('✅ [SEO] Loaded SEO pages from API:', Object.keys(seoPages).length, 'pages')
+        console.log('✅ [SEO] Loaded content blocks from API:', Object.keys(contentBlocks).length, 'blocks')
         return
       } else {
         console.log('⚠️ [SEO] API responded non-OK:', response.status)
@@ -48,18 +51,22 @@ export async function loadSEOPages(businessId: string): Promise<void> {
 
     // Fallback: generated content (built files)
     try {
-      const { getAllSEOPages } = await import('./generated/seo-pages.js')
+      const { getAllSEOPages, getAllContentBlocks } = await import('./generated/seo-pages.js')
       seoPages = getAllSEOPages()
+      contentBlocks = getAllContentBlocks()
       console.log('✅ [SEO] Loaded generated SEO pages:', Object.keys(seoPages).length, 'pages')
+      console.log('✅ [SEO] Loaded generated content blocks:', Object.keys(contentBlocks).length, 'blocks')
       return
     } catch (error: any) {
       console.log('⚠️ [SEO] Generated content not available, using demo data:', error?.message || error)
       seoPages = generateDemoSEOPages()
+      contentBlocks = {}
       return
     }
   } catch (error: any) {
     console.log('⚠️ [SEO] Failed to load SEO pages, using demo data:', error?.message || error)
     seoPages = generateDemoSEOPages()
+    contentBlocks = {}
   }
 }
 
@@ -87,6 +94,19 @@ export async function getAllSEOPages(): Promise<Record<string, SEOPageData>> {
   }
   
   return seoPages
+}
+
+/**
+ * Get content blocks for a specific page
+ */
+export async function getContentBlocks(urlPath: string): Promise<any | null> {
+  // Ensure pages are loaded (which also loads content blocks)
+  if (Object.keys(seoPages).length === 0) {
+    const businessId = getBusinessId()
+    await loadSEOPages(businessId)
+  }
+  
+  return contentBlocks[urlPath] || null
 }
 
 /**

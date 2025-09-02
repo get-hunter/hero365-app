@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getSEOPageData, getAllSEOPages } from '@/lib/seo-data'
+import { getSEOPageData, getAllSEOPages, getContentBlocks } from '@/lib/seo-data'
 import SEOPageLayout from '@/components/layout/SEOPageLayout'
 import EnhancedSEOPageContent from '@/components/EnhancedSEOPageContent'
 
@@ -57,18 +57,27 @@ export async function generateStaticParams() {
     }))
 }
 
+// ISR Configuration
+export const revalidate = 86400 // 24 hours
+export const dynamic = 'force-static'
+
 export default async function DynamicPage({ params }: DynamicPageProps) {
   const { slug } = await params
   const urlPath = '/' + (slug || []).join('/')
-  const pageData = await getSEOPageData(urlPath)
+  
+  // Fetch page data and content blocks server-side
+  const [pageData, contentBlocks] = await Promise.all([
+    getSEOPageData(urlPath),
+    getContentBlocks(urlPath)
+  ])
   
   if (!pageData) {
     notFound()
   }
 
   return (
-    <SEOPageLayout data={pageData}>
-      <EnhancedSEOPageContent data={pageData} />
+    <SEOPageLayout data={pageData} contentBlocks={contentBlocks}>
+      <EnhancedSEOPageContent data={pageData} contentBlocks={contentBlocks} />
     </SEOPageLayout>
   )
 }

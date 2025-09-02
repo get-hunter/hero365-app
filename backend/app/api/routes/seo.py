@@ -7,6 +7,7 @@ Public endpoints for SEO page data and website building.
 from fastapi import APIRouter, HTTPException, Path, Depends
 from typing import Dict, Any, List
 import logging
+import httpx
 from datetime import datetime, timezone
 from supabase import Client
 
@@ -15,6 +16,7 @@ from app.application.services.service_materialization_service import ServiceMate
 from app.application.services.seo_scaffolding_service import SEOScaffoldingService
 from app.infrastructure.database.repositories.supabase_business_repository import SupabaseBusinessRepository
 from app.application.services.llm_orchestrator import LLMContentOrchestrator
+from app.application.services.rag_retrieval_service import RAGRetrievalService
 from app.domain.entities.service_page_content import ServicePageContent
 from app.domain.services.service_taxonomy import (
     get_services_by_category, 
@@ -141,9 +143,10 @@ async def get_seo_pages(
                 }
         else:
             # 2) Build from business_services + service_location_pages
-            # Fetch business profile for naming
-            biz = supabase.table("businesses").select("name,city,state").eq("id", business_id).execute()
+            # Fetch business profile for naming (with trade information for debugging)
+            biz = supabase.table("businesses").select("name,city,state,primary_trade,secondary_trades,market_focus").eq("id", business_id).execute()
             business_name = (biz.data[0].get("name") if biz.data else "Your Business")  # type: ignore
+            business_data = biz.data[0] if biz.data else None
 
             # Service overview pages
             svcs = supabase.table("business_services").select("service_slug,service_name,description,is_active").eq("business_id", business_id).eq("is_active", True).execute()
@@ -210,6 +213,7 @@ async def get_seo_pages(
         result = {
             "pages": pages,
             "business_id": business_id,
+            "business": business_data,  # Add business data for debugging
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "total_pages": len(pages),
             "navigation": navigation,
@@ -219,6 +223,7 @@ async def get_seo_pages(
         if include_content:
             content_blocks = await _get_content_blocks(business_id, supabase)
             result["content_blocks"] = content_blocks
+            result["business_services"] = svcs.data if 'svcs' in locals() else None  # Add business services for debugging
         
         return result
         
@@ -264,15 +269,21 @@ async def _get_content_blocks(business_id: str, supabase: Client) -> Dict[str, A
 @router.post("/content/{business_id}/generate")
 async def generate_content(
     business_id: str = Path(..., description="Business ID"),
-    service_slugs: List[str] = None,
-    location_slugs: List[str] = None,
+    request_body: Dict[str, Any] = None,
     supabase: Client = Depends(get_supabase_client)
 ) -> Dict[str, Any]:
     """Generate rich content for service pages using LLM."""
     try:
+        # Parse request body
+        service_slugs = None
+        location_slugs = None
+        if request_body:
+            service_slugs = request_body.get("service_slugs")
+            location_slugs = request_body.get("location_slugs")
+        
         # Get business info for context
         biz = supabase.table("businesses").select(
-            "name,city,state,phone,email"
+            "name,city,state,phone,email,primary_trade,secondary_trades"
         ).eq("id", business_id).execute()
         
         if not biz.data:
@@ -280,8 +291,16 @@ async def generate_content(
         
         business_info = biz.data[0]
         
-        # Initialize LLM orchestrator
-        orchestrator = LLMContentOrchestrator()
+        # Initialize RAG service and LLM orchestrator
+        try:
+            rag_service = RAGRetrievalService(supabase)
+            orchestrator = LLMContentOrchestrator(rag_service=rag_service)
+            logger.info("Successfully initialized LLM orchestrator with RAG service")
+        except Exception as e:
+            logger.error(f"Failed to initialize RAG service: {e}")
+            # Fallback to orchestrator without RAG
+            orchestrator = LLMContentOrchestrator(rag_service=None)
+            logger.info("Initialized LLM orchestrator without RAG service (fallback)")
         
         # Get services to generate content for
         services_query = supabase.table("business_services").select(
@@ -298,18 +317,22 @@ async def generate_content(
         for service in services_result.data:
             service_slug = service["service_slug"]
             
-            # Prepare context
+            # Prepare enhanced context
             context = {
                 "business_name": business_info["name"],
                 "service_name": service["service_name"],
                 "city": business_info["city"],
                 "state": business_info["state"],
                 "phone": business_info["phone"],
-                "email": business_info["email"]
+                "email": business_info["email"],
+                "primary_trade": business_info.get("primary_trade"),
+                "secondary_trades": business_info.get("secondary_trades", []),
+                "service_category": service.get("category")
             }
             
             # Generate for service overview page
             try:
+                logger.info(f"Starting content generation for {service_slug}")
                 page_content = await orchestrator.generate_service_page_content(
                     business_id=business_id,
                     service_slug=service_slug,
@@ -317,14 +340,18 @@ async def generate_content(
                     target_keywords=[service["service_name"], business_info["city"]]
                 )
                 
+                logger.info(f"Content generation completed for {service_slug}")
+                
                 # Save to database
                 await _save_service_page_content(page_content, supabase)
                 generated_count += 1
                 
-                logger.info(f"Generated content for {service_slug}")
+                logger.info(f"Successfully generated and saved content for {service_slug}")
                 
             except Exception as e:
                 logger.error(f"Failed to generate content for {service_slug}: {e}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
         
         return {
             "business_id": business_id,
@@ -342,30 +369,44 @@ async def _save_service_page_content(page_content: ServicePageContent, supabase:
     """Save service page content to database."""
     try:
         # Convert to database format
+        content_blocks_data = [block.model_dump() for block in page_content.content_blocks]
+        schema_blocks_data = [schema.model_dump() for schema in page_content.schema_blocks]
+        
         data = {
             "business_id": page_content.business_id,
             "service_slug": page_content.service_slug,
-            "location_slug": page_content.location_slug,
+            "location_slug": page_content.location_slug if page_content.location_slug else None,
             "title": page_content.title,
             "meta_description": page_content.meta_description,
             "canonical_url": page_content.canonical_url,
             "target_keywords": page_content.target_keywords,
-            "content_blocks": [block.dict() for block in page_content.content_blocks],
-            "schema_blocks": [schema.dict() for schema in page_content.schema_blocks],
+            "content_blocks": content_blocks_data,
+            "schema_blocks": schema_blocks_data,
             "content_source": page_content.content_source if isinstance(page_content.content_source, str) else page_content.content_source.value,
             "revision": page_content.revision,
             "content_hash": page_content.content_hash,
-            "metrics": page_content.metrics.dict(),
+            "metrics": page_content.metrics.model_dump(),
             "status": "published"
         }
         
-        # Upsert (insert or update)
-        result = supabase.table("service_page_contents").upsert(data).execute()
+        # Delete existing record to avoid duplicates
+        try:
+            supabase.table("service_page_contents").delete().eq(
+                "business_id", page_content.business_id
+            ).eq(
+                "service_slug", page_content.service_slug
+            ).is_("location_slug", "null").execute()
+        except Exception as delete_error:
+            # Ignore delete errors - record might not exist
+            pass
         
-        logger.info(f"Saved content for {page_content.service_slug}")
+        # Insert the new record
+        result = supabase.table("service_page_contents").insert(data).execute()
+        
+        logger.info(f"Successfully saved {len(content_blocks_data)} content blocks and {len(schema_blocks_data)} schema blocks for {page_content.service_slug}")
         
     except Exception as e:
-        logger.error(f"Error saving service page content: {e}")
+        logger.error(f"Error saving service page content for {page_content.service_slug}: {e}")
         raise
 
 
@@ -398,6 +439,93 @@ async def get_seo_page_content(
     except Exception as e:
         logger.error(f"Error retrieving SEO page content for {business_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve page content")
+
+
+@router.post("/revalidate")
+async def trigger_revalidation(
+    page_paths: List[str] = None,
+    tags: List[str] = None
+) -> Dict[str, Any]:
+    """
+    Trigger revalidation of website pages.
+    
+    Args:
+        page_paths: List of page paths to revalidate
+        tags: List of tags to revalidate
+        
+    Returns:
+        Dict containing revalidation results
+    """
+    
+    try:
+        import os
+        
+        # Get revalidation config from environment
+        webhook_url = os.getenv("BACKEND_REVALIDATE_WEBHOOK_URL")
+        secret = os.getenv("REVALIDATE_SECRET")
+        
+        if not webhook_url or not secret:
+            logger.warning("Revalidation webhook not configured")
+            return {
+                "status": "skipped",
+                "reason": "webhook_not_configured",
+                "revalidated_paths": [],
+                "revalidated_tags": []
+            }
+        
+        revalidated_paths = []
+        revalidated_tags = []
+        
+        # Revalidate paths
+        if page_paths:
+            for path in page_paths:
+                try:
+                    async with httpx.AsyncClient() as client:
+                        response = await client.post(
+                            f"{webhook_url}?secret={secret}",
+                            json={"path": path, "type": "path"},
+                            timeout=10.0
+                        )
+                        
+                        if response.status_code == 200:
+                            revalidated_paths.append(path)
+                            logger.info(f"✅ Revalidated path: {path}")
+                        else:
+                            logger.error(f"❌ Failed to revalidate path {path}: {response.status_code}")
+                            
+                except Exception as e:
+                    logger.error(f"❌ Error revalidating path {path}: {e}")
+        
+        # Revalidate tags
+        if tags:
+            for tag in tags:
+                try:
+                    async with httpx.AsyncClient() as client:
+                        response = await client.post(
+                            f"{webhook_url}?secret={secret}",
+                            json={"tag": tag, "type": "tag"},
+                            timeout=10.0
+                        )
+                        
+                        if response.status_code == 200:
+                            revalidated_tags.append(tag)
+                            logger.info(f"✅ Revalidated tag: {tag}")
+                        else:
+                            logger.error(f"❌ Failed to revalidate tag {tag}: {response.status_code}")
+                            
+                except Exception as e:
+                    logger.error(f"❌ Error revalidating tag {tag}: {e}")
+        
+        return {
+            "status": "success",
+            "revalidated_paths": revalidated_paths,
+            "revalidated_tags": revalidated_tags,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error triggering revalidation: {e}")
+        raise HTTPException(status_code=500, detail="Failed to trigger revalidation")
 
 
 @router.post("/deploy/{business_id}")

@@ -1412,6 +1412,16 @@ export type Body_products_reserve_stock = {
   notes?: string | null
 }
 
+export type Body_SEO_generate_content = {
+  service_slugs?: Array<string>
+  location_slugs?: Array<string>
+}
+
+export type Body_SEO_trigger_revalidation = {
+  page_paths?: Array<string>
+  tags?: Array<string>
+}
+
 export type Body_Service_Areas_import_service_areas_csv = {
   /**
    * CSV file with service areas
@@ -11660,9 +11670,22 @@ export type SeoGetSeoPagesData = {
    * Business ID
    */
   businessId: string
+  includeContent?: boolean
 }
 
 export type SeoGetSeoPagesResponse = {
+  [key: string]: unknown
+}
+
+export type SeoGenerateContentData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  requestBody?: Body_SEO_generate_content
+}
+
+export type SeoGenerateContentResponse = {
   [key: string]: unknown
 }
 
@@ -11675,6 +11698,14 @@ export type SeoGetSeoPageContentData = {
 }
 
 export type SeoGetSeoPageContentResponse = {
+  [key: string]: unknown
+}
+
+export type SeoTriggerRevalidationData = {
+  requestBody?: Body_SEO_trigger_revalidation
+}
+
+export type SeoTriggerRevalidationResponse = {
   [key: string]: unknown
 }
 
