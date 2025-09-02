@@ -5,6 +5,7 @@ import { CartProvider } from '@/lib/contexts/CartContext';
 import EliteHeader from '@/components/layout/EliteHeader';
 import ProfessionalFooter from '@/components/professional/ProfessionalFooter';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 300;
 // Note: Using Node.js runtime for OpenNext compatibility
 

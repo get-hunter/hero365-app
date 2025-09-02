@@ -182,6 +182,390 @@ async function fetchBusinessData(businessId, apiBaseUrl) {
 }
 
 /**
+ * Fetch SEO pages for the business using the new SEO API
+ */
+async function fetchSEOPages(businessId, apiUrl) {
+  if (!businessId || !apiUrl) {
+    log('⚠️ No business ID or API URL provided for SEO pages fetch', 'warn');
+    return null;
+  }
+
+  try {
+    log(`🔍 Fetching SEO pages for business ${businessId}...`, 'info');
+    
+    // First, trigger the SEO deployment pipeline
+    const deployUrl = `${apiUrl}/api/v1/seo/deploy/${businessId}`;
+    const deployResponse = await fetch(deployUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Hero365-Website-Builder/1.0'
+      },
+      timeout: 60000 // 60 second timeout for deployment
+    });
+
+    if (deployResponse.ok) {
+      const deployResult = await deployResponse.json();
+      log(`✅ SEO deployment completed: ${deployResult.total_pages} pages generated`, 'info');
+      return deployResult;
+    } else {
+      log(`⚠️ SEO deployment failed: ${deployResponse.status}, trying direct fetch...`, 'warn');
+    }
+    
+    // Fallback: try to get existing SEO pages
+    const pagesUrl = `${apiUrl}/api/v1/seo/pages/${businessId}`;
+    const pagesResponse = await fetch(pagesUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Hero365-Website-Builder/1.0'
+      },
+      timeout: 30000 // 30 second timeout
+    });
+
+    if (pagesResponse.ok) {
+      const seoPages = await pagesResponse.json();
+      log(`✅ Fetched SEO pages: ${seoPages.total_pages || 0} pages`, 'info');
+      return seoPages;
+    } else {
+      log(`⚠️ Failed to fetch SEO pages: ${pagesResponse.status} ${pagesResponse.statusText}`, 'warn');
+      return null;
+    }
+  } catch (error) {
+    log(`⚠️ Error fetching SEO pages: ${error.message}`, 'warn');
+    return null;
+  }
+}
+
+/**
+ * Generate SEO content using the build-time generator
+ */
+async function generateSEOContent(businessId, seoData) {
+  try {
+    log('🔍 Generating SEO content for website builder...', 'info');
+    
+    if (seoData && seoData.pages) {
+      // Generate SEO pages from backend data
+      await generateSEOPagesFromContent(seoData);
+      log('✅ SEO content generation completed from backend data', 'info');
+      return true;
+    } else {
+      log('📝 No LLM content available, using fallback SEO generation', 'info');
+      
+      // Create fallback content for demo
+      log('📝 Creating fallback SEO content...', 'info');
+      
+      const fallbackContent = {
+        pages: [
+          {
+            slug: 'home',
+            path: '/',
+            title: `${businessId} - Professional Services`,
+            meta_description: 'Professional services for your home and business needs.',
+            content: { hero: { headline: 'Professional Services You Can Trust' } },
+            seo: { canonical: '/', og_type: 'website' }
+          },
+          {
+            slug: 'about',
+            path: '/about',
+            title: `About ${businessId}`,
+            meta_description: 'Learn about our professional services.',
+            content: { hero: { headline: 'About Us' } },
+            seo: { canonical: '/about', og_type: 'article' }
+          },
+          {
+            slug: 'services',
+            path: '/services',
+            title: `Services - ${businessId}`,
+            meta_description: 'Complete professional services.',
+            content: { hero: { headline: 'Our Services' } },
+            seo: { canonical: '/services', og_type: 'article' }
+          },
+          {
+            slug: 'contact',
+            path: '/contact',
+            title: `Contact ${businessId}`,
+            meta_description: 'Contact us for professional services.',
+            content: { hero: { headline: 'Contact Us' } },
+            seo: { canonical: '/contact', og_type: 'article' }
+          }
+        ],
+        content_items: [],
+        seo_configs: {},
+        quality_score: 75,
+        generation_metadata: {
+          generated_at: new Date().toISOString(),
+          business_id: businessId,
+          business_name: 'Professional Services',
+          total_pages: 4,
+          total_content_items: 0
+        }
+      };
+      
+      // Write fallback content and generate SEO files
+      const tempContentFile = path.join(__dirname, '..', 'temp-fallback-content.json');
+      fs.writeFileSync(tempContentFile, JSON.stringify(fallbackContent, null, 2));
+      
+      // Generate SEO pages using Node.js instead of tsx
+      await generateSEOPagesFromContent(fallbackContent);
+      
+      // Clean up
+      fs.unlinkSync(tempContentFile);
+      
+      log('✅ Fallback SEO content generation completed', 'info');
+      return true;
+    }
+  } catch (error) {
+    log(`❌ SEO content generation failed: ${error.message}`, 'error');
+    return false;
+  }
+}
+
+/**
+ * Generate SEO pages from content using pure JavaScript
+ */
+async function generateSEOPagesFromContent(content) {
+  try {
+    log('🔍 Generating SEO pages from content...', 'info');
+    
+    // Create output directory
+    const outputDir = path.join(__dirname, '..', 'lib', 'generated');
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+    
+    let seoPages = {};
+    let sitemapUrls = [];
+    
+    // Handle new backend SEO data format
+    if (content.pages && typeof content.pages === 'object' && !Array.isArray(content.pages)) {
+      // Backend format: { pages: { "/url": { title, content, ... } } }
+      seoPages = content.pages;
+      sitemapUrls = Object.keys(content.pages).map(url => ({
+        loc: url,
+        lastmod: new Date().toISOString(),
+        changefreq: url === '/' ? 'weekly' : 'monthly',
+        priority: url === '/' ? 1.0 : (url.startsWith('/services/') ? 0.8 : 0.6)
+      }));
+    } else if (content.pages && Array.isArray(content.pages)) {
+      // Legacy format: { pages: [{ path, title, ... }] }
+      for (const page of content.pages) {
+        const contentText = extractTextFromContent(page.content);
+        seoPages[page.path] = {
+          title: page.title,
+          meta_description: page.meta_description,
+          content: contentText,
+          keywords: [page.slug, 'professional', 'services'],
+          canonical_url: page.seo?.canonical || page.path,
+          og_type: page.seo?.og_type || 'article',
+          word_count: contentText.split(' ').length,
+          created_at: new Date().toISOString()
+        };
+      }
+      sitemapUrls = content.pages.map(page => ({
+        loc: page.path,
+        lastmod: new Date().toISOString(),
+        changefreq: 'monthly',
+        priority: page.path === '/' ? 1.0 : 0.8
+      }));
+    }
+    
+    // Generate SEO pages module
+    const moduleContent = `// Auto-generated SEO pages data
+// Generated at: ${new Date().toISOString()}
+// Do not edit this file manually
+
+export const seoPages = ${JSON.stringify(seoPages, null, 2)};
+
+export const navigation = ${JSON.stringify(content.navigation || {}, null, 2)};
+
+export const navigationCategories = ${JSON.stringify(content.navigation?.categories || [], null, 2)};
+
+export function getSEOPageData(urlPath) {
+  return seoPages[urlPath] || null;
+}
+
+export function getAllSEOPages() {
+  return seoPages;
+}
+
+export function getSEOPagePaths() {
+  return Object.keys(seoPages);
+}
+
+export function getNavigation() {
+  return navigation;
+}
+
+export function getNavigationCategories() {
+  return navigationCategories;
+}
+`;
+    
+    // Write SEO pages module
+    const seoFilePath = path.join(outputDir, 'seo-pages.js');
+    fs.writeFileSync(seoFilePath, moduleContent, 'utf-8');
+    
+    // Generate sitemap data
+    const sitemapData = {
+      generated_at: new Date().toISOString(),
+      business_id: content.business_id || content.generation_metadata?.business_id,
+      total_pages: content.total_pages || Object.keys(seoPages).length,
+      urls: sitemapUrls
+    };
+    
+    const sitemapFilePath = path.join(outputDir, 'sitemap-data.json');
+    fs.writeFileSync(sitemapFilePath, JSON.stringify(sitemapData, null, 2), 'utf-8');
+    
+    log(`✅ Generated SEO pages: ${Object.keys(seoPages).length} pages`, 'info');
+    log(`✅ Generated sitemap: ${sitemapUrls.length} URLs`, 'info');
+    return true;
+  } catch (error) {
+    log(`❌ SEO pages generation failed: ${error.message}`, 'error');
+    return false;
+  }
+}
+
+/**
+ * Extract text content from page content object
+ */
+function extractTextFromContent(content) {
+  let text = '';
+  
+  function extractFromObject(obj) {
+    if (typeof obj === 'string') {
+      text += obj + ' ';
+    } else if (typeof obj === 'object' && obj !== null) {
+      if (Array.isArray(obj)) {
+        obj.forEach(extractFromObject);
+      } else {
+        Object.values(obj).forEach(extractFromObject);
+      }
+    }
+  }
+  
+  extractFromObject(content);
+  return text.trim();
+}
+
+/**
+ * Generate sitemap and robots.txt files
+ */
+async function generateSitemapFiles(businessConfig) {
+  try {
+    log('🗺️ Generating sitemap and robots.txt files...', 'info');
+    
+    // Load sitemap data from generated content
+    const generatedDir = path.join(__dirname, '..', 'lib', 'generated');
+    const sitemapDataPath = path.join(generatedDir, 'sitemap-data.json');
+    
+    let sitemapData = null;
+    try {
+      const content = fs.readFileSync(sitemapDataPath, 'utf-8');
+      sitemapData = JSON.parse(content);
+    } catch (error) {
+      log('⚠️ No sitemap data available, creating basic sitemap', 'warn');
+    }
+    
+    if (!sitemapData) {
+      // Create basic sitemap data
+      sitemapData = {
+        generated_at: new Date().toISOString(),
+        business_id: CONFIG.businessId,
+        urls: [
+          { loc: '/', lastmod: new Date().toISOString(), changefreq: 'weekly', priority: 1.0 },
+          { loc: '/about', lastmod: new Date().toISOString(), changefreq: 'monthly', priority: 0.8 },
+          { loc: '/services', lastmod: new Date().toISOString(), changefreq: 'weekly', priority: 0.9 },
+          { loc: '/contact', lastmod: new Date().toISOString(), changefreq: 'monthly', priority: 0.7 },
+          { loc: '/pricing', lastmod: new Date().toISOString(), changefreq: 'monthly', priority: 0.6 }
+        ]
+      };
+    }
+    
+    // Generate sitemap.xml and robots.txt
+    const publicDir = path.join(__dirname, '..', 'public');
+    const baseUrl = businessConfig.websiteConfig?.baseUrl || 'http://localhost:3001';
+    const businessName = businessConfig.businessData?.business_name || 'Professional Services';
+    
+    const success = await writeSitemapFiles(sitemapData, baseUrl, businessName, publicDir);
+    
+    if (success) {
+      log(`✅ Generated sitemap with ${sitemapData.urls.length} URLs`, 'info');
+    }
+    
+    return success;
+  } catch (error) {
+    log(`❌ Sitemap generation failed: ${error.message}`, 'error');
+    return false;
+  }
+}
+
+/**
+ * Write sitemap and robots files to public directory
+ */
+async function writeSitemapFiles(sitemapData, baseUrl, businessName, publicDir) {
+  try {
+    // Generate sitemap.xml content
+    const urls = sitemapData.urls.map(url => `
+  <url>
+    <loc>${baseUrl}${url.loc}</loc>
+    <lastmod>${url.lastmod}</lastmod>
+    <changefreq>${url.changefreq}</changefreq>
+    <priority>${url.priority.toFixed(1)}</priority>
+  </url>`).join('');
+
+    const sitemapXML = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Generated at: ${sitemapData.generated_at} -->
+  <!-- Business ID: ${sitemapData.business_id} -->${urls}
+</urlset>`;
+
+    // Generate robots.txt content
+    const robotsTxt = `# Robots.txt for ${businessName}
+# Generated at: ${new Date().toISOString()}
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: ${baseUrl}/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /temp-*
+
+# Allow important pages
+Allow: /
+Allow: /about
+Allow: /services
+Allow: /contact
+Allow: /pricing
+Allow: /projects
+`;
+
+    // Ensure public directory exists
+    if (!fs.existsSync(publicDir)) {
+      fs.mkdirSync(publicDir, { recursive: true });
+    }
+
+    // Write files
+    fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapXML, 'utf-8');
+    fs.writeFileSync(path.join(publicDir, 'robots.txt'), robotsTxt, 'utf-8');
+
+    log('✅ Generated sitemap.xml and robots.txt', 'info');
+    return true;
+  } catch (error) {
+    log(`❌ Failed to write sitemap files: ${error.message}`, 'error');
+    return false;
+  }
+}
+
+/**
  * Generate business-specific configuration
  */
 async function generateBusinessConfig(deploymentConfig) {
@@ -475,11 +859,32 @@ async function main() {
     log('🏢 Generating business configuration...', 'info');
     const businessConfig = await generateBusinessConfig(deploymentConfig);
     
-    // Step 3: Generate environment configuration
+    // Step 3: Fetch SEO pages from backend
+    log('🔍 Fetching SEO pages from backend...', 'info');
+    const apiUrl = getApiUrlForEnvironment(CONFIG.environment);
+    const seoData = await fetchSEOPages(CONFIG.businessId, apiUrl);
+    
+    // Step 4: Generate SEO content for website builder
+    log('🔍 Generating SEO content...', 'info');
+    const seoSuccess = await generateSEOContent(CONFIG.businessId, seoData);
+    
+    if (!seoSuccess) {
+      log('⚠️ SEO content generation failed, continuing with fallback content', 'warn');
+    }
+    
+    // Step 4.5: Generate sitemap and robots.txt
+    log('🗺️ Generating sitemap and robots.txt...', 'info');
+    const sitemapSuccess = await generateSitemapFiles(businessConfig);
+    
+    if (!sitemapSuccess) {
+      log('⚠️ Sitemap generation failed, continuing without sitemap', 'warn');
+    }
+    
+    // Step 5: Generate environment configuration
     log('⚙️ Generating environment configuration...', 'info');
     const envConfig = generateEnvironmentConfig(deploymentConfig, businessConfig);
     
-    // Step 4: Build website
+    // Step 6: Build website
     log('🔨 Building website...', 'info');
     const buildSuccess = buildWebsite();
     

@@ -60,6 +60,7 @@ celery_app.conf.update(
         'app.workers.website_tasks.deploy_website_task': {'queue': 'deployments'},
         'app.workers.website_tasks.process_form_submission_task': {'queue': 'lead_processing'},
         'app.workers.website_tasks.seo_monitoring_task': {'queue': 'seo_monitoring'},
+        'app.workers.website_tasks.generate_llm_content_task': {'queue': 'llm_content'},
     }
 )
 
@@ -249,6 +250,251 @@ async def _build_website_async(website_id: str, build_config: Optional[Dict[str,
     except Exception as e:
         logger.error(f"Error in async website build: {str(e)}")
         raise
+
+
+# =====================================
+# LLM CONTENT GENERATION TASKS
+# =====================================
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=120)
+def generate_llm_content_task(
+    self, 
+    business_id: str, 
+    content_config: Optional[Dict[str, Any]] = None
+):
+    """
+    Generate comprehensive LLM content for all website pages and SEO.
+    
+    This is the main entrypoint for the LLM content generation pipeline.
+    Orchestrates multiple LLM adapters to generate optimized content.
+    
+    Args:
+        business_id: UUID of the business to generate content for
+        content_config: Configuration for content generation (optional)
+        
+    Returns:
+        Dict with generation results and content paths
+    """
+    
+    logger.info(f"Starting LLM content generation for business {business_id}")
+    
+    try:
+        # Create job tracking record
+        job_id = str(uuid.uuid4())
+        _update_content_job_status(
+            job_id, 
+            "running", 
+            business_id=business_id,
+            started_at=datetime.utcnow()
+        )
+        
+        # Run the async content generation process
+        result = asyncio.run(_generate_llm_content_async(business_id, content_config, job_id))
+        
+        if result.get("success"):
+            logger.info(f"LLM content generation completed: {business_id}")
+            
+            # Update job status to completed
+            _update_content_job_status(
+                job_id,
+                "completed",
+                completed_at=datetime.utcnow(),
+                duration_seconds=result.get("generation_time_seconds", 0),
+                result_data={
+                    "pages_generated": result.get("pages_generated", 0),
+                    "content_items": result.get("content_items", 0),
+                    "seo_configs": result.get("seo_configs", 0),
+                    "output_path": result.get("output_path"),
+                    "quality_score": result.get("quality_score", 0)
+                }
+            )
+            
+            return {
+                "success": True,
+                "business_id": business_id,
+                "job_id": job_id,
+                "generation_time": result.get("generation_time_seconds"),
+                "pages_generated": result.get("pages_generated"),
+                "quality_score": result.get("quality_score")
+            }
+        
+        else:
+            logger.error(f"LLM content generation failed: {business_id} - {result.get('error_message')}")
+            
+            # Update job status to failed
+            _update_content_job_status(
+                job_id,
+                "failed",
+                completed_at=datetime.utcnow(),
+                error_message=result.get("error_message")
+            )
+            
+            return {
+                "success": False,
+                "business_id": business_id,
+                "job_id": job_id,
+                "error": result.get("error_message")
+            }
+            
+    except Exception as e:
+        logger.error(f"Error in LLM content generation task: {str(e)}")
+        
+        # Update job status to failed
+        _update_content_job_status(
+            job_id if 'job_id' in locals() else str(uuid.uuid4()),
+            "failed",
+            completed_at=datetime.utcnow(),
+            error_message=str(e)
+        )
+        
+        raise
+
+
+async def _generate_llm_content_async(
+    business_id: str, 
+    content_config: Optional[Dict[str, Any]], 
+    job_id: str
+):
+    """
+    Async implementation of LLM content generation.
+    
+    This orchestrates the entire content generation pipeline:
+    1. Fetch business data and SEO scaffolding
+    2. Generate content using multiple LLM adapters
+    3. Optimize and validate content
+    4. Store results for website builder consumption
+    """
+    
+    start_time = datetime.utcnow()
+    
+    try:
+        # Step 1: Fetch business data and SEO scaffolding
+        logger.info(f"Fetching business data for {business_id}")
+        
+        from ..application.services.professional_data_service import ProfessionalDataService
+        from ..application.services.seo_scaffolding_service import SEOScaffoldingService
+        from ..core.db import get_supabase_client
+        
+        data_service = ProfessionalDataService()
+        business_data = await data_service.get_complete_professional_data(business_id)
+        
+        if not business_data or not business_data.get("profile"):
+            raise Exception(f"No business data found for {business_id}")
+        
+        # Get SEO scaffolding
+        supabase_client = get_supabase_client()
+        seo_service = SEOScaffoldingService(supabase_client)
+        
+        # This will use the precomputed scaffolding from website configuration
+        seo_scaffolding = await seo_service.get_seo_scaffolding(business_id)
+        
+        logger.info(f"Fetched data for: {business_data['profile'].get('business_name')}")
+        logger.info(f"SEO scaffolding: {len(seo_scaffolding.get('service_location_pages', []))} pages")
+        
+        # Step 2: Initialize LLM orchestration service
+        from ..application.services.llm_content_orchestrator import LLMContentOrchestrator
+        
+        orchestrator = LLMContentOrchestrator(
+            business_data=business_data,
+            seo_scaffolding=seo_scaffolding,
+            config=content_config or {}
+        )
+        
+        # Step 3: Generate all content types
+        logger.info("Starting comprehensive content generation")
+        
+        content_results = await orchestrator.generate_all_content()
+        
+        # Step 4: Store generated content for builder consumption
+        output_path = await _store_generated_content(business_id, job_id, content_results)
+        
+        # Calculate metrics
+        end_time = datetime.utcnow()
+        generation_time = (end_time - start_time).total_seconds()
+        
+        return {
+            "success": True,
+            "generation_time_seconds": generation_time,
+            "pages_generated": len(content_results.get("pages", [])),
+            "content_items": len(content_results.get("content_items", [])),
+            "seo_configs": len(content_results.get("seo_configs", [])),
+            "output_path": output_path,
+            "quality_score": content_results.get("quality_score", 85)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in async LLM content generation: {str(e)}")
+        return {
+            "success": False,
+            "error_message": str(e)
+        }
+
+
+async def _store_generated_content(
+    business_id: str, 
+    job_id: str, 
+    content_results: Dict[str, Any]
+) -> str:
+    """Store generated content in structured format for website builder."""
+    
+    import json
+    from pathlib import Path
+    
+    # Create output directory
+    backend_path = Path(__file__).parent.parent.parent
+    output_dir = backend_path / "build_output" / f"llm-content-{job_id}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Store main content file
+    content_file = output_dir / "generated-content.json"
+    with open(content_file, 'w', encoding='utf-8') as f:
+        json.dump(content_results, f, indent=2, ensure_ascii=False)
+    
+    # Store individual page content files
+    pages_dir = output_dir / "pages"
+    pages_dir.mkdir(exist_ok=True)
+    
+    for page in content_results.get("pages", []):
+        page_file = pages_dir / f"{page['slug']}.json"
+        with open(page_file, 'w', encoding='utf-8') as f:
+            json.dump(page, f, indent=2, ensure_ascii=False)
+    
+    # Store SEO configuration
+    seo_file = output_dir / "seo-config.json"
+    with open(seo_file, 'w', encoding='utf-8') as f:
+        json.dump(content_results.get("seo_configs", {}), f, indent=2, ensure_ascii=False)
+    
+    logger.info(f"Stored generated content at: {output_dir}")
+    return str(output_dir)
+
+
+def _update_content_job_status(
+    job_id: str,
+    status: str,
+    business_id: Optional[str] = None,
+    started_at: Optional[datetime] = None,
+    completed_at: Optional[datetime] = None,
+    duration_seconds: Optional[int] = None,
+    result_data: Optional[Dict[str, Any]] = None,
+    error_message: Optional[str] = None
+):
+    """Update content generation job status in database."""
+    
+    # TODO: Implement proper job tracking in database
+    # For now, just log the status
+    logger.info(f"Content job {job_id} status: {status}")
+    if business_id:
+        logger.info(f"  Business ID: {business_id}")
+    if started_at:
+        logger.info(f"  Started at: {started_at}")
+    if completed_at:
+        logger.info(f"  Completed at: {completed_at}")
+    if duration_seconds:
+        logger.info(f"  Duration: {duration_seconds}s")
+    if result_data:
+        logger.info(f"  Results: {result_data}")
+    if error_message:
+        logger.error(f"  Error: {error_message}")
 
 
 @celery_app.task(bind=True, max_retries=2)

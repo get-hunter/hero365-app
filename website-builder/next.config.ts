@@ -4,9 +4,20 @@ const nextConfig: NextConfig = {
   // Optimized for Cloudflare Workers with OpenNext adapter
   // Supports SSR, ISR, and Server Actions on the Edge
   
+  // Output configuration - remove static export for dynamic content
+  // output: 'export',
+  trailingSlash: true,
+  
+  // Skip API routes during static export
+  skipTrailingSlashRedirect: true,
+  
+  // Image optimization for performance
   images: {
     // Configure for Cloudflare Images or unoptimized for Workers
     unoptimized: true,
+    loader: 'custom',
+    loaderFile: './lib/image-loader.ts',
+    formats: ['image/webp', 'image/avif'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -21,6 +32,11 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  
+  // Compiler optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
   },
   
   // Global environment variables (Infrastructure only)
@@ -44,6 +60,43 @@ const nextConfig: NextConfig = {
   // Enable experimental features for better performance
   experimental: {
     optimizeCss: true,
+    optimizePackageImports: ['lucide-react', '@heroicons/react'],
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
+  },
+  
+  // Webpack optimizations
+  webpack: (config, { dev, isServer }) => {
+    // Production optimizations
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+            },
+          },
+        },
+      };
+    }
+    
+    // SVG handling
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ['@svgr/webpack'],
+    });
+    
+    return config;
   },
   
   // Disable TypeScript errors during build (we'll handle them separately)

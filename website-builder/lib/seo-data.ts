@@ -21,36 +21,44 @@ interface SEOPageData {
 let seoPages: Record<string, SEOPageData> = {}
 
 /**
- * Load SEO pages from API or cache
+ * Load SEO pages from generated content or fallback
  */
 export async function loadSEOPages(businessId: string): Promise<void> {
   try {
-    // During build time (server-side), always use demo data for reliability
     const isServerSide = typeof window === 'undefined'
-    
-    if (isServerSide) {
-      // Use demo data during build time to ensure reliable builds
+
+    // Always try backend API first (both server and client)
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || (isServerSide ? 'http://127.0.0.1:8000' : window.location.origin)
+      const response = await fetch(`${baseUrl}/api/v1/seo/pages/${businessId}`, {
+        cache: 'no-store'
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        seoPages = data.pages || {}
+        console.log('✅ [SEO] Loaded SEO pages from API:', Object.keys(seoPages).length, 'pages')
+        return
+      } else {
+        console.log('⚠️ [SEO] API responded non-OK:', response.status)
+      }
+    } catch (apiError: any) {
+      console.log('⚠️ [SEO] API call failed, will try generated content:', apiError?.message || apiError)
+    }
+
+    // Fallback: generated content (built files)
+    try {
+      const { getAllSEOPages } = await import('./generated/seo-pages.js')
+      seoPages = getAllSEOPages()
+      console.log('✅ [SEO] Loaded generated SEO pages:', Object.keys(seoPages).length, 'pages')
+      return
+    } catch (error: any) {
+      console.log('⚠️ [SEO] Generated content not available, using demo data:', error?.message || error)
       seoPages = generateDemoSEOPages()
-      console.log('🔧 [SEO] Using demo data during build time for reliability')
       return
     }
-    
-    // Only try API calls on the client side at runtime
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || window.location.origin
-    const response = await fetch(`${baseUrl}/api/seo/pages/${businessId}`, {
-      cache: 'no-store' // Don't cache during development
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      seoPages = data.pages || {}
-      console.log('✅ [SEO] Loaded SEO pages from API:', Object.keys(seoPages).length, 'pages')
-    } else {
-      console.log('⚠️ [SEO] API call failed, using demo data')
-      seoPages = generateDemoSEOPages()
-    }
-  } catch (error) {
-    console.log('⚠️ [SEO] Failed to load SEO pages, using demo data:', error.message)
+  } catch (error: any) {
+    console.log('⚠️ [SEO] Failed to load SEO pages, using demo data:', error?.message || error)
     seoPages = generateDemoSEOPages()
   }
 }
@@ -86,7 +94,7 @@ export async function getAllSEOPages(): Promise<Record<string, SEOPageData>> {
  */
 function getBusinessId(): string {
   // In production, this would be determined from the domain or environment
-  return process.env.BUSINESS_ID || 'demo-business'
+  return process.env.NEXT_PUBLIC_BUSINESS_ID || process.env.BUSINESS_ID || '550e8400-e29b-41d4-a716-446655440010'
 }
 
 /**

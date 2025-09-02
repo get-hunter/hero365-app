@@ -25,7 +25,7 @@
     "retries": 1
   },
   "websiteConfig": {
-    "baseUrl": "http://localhost:3001"
+    "baseUrl": "http://localhost:3000"
   },
   "features": {
     "analytics": false,
@@ -34,5 +34,5 @@
     "voiceAgent": false,
     "bookingWidget": true
   },
-  "generatedAt": "2025-09-01T19:46:21.945Z"
+  "generatedAt": "2025-09-02T10:11:55.527Z"
 }

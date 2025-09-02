@@ -72,23 +72,23 @@ VALUES
 ('550e8400-e29b-41d4-a716-446655440010', 'Indoor Air Quality', 'indoor-air-quality', 'Filtration and purification solutions', 300, 1500, true, false, true),
 ('550e8400-e29b-41d4-a716-446655440010', 'Emergency HVAC', 'emergency-hvac', '24/7 emergency HVAC service', 150, 800, true, false, true),
 -- Residential Plumbing
-('550e8400-e29b-41d4-a716-446655440010', 'Plumbing Repair', 'plumbing_repair', 'Residential plumbing repair services', 150, 1500, true),
-('550e8400-e29b-41d4-a716-446655440010', 'Drain Cleaning', 'drain_cleaning', 'Drain clearing and cleaning', 100, 600, true),
-('550e8400-e29b-41d4-a716-446655440010', 'Water Heater Service', 'water_heater_service', 'Water heater repair and maintenance', 150, 2000, true),
-('550e8400-e29b-41d4-a716-446655440010', 'Leak Detection', 'leak_detection', 'Leak detection and repairs', 100, 800, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Plumbing Repair', 'plumbing-repair', 'Residential plumbing repair services', 150, 1500, true, false, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Drain Cleaning', 'drain-cleaning', 'Drain clearing and cleaning', 100, 600, true, false, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Water Heater Service', 'water-heater-service', 'Water heater repair and maintenance', 150, 2000, true, false, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Leak Detection', 'leak-detection', 'Leak detection and repairs', 100, 800, true, false, true),
 -- Residential Electrical
-('550e8400-e29b-41d4-a716-446655440010', 'Electrical Repair', 'electrical_repair', 'Residential electrical troubleshooting and repair', 120, 1200, true),
-('550e8400-e29b-41d4-a716-446655440010', 'Panel Upgrades', 'panel_upgrades', 'Electrical panel upgrades', 1000, 3000, true),
-('550e8400-e29b-41d4-a716-446655440010', 'Lighting Installation', 'lighting_installation', 'Interior and exterior lighting installs', 100, 2500, true),
-('550e8400-e29b-41d4-a716-446655440010', 'Generator Installation', 'generator_installation', 'Standby and portable generators', 2000, 9000, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Electrical Repair', 'electrical-repair', 'Residential electrical troubleshooting and repair', 120, 1200, true, false, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Panel Upgrades', 'panel-upgrades', 'Electrical panel upgrades', 1000, 3000, true, false, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Lighting Installation', 'lighting-installation', 'Interior and exterior lighting installs', 100, 2500, true, false, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Generator Installation', 'generator-installation', 'Standby and portable generators', 2000, 9000, true, false, true),
 -- Commercial Mechanical (HVAC)
-('550e8400-e29b-41d4-a716-446655440010', 'HVAC Installation', 'hvac_installation', 'Commercial HVAC installation', 5000, 50000, true),
-('550e8400-e29b-41d4-a716-446655440010', 'HVAC Repair', 'hvac_repair', 'Commercial HVAC repair', 200, 3000, true),
-('550e8400-e29b-41d4-a716-446655440010', 'Boiler Service', 'boiler_service', 'Boiler maintenance and repairs', 300, 5000, true),
-('550e8400-e29b-41d4-a716-446655440010', 'Chiller Service', 'chiller_service', 'Chiller maintenance and repairs', 500, 10000, true),
-('550e8400-e29b-41d4-a716-446655440010', 'Ventilation Systems', 'ventilation_systems', 'Commercial ventilation solutions', 1000, 15000, true),
-('550e8400-e29b-41d4-a716-446655440010', 'Air Quality Systems', 'air_quality_systems', 'Commercial filtration and IAQ systems', 500, 8000, true),
-('550e8400-e29b-41d4-a716-446655440010', 'Energy Audits', 'energy_audits', 'Energy efficiency audits', 500, 5000, true)
+('550e8400-e29b-41d4-a716-446655440010', 'HVAC Installation', 'hvac-installation', 'Commercial HVAC installation', 5000, 50000, false, true, true),
+('550e8400-e29b-41d4-a716-446655440010', 'HVAC Repair', 'hvac-repair', 'Commercial HVAC repair', 200, 3000, false, true, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Boiler Service', 'boiler-service', 'Boiler maintenance and repairs', 300, 5000, false, true, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Chiller Service', 'chiller-service', 'Chiller maintenance and repairs', 500, 10000, false, true, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Ventilation Systems', 'ventilation-systems', 'Commercial ventilation solutions', 1000, 15000, false, true, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Air Quality Systems', 'air-quality-systems', 'Commercial filtration and IAQ systems', 500, 8000, false, true, true),
+('550e8400-e29b-41d4-a716-446655440010', 'Energy Audits', 'energy-audits', 'Energy efficiency audits', 500, 5000, false, true, true)
 ON CONFLICT (business_id, service_slug) DO NOTHING;
 
 -- =============================================

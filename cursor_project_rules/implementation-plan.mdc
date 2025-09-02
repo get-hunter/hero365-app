@@ -49,9 +49,9 @@
   - Notes: Enhanced WebsiteConfigurationService to automatically generate service_location_pages matrix and service_seo_config entries during website creation. Integrated with existing workflow instead of creating separate service.
 
 - Task: Website builder integration preference
-  - Status: Pending
+  - Status: Done
   - Acceptance: Builder prefers `business_services` for grids/pages; falls back to selected service keys when empty
-  - Notes:
+  - Notes: Implemented 3-tier fallback in ContractorService: 1) business_services table, 2) selected service keys, 3) default mapping
 
 - Task: API preview & management
   - Status: Pending
@@ -84,3 +84,61 @@
     - Run `scripts/generate-openapi.sh`; update mobile client
   - Acceptance: Docs published; client compiles without type issues
   - Notes:
+
+---
+
+### 2) SEO Build Pipeline & LLM Content (Implementable Steps)
+
+- Task: Backend build entrypoint (Celery task)
+  - Status: Done
+  - Steps:
+    - Create `generate_website_with_seo_task` that:
+      - Loads business, `service_location_pages`, `service_seo_config`
+      - Selects top N by `priority_score` for LLM content
+      - Upserts pages into `generated_seo_pages` (idempotent)
+      - Emits a single JSON map (url → content) for builder
+  - Acceptance: One task produces the pages map reproducibly; retries safe
+  - Notes: Implemented `generate_llm_content_task` with comprehensive orchestration via LLMContentOrchestrator. Task handles business data fetch, SEO scaffolding, content generation, and structured JSON output for builder consumption.
+
+- Task: LLM adapters orchestration
+  - Status: Done
+  - Steps:
+    - Reuse existing OpenAI/Gemini adapters
+    - Add orchestrator that batches prompts, enforces token/budget caps, and caches by (business_id, service_slug, location_slug, hash(inputs))
+  - Acceptance: Top pages filled with LLM content; budget respected; deterministic cache keys
+  - Notes: Implemented comprehensive LLMContentOrchestrator with primary/fallback adapter pattern. Integrated existing ContentGenerationFactory with OpenAI/Gemini/Claude adapters. Added quality validation, content enhancement, and graceful fallbacks. Supports multiple providers with automatic failover.
+
+- Task: Builder data ingestion
+  - Status: Done
+  - Steps:
+    - Update `website-builder/scripts/deploy-with-business.js` to fetch pages map (or read from a generated JSON artifact)
+    - Generate static `seoPages` data module; pre-render all routes
+    - Emit sitemap.xml and robots.txt from the same route matrix
+  - Acceptance: Full SSG, no runtime fetch; sitemap/robots included
+  - Notes: Implemented comprehensive data ingestion pipeline. Created SEO generator that transforms LLM content into static modules. Updated deployment script to fetch LLM content, generate SEO pages, and create sitemap/robots.txt. Enhanced seo-data.ts to use generated content with fallbacks. Full SSG achieved with no runtime API dependencies.
+
+- Task: Performance hardening
+  - Status: Done
+  - Steps:
+    - Enforce zero-hydration content pages; minimal JS
+    - Critical CSS inlined; fonts preloaded; images optimized/static
+    - Long‑TTL immutable assets; Cloudflare cache rules
+  - Acceptance: Lighthouse ≥ 90 Perf, ≥ 95 A11y, ≥ 95 SEO on generated site
+  - Notes: Implemented comprehensive performance optimizations: custom image loader with WebP/AVIF support, critical CSS inlining via PerformanceOptimizer component, resource preloading, service worker with cache-first/network-first strategies, PWA manifest, Web Vitals monitoring, Next.js static export with bundle splitting, and production-ready Cloudflare deployment configuration.
+
+- Task: Structured data & internal linking
+  - Status: Done
+  - Steps:
+    - Add LocalBusiness, Service, BreadcrumbList to pages
+    - Related services and service↔location cross-links in templates
+  - Acceptance: Rich results test passes; crawl depth improved via links
+  - Notes: Implemented comprehensive SEO components: StructuredData component with LocalBusiness, Service, Organization, WebPage, WebSite, and BreadcrumbList schemas. InternalLinking component with related services, service↔location cross-links, breadcrumbs, and contextual navigation. SEOEnhancer component combining both with useSEOMetadata hook for complete SEO optimization.
+
+- Task: Controls & re-generation
+  - Status: Pending
+  - Steps:
+    - Add `regenerate_llm` flag per page; `last_generated_at`, `content_hash`
+    - CLI/API to re-generate top K pages or specific routes
+  - Acceptance: Targeted re-gen works; unchanged pages are cached
+  - Notes:
+

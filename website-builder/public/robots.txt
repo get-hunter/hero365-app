@@ -1,0 +1,25 @@
+# Robots.txt for Elite HVAC Austin
+# Generated at: 2025-09-02T10:12:38.353Z
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: http://localhost:3000/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /temp-*
+
+# Allow important pages
+Allow: /
+Allow: /about
+Allow: /services
+Allow: /contact
+Allow: /pricing
+Allow: /projects

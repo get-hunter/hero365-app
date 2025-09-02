@@ -8,7 +8,7 @@
         "retries": 1
       },
       "website": {
-        "baseUrl": "http://localhost:3001"
+        "baseUrl": "http://localhost:3000"
       },
       "features": {
         "analytics": false,
@@ -16,6 +16,12 @@
         "debugMode": true,
         "voiceAgent": false,
         "bookingWidget": true
+      },
+      "navigation": {
+        "categoryOrder": ["Air Conditioning", "Heating", "Electrical", "Plumbing", "Commercial HVAC", "Maintenance", "Emergency Services"],
+        "maxItemsPerCategory": 6,
+        "maxFooterServices": 8,
+        "maxFooterLocations": 6
       },
                   "business": {
                 "defaultBusinessId": "a1b2c3d4-e5f6-7890-1234-567890abcdef",

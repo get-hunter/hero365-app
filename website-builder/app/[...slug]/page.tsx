@@ -10,7 +10,8 @@ interface DynamicPageProps {
 }
 
 export async function generateMetadata({ params }: DynamicPageProps): Promise<Metadata> {
-  const urlPath = '/' + params.slug.join('/')
+  const { slug } = await params
+  const urlPath = '/' + (slug || []).join('/')
   const pageData = await getSEOPageData(urlPath)
   
   if (!pageData) {
@@ -56,7 +57,8 @@ export async function generateStaticParams() {
 }
 
 export default async function DynamicPage({ params }: DynamicPageProps) {
-  const urlPath = '/' + params.slug.join('/')
+  const { slug } = await params
+  const urlPath = '/' + (slug || []).join('/')
   const pageData = await getSEOPageData(urlPath)
   
   if (!pageData) {

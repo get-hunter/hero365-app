@@ -76,14 +76,49 @@ export default function EliteHeader({
     setHoverTimeout(timeout);
   };
 
-  // Service categories for mega menu
-  const serviceCategories: ServiceCategory[] = [
+  // Load service categories from generated navigation data
+  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
+  
+  useEffect(() => {
+    const loadServiceCategories = async () => {
+      try {
+        // Try to load from generated navigation data
+        const { getNavigationCategories } = await import('../../lib/generated/seo-pages.js');
+        const categories = getNavigationCategories();
+        
+        if (categories && categories.length > 0) {
+          // Transform backend categories to component format
+          const transformedCategories = categories.map((cat: any) => ({
+            name: cat.name,
+            description: cat.description,
+            services: cat.services.slice(0, 6).map((service: any) => ({
+              name: service.name,
+              description: service.description,
+              href: service.url
+            }))
+          }));
+          setServiceCategories(transformedCategories);
+        } else {
+          // Fallback to static categories
+          setServiceCategories(getStaticServiceCategories());
+        }
+      } catch (error) {
+        console.log('Using fallback service categories');
+        setServiceCategories(getStaticServiceCategories());
+      }
+    };
+    
+    loadServiceCategories();
+  }, []);
+  
+  // Static fallback categories
+  const getStaticServiceCategories = (): ServiceCategory[] => [
     {
       name: "Air Conditioning",
       description: "Complete AC services",
       services: [
-        { name: "Heat Pump Installation", description: "Energy-efficient heat pump systems", href: "/services/heat-pump" },
-        { name: "Ductless Split System", description: "Flexible cooling solutions", href: "/services/ductless" },
+        { name: "Heat Pump Installation", description: "Energy-efficient heat pump systems", href: "/services/heat-pump-service" },
+        { name: "Ductless Split System", description: "Flexible cooling solutions", href: "/services/ductless-split-system" },
         { name: "Air Conditioner Repair", description: "Fast AC repair service", href: "/services/ac-repair" },
         { name: "Duct Inspection", description: "Professional ductwork inspection", href: "/services/duct-inspection" }
       ]
@@ -92,27 +127,27 @@ export default function EliteHeader({
       name: "Heating",
       description: "Heating system services",
       services: [
-        { name: "Furnace Installation", description: "New furnace installation", href: "/services/furnace-install" },
-        { name: "Heater Repair", description: "Emergency heater repair", href: "/services/heater-repair" },
-        { name: "Rooftop Package Unit", description: "Commercial heating units", href: "/services/rooftop-unit" }
+        { name: "Furnace Installation", description: "New furnace installation", href: "/services/furnace-installation" },
+        { name: "Heater Repair", description: "Emergency heater repair", href: "/services/furnace-repair" },
+        { name: "Heating Installation", description: "Complete heating systems", href: "/services/heating-installation" }
       ]
     },
     {
       name: "Electrical",
       description: "Electrical services",
       services: [
-        { name: "Panel Installation", description: "Electrical panel upgrade", href: "/services/panel-install" },
-        { name: "EV Charger Installation", description: "Electric vehicle charging", href: "/services/ev-charger" },
-        { name: "Electrical Repair", description: "Emergency electrical repair", href: "/services/electrical-repair" }
+        { name: "Panel Installation", description: "Electrical panel upgrade", href: "/services/panel-upgrades" },
+        { name: "Electrical Repair", description: "Emergency electrical repair", href: "/services/electrical-repair" },
+        { name: "Lighting Installation", description: "Interior and exterior lighting", href: "/services/lighting-installation" }
       ]
     },
     {
       name: "Plumbing",
       description: "Plumbing services",
       services: [
-        { name: "Water Heater Installation", description: "New water heater systems", href: "/services/water-heater" },
+        { name: "Water Heater Service", description: "Water heater repair and maintenance", href: "/services/water-heater-service" },
         { name: "Plumbing Repair", description: "Emergency plumbing repair", href: "/services/plumbing-repair" },
-        { name: "Pipe Restoration", description: "Pipe repair and replacement", href: "/services/pipe-restoration" }
+        { name: "Drain Cleaning", description: "Drain clearing and cleaning", href: "/services/drain-cleaning" }
       ]
     }
   ];

@@ -24,7 +24,7 @@ export default function SEOPage({ data }: SEOPageProps) {
       {/* Schema Markup for SEO */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(data.schema_markup) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(data.schema_markup || {}) }}
       />
       
       <div className="min-h-screen bg-gray-50">
@@ -58,7 +58,7 @@ export default function SEOPage({ data }: SEOPageProps) {
             {/* Page Content */}
             <div 
               className="prose prose-lg max-w-none mb-8"
-              dangerouslySetInnerHTML={{ __html: data.content }}
+              dangerouslySetInnerHTML={{ __html: data.content || '' }}
             />
             
             {/* Call-to-Action Section */}
@@ -106,7 +106,7 @@ export default function SEOPage({ data }: SEOPageProps) {
             
             {/* SEO Keywords (hidden, for SEO purposes) */}
             <div className="sr-only">
-              Keywords: {data.target_keywords.join(', ')}
+              Keywords: {(data.target_keywords || []).join(', ')}
             </div>
           </article>
           

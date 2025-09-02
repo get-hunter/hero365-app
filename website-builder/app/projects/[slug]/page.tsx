@@ -8,6 +8,7 @@ import { CartProvider } from '@/lib/contexts/CartContext';
 import ProjectDetailClient from './ProjectDetailClient';
 
 // Note: Using Node.js runtime for OpenNext compatibility
+export const dynamic = 'force-dynamic';
 
 async function loadProjectData(businessId: string, projectSlug: string) {
   try {

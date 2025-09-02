@@ -20,6 +20,10 @@ from ..exceptions.application_exceptions import (
     EntityNotFoundError
 )
 from ...domain.repositories.business_repository import BusinessRepository
+from ...infrastructure.database.repositories.supabase_service_template_repository import SupabaseBusinessServiceRepository
+from ...domain.services.default_services_mapping import DefaultServicesMapping
+from ...domain.services.slug_utils import SlugUtils
+from ...core.db import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +41,10 @@ class ContractorService:
         business_repository: BusinessRepository
     ):
         self.business_repository = business_repository
+        self.default_services_mapping = DefaultServicesMapping()
+        # Initialize business service repository
+        supabase_client = get_supabase_client()
+        self.business_service_repository = SupabaseBusinessServiceRepository(supabase_client)
     
     async def get_business_services(
         self,
@@ -72,63 +80,42 @@ class ContractorService:
             if not business:
                 raise EntityNotFoundError("Business", business_id)
             
-            # TODO: Implement proper service repository
-            # For now, return sample data
-            sample_services = [
-                ServiceItemDTO(
-                    id="service-1",
-                    name="HVAC System Installation",
-                    description="Complete HVAC system installation for residential and commercial properties",
-                    category="Installation",
-                    pricing_model="fixed",
-                    base_price=2500.0,
-                    minimum_price=2000.0,
-                    maximum_price=5000.0,
-                    estimated_duration_hours=8,
-                    is_emergency=False,
-                    is_available=True,
-                    requires_consultation=True,
-                    service_areas=["Austin", "Round Rock", "Cedar Park"],
-                    certifications_required=["EPA 608", "NATE Certified"],
-                    equipment_needed=["Installation tools", "Refrigerant recovery unit"],
-                    warranty_years=5
-                ),
-                ServiceItemDTO(
-                    id="service-2",
-                    name="Emergency HVAC Repair",
-                    description="24/7 emergency HVAC repair services",
-                    category="Repair",
-                    pricing_model="hourly",
-                    base_price=150.0,
-                    minimum_price=150.0,
-                    maximum_price=500.0,
-                    estimated_duration_hours=2,
-                    is_emergency=True,
-                    is_available=True,
-                    requires_consultation=False,
-                    service_areas=["Austin", "Round Rock", "Cedar Park", "Georgetown"],
-                    certifications_required=["EPA 608"],
-                    equipment_needed=["Diagnostic tools", "Common repair parts"],
-                    warranty_years=1
+            # PREFERENCE 1: Use business_services table (primary source)
+            try:
+                business_services = await self.business_service_repository.list_business_services(
+                    business_id=business_uuid,
+                    category_id=None,  # TODO: Map category string to UUID if needed
+                    is_active=True,
+                    is_featured=None,
+                    include_template=False
                 )
-            ]
+                
+                if business_services:
+                    logger.info(f"Using business_services table data: {len(business_services)} services")
+                    return self._convert_business_services_to_dtos(business_services, emergency_only, limit, offset)
+                    
+            except Exception as e:
+                logger.warning(f"Failed to get business_services for {business_id}: {str(e)}")
             
-            # Apply filters
-            filtered_services = []
-            for service in sample_services:
-                if category and service.category != category:
-                    continue
-                if emergency_only and not service.is_emergency:
-                    continue
-                filtered_services.append(service)
+            # PREFERENCE 2: Use selected service keys from business (fallback 1)
+            residential_keys = business.selected_residential_service_keys or []
+            commercial_keys = business.selected_commercial_service_keys or []
+            all_service_keys = residential_keys + commercial_keys
             
-            # Apply pagination
-            start = offset
-            end = offset + limit
-            paginated_services = filtered_services[start:end]
+            if all_service_keys:
+                logger.info(f"Using selected service keys: {len(all_service_keys)} services")
+                return self._convert_service_keys_to_dtos(all_service_keys, business, emergency_only, limit, offset)
             
-            logger.info(f"Retrieved {len(paginated_services)} services for business {business_id}")
-            return paginated_services
+            # PREFERENCE 3: Use default mapping based on trades (fallback 2)
+            logger.info("Using default service mapping based on trades")
+            default_services = self.default_services_mapping.get_default_services(
+                primary_trade=business.primary_trade,
+                secondary_trades=business.secondary_trades or [],
+                market_focus=business.market_focus
+            )
+            
+            all_default_keys = default_services['residential'] + default_services['commercial']
+            return self._convert_service_keys_to_dtos(all_default_keys, business, emergency_only, limit, offset)
             
         except ValueError as e:
             raise ValidationError(f"Invalid business ID format: {business_id}")
@@ -278,3 +265,104 @@ class ContractorService:
         except Exception as e:
             logger.error(f"Error calculating service pricing: {str(e)}")
             raise ApplicationError(f"Failed to calculate service pricing: {str(e)}")
+    
+    def _convert_business_services_to_dtos(
+        self, 
+        business_services: List, 
+        emergency_only: bool, 
+        limit: int, 
+        offset: int
+    ) -> List[ServiceItemDTO]:
+        """Convert business_services table data to ServiceItemDTO objects."""
+        service_dtos = []
+        
+        for service in business_services:
+            # Apply emergency filter
+            if emergency_only and not getattr(service, 'is_emergency', False):
+                continue
+            
+            # Convert to DTO
+            service_dto = ServiceItemDTO(
+                id=str(service.id),
+                name=service.service_name,
+                description=service.description or f"Professional {service.service_name} services",
+                category=service.category or "General",
+                pricing_model="range" if service.price_min and service.price_max else "quote",
+                base_price=float(service.price_min or 0),
+                minimum_price=float(service.price_min or 0),
+                maximum_price=float(service.price_max or service.price_min or 0),
+                estimated_duration_hours=4,  # Default estimate
+                is_emergency=getattr(service, 'is_emergency', False),
+                is_available=getattr(service, 'is_active', True),
+                requires_consultation=service.price_min is None,  # No price = needs quote
+                service_areas=[],  # TODO: Get from business
+                certifications_required=[],
+                equipment_needed=[],
+                warranty_years=1
+            )
+            service_dtos.append(service_dto)
+        
+        # Apply pagination
+        start = offset
+        end = offset + limit
+        return service_dtos[start:end]
+    
+    def _convert_service_keys_to_dtos(
+        self, 
+        service_keys: List[str], 
+        business, 
+        emergency_only: bool, 
+        limit: int, 
+        offset: int
+    ) -> List[ServiceItemDTO]:
+        """Convert service keys to ServiceItemDTO objects using default mapping."""
+        service_dtos = []
+        
+        for service_key in service_keys:
+            # Apply emergency filter
+            if emergency_only and "emergency" not in service_key.lower():
+                continue
+            
+            # Generate service details from key
+            service_name = SlugUtils.service_key_to_display_name(service_key)
+            is_emergency = "emergency" in service_key.lower()
+            is_installation = "installation" in service_key.lower()
+            
+            # Estimate pricing based on service type
+            if is_installation:
+                base_price = 2000.0
+                max_price = 8000.0
+                duration = 8
+            elif is_emergency:
+                base_price = 200.0
+                max_price = 1200.0
+                duration = 2
+            else:
+                base_price = 150.0
+                max_price = 800.0
+                duration = 4
+            
+            service_dto = ServiceItemDTO(
+                id=f"key-{service_key}",
+                name=service_name,
+                description=f"Professional {service_name.lower()} services by {business.name}",
+                category="Installation" if is_installation else "Repair" if not is_emergency else "Emergency",
+                pricing_model="range",
+                base_price=base_price,
+                minimum_price=base_price,
+                maximum_price=max_price,
+                estimated_duration_hours=duration,
+                is_emergency=is_emergency,
+                is_available=True,
+                requires_consultation=is_installation,
+                service_areas=business.service_areas or [],
+                certifications_required=[],
+                equipment_needed=[],
+                warranty_years=2 if is_installation else 1
+            )
+            service_dtos.append(service_dto)
+        
+        # Apply pagination
+        start = offset
+        end = offset + limit
+        return service_dtos[start:end]

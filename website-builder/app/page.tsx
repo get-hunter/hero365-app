@@ -20,6 +20,7 @@ import { CartProvider } from '../lib/contexts/CartContext';
 import { professionalApi, ProfessionalProfile, ServiceItem } from '../lib/api/professional-client';
 import { BookableService } from '../lib/types/booking';
 import { getBusinessConfig, getBackendUrl, getDefaultHeaders } from '../lib/config/api-config';
+import { getServiceCategoriesForFooter, getLocations } from '../lib/navigation-loader';
 
 async function loadBusinessData(businessId: string) {
   try {
@@ -86,6 +87,12 @@ async function loadBusinessData(businessId: string) {
 export default async function HomePage() {
   const businessConfig = getBusinessConfig();
   const businessId = businessConfig.defaultBusinessId;
+  
+  // Load navigation data for footer
+  const [serviceCategories, locations] = await Promise.all([
+    getServiceCategoriesForFooter(),
+    getLocations()
+  ]);
   
   // Load business data server-side
   const { profile: serverProfile, services: serverServices, products: serverProducts } = await loadBusinessData(businessId);
@@ -541,8 +548,8 @@ export default async function HomePage() {
             trades: [],
             seo_keywords: []
           }}
-          serviceCategories={[]}
-          locations={[]}
+          serviceCategories={serviceCategories}
+          locations={locations}
         />
       </div>
       </BookingWidgetProvider>

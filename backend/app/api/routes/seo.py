@@ -4,69 +4,212 @@ SEO API Routes
 Public endpoints for SEO page data and website building.
 """
 
-from fastapi import APIRouter, HTTPException, Path
-from typing import Dict, Any
+from fastapi import APIRouter, HTTPException, Path, Depends
+from typing import Dict, Any, List
 import logging
+from datetime import datetime, timezone
+from supabase import Client
+
+from app.api.deps import get_supabase_client
+from app.application.services.service_materialization_service import ServiceMaterializationService
+from app.application.services.seo_scaffolding_service import SEOScaffoldingService
+from app.infrastructure.database.repositories.supabase_business_repository import SupabaseBusinessRepository
+from app.domain.services.service_taxonomy import (
+    get_services_by_category, 
+    get_ordered_categories, 
+    get_category_info,
+    ServiceCategory
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/seo", tags=["SEO"])
 
 
+def _word_count(text: str | None) -> int:
+    if not text:
+        return 0
+    return len(str(text).split())
+
+
+def _build_navigation_data(pages: Dict[str, Any], business_name: str) -> Dict[str, Any]:
+    """Build navigation structure from pages for menu generation."""
+    services = []
+    locations = set()
+    service_locations = []
+    
+    for url, page in pages.items():
+        if page.get("page_type") == "service":
+            # Service overview page: /services/{service_slug}
+            service_slug = url.replace("/services/", "")
+            services.append({
+                "name": page.get("h1_heading", "").replace(" Services", ""),
+                "slug": service_slug,
+                "url": url,
+                "description": page.get("meta_description", "")
+            })
+        elif page.get("page_type") == "service_location":
+            # Service+location page: /services/{service_slug}/{location_slug}
+            parts = url.replace("/services/", "").split("/")
+            if len(parts) == 2:
+                service_slug, location_slug = parts
+                location_name = location_slug.replace("-", " ").title()
+                locations.add((location_slug, location_name))
+                service_locations.append({
+                    "service_slug": service_slug,
+                    "location_slug": location_slug,
+                    "location_name": location_name,
+                    "url": url,
+                    "title": page.get("title", "")
+                })
+    
+    # Convert locations set to sorted list
+    locations_list = [{"slug": slug, "name": name} for slug, name in sorted(locations)]
+    
+    # Build categories from services
+    service_slugs = [service["slug"] for service in services]
+    categories_map = get_services_by_category(service_slugs)
+    ordered_categories = get_ordered_categories(categories_map)
+    
+    categories = []
+    for category in ordered_categories:
+        category_info = get_category_info(category)
+        category_services = []
+        
+        for slug in categories_map[category]:
+            # Find the service data
+            service_data = next((s for s in services if s["slug"] == slug), None)
+            if service_data:
+                category_services.append(service_data)
+        
+        if category_services:  # Only include categories with services
+            categories.append({
+                "name": category_info["name"],
+                "description": category_info["description"],
+                "slug": category_info["slug"],
+                "services": sorted(category_services, key=lambda x: x["name"])
+            })
+    
+    return {
+        "services": sorted(services, key=lambda x: x["name"]),
+        "locations": locations_list,
+        "service_locations": service_locations,
+        "categories": categories
+    }
+
+
 @router.get("/pages/{business_id}")
 async def get_seo_pages(
-    business_id: str = Path(..., description="Business ID")
+    business_id: str = Path(..., description="Business ID"),
+    supabase: Client = Depends(get_supabase_client),
 ) -> Dict[str, Any]:
     """
     Get SEO page data for a business.
     
-    Returns generated SEO pages for static site generation.
-    
-    Args:
-        business_id: The unique identifier of the business
-        
-    Returns:
-        Dict containing SEO page data
-        
-    Raises:
-        HTTPException: If business not found or retrieval fails
+    Priority:
+    1) generated_seo_pages (business-specific content)
+    2) Construct from business_services (service pages) + service_location_pages (combos)
     """
-    
     try:
-        # For now, return demo SEO pages data
-        # In the future, this would fetch from database or generate dynamically
-        demo_seo_pages = {
-            "/services/hvac-repair": {
-                "title": "Professional HVAC Repair Services | Expert Technicians",
-                "meta_description": "Expert HVAC repair services with 24/7 emergency support. Licensed technicians, upfront pricing, and satisfaction guaranteed.",
-                "h1_heading": "Professional HVAC Repair Services",
-                "content": "<p>Our certified HVAC technicians provide comprehensive heating and cooling repair services...</p>",
-                "target_keywords": ["hvac repair", "heating repair", "cooling repair", "ac repair"],
-                "page_url": "/services/hvac-repair"
-            },
-            "/services/ac-repair": {
-                "title": "Air Conditioning Repair Services | Fast & Reliable",
-                "meta_description": "Professional AC repair services. Same-day service available. Licensed technicians with upfront pricing.",
-                "h1_heading": "Air Conditioning Repair Services", 
-                "content": "<p>Don't let a broken air conditioner leave you uncomfortable. Our expert AC repair technicians...</p>",
-                "target_keywords": ["ac repair", "air conditioning repair", "cooling system repair"],
-                "page_url": "/services/ac-repair"
-            },
-            "/services/heating-repair": {
-                "title": "Heating System Repair | Emergency Service Available",
-                "meta_description": "Professional heating repair services. Emergency service available. Expert technicians for all heating systems.",
-                "h1_heading": "Heating System Repair Services",
-                "content": "<p>When your heating system fails, you need fast, reliable repair service. Our certified technicians...</p>",
-                "target_keywords": ["heating repair", "furnace repair", "boiler repair", "heat pump repair"],
-                "page_url": "/services/heating-repair"
+        # 1) Try generated_seo_pages first
+        gen = supabase.table("generated_seo_pages").select(
+            "page_url,page_type,title,meta_description,h1_heading,content,schema_markup,target_keywords,generation_method,created_at"
+        ).eq("business_id", business_id).execute()
+
+        pages: Dict[str, Any] = {}
+
+        if gen.data:
+            for row in gen.data:  # type: ignore
+                url = row.get("page_url")
+                if not url:
+                    continue
+                pages[url] = {
+                    "title": row.get("title") or "",
+                    "meta_description": row.get("meta_description") or "",
+                    "h1_heading": row.get("h1_heading") or row.get("title") or "",
+                    "content": row.get("content") or "",
+                    "schema_markup": row.get("schema_markup") or {},
+                    "target_keywords": row.get("target_keywords") or [],
+                    "page_url": url,
+                    "generation_method": row.get("generation_method") or "template",
+                    "page_type": row.get("page_type") or "service",
+                    "word_count": _word_count(row.get("content")),
+                    "created_at": row.get("created_at") or "",
+                }
+        else:
+            # 2) Build from business_services + service_location_pages
+            # Fetch business profile for naming
+            biz = supabase.table("businesses").select("name,city,state").eq("id", business_id).execute()
+            business_name = (biz.data[0].get("name") if biz.data else "Your Business")  # type: ignore
+
+            # Service overview pages
+            svcs = supabase.table("business_services").select("service_slug,service_name,description,is_active").eq("business_id", business_id).eq("is_active", True).execute()
+            for svc in svcs.data or []:  # type: ignore
+                slug = svc.get("service_slug")
+                name = svc.get("service_name") or (slug or "").replace("-", " ").title()
+                if not slug:
+                    continue
+                url = f"/services/{slug}"
+                pages[url] = {
+                    "title": f"{name} Services | {business_name}",
+                    "meta_description": svc.get("description") or f"Professional {name.lower()} services.",
+                    "h1_heading": f"{name} Services",
+                    "content": f"<p>{business_name} provides professional {name.lower()} services.</p>",
+                    "schema_markup": {},
+                    "target_keywords": [slug, name],
+                    "page_url": url,
+                    "generation_method": "template",
+                    "page_type": "service",
+                    "word_count": _word_count(name),
+                    "created_at": "",
+                }
+
+            # Service + location pages (global matrix)
+            if svcs.data:
+                slugs: List[str] = [row.get("service_slug") for row in svcs.data if row.get("service_slug")]  # type: ignore
+                if slugs:
+                    comb = supabase.table("service_location_pages").select(
+                        "service_slug,location_slug,page_url,target_keywords"
+                    ).in_("service_slug", slugs).execute()
+                    for row in comb.data or []:  # type: ignore
+                        url = row.get("page_url")
+                        if not url:
+                            continue
+                        svc_slug = row.get("service_slug")
+                        name = (svc_slug or "").replace("-", " ").title()
+                        pages[url] = {
+                            "title": f"{name} | {business_name}",
+                            "meta_description": f"Professional {name.lower()} services in {row.get('location_slug').replace('-', ' ').title()}.",
+                            "h1_heading": name,
+                            "content": f"<p>{business_name} offers {name.lower()} in your area.</p>",
+                            "schema_markup": {},
+                            "target_keywords": row.get("target_keywords") or [svc_slug],
+                            "page_url": url,
+                            "generation_method": "template",
+                            "page_type": "service_location",
+                            "word_count": _word_count(name),
+                            "created_at": "",
+                        }
+
+        if not pages:
+            # Final safety: return empty successful response (frontend can show notFound)
+            return {
+                "pages": {}, 
+                "business_id": business_id, 
+                "total_pages": 0, 
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "navigation": {"services": [], "locations": [], "service_locations": []}
             }
-        }
+
+        # Build navigation data
+        navigation = _build_navigation_data(pages, business_name)
         
         return {
-            "pages": demo_seo_pages,
+            "pages": pages,
             "business_id": business_id,
-            "generated_at": "2025-01-02T15:00:00Z",
-            "total_pages": len(demo_seo_pages)
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "total_pages": len(pages),
+            "navigation": navigation,
         }
         
     except Exception as e:
@@ -103,3 +246,84 @@ async def get_seo_page_content(
     except Exception as e:
         logger.error(f"Error retrieving SEO page content for {business_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve page content")
+
+
+@router.post("/deploy/{business_id}")
+async def deploy_seo_pipeline(
+    business_id: str = Path(..., description="Business ID"),
+    supabase: Client = Depends(get_supabase_client),
+    trigger_llm: bool = False
+) -> Dict[str, Any]:
+    """
+    Deploy SEO pipeline for a business.
+    
+    Steps:
+    1. Materialize default services (if needed)
+    2. Precompute SEO scaffolding (service_location_pages + service_seo_config)
+    3. Optionally trigger LLM content generation
+    4. Return the generated page map
+    
+    Args:
+        business_id: The unique identifier of the business
+        trigger_llm: Whether to trigger LLM content generation
+        
+    Returns:
+        Dict containing deployment status and page map
+    """
+    try:
+        logger.info(f"Starting SEO deployment for business {business_id}")
+        
+        # Initialize repositories
+        business_repository = SupabaseBusinessRepository(supabase)
+        
+        # Step 1: Materialize services (skip for now due to schema mismatch)
+        # materialization_service = ServiceMaterializationService(business_repository, supabase)
+        # await materialization_service.materialize_default_services(business_id)
+        logger.info(f"✓ Skipped service materialization for business {business_id} (schema mismatch)")
+        
+        # Step 2: Precompute SEO scaffolding
+        # Get business data directly from Supabase to avoid repository issues
+        business_result = supabase.table("businesses").select("*").eq("id", business_id).execute()
+        if not business_result.data:
+            raise ValueError(f"Business {business_id} not found")
+        
+        business_row = business_result.data[0]
+        business_data = {
+            'selected_residential_service_keys': business_row.get('selected_residential_service_keys', []),
+            'selected_commercial_service_keys': business_row.get('selected_commercial_service_keys', []),
+            'city': business_row.get('city', ''),
+            'state': business_row.get('state', ''),
+            'business_name': business_row.get('name', '')
+        }
+        
+        # Get business locations
+        locations_result = supabase.table("business_locations").select("*").eq("business_id", business_id).execute()
+        locations = locations_result.data or []
+        
+        seo_service = SEOScaffoldingService(supabase)
+        scaffolding_result = await seo_service.precompute_seo_scaffolding(business_id, business_data, [], locations)
+        logger.info(f"✓ Precomputed SEO scaffolding for business {business_id}: {scaffolding_result}")
+        
+        # Step 3: Optional LLM generation (placeholder for now)
+        if trigger_llm:
+            logger.info(f"LLM content generation requested for business {business_id} (not implemented yet)")
+        
+        # Step 4: Return the page map by calling our existing endpoint
+        pages_response = await get_seo_pages(business_id, supabase)
+        
+        return {
+            "status": "success",
+            "business_id": business_id,
+            "deployed_at": datetime.now(timezone.utc).isoformat(),
+            "steps_completed": [
+                "seo_scaffolding",
+                "llm_generation" if trigger_llm else None
+            ],
+            "pages": pages_response.get("pages", {}),
+            "navigation": pages_response.get("navigation", {}),
+            "total_pages": pages_response.get("total_pages", 0)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error deploying SEO pipeline for business {business_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to deploy SEO pipeline: {str(e)}")

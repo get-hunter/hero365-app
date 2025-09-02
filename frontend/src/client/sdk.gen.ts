@@ -505,6 +505,8 @@ import type {
   SeoGetSeoPagesResponse,
   SeoGetSeoPageContentData,
   SeoGetSeoPageContentResponse,
+  SeoDeploySeoPipelineData,
+  SeoDeploySeoPipelineResponse,
   ServiceAreasCheckServiceAreaSupportData,
   ServiceAreasCheckServiceAreaSupportResponse,
   ServiceAreasCreateAvailabilityRequestData,
@@ -7616,16 +7618,9 @@ export class SeoService {
    * Get Seo Pages
    * Get SEO page data for a business.
    *
-   * Returns generated SEO pages for static site generation.
-   *
-   * Args:
-   * business_id: The unique identifier of the business
-   *
-   * Returns:
-   * Dict containing SEO page data
-   *
-   * Raises:
-   * HTTPException: If business not found or retrieval fails
+   * Priority:
+   * 1) generated_seo_pages (business-specific content)
+   * 2) Construct from business_services (service pages) + service_location_pages (combos)
    * @param data The data for the request.
    * @param data.businessId Business ID
    * @returns unknown Successful Response
@@ -7673,6 +7668,46 @@ export class SeoService {
       },
       query: {
         page_path: data.pagePath,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Deploy Seo Pipeline
+   * Deploy SEO pipeline for a business.
+   *
+   * Steps:
+   * 1. Materialize default services (if needed)
+   * 2. Precompute SEO scaffolding (service_location_pages + service_seo_config)
+   * 3. Optionally trigger LLM content generation
+   * 4. Return the generated page map
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * trigger_llm: Whether to trigger LLM content generation
+   *
+   * Returns:
+   * Dict containing deployment status and page map
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.triggerLlm
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static deploySeoPipeline(
+    data: SeoDeploySeoPipelineData,
+  ): CancelablePromise<SeoDeploySeoPipelineResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/seo/deploy/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        trigger_llm: data.triggerLlm,
       },
       errors: {
         422: "Validation Error",

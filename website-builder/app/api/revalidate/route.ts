@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 
+// Configure for dynamic rendering
+export const dynamic = 'force-dynamic';
+
 // Note: Using Node.js runtime for OpenNext compatibility
 // Edge runtime API routes need to be defined separately for OpenNext
 

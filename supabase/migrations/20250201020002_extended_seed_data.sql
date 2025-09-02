@@ -328,6 +328,7 @@ INSERT INTO business_services (business_id, service_name, service_slug, category
 ((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'HVAC Installation', 'hvac-installation', 'Installation', 'Complete HVAC system installation and replacement', 'range', 3500, 12000, 'job'),
 ((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Duct Cleaning', 'duct-cleaning', 'Maintenance', 'Professional air duct cleaning and sanitization', 'range', 200, 600, 'job'),
 ((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Preventive Maintenance', 'preventive-maintenance', 'Maintenance', 'Seasonal HVAC tune-ups and maintenance', 'range', 120, 250, 'job'),
+((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Ductless Mini-Split Installation', 'ductless', 'Installation', 'Ductless mini-split system installation and service', 'range', 2500, 8500, 'job'),
 -- Additional Services
 ((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Indoor Air Quality', 'indoor-air-quality', 'Installation', 'Air purification and filtration system installation', 'range', 500, 2500, 'job'),
 ((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Thermostat Installation', 'thermostat-installation', 'Installation', 'Smart and programmable thermostat installation', 'range', 150, 400, 'job'),
@@ -339,6 +340,18 @@ INSERT INTO business_locations (business_id, name, address, city, state, postal_
 ((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Austin Main Office', '123 Main St', 'Austin', 'TX', '78701', true, 25),
 ((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Round Rock Branch', '456 Round Rock Ave', 'Round Rock', 'TX', '78664', false, 20),
 ((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 'Cedar Park Office', '789 Cedar Park Blvd', 'Cedar Park', 'TX', '78613', false, 15);
+
+-- SEO scaffolding for ductless: service-level and service+location pages
+INSERT INTO service_seo_config (service_name, service_slug, target_keywords, priority_score, enable_llm_enhancement, meta_title_template, meta_description_template)
+VALUES
+('Ductless Mini-Split Installation', 'ductless', ARRAY['ductless', 'mini split', 'ductless AC', 'mini split installation'], 80, true, 'Ductless Mini-Split Installation | {city} {state} | {business}', 'Professional ductless mini-split installation in {city}, {state}. Energy-efficient comfort solutions. Free estimates.')
+ON CONFLICT (service_slug) DO NOTHING;
+
+INSERT INTO service_location_pages (service_slug, location_slug, page_url, priority_score, enable_llm_enhancement, target_keywords, monthly_search_volume, estimated_monthly_visitors, estimated_monthly_revenue)
+VALUES
+('ductless', 'austin-tx', '/services/ductless/austin-tx', 90, true, ARRAY['ductless austin', 'mini split austin', 'ductless installation austin'], 1600, 800, 4000),
+('ductless', 'round-rock-tx', '/services/ductless/round-rock-tx', 75, true, ARRAY['ductless round rock', 'mini split round rock'], 600, 300, 1500)
+ON CONFLICT (service_slug, location_slug) DO NOTHING;
 
 -- Enhanced Featured Projects for Website Builder
 INSERT INTO featured_projects (

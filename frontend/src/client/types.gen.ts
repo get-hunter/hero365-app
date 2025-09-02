@@ -11678,6 +11678,18 @@ export type SeoGetSeoPageContentResponse = {
   [key: string]: unknown
 }
 
+export type SeoDeploySeoPipelineData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  triggerLlm?: boolean
+}
+
+export type SeoDeploySeoPipelineResponse = {
+  [key: string]: unknown
+}
+
 export type ServiceAreasCheckServiceAreaSupportData = {
   /**
    * Business UUID
