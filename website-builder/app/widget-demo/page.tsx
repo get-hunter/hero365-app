@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
 import { Copy, ExternalLink, Code, Smartphone, Monitor, Sidebar } from 'lucide-react';
-import { generateEmbedCode } from '../../components/booking/EmbeddableBookingWidget';
+import { generateEmbedCode } from '@/components/client/commerce/booking/Hero365BookingWidget';
 
 export default function WidgetDemoPage() {
   const [config, setConfig] = useState({

@@ -22,6 +22,7 @@ from app.domain.service_templates.models import (
     ServiceTemplateWithStats,
     BusinessServiceWithTemplate
 )
+from pydantic import BaseModel, Field
 from app.infrastructure.database.repositories.supabase_service_template_repository import (
     SupabaseServiceCategoryRepository,
     SupabaseServiceTemplateRepository,
@@ -151,6 +152,180 @@ async def adopt_template(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to adopt service template: {str(e)}"
+        )
+
+
+# New slug-based adoption models
+class AdoptTemplateBySlugRequest(BaseModel):
+    """Request to adopt a service template by slug."""
+    template_slug: str = Field(..., description="Template slug to adopt")
+    activity_slug: str = Field(None, description="Activity slug for validation")
+    customizations: Dict[str, Any] = Field(default_factory=dict, description="Template customizations")
+
+
+class BulkAdoptTemplatesRequest(BaseModel):
+    """Request to adopt multiple templates for an activity."""
+    activity_slug: str = Field(..., description="Activity slug")
+    template_slugs: List[str] = Field(..., description="List of template slugs to adopt")
+    customizations: Dict[str, Dict[str, Any]] = Field(default_factory=dict, description="Per-template customizations")
+
+
+class ActivityTemplatesResponse(BaseModel):
+    """Response with templates available for an activity."""
+    activity_slug: str
+    templates: List[ServiceTemplate]
+    total_count: int
+
+
+@router.post("/adopt-by-slug", response_model=BusinessService)
+async def adopt_template_by_slug(
+    request: AdoptTemplateBySlugRequest,
+    current_user: dict = Depends(get_current_user),
+    business_context: dict = Depends(get_business_context),
+    template_repo: SupabaseServiceTemplateRepository = Depends(get_template_repo)
+):
+    """
+    Adopt a service template by slug with activity validation.
+    
+    This is the new activity-driven way to adopt service templates.
+    """
+    try:
+        business_id = UUID(business_context["business_id"])
+        
+        business_service = await template_repo.adopt_service_template_by_slug(
+            business_id=business_id,
+            template_slug=request.template_slug,
+            activity_slug=request.activity_slug,
+            customizations=request.customizations
+        )
+        return business_service
+    except EntityNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except DuplicateEntityError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e)
+        )
+    except DomainValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to adopt service template: {str(e)}"
+        )
+
+
+@router.get("/activity/{activity_slug}/templates", response_model=ActivityTemplatesResponse)
+async def get_templates_for_activity(
+    activity_slug: str,
+    template_repo: SupabaseServiceTemplateRepository = Depends(get_template_repo)
+):
+    """
+    Get all service templates available for a specific activity.
+    
+    This endpoint helps businesses discover what services they can offer
+    for their selected activities.
+    """
+    try:
+        templates = await template_repo.get_templates_for_activity(activity_slug)
+        
+        return ActivityTemplatesResponse(
+            activity_slug=activity_slug,
+            templates=templates,
+            total_count=len(templates)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get templates for activity: {str(e)}"
+        )
+
+
+@router.post("/bulk-adopt-for-activity", response_model=List[BusinessService])
+async def bulk_adopt_templates_for_activity(
+    request: BulkAdoptTemplatesRequest,
+    current_user: dict = Depends(get_current_user),
+    business_context: dict = Depends(get_business_context),
+    template_repo: SupabaseServiceTemplateRepository = Depends(get_template_repo)
+):
+    """
+    Adopt multiple service templates for an activity in bulk.
+    
+    This is useful for onboarding when businesses want to quickly
+    adopt all recommended services for an activity.
+    """
+    try:
+        business_id = UUID(business_context["business_id"])
+        
+        business_services = await template_repo.bulk_adopt_templates_for_activity(
+            business_id=business_id,
+            activity_slug=request.activity_slug,
+            template_slugs=request.template_slugs,
+            customizations=request.customizations
+        )
+        return business_services
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to bulk adopt templates: {str(e)}"
+        )
+
+
+@router.get("/adopted-templates", response_model=List[Dict])
+async def get_adopted_templates(
+    current_user: dict = Depends(get_current_user),
+    business_context: dict = Depends(get_business_context),
+    template_repo: SupabaseServiceTemplateRepository = Depends(get_template_repo)
+):
+    """
+    Get all templates adopted by the current business.
+    
+    Shows the adoption history and current template usage.
+    """
+    try:
+        business_id = UUID(business_context["business_id"])
+        
+        adopted_templates = await template_repo.get_adopted_templates_for_business(business_id)
+        return adopted_templates
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get adopted templates: {str(e)}"
+        )
+
+
+@router.get("/template/{template_slug}", response_model=ServiceTemplate)
+async def get_template_by_slug(
+    template_slug: str,
+    template_repo: SupabaseServiceTemplateRepository = Depends(get_template_repo)
+):
+    """
+    Get a service template by slug.
+    
+    Useful for previewing template details before adoption.
+    """
+    try:
+        template = await template_repo.get_template_by_slug(template_slug)
+        
+        if not template:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Template with slug '{template_slug}' not found"
+            )
+        
+        return template
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get template: {str(e)}"
         )
 
 

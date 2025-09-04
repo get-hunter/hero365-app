@@ -4,7 +4,7 @@
  * Client for interacting with the public contractors API endpoints
  */
 
-import { buildPublicApiUrl, getDefaultHeaders } from '../config/api-config';
+import { buildPublicApiUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
 
 export interface ProfessionalProfile {
   business_id: string;

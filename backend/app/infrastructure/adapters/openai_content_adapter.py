@@ -316,7 +316,7 @@ class OpenAIContentAdapter(ContentGenerationPort):
                 "name": business.name,
                 "phone": business.phone,
                 "email": business.email,
-                "address": f"{business.address}, {business.city}, {business.state} {business.zip_code}",
+                "address": f"{business.address}, {business.city}, {business.state} {business.postal_code}",
                 "service_areas": business.service_areas,
                 "primary_trade": business.get_primary_trade(),
                 "all_trades": business.get_all_trades()

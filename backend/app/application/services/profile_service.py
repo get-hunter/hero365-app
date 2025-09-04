@@ -56,14 +56,16 @@ class ProfileService:
             profile_dto = BusinessProfileDTO(
                 id=str(business.id),
                 name=business.name,
-                industry=business.industry,
+                industry=business.primary_trade_slug,
                 description=business.description,
                 phone_number=business.phone_number,
                 business_email=business.business_email,
                 business_address=business.business_address,
                 website=business.website,
-                service_areas=business.service_areas or [],
-                trades=business.get_all_trades(),
+                # Business entity no longer stores service areas directly; leave empty for now
+                service_areas=[],
+                # Use primary trade slug as a single trade indicator; activities live elsewhere
+                trades=[business.primary_trade_slug] if business.primary_trade_slug else [],
                 business_license=business.business_license,
                 years_in_business=None,  # Field doesn't exist on Business entity yet
                 is_active=business.is_active,

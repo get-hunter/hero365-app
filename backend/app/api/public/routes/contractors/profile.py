@@ -51,16 +51,27 @@ async def get_contractor_profile(
         # Get profile from service layer
         profile_dto = await profile_service.get_business_profile(business_id)
         
-        # Convert DTO to API response model
+        # Determine primary trade cleanly without relying on deprecated fields
+        primary_trade = None
+        if getattr(profile_dto, 'trades', None) and len(profile_dto.trades) > 0:
+            primary_trade = profile_dto.trades[0]
+        elif getattr(profile_dto, 'industry', None):
+            # Back-compat: ProfileService currently maps industry from primary_trade_slug
+            primary_trade = profile_dto.industry
+
+        normalized_trade = (primary_trade or 'general').lower()
+
+        # Convert DTO to API response model (no direct dependency on deprecated business fields)
         profile_data = {
             "business_id": profile_dto.id,
             "business_name": profile_dto.name,
-            "trade_type": profile_dto.industry.lower() if profile_dto.industry else "general",
-            "description": profile_dto.description or f"Professional {profile_dto.industry or 'service'} provider",
+            "trade_type": normalized_trade,
+            "description": profile_dto.description or f"Professional {normalized_trade} provider",
             "phone": profile_dto.phone_number or "",
             "email": profile_dto.business_email or "",
             "address": profile_dto.business_address or "",
             "website": profile_dto.website,
+            # Business no longer carries service areas directly; empty list until ServiceAreasService integration
             "service_areas": profile_dto.service_areas,
             "emergency_service": True,  # TODO: Add to business entity
             "years_in_business": profile_dto.years_in_business or 10,

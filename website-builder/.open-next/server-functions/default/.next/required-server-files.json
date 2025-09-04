@@ -2,16 +2,15 @@
   "version": 1,
   "config": {
     "env": {
-      "NEXT_PUBLIC_API_URL": "https://73d34a85b4db.ngrok-free.app",
+      "NEXT_PUBLIC_API_URL": "http://127.0.0.1:8000",
       "NEXT_PUBLIC_API_VERSION": "v1",
       "NEXT_PUBLIC_DEBUG_MODE": "true",
-      "NEXT_PUBLIC_ANALYTICS_ENABLED": "true",
+      "NEXT_PUBLIC_ANALYTICS_ENABLED": "false",
       "NEXT_PUBLIC_BUSINESS_ID": "550e8400-e29b-41d4-a716-446655440010",
       "NEXT_PUBLIC_BUSINESS_NAME": "Elite HVAC Austin",
       "NEXT_PUBLIC_BUSINESS_EMAIL": "info@elitehvac.com",
       "NEXT_PUBLIC_BUSINESS_PHONE": "+15125550100"
     },
-    "webpack": null,
     "eslint": {
       "ignoreDuringBuilds": false
     },
@@ -56,14 +55,15 @@
         256,
         384
       ],
-      "path": "/_next/image",
-      "loader": "default",
-      "loaderFile": "",
+      "path": "/_next/image/",
+      "loader": "custom",
+      "loaderFile": "/Users/andre/Projects/hunter-apps/hero365-app/website-builder/lib/image-loader.ts",
       "domains": [],
       "disableStaticImages": false,
       "minimumCacheTTL": 60,
       "formats": [
-        "image/webp"
+        "image/webp",
+        "image/avif"
       ],
       "dangerouslyAllowSVG": false,
       "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;",
@@ -96,7 +96,7 @@
     },
     "basePath": "",
     "sassOptions": {},
-    "trailingSlash": false,
+    "trailingSlash": true,
     "i18n": null,
     "productionBrowserSourceMaps": false,
     "excludeDefaultMomentLocales": true,
@@ -109,7 +109,9 @@
       "keepAlive": true
     },
     "logging": {},
-    "compiler": {},
+    "compiler": {
+      "removeConsole": true
+    },
     "expireTime": 31536000,
     "staticPageGenerationTimeout": 60,
     "output": "standalone",
@@ -201,6 +203,16 @@
       "swcTraceProfiling": false,
       "forceSwcTransforms": false,
       "largePageDataBytes": 128000,
+      "turbo": {
+        "rules": {
+          "*.svg": {
+            "loaders": [
+              "@svgr/webpack"
+            ],
+            "as": "*.js"
+          }
+        }
+      },
       "typedEnv": false,
       "parallelServerCompiles": false,
       "parallelServerBuildTraces": false,
@@ -228,6 +240,7 @@
       "optimizeRouterScrolling": false,
       "optimizePackageImports": [
         "lucide-react",
+        "@heroicons/react",
         "date-fns",
         "lodash-es",
         "ramda",
@@ -309,7 +322,16 @@
     "htmlLimitedBots": "[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight",
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
+    "skipTrailingSlashRedirect": true,
     "turbopack": {
+      "rules": {
+        "*.svg": {
+          "loaders": [
+            "@svgr/webpack"
+          ],
+          "as": "*.js"
+        }
+      },
       "root": "/Users/andre/Projects/hunter-apps/hero365-app/website-builder"
     }
   },
@@ -334,7 +356,7 @@
     ".next/server/next-font-manifest.js",
     ".next/server/next-font-manifest.json",
     ".next/required-server-files.json",
-    ".next/static/css/374c377ba02eb916.css"
+    ".next/static/css/18e5b13b71f0ccc2.css"
   ],
   "ignore": [
     "node_modules/next/dist/compiled/@ampproject/toolbox-optimizer/**/*"

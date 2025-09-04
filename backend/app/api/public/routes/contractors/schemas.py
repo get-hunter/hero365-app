@@ -374,7 +374,7 @@ class CheckoutCustomer(BaseModel):
     address: str = Field(..., description="Service address")
     city: str = Field(..., description="Service city")
     state: str = Field(..., description="Service state")
-    zip_code: str = Field(..., description="Service ZIP code")
+    postal_code: str = Field(..., description="Service postal code")
 
 
 class InstallationPreferences(BaseModel):

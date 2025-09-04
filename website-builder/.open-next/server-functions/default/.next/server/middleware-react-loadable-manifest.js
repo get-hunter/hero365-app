@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}";
+self.__REACT_LOADABLE_MANIFEST='{"app/booking/page.tsx -> @/components/commerce/booking/Hero365BookingWizard":{"id":8408,"files":[]},"components/layout/Hero365Header.client.tsx -> ../../lib/generated/seo-pages.js":{"id":5417,"files":["static/chunks/417.585a4d59cbe4d3f8.js"]},"components/layout/Hero365Header.tsx -> ../../lib/generated/seo-pages.js":{"id":5417,"files":["static/chunks/417.585a4d59cbe4d3f8.js"]}}';

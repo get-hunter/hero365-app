@@ -43,6 +43,155 @@ export type ActivityBulkUpdateRequest = {
 }
 
 /**
+ * Benefits section content for an activity.
+ */
+export type ActivityContentPackBenefits = {
+  /**
+   * Benefits section heading
+   */
+  heading: string
+  /**
+   * List of benefit points
+   */
+  bullets: Array<string>
+}
+
+/**
+ * FAQ item for an activity.
+ */
+export type ActivityContentPackFAQ = {
+  /**
+   * Question
+   */
+  q: string
+  /**
+   * Answer
+   */
+  a: string
+}
+
+/**
+ * Hero section content for an activity.
+ */
+export type ActivityContentPackHero = {
+  /**
+   * Main hero title
+   */
+  title: string
+  /**
+   * Hero subtitle
+   */
+  subtitle?: string | null
+  /**
+   * Call-to-action button label
+   */
+  cta_label?: string | null
+  /**
+   * Icon identifier
+   */
+  icon?: string | null
+}
+
+/**
+ * List of available activity content packs.
+ */
+export type ActivityContentPackListResponse = {
+  /**
+   * Available activity slugs
+   */
+  activity_slugs: Array<string>
+  /**
+   * Total number of content packs
+   */
+  total_count: number
+}
+
+/**
+ * Pricing information for an activity.
+ */
+export type ActivityContentPackPricing = {
+  /**
+   * Starting price
+   */
+  starting_price?: number | null
+  /**
+   * Price range display
+   */
+  price_range?: string | null
+  /**
+   * Pricing unit
+   */
+  unit?: string | null
+}
+
+/**
+ * Process section content for an activity.
+ */
+export type ActivityContentPackProcess = {
+  /**
+   * Process section heading
+   */
+  heading: string
+  /**
+   * List of process steps
+   */
+  steps: Array<string>
+}
+
+/**
+ * Complete activity content pack response.
+ */
+export type ActivityContentPackResponse = {
+  /**
+   * Activity slug identifier
+   */
+  activity_slug: string
+  hero: ActivityContentPackHero
+  benefits: ActivityContentPackBenefits
+  process: ActivityContentPackProcess
+  faqs: Array<ActivityContentPackFAQ>
+  seo: ActivityContentPackSEO
+  schema?: ActivityContentPackSchema
+  pricing?: ActivityContentPackPricing | null
+}
+
+/**
+ * Schema.org content for an activity.
+ */
+export type ActivityContentPackSchema = {
+  /**
+   * Service type for schema.org
+   */
+  service_type: string
+  /**
+   * Service description
+   */
+  description: string
+  /**
+   * Service category
+   */
+  category?: string | null
+}
+
+/**
+ * SEO content for an activity.
+ */
+export type ActivityContentPackSEO = {
+  /**
+   * Title template with placeholders
+   */
+  title_template: string
+  /**
+   * Description template with placeholders
+   */
+  description_template: string
+  /**
+   * SEO keywords
+   */
+  keywords: Array<string>
+}
+
+/**
  * Schema for creating a new activity.
  */
 export type ActivityCreateRequest = {
@@ -136,6 +285,130 @@ export type ActivityListResponse = {
    * Whether there are more items
    */
   has_more: boolean
+}
+
+/**
+ * Configuration for activity-specific UI modules.
+ */
+export type ActivityModuleConfig = {
+  /**
+   * Module identifier (e.g., 'hvac_tune_up_checklist')
+   */
+  module_type: string
+  enabled?: boolean
+  /**
+   * Module-specific configuration
+   */
+  config?: {
+    [key: string]: unknown
+  }
+  /**
+   * Display order in page
+   */
+  order?: number
+}
+
+/**
+ * Complete activity page content artifact.
+ */
+export type ActivityPageArtifact = {
+  business_id: string
+  activity_slug: string
+  location_slug?: string | null
+  artifact_id?: string | null
+  activity_type: ActivityType
+  activity_name: string
+  /**
+   * Page title (SEO optimized)
+   */
+  title: string
+  /**
+   * Meta description
+   */
+  meta_description: string
+  /**
+   * Main H1 heading
+   */
+  h1_heading: string
+  canonical_url: string
+  target_keywords?: Array<string>
+  /**
+   * Hero section content
+   */
+  hero?: {
+    [key: string]: unknown
+  }
+  /**
+   * Benefits/value props
+   */
+  benefits?: {
+    [key: string]: unknown
+  }
+  /**
+   * How it works steps
+   */
+  process?: {
+    [key: string]: unknown
+  }
+  /**
+   * Pricing/packages
+   */
+  offers?: {
+    [key: string]: unknown
+  }
+  /**
+   * Warranties/guarantees
+   */
+  guarantees?: {
+    [key: string]: unknown
+  }
+  /**
+   * FAQ items
+   */
+  faqs?: Array<{
+    [key: string]: string
+  }>
+  /**
+   * Call-to-action blocks
+   */
+  cta_sections?: Array<{
+    [key: string]: unknown
+  }>
+  activity_modules?: Array<ActivityModuleConfig>
+  /**
+   * JSON-LD schemas
+   */
+  json_ld_schemas?: Array<{
+    [key: string]: unknown
+  }>
+  internal_links?: Array<InternalLink>
+  content_variants?: {
+    [key: string]: Array<ContentVariant>
+  }
+  active_experiment_keys?: Array<string>
+  quality_metrics: QualityMetrics
+  content_source: ContentSource
+  content_hash?: string | null
+  revision?: number
+  status?: ArtifactStatus
+  approved_at?: string | null
+  published_at?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+/**
+ * Complete activity page data response.
+ */
+export type ActivityPageDataResponse = {
+  activity: BusinessActivityDataResponse
+  content: ActivityContentPackResponse
+  /**
+   * Business information
+   */
+  business: {
+    [key: string]: unknown
+  }
 }
 
 /**
@@ -580,6 +853,34 @@ export type ActivityTemplateResponse = {
 }
 
 /**
+ * Response with templates available for an activity.
+ */
+export type ActivityTemplatesResponse = {
+  activity_slug: string
+  templates: Array<ServiceTemplate>
+  total_count: number
+}
+
+/**
+ * Activity types for specialized UI modules.
+ */
+export type ActivityType =
+  | "hvac"
+  | "plumbing"
+  | "electrical"
+  | "roofing"
+  | "general_contractor"
+  | "landscaping"
+  | "security_systems"
+  | "pool_spa"
+  | "garage_door"
+  | "chimney"
+  | "septic"
+  | "pest_control"
+  | "irrigation"
+  | "painting"
+
+/**
  * Activity type enumeration for API.
  */
 export type ActivityTypeSchema =
@@ -651,6 +952,16 @@ export type ActivityUpdateRequest = {
    * Reason for rescheduling
    */
   reschedule_reason?: string | null
+}
+
+/**
+ * Response model for activity with service templates.
+ */
+export type ActivityWithTemplatesResponse = {
+  activity: TradeActivityResponse
+  templates: Array<{
+    [key: string]: unknown
+  }>
 }
 
 /**
@@ -756,6 +1067,26 @@ export type AdoptServiceTemplateRequest = {
   customizations?: {
     [key: string]: unknown
   } | null
+}
+
+/**
+ * Request to adopt a service template by slug.
+ */
+export type AdoptTemplateBySlugRequest = {
+  /**
+   * Template slug to adopt
+   */
+  template_slug: string
+  /**
+   * Activity slug for validation
+   */
+  activity_slug?: string
+  /**
+   * Template customizations
+   */
+  customizations?: {
+    [key: string]: unknown
+  }
 }
 
 /**
@@ -984,6 +1315,23 @@ export type ApproveTimeOffRequest = {
    */
   denial_reason?: string | null
 }
+
+/**
+ * Response for listing artifacts.
+ */
+export type ArtifactListResponse = {
+  business_id: string
+  artifacts: Array<ActivityPageArtifact>
+  total_count: number
+  approved_count: number
+  published_count: number
+  last_updated?: string | null
+}
+
+/**
+ * Status of SEO artifacts.
+ */
+export type ArtifactStatus = "draft" | "approved" | "published" | "archived"
 
 /**
  * Schema for authenticated user information.
@@ -1393,6 +1741,24 @@ export type AvailableTimeSlotsResponse = {
   booking_deadline?: string | null
 }
 
+export type Body_Onboarding_validate_activities_legacy = {
+  trade_slug: string
+  activity_slugs: Array<string>
+}
+
+export type Body_Onboarding_validate_activity_selections = {
+  trade_slug: string
+  activity_slugs: Array<string>
+}
+
+export type Body_Onboarding_validate_profile_legacy = {
+  profile_slug: string
+}
+
+export type Body_Onboarding_validate_profile_selection = {
+  profile_slug: string
+}
+
 export type Body_products_reserve_stock = {
   /**
    * Quantity to reserve
@@ -1410,11 +1776,6 @@ export type Body_products_reserve_stock = {
    * Optional notes
    */
   notes?: string | null
-}
-
-export type Body_SEO_generate_content = {
-  service_slugs?: Array<string>
-  location_slugs?: Array<string>
 }
 
 export type Body_SEO_trigger_revalidation = {
@@ -1584,6 +1945,28 @@ export type BulkAdoptServicesRequest = {
 }
 
 /**
+ * Request to adopt multiple templates for an activity.
+ */
+export type BulkAdoptTemplatesRequest = {
+  /**
+   * Activity slug
+   */
+  activity_slug: string
+  /**
+   * List of template slugs to adopt
+   */
+  template_slugs: Array<string>
+  /**
+   * Per-template customizations
+   */
+  customizations?: {
+    [key: string]: {
+      [key: string]: unknown
+    }
+  }
+}
+
+/**
  * Request for bulk catalog item line items.
  */
 export type BulkCatalogRequest = {
@@ -1612,6 +1995,80 @@ export type BulkOperationResponse = {
    * Overall operation message
    */
   message: string
+}
+
+/**
+ * Booking field for a business activity.
+ */
+export type BusinessActivityBookingField = {
+  /**
+   * Field key
+   */
+  key: string
+  /**
+   * Field type
+   */
+  type: string
+  /**
+   * Field label
+   */
+  label: string
+  /**
+   * Field options for select/radio
+   */
+  options?: Array<string> | null
+  /**
+   * Whether field is required
+   */
+  required?: boolean | null
+}
+
+/**
+ * Business activity data response.
+ */
+export type BusinessActivityDataResponse = {
+  /**
+   * Activity slug
+   */
+  activity_slug: string
+  /**
+   * Activity name
+   */
+  activity_name: string
+  /**
+   * Trade slug
+   */
+  trade_slug: string
+  /**
+   * Trade name
+   */
+  trade_name: string
+  service_templates?: Array<BusinessActivityServiceTemplate>
+  booking_fields?: Array<BusinessActivityBookingField>
+}
+
+/**
+ * Service template associated with a business activity.
+ */
+export type BusinessActivityServiceTemplate = {
+  /**
+   * Template slug
+   */
+  template_slug: string
+  /**
+   * Template name
+   */
+  name: string
+  /**
+   * Pricing model
+   */
+  pricing_model: string
+  /**
+   * Pricing configuration
+   */
+  pricing_config?: {
+    [key: string]: unknown
+  }
 }
 
 /**
@@ -1733,6 +2190,68 @@ export type BusinessDetailResponse = {
   pending_invitations: Array<BusinessInvitationResponse>
   total_members: number
   owner_membership: BusinessMembershipResponse
+}
+
+/**
+ * Request for business details step.
+ */
+export type BusinessDetailsRequest = {
+  /**
+   * Business name
+   */
+  name: string
+  /**
+   * Business description
+   */
+  description?: string | null
+  /**
+   * Business phone
+   */
+  phone_number?: string | null
+  /**
+   * Business email
+   */
+  business_email?: string | null
+  /**
+   * Business website
+   */
+  website?: string | null
+  /**
+   * Street address
+   */
+  address?: string | null
+  /**
+   * City
+   */
+  city?: string | null
+  /**
+   * State
+   */
+  state?: string | null
+  /**
+   * Postal/ZIP code
+   */
+  postal_code?: string | null
+  /**
+   * Company size
+   */
+  company_size?: CompanySize
+  /**
+   * Market focus
+   */
+  market_focus?: MarketFocus
+  business_registration_number?: string | null
+  tax_id?: string | null
+  business_license?: string | null
+  insurance_number?: string | null
+  /**
+   * How they found us
+   */
+  referral_source?: ReferralSource | null
+  /**
+   * Primary business goals
+   */
+  primary_goals?: Array<string>
 }
 
 /**
@@ -2295,9 +2814,9 @@ export type CheckoutCustomer = {
    */
   state: string
   /**
-   * Service ZIP code
+   * Service postal code
    */
-  zip_code: string
+  postal_code: string
 }
 
 /**
@@ -2338,6 +2857,16 @@ export type CheckoutResponse = {
 }
 
 /**
+ * Enumeration for company sizes.
+ */
+export type CompanySize =
+  | "just_me"
+  | "small"
+  | "medium"
+  | "large"
+  | "enterprise"
+
+/**
  * Company size options for API.
  */
 export type CompanySizeSchema =
@@ -2346,6 +2875,30 @@ export type CompanySizeSchema =
   | "medium"
   | "large"
   | "enterprise"
+
+/**
+ * Request to complete the entire onboarding process.
+ */
+export type CompleteOnboardingRequest = {
+  /**
+   * Selected primary trade
+   */
+  primary_trade_slug: string
+  /**
+   * Selected activities
+   */
+  selected_activity_slugs: Array<string>
+  business_details: BusinessDetailsRequest
+  template_selections: ServiceTemplateSelectionRequest
+  /**
+   * Session tracking ID
+   */
+  onboarding_session_id?: string | null
+  /**
+   * Time to complete onboarding
+   */
+  completion_time_seconds?: number | null
+}
 
 /**
  * Schema for contact activity summary response.
@@ -3272,6 +3825,39 @@ export type ContactUpdateRequest = {
 }
 
 /**
+ * Source of content generation.
+ */
+export type ContentSource =
+  | "template"
+  | "llm"
+  | "rag_enhanced"
+  | "hybrid"
+  | "manual"
+
+/**
+ * A/B test variant for content sections.
+ */
+export type ContentVariant = {
+  /**
+   * Unique variant identifier
+   */
+  variant_key: string
+  /**
+   * Variant content
+   */
+  content: {
+    [key: string]: unknown
+  }
+  /**
+   * Traffic allocation weight
+   */
+  weight?: number
+  performance_metrics?: {
+    [key: string]: number
+  }
+}
+
+/**
  * Single conversation entry
  */
 export type ConversationEntry = {
@@ -4157,6 +4743,21 @@ export type EstimateTermsSchema = {
 }
 
 /**
+ * A/B test experiment result.
+ */
+export type ExperimentResult = {
+  experiment_key: string
+  winning_variant: string
+  confidence_level: number
+  improvement_percentage: number
+  sample_size: number
+  test_duration_days: number
+  metrics?: {
+    [key: string]: number
+  }
+}
+
+/**
  * Featured project information.
  */
 export type FeaturedProject = {
@@ -4252,6 +4853,35 @@ export type FeaturedProject = {
    * Display order
    */
   display_order?: number
+}
+
+/**
+ * Request to generate SEO artifacts.
+ */
+export type GenerateArtifactsRequest = {
+  business_id: string
+  activity_slugs?: Array<string> | null
+  location_slugs?: Array<string> | null
+  force_regenerate?: boolean
+  enable_experiments?: boolean
+  quality_threshold?: number
+}
+
+/**
+ * Response from artifact generation.
+ */
+export type GenerateArtifactsResponse = {
+  business_id: string
+  job_id: string
+  /**
+   * queued, processing, completed, failed
+   */
+  status: string
+  artifacts_generated?: number
+  artifacts_approved?: number
+  quality_gate_failures?: number
+  estimated_completion?: string | null
+  generated_at: string
 }
 
 /**
@@ -4357,6 +4987,22 @@ export type InteractionTypeSchema =
   | "service"
   | "follow_up"
   | "note"
+
+/**
+ * Internal link for topical authority.
+ */
+export type InternalLink = {
+  anchor_text: string
+  target_url: string
+  /**
+   * Surrounding text context
+   */
+  context: string
+  /**
+   * Type: contextual, navigational, footer
+   */
+  link_type?: string
+}
 
 /**
  * Invitation status options for API.
@@ -5144,6 +5790,11 @@ export type LocationUpdateRequest = {
 export type MarketFocus = "residential" | "commercial" | "both"
 
 /**
+ * Market segments a trade can serve.
+ */
+export type MarketSegment = "residential" | "commercial" | "both"
+
+/**
  * Customer membership plan information.
  */
 export type MembershipPlan = {
@@ -5464,6 +6115,304 @@ export type OAuthSignInResponse = {
    * Whether this is a newly created user
    */
   is_new_user: boolean
+}
+
+/**
+ * Response for activity listing.
+ */
+export type OnboardingActivityListResponse = {
+  /**
+   * Available activities
+   */
+  activities: Array<OnboardingActivityResponse>
+  /**
+   * Total activities count
+   */
+  total_count: number
+  /**
+   * Emergency activities count
+   */
+  emergency_count?: number
+  trade_profile?: OnboardingProfileResponse | null
+}
+
+/**
+ * Enhanced trade activity for onboarding with template info.
+ */
+export type OnboardingActivityResponse = {
+  id: string
+  slug: string
+  name: string
+  description?: string | null
+  synonyms?: Array<string>
+  tags?: Array<string>
+  /**
+   * Popular choice indicator
+   */
+  is_popular?: boolean
+  /**
+   * Emergency service indicator
+   */
+  is_emergency?: boolean
+  /**
+   * Number of available templates
+   */
+  template_count?: number
+  /**
+   * Estimated revenue potential
+   */
+  estimated_revenue?: string | null
+}
+
+/**
+ * Response after successful onboarding completion.
+ */
+export type OnboardingCompletionResponse = {
+  /**
+   * Created business ID
+   */
+  business_id: string
+  /**
+   * Business name
+   */
+  business_name: string
+  /**
+   * Primary trade profile
+   */
+  primary_trade: OnboardingProfileResponse
+  /**
+   * Selected activities
+   */
+  selected_activities: Array<OnboardingActivityResponse>
+  /**
+   * Auto-adopted template slugs
+   */
+  adopted_templates?: Array<string>
+  /**
+   * Number of services created
+   */
+  created_services?: number
+  /**
+   * Recommended next actions
+   */
+  recommended_next_steps?: Array<string>
+  /**
+   * Total onboarding time
+   */
+  onboarding_completion_time?: string | null
+  /**
+   * Setup completion percentage
+   */
+  setup_completion_percentage: number
+  /**
+   * Estimated revenue potential
+   */
+  estimated_revenue_potential?: string | null
+}
+
+/**
+ * Response for profile listing.
+ */
+export type OnboardingProfileListResponse = {
+  /**
+   * Available profiles
+   */
+  profiles: Array<OnboardingProfileResponse>
+  /**
+   * Total profiles count
+   */
+  total_count: number
+  /**
+   * Popular profiles count
+   */
+  popular_count?: number
+  stats?: OnboardingStatsResponse | null
+}
+
+/**
+ * Enhanced trade profile for onboarding with activity count.
+ */
+export type OnboardingProfileResponse = {
+  slug: string
+  name: string
+  synonyms?: Array<string>
+  segments: MarketSegment
+  icon?: string | null
+  description?: string | null
+  /**
+   * Number of available activities
+   */
+  activity_count?: number
+  /**
+   * Popular choice indicator
+   */
+  is_popular?: boolean
+  /**
+   * Estimated setup time
+   */
+  estimated_setup_time?: string | null
+}
+
+/**
+ * Response showing onboarding progress.
+ */
+export type OnboardingProgressResponse = {
+  /**
+   * Onboarding session ID
+   */
+  session_id: string
+  /**
+   * Current onboarding step
+   */
+  current_step: OnboardingStep
+  /**
+   * Completed steps
+   */
+  completed_steps?: Array<OnboardingStep>
+  /**
+   * Progress percentage
+   */
+  progress_percentage: number
+  selected_profile?: OnboardingProfileResponse | null
+  selected_activities?: Array<OnboardingActivityResponse>
+  business_details?: BusinessDetailsRequest | null
+  /**
+   * Can proceed to next step
+   */
+  can_proceed: boolean
+  /**
+   * Current validation errors
+   */
+  validation_errors?: Array<string>
+  /**
+   * Recommended next action
+   */
+  recommended_next_action?: string | null
+  /**
+   * Estimated time to completion
+   */
+  estimated_time_remaining?: string | null
+}
+
+/**
+ * Request to start a new onboarding session.
+ */
+export type OnboardingSessionRequest = {
+  /**
+   * User agent for analytics
+   */
+  user_agent?: string | null
+  /**
+   * How they found us
+   */
+  referral_source?: ReferralSource | null
+  /**
+   * UTM tracking parameters
+   */
+  utm_parameters?: {
+    [key: string]: string
+  } | null
+}
+
+/**
+ * Response when starting an onboarding session.
+ */
+export type OnboardingSessionResponse = {
+  /**
+   * Unique session ID
+   */
+  session_id: string
+  /**
+   * Session expiration time
+   */
+  expires_at: string
+  current_step?: OnboardingStep
+  /**
+   * Number of available profiles
+   */
+  available_profiles_count: number
+  /**
+   * Estimated completion time
+   */
+  estimated_completion_time: string
+  /**
+   * Whether analytics are enabled
+   */
+  analytics_enabled?: boolean
+  /**
+   * Session token for API calls
+   */
+  session_token?: string | null
+}
+
+/**
+ * Response with onboarding statistics and insights.
+ */
+export type OnboardingStatsResponse = {
+  /**
+   * Total available profiles
+   */
+  total_profiles: number
+  /**
+   * Most popular profiles
+   */
+  popular_profiles: Array<OnboardingProfileResponse>
+  /**
+   * Total available activities
+   */
+  total_activities: number
+  /**
+   * Emergency activities count
+   */
+  emergency_activities: number
+  /**
+   * Total available templates
+   */
+  total_templates: number
+  /**
+   * Popular templates count
+   */
+  popular_templates: number
+  /**
+   * Average onboarding time
+   */
+  average_completion_time?: string | null
+  /**
+   * Onboarding completion rate
+   */
+  completion_rate?: number | null
+}
+
+/**
+ * Enumeration for onboarding steps.
+ */
+export type OnboardingStep =
+  | "profile_selection"
+  | "activity_selection"
+  | "business_details"
+  | "service_templates"
+  | "completion"
+
+/**
+ * Response for validation requests.
+ */
+export type OnboardingValidationResponse = {
+  /**
+   * Whether the input is valid
+   */
+  is_valid: boolean
+  /**
+   * Validation errors
+   */
+  errors?: Array<string>
+  /**
+   * Validation warnings
+   */
+  warnings?: Array<string>
+  /**
+   * Improvement suggestions
+   */
+  suggestions?: Array<string>
 }
 
 /**
@@ -6834,6 +7783,17 @@ export type ProjectUpdateRequest = {
 }
 
 /**
+ * Request to promote winning variant.
+ */
+export type PromoteVariantRequest = {
+  business_id: string
+  artifact_id: string
+  experiment_key: string
+  winning_variant_key: string
+  experiment_result: ExperimentResult
+}
+
+/**
  * Schema for purchase order line item.
  */
 export type PurchaseOrderLineItemSchema = {
@@ -6925,6 +7885,44 @@ export type PurchaseOrderStatus =
   | "received"
   | "cancelled"
   | "closed"
+
+/**
+ * Content quality levels.
+ */
+export type QualityLevel =
+  | "excellent"
+  | "good"
+  | "acceptable"
+  | "needs_improvement"
+  | "poor"
+
+/**
+ * Content quality assessment metrics.
+ */
+export type QualityMetrics = {
+  /**
+   * Overall quality score 0-100
+   */
+  overall_score: number
+  overall_level: QualityLevel
+  word_count: number
+  heading_count: number
+  internal_link_count: number
+  external_link_count: number
+  faq_count: number
+  readability_score?: number | null
+  keyword_density?: {
+    [key: string]: number
+  }
+  local_intent_density?: number
+  /**
+   * E-E-A-T score
+   */
+  eat_score?: number
+  uniqueness_score?: number
+  coverage_score?: number
+  passed_quality_gate?: boolean
+}
 
 /**
  * Request for a quick installation quote
@@ -7121,6 +8119,22 @@ export type RecurrenceType =
   | "biweekly"
   | "monthly"
   | "custom"
+
+/**
+ * Enumeration for referral sources.
+ */
+export type ReferralSource =
+  | "tiktok"
+  | "tv"
+  | "online_ad"
+  | "web_search"
+  | "podcast_radio"
+  | "reddit"
+  | "review_sites"
+  | "youtube"
+  | "facebook_instagram"
+  | "referral"
+  | "other"
 
 /**
  * Referral source options for API.
@@ -7800,6 +8814,24 @@ export type ServiceTemplate = {
 }
 
 /**
+ * Request for service template selection step.
+ */
+export type ServiceTemplateSelectionRequest = {
+  /**
+   * Selected activity slugs
+   */
+  activity_slugs: Array<string>
+  /**
+   * Selected template slugs
+   */
+  template_slugs?: Array<string>
+  /**
+   * Auto-adopt popular templates
+   */
+  auto_adopt_popular?: boolean
+}
+
+/**
  * Update session state from mobile app
  */
 export type SessionStateUpdate = {
@@ -7888,6 +8920,67 @@ export type SignUpRequest = {
   email: string
   password: string
   full_name?: string | null
+}
+
+/**
+ * Individual sitemap entry.
+ */
+export type SitemapEntry = {
+  /**
+   * Page URL
+   */
+  loc: string
+  lastmod: string
+  /**
+   * Change frequency
+   */
+  changefreq?: string
+  priority?: number
+  /**
+   * Type: service, location, project, etc.
+   */
+  page_type: string
+}
+
+/**
+ * Request to generate sitemaps.
+ */
+export type SitemapGenerationRequest = {
+  business_id: string
+  base_url: string
+  include_drafts?: boolean
+  max_urls_per_sitemap?: number
+}
+
+/**
+ * Response from sitemap generation.
+ */
+export type SitemapGenerationResponse = {
+  business_id: string
+  sitemap_index_url: string
+  sitemaps_generated: Array<string>
+  total_urls: number
+  generated_at: string
+}
+
+/**
+ * Sitemap manifest for segmented sitemaps.
+ */
+export type SitemapManifest = {
+  business_id: string
+  sitemap_index_url: string
+  /**
+   * Individual sitemap files
+   */
+  sitemaps?: Array<{
+    [key: string]: unknown
+  }>
+  total_urls?: number
+  generated_at: string
+  service_pages?: Array<SitemapEntry>
+  location_pages?: Array<SitemapEntry>
+  project_pages?: Array<SitemapEntry>
+  static_pages?: Array<SitemapEntry>
 }
 
 /**
@@ -8445,6 +9538,44 @@ export type TimeWindow = {
 }
 
 /**
+ * Response model for trade activity.
+ */
+export type TradeActivityResponse = {
+  id: string
+  trade_slug: string
+  slug: string
+  name: string
+  synonyms: Array<string>
+  tags: Array<string>
+  default_booking_fields: Array<{
+    [key: string]: unknown
+  }>
+  required_booking_fields: Array<{
+    [key: string]: unknown
+  }>
+}
+
+/**
+ * Response model for trade profile.
+ */
+export type TradeProfileResponse = {
+  slug: string
+  name: string
+  synonyms: Array<string>
+  segments: MarketSegment
+  icon?: string | null
+  description?: string | null
+}
+
+/**
+ * Response model for trade profile with activities.
+ */
+export type TradeProfileWithActivitiesResponse = {
+  profile: TradeProfileResponse
+  activities: Array<TradeActivityResponse>
+}
+
+/**
  * Preview of services that would be assigned for given trades
  */
 export type TradeServicesPreviewResponse = {
@@ -8973,6 +10104,142 @@ export type VoiceSessionStatusResponse = {
   room_active: boolean
 }
 
+/**
+ * Activity information for website context.
+ */
+export type WebsiteActivityInfo = {
+  /**
+   * Activity slug
+   */
+  slug: string
+  /**
+   * Activity name
+   */
+  name: string
+  /**
+   * Trade slug
+   */
+  trade_slug: string
+  /**
+   * Trade name
+   */
+  trade_name: string
+  /**
+   * Activity synonyms
+   */
+  synonyms?: Array<string>
+  /**
+   * Activity tags
+   */
+  tags?: Array<string>
+  default_booking_fields?: Array<WebsiteBookingField>
+  required_booking_fields?: Array<WebsiteBookingField>
+}
+
+/**
+ * Booking field for website forms.
+ */
+export type WebsiteBookingField = {
+  /**
+   * Field key
+   */
+  key: string
+  /**
+   * Field type (text, select, textarea, etc.)
+   */
+  type: string
+  /**
+   * Field label
+   */
+  label: string
+  /**
+   * Field options for select/radio
+   */
+  options?: Array<string> | null
+  /**
+   * Whether field is required
+   */
+  required?: boolean
+  /**
+   * Field placeholder text
+   */
+  placeholder?: string | null
+  /**
+   * Help text for field
+   */
+  help_text?: string | null
+}
+
+/**
+ * Business information for website context.
+ */
+export type WebsiteBusinessInfo = {
+  /**
+   * Business ID
+   */
+  id: string
+  /**
+   * Business name
+   */
+  name: string
+  /**
+   * Business description
+   */
+  description?: string | null
+  /**
+   * Business phone number
+   */
+  phone?: string | null
+  /**
+   * Business email
+   */
+  email?: string | null
+  /**
+   * Business address
+   */
+  address?: string | null
+  /**
+   * Business city
+   */
+  city?: string | null
+  /**
+   * Business state
+   */
+  state?: string | null
+  /**
+   * Business postal code
+   */
+  postal_code?: string | null
+  /**
+   * Business website URL
+   */
+  website?: string | null
+  /**
+   * Primary trade slug
+   */
+  primary_trade_slug?: string | null
+  /**
+   * Service areas
+   */
+  service_areas?: Array<string>
+}
+
+/**
+ * Complete website context response.
+ */
+export type WebsiteContextResponse = {
+  business: WebsiteBusinessInfo
+  activities?: Array<WebsiteActivityInfo>
+  service_templates?: Array<WebsiteServiceTemplate>
+  trades?: Array<WebsiteTradeInfo>
+  /**
+   * Additional metadata
+   */
+  metadata?: {
+    [key: string]: unknown
+  }
+}
+
 export type WebsiteDeploymentRequest = {
   business_id: string
   /**
@@ -8993,6 +10260,72 @@ export type WebsiteDeploymentResponse = {
   status: string
   message: string
   estimated_completion_time?: number | null
+}
+
+/**
+ * Service template information for website context.
+ */
+export type WebsiteServiceTemplate = {
+  /**
+   * Template slug
+   */
+  template_slug: string
+  /**
+   * Template name
+   */
+  name: string
+  /**
+   * Template description
+   */
+  description?: string | null
+  /**
+   * Pricing model (fixed, hourly, per_unit, etc.)
+   */
+  pricing_model: string
+  /**
+   * Pricing configuration
+   */
+  pricing_config?: {
+    [key: string]: unknown
+  }
+  /**
+   * Unit of measure
+   */
+  unit_of_measure?: string | null
+  /**
+   * Whether this is an emergency service
+   */
+  is_emergency?: boolean
+  /**
+   * Associated activity slug
+   */
+  activity_slug?: string | null
+}
+
+/**
+ * Trade information for website context.
+ */
+export type WebsiteTradeInfo = {
+  /**
+   * Trade slug
+   */
+  slug: string
+  /**
+   * Trade name
+   */
+  name: string
+  /**
+   * Trade description
+   */
+  description?: string | null
+  /**
+   * Market segments (residential, commercial, both)
+   */
+  segments: string
+  /**
+   * Trade icon
+   */
+  icon?: string | null
 }
 
 /**
@@ -9275,6 +10608,71 @@ export type ActivitiesMarkReminderSentResponse =
 
 export type ActivitiesGetDashboardActivitiesResponse =
   DashboardActivitiesResponse
+
+export type ActivityContentListActivityContentPacksResponse =
+  ActivityContentPackListResponse
+
+export type ActivityContentGetActivityContentPackData = {
+  /**
+   * Activity slug
+   */
+  activitySlug: string
+}
+
+export type ActivityContentGetActivityContentPackResponse =
+  ActivityContentPackResponse
+
+export type ActivityContentGetBusinessActivityDataData = {
+  /**
+   * Activity slug
+   */
+  activitySlug: string
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ActivityContentGetBusinessActivityDataResponse =
+  BusinessActivityDataResponse
+
+export type ActivityContentGetActivityPageDataData = {
+  /**
+   * Activity slug
+   */
+  activitySlug: string
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ActivityContentGetActivityPageDataResponse =
+  ActivityPageDataResponse
+
+export type ActivityContentGetPublicActivityContentPackData = {
+  /**
+   * Activity slug
+   */
+  activitySlug: string
+}
+
+export type ActivityContentGetPublicActivityContentPackResponse =
+  ActivityContentPackResponse
+
+export type ActivityContentGetPublicActivityPageDataData = {
+  /**
+   * Activity slug
+   */
+  activitySlug: string
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type ActivityContentGetPublicActivityPageDataResponse =
+  ActivityPageDataResponse
 
 export type AnalyticsRoiTrackConversionData = {
   /**
@@ -11175,6 +12573,174 @@ export type MobileVoiceIntegrationGetAgentCapabilitiesResponse = {
   [key: string]: unknown
 }
 
+export type OnboardingStartOnboardingSessionData = {
+  requestBody: OnboardingSessionRequest
+}
+
+export type OnboardingStartOnboardingSessionResponse = OnboardingSessionResponse
+
+export type OnboardingGetOnboardingProgressData = {
+  sessionId: string
+}
+
+export type OnboardingGetOnboardingProgressResponse = OnboardingProgressResponse
+
+export type OnboardingSetSessionProfileData = {
+  requestBody: {
+    [key: string]: unknown
+  }
+  sessionId: string
+}
+
+export type OnboardingSetSessionProfileResponse = OnboardingProgressResponse
+
+export type OnboardingSetSessionActivitiesData = {
+  requestBody: Array<{
+    [key: string]: unknown
+  }>
+  sessionId: string
+}
+
+export type OnboardingSetSessionActivitiesResponse = OnboardingProgressResponse
+
+export type OnboardingSetSessionBusinessDetailsData = {
+  requestBody: BusinessDetailsRequest
+  sessionId: string
+}
+
+export type OnboardingSetSessionBusinessDetailsResponse =
+  OnboardingProgressResponse
+
+export type OnboardingGetOnboardingProfilesData = {
+  /**
+   * Show only popular profiles
+   */
+  popularOnly?: boolean
+  /**
+   * Search in name and synonyms
+   */
+  search?: string | null
+  /**
+   * Filter by market segments
+   */
+  segments?: Array<string> | null
+}
+
+export type OnboardingGetOnboardingProfilesResponse =
+  OnboardingProfileListResponse
+
+export type OnboardingGetPopularProfilesResponse = OnboardingProfileListResponse
+
+export type OnboardingSearchProfilesData = {
+  /**
+   * Search term
+   */
+  q: string
+}
+
+export type OnboardingSearchProfilesResponse = OnboardingProfileListResponse
+
+export type OnboardingGetOnboardingActivitiesForTradeData = {
+  /**
+   * Only emergency activities
+   */
+  emergencyOnly?: boolean
+  /**
+   * Only popular activities
+   */
+  popularOnly?: boolean
+  /**
+   * Search in name and synonyms
+   */
+  search?: string | null
+  tradeSlug: string
+}
+
+export type OnboardingGetOnboardingActivitiesForTradeResponse =
+  OnboardingActivityListResponse
+
+export type OnboardingGetPopularActivitiesForTradeData = {
+  tradeSlug: string
+}
+
+export type OnboardingGetPopularActivitiesForTradeResponse =
+  OnboardingActivityListResponse
+
+export type OnboardingGetEmergencyActivitiesForTradeData = {
+  tradeSlug: string
+}
+
+export type OnboardingGetEmergencyActivitiesForTradeResponse =
+  OnboardingActivityListResponse
+
+export type OnboardingSearchActivitiesForTradeData = {
+  /**
+   * Search term
+   */
+  q: string
+  tradeSlug: string
+}
+
+export type OnboardingSearchActivitiesForTradeResponse =
+  OnboardingActivityListResponse
+
+export type OnboardingValidateProfileSelectionData = {
+  requestBody: Body_Onboarding_validate_profile_selection
+}
+
+export type OnboardingValidateProfileSelectionResponse =
+  OnboardingValidationResponse
+
+export type OnboardingValidateActivitySelectionsData = {
+  requestBody: Body_Onboarding_validate_activity_selections
+}
+
+export type OnboardingValidateActivitySelectionsResponse =
+  OnboardingValidationResponse
+
+export type OnboardingValidateBusinessDetailsData = {
+  requestBody: BusinessDetailsRequest
+}
+
+export type OnboardingValidateBusinessDetailsResponse =
+  OnboardingValidationResponse
+
+export type OnboardingValidateCompleteOnboardingData = {
+  requestBody: CompleteOnboardingRequest
+}
+
+export type OnboardingValidateCompleteOnboardingResponse =
+  OnboardingValidationResponse
+
+export type OnboardingCompleteOnboardingData = {
+  requestBody: CompleteOnboardingRequest
+}
+
+export type OnboardingCompleteOnboardingResponse = OnboardingCompletionResponse
+
+export type OnboardingCreateBusinessOnboardingLegacyData = {
+  requestBody: CompleteOnboardingRequest
+}
+
+export type OnboardingCreateBusinessOnboardingLegacyResponse =
+  OnboardingCompletionResponse
+
+export type OnboardingValidateProfileLegacyData = {
+  requestBody: Body_Onboarding_validate_profile_legacy
+}
+
+export type OnboardingValidateProfileLegacyResponse = {
+  [key: string]: unknown
+}
+
+export type OnboardingValidateActivitiesLegacyData = {
+  requestBody: Body_Onboarding_validate_activities_legacy
+}
+
+export type OnboardingValidateActivitiesLegacyResponse = {
+  [key: string]: unknown
+}
+
 export type CreateProductNoSlashData = {
   requestBody: CreateProductSchema
 }
@@ -11665,42 +13231,6 @@ export type PurchaseOrdersGetPendingReceiptOrdersData = {
 export type PurchaseOrdersGetPendingReceiptOrdersResponse =
   PurchaseOrderListResponseSchema
 
-export type SeoGetSeoPagesData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  includeContent?: boolean
-}
-
-export type SeoGetSeoPagesResponse = {
-  [key: string]: unknown
-}
-
-export type SeoGenerateContentData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  requestBody?: Body_SEO_generate_content
-}
-
-export type SeoGenerateContentResponse = {
-  [key: string]: unknown
-}
-
-export type SeoGetSeoPageContentData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  pagePath?: string
-}
-
-export type SeoGetSeoPageContentResponse = {
-  [key: string]: unknown
-}
-
 export type SeoTriggerRevalidationData = {
   requestBody?: Body_SEO_trigger_revalidation
 }
@@ -11709,15 +13239,106 @@ export type SeoTriggerRevalidationResponse = {
   [key: string]: unknown
 }
 
-export type SeoDeploySeoPipelineData = {
+export type SeoGenerateSeoArtifactsData = {
   /**
    * Business ID
    */
   businessId: string
-  triggerLlm?: boolean
+  requestBody: GenerateArtifactsRequest
 }
 
-export type SeoDeploySeoPipelineResponse = {
+export type SeoGenerateSeoArtifactsResponse = GenerateArtifactsResponse
+
+export type SeoListSeoArtifactsData = {
+  /**
+   * Filter by activity
+   */
+  activitySlug?: string | null
+  /**
+   * Business ID
+   */
+  businessId: string
+  limit?: number
+  /**
+   * Filter by location
+   */
+  locationSlug?: string | null
+  offset?: number
+  /**
+   * Filter by status
+   */
+  status?: ArtifactStatus | null
+}
+
+export type SeoListSeoArtifactsResponse = ArtifactListResponse
+
+export type SeoGetSeoArtifactData = {
+  /**
+   * Artifact ID
+   */
+  artifactId: string
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type SeoGetSeoArtifactResponse = ActivityPageArtifact
+
+export type SeoApproveSeoArtifactData = {
+  /**
+   * Artifact ID
+   */
+  artifactId: string
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type SeoApproveSeoArtifactResponse = {
+  [key: string]: unknown
+}
+
+export type SeoGenerateSitemapManifestData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  requestBody: SitemapGenerationRequest
+}
+
+export type SeoGenerateSitemapManifestResponse = SitemapGenerationResponse
+
+export type SeoGetSitemapManifestData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type SeoGetSitemapManifestResponse = SitemapManifest
+
+export type SeoGetSeoPagesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type SeoGetSeoPagesResponse = {
+  [key: string]: unknown
+}
+
+export type SeoPromoteWinningVariantData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  requestBody: PromoteVariantRequest
+}
+
+export type SeoPromoteWinningVariantResponse = {
   [key: string]: unknown
 }
 
@@ -11745,6 +13366,20 @@ export type ServiceAreasCreateAvailabilityRequestData = {
 
 export type ServiceAreasCreateAvailabilityRequestResponse =
   AvailabilityRequestResponse
+
+export type ServiceAreasGetPublicServiceAreasData = {
+  businessId: string
+  /**
+   * Number of results to return
+   */
+  limit?: number
+  /**
+   * Number of results to skip
+   */
+  offset?: number
+}
+
+export type ServiceAreasGetPublicServiceAreasResponse = Array<ServiceArea>
 
 export type ServiceAreasGetServiceAreasData = {
   /**
@@ -12063,6 +13698,64 @@ export type ServicesAdoptTemplate1Data = {
 
 export type ServicesAdoptTemplate1Response = BusinessService
 
+export type ServicesAdoptTemplateBySlugData = {
+  requestBody: AdoptTemplateBySlugRequest
+}
+
+export type ServicesAdoptTemplateBySlugResponse = BusinessService
+
+export type ServicesAdoptTemplateBySlug1Data = {
+  requestBody: AdoptTemplateBySlugRequest
+}
+
+export type ServicesAdoptTemplateBySlug1Response = BusinessService
+
+export type ServicesGetTemplatesForActivityData = {
+  activitySlug: string
+}
+
+export type ServicesGetTemplatesForActivityResponse = ActivityTemplatesResponse
+
+export type ServicesGetTemplatesForActivity1Data = {
+  activitySlug: string
+}
+
+export type ServicesGetTemplatesForActivity1Response = ActivityTemplatesResponse
+
+export type ServicesBulkAdoptTemplatesForActivityData = {
+  requestBody: BulkAdoptTemplatesRequest
+}
+
+export type ServicesBulkAdoptTemplatesForActivityResponse =
+  Array<BusinessService>
+
+export type ServicesBulkAdoptTemplatesForActivity1Data = {
+  requestBody: BulkAdoptTemplatesRequest
+}
+
+export type ServicesBulkAdoptTemplatesForActivity1Response =
+  Array<BusinessService>
+
+export type ServicesGetAdoptedTemplatesResponse = Array<{
+  [key: string]: unknown
+}>
+
+export type ServicesGetAdoptedTemplates1Response = Array<{
+  [key: string]: unknown
+}>
+
+export type ServicesGetTemplateBySlugData = {
+  templateSlug: string
+}
+
+export type ServicesGetTemplateBySlugResponse = ServiceTemplate
+
+export type ServicesGetTemplateBySlug1Data = {
+  templateSlug: string
+}
+
+export type ServicesGetTemplateBySlug1Response = ServiceTemplate
+
 export type ServicesCreateCustomServiceData = {
   requestBody: CreateCustomServiceRequest
 }
@@ -12351,6 +14044,107 @@ export type TemplatesCloneTemplateData = {
 
 export type TemplatesCloneTemplateResponse = TemplateResponse
 
+export type TradeTaxonomyListTradeProfilesData = {
+  /**
+   * Maximum number of results
+   */
+  limit?: number | null
+  /**
+   * Number of results to skip
+   */
+  offset?: number | null
+  /**
+   * Field to order by
+   */
+  orderBy?: string | null
+  /**
+   * Order in descending order
+   */
+  orderDesc?: boolean
+  /**
+   * Search in name and synonyms
+   */
+  search?: string | null
+  /**
+   * Filter by market segments
+   */
+  segments?: Array<MarketSegment> | null
+}
+
+export type TradeTaxonomyListTradeProfilesResponse = Array<TradeProfileResponse>
+
+export type TradeTaxonomyGetTradeProfileData = {
+  slug: string
+}
+
+export type TradeTaxonomyGetTradeProfileResponse = TradeProfileResponse
+
+export type TradeTaxonomyListProfilesWithActivitiesData = {
+  /**
+   * Maximum number of results
+   */
+  limit?: number | null
+  /**
+   * Number of results to skip
+   */
+  offset?: number | null
+  /**
+   * Search in name and synonyms
+   */
+  search?: string | null
+  /**
+   * Filter by market segments
+   */
+  segments?: Array<MarketSegment> | null
+}
+
+export type TradeTaxonomyListProfilesWithActivitiesResponse =
+  Array<TradeProfileWithActivitiesResponse>
+
+export type TradeTaxonomyListTradeActivitiesData = {
+  /**
+   * Maximum number of results
+   */
+  limit?: number | null
+  /**
+   * Number of results to skip
+   */
+  offset?: number | null
+  /**
+   * Field to order by
+   */
+  orderBy?: string | null
+  /**
+   * Order in descending order
+   */
+  orderDesc?: boolean
+  /**
+   * Search in name and synonyms
+   */
+  search?: string | null
+  /**
+   * Filter by tags
+   */
+  tags?: Array<string> | null
+  tradeSlug: string
+}
+
+export type TradeTaxonomyListTradeActivitiesResponse =
+  Array<TradeActivityResponse>
+
+export type TradeTaxonomyGetTradeActivityData = {
+  slug: string
+}
+
+export type TradeTaxonomyGetTradeActivityResponse = TradeActivityResponse
+
+export type TradeTaxonomyListActivitiesWithTemplatesData = {
+  tradeSlug: string
+}
+
+export type TradeTaxonomyListActivitiesWithTemplatesResponse =
+  Array<ActivityWithTemplatesResponse>
+
 export type UsersGetCurrentUserProfileResponse = UserProfileResponse
 
 export type UsersUpdateUserBusinessContextData = {
@@ -12382,3 +14176,54 @@ export type WebsiteBuilderPreviewWebsiteData = {
 }
 
 export type WebsiteBuilderPreviewWebsiteResponse = unknown
+
+export type WebsiteContextGetWebsiteContextData = {
+  /**
+   * Limit number of activities
+   */
+  activityLimit?: number | null
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Include service templates
+   */
+  includeTemplates?: boolean
+  /**
+   * Include trade information
+   */
+  includeTrades?: boolean
+  /**
+   * Limit number of templates
+   */
+  templateLimit?: number | null
+}
+
+export type WebsiteContextGetWebsiteContextResponse = WebsiteContextResponse
+
+export type WebsiteContextGetWebsiteActivitiesOnlyData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Limit number of activities
+   */
+  limit?: number | null
+}
+
+export type WebsiteContextGetWebsiteActivitiesOnlyResponse = {
+  [key: string]: unknown
+}
+
+export type WebsiteContextGetWebsiteSummaryData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type WebsiteContextGetWebsiteSummaryResponse = {
+  [key: string]: unknown
+}

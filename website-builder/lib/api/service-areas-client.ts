@@ -4,7 +4,7 @@
  * Client for interacting with the service areas API
  */
 
-import { getApiConfig, buildPublicApiUrl, getDefaultHeaders } from '../config/api-config';
+import { getApiConfig, buildPublicApiUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
 
 export interface ServiceAreaCheckRequest {
   business_id: string;

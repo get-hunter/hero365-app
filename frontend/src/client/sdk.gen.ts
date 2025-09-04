@@ -36,6 +36,17 @@ import type {
   ActivitiesMarkReminderSentData,
   ActivitiesMarkReminderSentResponse,
   ActivitiesGetDashboardActivitiesResponse,
+  ActivityContentListActivityContentPacksResponse,
+  ActivityContentGetActivityContentPackData,
+  ActivityContentGetActivityContentPackResponse,
+  ActivityContentGetBusinessActivityDataData,
+  ActivityContentGetBusinessActivityDataResponse,
+  ActivityContentGetActivityPageDataData,
+  ActivityContentGetActivityPageDataResponse,
+  ActivityContentGetPublicActivityContentPackData,
+  ActivityContentGetPublicActivityContentPackResponse,
+  ActivityContentGetPublicActivityPageDataData,
+  ActivityContentGetPublicActivityPageDataResponse,
   AnalyticsRoiTrackConversionData,
   AnalyticsRoiTrackConversionResponse,
   AnalyticsRoiGetAnalyticsData,
@@ -403,6 +414,45 @@ import type {
   MobileVoiceIntegrationEndVoiceSessionResponse,
   MobileVoiceIntegrationVoiceSystemHealthResponse,
   MobileVoiceIntegrationGetAgentCapabilitiesResponse,
+  OnboardingStartOnboardingSessionData,
+  OnboardingStartOnboardingSessionResponse,
+  OnboardingGetOnboardingProgressData,
+  OnboardingGetOnboardingProgressResponse,
+  OnboardingSetSessionProfileData,
+  OnboardingSetSessionProfileResponse,
+  OnboardingSetSessionActivitiesData,
+  OnboardingSetSessionActivitiesResponse,
+  OnboardingSetSessionBusinessDetailsData,
+  OnboardingSetSessionBusinessDetailsResponse,
+  OnboardingGetOnboardingProfilesData,
+  OnboardingGetOnboardingProfilesResponse,
+  OnboardingGetPopularProfilesResponse,
+  OnboardingSearchProfilesData,
+  OnboardingSearchProfilesResponse,
+  OnboardingGetOnboardingActivitiesForTradeData,
+  OnboardingGetOnboardingActivitiesForTradeResponse,
+  OnboardingGetPopularActivitiesForTradeData,
+  OnboardingGetPopularActivitiesForTradeResponse,
+  OnboardingGetEmergencyActivitiesForTradeData,
+  OnboardingGetEmergencyActivitiesForTradeResponse,
+  OnboardingSearchActivitiesForTradeData,
+  OnboardingSearchActivitiesForTradeResponse,
+  OnboardingValidateProfileSelectionData,
+  OnboardingValidateProfileSelectionResponse,
+  OnboardingValidateActivitySelectionsData,
+  OnboardingValidateActivitySelectionsResponse,
+  OnboardingValidateBusinessDetailsData,
+  OnboardingValidateBusinessDetailsResponse,
+  OnboardingValidateCompleteOnboardingData,
+  OnboardingValidateCompleteOnboardingResponse,
+  OnboardingCompleteOnboardingData,
+  OnboardingCompleteOnboardingResponse,
+  OnboardingCreateBusinessOnboardingLegacyData,
+  OnboardingCreateBusinessOnboardingLegacyResponse,
+  OnboardingValidateProfileLegacyData,
+  OnboardingValidateProfileLegacyResponse,
+  OnboardingValidateActivitiesLegacyData,
+  OnboardingValidateActivitiesLegacyResponse,
   CreateProductNoSlashData,
   CreateProductNoSlashResponse,
   ListProductsNoSlashData,
@@ -501,20 +551,30 @@ import type {
   PurchaseOrdersGetPendingApprovalOrdersResponse,
   PurchaseOrdersGetPendingReceiptOrdersData,
   PurchaseOrdersGetPendingReceiptOrdersResponse,
-  SeoGetSeoPagesData,
-  SeoGetSeoPagesResponse,
-  SeoGenerateContentData,
-  SeoGenerateContentResponse,
-  SeoGetSeoPageContentData,
-  SeoGetSeoPageContentResponse,
   SeoTriggerRevalidationData,
   SeoTriggerRevalidationResponse,
-  SeoDeploySeoPipelineData,
-  SeoDeploySeoPipelineResponse,
+  SeoGenerateSeoArtifactsData,
+  SeoGenerateSeoArtifactsResponse,
+  SeoListSeoArtifactsData,
+  SeoListSeoArtifactsResponse,
+  SeoGetSeoArtifactData,
+  SeoGetSeoArtifactResponse,
+  SeoApproveSeoArtifactData,
+  SeoApproveSeoArtifactResponse,
+  SeoGenerateSitemapManifestData,
+  SeoGenerateSitemapManifestResponse,
+  SeoGetSitemapManifestData,
+  SeoGetSitemapManifestResponse,
+  SeoGetSeoPagesData,
+  SeoGetSeoPagesResponse,
+  SeoPromoteWinningVariantData,
+  SeoPromoteWinningVariantResponse,
   ServiceAreasCheckServiceAreaSupportData,
   ServiceAreasCheckServiceAreaSupportResponse,
   ServiceAreasCreateAvailabilityRequestData,
   ServiceAreasCreateAvailabilityRequestResponse,
+  ServiceAreasGetPublicServiceAreasData,
+  ServiceAreasGetPublicServiceAreasResponse,
   ServiceAreasGetServiceAreasData,
   ServiceAreasGetServiceAreasResponse,
   ServiceAreasBulkUpsertServiceAreasData,
@@ -586,6 +646,24 @@ import type {
   ServicesAdoptTemplateResponse,
   ServicesAdoptTemplate1Data,
   ServicesAdoptTemplate1Response,
+  ServicesAdoptTemplateBySlugData,
+  ServicesAdoptTemplateBySlugResponse,
+  ServicesAdoptTemplateBySlug1Data,
+  ServicesAdoptTemplateBySlug1Response,
+  ServicesGetTemplatesForActivityData,
+  ServicesGetTemplatesForActivityResponse,
+  ServicesGetTemplatesForActivity1Data,
+  ServicesGetTemplatesForActivity1Response,
+  ServicesBulkAdoptTemplatesForActivityData,
+  ServicesBulkAdoptTemplatesForActivityResponse,
+  ServicesBulkAdoptTemplatesForActivity1Data,
+  ServicesBulkAdoptTemplatesForActivity1Response,
+  ServicesGetAdoptedTemplatesResponse,
+  ServicesGetAdoptedTemplates1Response,
+  ServicesGetTemplateBySlugData,
+  ServicesGetTemplateBySlugResponse,
+  ServicesGetTemplateBySlug1Data,
+  ServicesGetTemplateBySlug1Response,
   ServicesCreateCustomServiceData,
   ServicesCreateCustomServiceResponse,
   ServicesCreateCustomService1Data,
@@ -642,6 +720,18 @@ import type {
   TemplatesSetDefaultTemplateResponse,
   TemplatesCloneTemplateData,
   TemplatesCloneTemplateResponse,
+  TradeTaxonomyListTradeProfilesData,
+  TradeTaxonomyListTradeProfilesResponse,
+  TradeTaxonomyGetTradeProfileData,
+  TradeTaxonomyGetTradeProfileResponse,
+  TradeTaxonomyListProfilesWithActivitiesData,
+  TradeTaxonomyListProfilesWithActivitiesResponse,
+  TradeTaxonomyListTradeActivitiesData,
+  TradeTaxonomyListTradeActivitiesResponse,
+  TradeTaxonomyGetTradeActivityData,
+  TradeTaxonomyGetTradeActivityResponse,
+  TradeTaxonomyListActivitiesWithTemplatesData,
+  TradeTaxonomyListActivitiesWithTemplatesResponse,
   UsersGetCurrentUserProfileResponse,
   UsersUpdateUserBusinessContextData,
   UsersUpdateUserBusinessContextResponse,
@@ -653,6 +743,12 @@ import type {
   WebsiteBuilderGetDeploymentStatusResponse,
   WebsiteBuilderPreviewWebsiteData,
   WebsiteBuilderPreviewWebsiteResponse,
+  WebsiteContextGetWebsiteContextData,
+  WebsiteContextGetWebsiteContextResponse,
+  WebsiteContextGetWebsiteActivitiesOnlyData,
+  WebsiteContextGetWebsiteActivitiesOnlyResponse,
+  WebsiteContextGetWebsiteSummaryData,
+  WebsiteContextGetWebsiteSummaryResponse,
 } from "./types.gen"
 
 export class ActivitiesService {
@@ -1107,6 +1203,142 @@ export class ActivitiesService {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/activities/dashboard",
+    })
+  }
+}
+
+export class ActivityContentService {
+  /**
+   * List Activity Content Packs
+   * Get list of all available activity content packs.
+   * @returns ActivityContentPackListResponse Successful Response
+   * @throws ApiError
+   */
+  public static listActivityContentPacks(): CancelablePromise<ActivityContentListActivityContentPacksResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activity-content/content-packs",
+    })
+  }
+
+  /**
+   * Get Activity Content Pack
+   * Get content pack for a specific activity.
+   * @param data The data for the request.
+   * @param data.activitySlug Activity slug
+   * @returns ActivityContentPackResponse Successful Response
+   * @throws ApiError
+   */
+  public static getActivityContentPack(
+    data: ActivityContentGetActivityContentPackData,
+  ): CancelablePromise<ActivityContentGetActivityContentPackResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activity-content/content-packs/{activity_slug}",
+      path: {
+        activity_slug: data.activitySlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Business Activity Data
+   * Get business-specific activity data including service templates and booking fields.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.activitySlug Activity slug
+   * @returns BusinessActivityDataResponse Successful Response
+   * @throws ApiError
+   */
+  public static getBusinessActivityData(
+    data: ActivityContentGetBusinessActivityDataData,
+  ): CancelablePromise<ActivityContentGetBusinessActivityDataResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activity-content/business/{business_id}/activities/{activity_slug}",
+      path: {
+        business_id: data.businessId,
+        activity_slug: data.activitySlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Activity Page Data
+   * Get complete activity page data including content pack, business data, and activity information.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.activitySlug Activity slug
+   * @returns ActivityPageDataResponse Successful Response
+   * @throws ApiError
+   */
+  public static getActivityPageData(
+    data: ActivityContentGetActivityPageDataData,
+  ): CancelablePromise<ActivityContentGetActivityPageDataResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activity-content/business/{business_id}/activities/{activity_slug}/page-data",
+      path: {
+        business_id: data.businessId,
+        activity_slug: data.activitySlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Public Activity Content Pack
+   * Public endpoint to get content pack for a specific activity (for website builder).
+   * @param data The data for the request.
+   * @param data.activitySlug Activity slug
+   * @returns ActivityContentPackResponse Successful Response
+   * @throws ApiError
+   */
+  public static getPublicActivityContentPack(
+    data: ActivityContentGetPublicActivityContentPackData,
+  ): CancelablePromise<ActivityContentGetPublicActivityContentPackResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activity-content/public/content-packs/{activity_slug}",
+      path: {
+        activity_slug: data.activitySlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Public Activity Page Data
+   * Public endpoint to get complete activity page data (for website builder).
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.activitySlug Activity slug
+   * @returns ActivityPageDataResponse Successful Response
+   * @throws ApiError
+   */
+  public static getPublicActivityPageData(
+    data: ActivityContentGetPublicActivityPageDataData,
+  ): CancelablePromise<ActivityContentGetPublicActivityPageDataResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activity-content/public/business/{business_id}/activities/{activity_slug}/page-data",
+      path: {
+        business_id: data.businessId,
+        activity_slug: data.activitySlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
     })
   }
 }
@@ -6340,6 +6572,474 @@ export class MobileVoiceIntegrationService {
   }
 }
 
+export class OnboardingService {
+  /**
+   * Start Onboarding Session
+   * Start a new onboarding session.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns OnboardingSessionResponse Successful Response
+   * @throws ApiError
+   */
+  public static startOnboardingSession(
+    data: OnboardingStartOnboardingSessionData,
+  ): CancelablePromise<OnboardingStartOnboardingSessionResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/onboarding/session/start",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Onboarding Progress
+   * Get current onboarding progress for a session.
+   * @param data The data for the request.
+   * @param data.sessionId
+   * @returns OnboardingProgressResponse Successful Response
+   * @throws ApiError
+   */
+  public static getOnboardingProgress(
+    data: OnboardingGetOnboardingProgressData,
+  ): CancelablePromise<OnboardingGetOnboardingProgressResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/onboarding/session/{session_id}/progress",
+      path: {
+        session_id: data.sessionId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Set Session Profile
+   * Set selected profile for the session.
+   * @param data The data for the request.
+   * @param data.sessionId
+   * @param data.requestBody
+   * @returns OnboardingProgressResponse Successful Response
+   * @throws ApiError
+   */
+  public static setSessionProfile(
+    data: OnboardingSetSessionProfileData,
+  ): CancelablePromise<OnboardingSetSessionProfileResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/onboarding/session/{session_id}/profile",
+      path: {
+        session_id: data.sessionId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Set Session Activities
+   * Set selected activities for the session.
+   * @param data The data for the request.
+   * @param data.sessionId
+   * @param data.requestBody
+   * @returns OnboardingProgressResponse Successful Response
+   * @throws ApiError
+   */
+  public static setSessionActivities(
+    data: OnboardingSetSessionActivitiesData,
+  ): CancelablePromise<OnboardingSetSessionActivitiesResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/onboarding/session/{session_id}/activities",
+      path: {
+        session_id: data.sessionId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Set Session Business Details
+   * Set business details for the session.
+   * @param data The data for the request.
+   * @param data.sessionId
+   * @param data.requestBody
+   * @returns OnboardingProgressResponse Successful Response
+   * @throws ApiError
+   */
+  public static setSessionBusinessDetails(
+    data: OnboardingSetSessionBusinessDetailsData,
+  ): CancelablePromise<OnboardingSetSessionBusinessDetailsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/onboarding/session/{session_id}/business-details",
+      path: {
+        session_id: data.sessionId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Onboarding Profiles
+   * Get trade profiles for onboarding with enhanced data.
+   * @param data The data for the request.
+   * @param data.search Search in name and synonyms
+   * @param data.segments Filter by market segments
+   * @param data.popularOnly Show only popular profiles
+   * @returns OnboardingProfileListResponse Successful Response
+   * @throws ApiError
+   */
+  public static getOnboardingProfiles(
+    data: OnboardingGetOnboardingProfilesData = {},
+  ): CancelablePromise<OnboardingGetOnboardingProfilesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/onboarding/profiles",
+      query: {
+        search: data.search,
+        segments: data.segments,
+        popular_only: data.popularOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Popular Profiles
+   * Get only popular profiles for quick selection.
+   * @returns OnboardingProfileListResponse Successful Response
+   * @throws ApiError
+   */
+  public static getPopularProfiles(): CancelablePromise<OnboardingGetPopularProfilesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/onboarding/profiles/popular",
+    })
+  }
+
+  /**
+   * Search Profiles
+   * Search profiles by name or synonyms.
+   * @param data The data for the request.
+   * @param data.q Search term
+   * @returns OnboardingProfileListResponse Successful Response
+   * @throws ApiError
+   */
+  public static searchProfiles(
+    data: OnboardingSearchProfilesData,
+  ): CancelablePromise<OnboardingSearchProfilesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/onboarding/profiles/search",
+      query: {
+        q: data.q,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Onboarding Activities For Trade
+   * Get activities for a specific trade profile during onboarding.
+   * @param data The data for the request.
+   * @param data.tradeSlug
+   * @param data.search Search in name and synonyms
+   * @param data.emergencyOnly Only emergency activities
+   * @param data.popularOnly Only popular activities
+   * @returns OnboardingActivityListResponse Successful Response
+   * @throws ApiError
+   */
+  public static getOnboardingActivitiesForTrade(
+    data: OnboardingGetOnboardingActivitiesForTradeData,
+  ): CancelablePromise<OnboardingGetOnboardingActivitiesForTradeResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/onboarding/profiles/{trade_slug}/activities",
+      path: {
+        trade_slug: data.tradeSlug,
+      },
+      query: {
+        search: data.search,
+        emergency_only: data.emergencyOnly,
+        popular_only: data.popularOnly,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Popular Activities For Trade
+   * Get only popular activities for a trade.
+   * @param data The data for the request.
+   * @param data.tradeSlug
+   * @returns OnboardingActivityListResponse Successful Response
+   * @throws ApiError
+   */
+  public static getPopularActivitiesForTrade(
+    data: OnboardingGetPopularActivitiesForTradeData,
+  ): CancelablePromise<OnboardingGetPopularActivitiesForTradeResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/onboarding/profiles/{trade_slug}/activities/popular",
+      path: {
+        trade_slug: data.tradeSlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Emergency Activities For Trade
+   * Get only emergency activities for a trade.
+   * @param data The data for the request.
+   * @param data.tradeSlug
+   * @returns OnboardingActivityListResponse Successful Response
+   * @throws ApiError
+   */
+  public static getEmergencyActivitiesForTrade(
+    data: OnboardingGetEmergencyActivitiesForTradeData,
+  ): CancelablePromise<OnboardingGetEmergencyActivitiesForTradeResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/onboarding/profiles/{trade_slug}/activities/emergency",
+      path: {
+        trade_slug: data.tradeSlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Search Activities For Trade
+   * Search activities within a trade.
+   * @param data The data for the request.
+   * @param data.tradeSlug
+   * @param data.q Search term
+   * @returns OnboardingActivityListResponse Successful Response
+   * @throws ApiError
+   */
+  public static searchActivitiesForTrade(
+    data: OnboardingSearchActivitiesForTradeData,
+  ): CancelablePromise<OnboardingSearchActivitiesForTradeResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/onboarding/profiles/{trade_slug}/activities/search",
+      path: {
+        trade_slug: data.tradeSlug,
+      },
+      query: {
+        q: data.q,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Validate Profile Selection
+   * Validate a profile selection during onboarding.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns OnboardingValidationResponse Successful Response
+   * @throws ApiError
+   */
+  public static validateProfileSelection(
+    data: OnboardingValidateProfileSelectionData,
+  ): CancelablePromise<OnboardingValidateProfileSelectionResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/onboarding/validate/profile",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Validate Activity Selections
+   * Validate activity selections for a trade during onboarding.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns OnboardingValidationResponse Successful Response
+   * @throws ApiError
+   */
+  public static validateActivitySelections(
+    data: OnboardingValidateActivitySelectionsData,
+  ): CancelablePromise<OnboardingValidateActivitySelectionsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/onboarding/validate/activities",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Validate Business Details
+   * Validate business details during onboarding.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns OnboardingValidationResponse Successful Response
+   * @throws ApiError
+   */
+  public static validateBusinessDetails(
+    data: OnboardingValidateBusinessDetailsData,
+  ): CancelablePromise<OnboardingValidateBusinessDetailsResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/onboarding/validate/business-details",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Validate Complete Onboarding
+   * Validate the complete onboarding request before processing.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns OnboardingValidationResponse Successful Response
+   * @throws ApiError
+   */
+  public static validateCompleteOnboarding(
+    data: OnboardingValidateCompleteOnboardingData,
+  ): CancelablePromise<OnboardingValidateCompleteOnboardingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/onboarding/validate/complete",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Complete Onboarding
+   * Complete the entire onboarding process.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns OnboardingCompletionResponse Successful Response
+   * @throws ApiError
+   */
+  public static completeOnboarding(
+    data: OnboardingCompleteOnboardingData,
+  ): CancelablePromise<OnboardingCompleteOnboardingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/onboarding/complete",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Business Onboarding Legacy
+   * Legacy endpoint - use /complete instead.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns OnboardingCompletionResponse Successful Response
+   * @throws ApiError
+   */
+  public static createBusinessOnboardingLegacy(
+    data: OnboardingCreateBusinessOnboardingLegacyData,
+  ): CancelablePromise<OnboardingCreateBusinessOnboardingLegacyResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/onboarding/create-business",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Validate Profile Legacy
+   * Legacy profile validation endpoint.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static validateProfileLegacy(
+    data: OnboardingValidateProfileLegacyData,
+  ): CancelablePromise<OnboardingValidateProfileLegacyResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/onboarding/validate-profile",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Validate Activities Legacy
+   * Legacy activity validation endpoint.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static validateActivitiesLegacy(
+    data: OnboardingValidateActivitiesLegacyData,
+  ): CancelablePromise<OnboardingValidateActivitiesLegacyResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/onboarding/validate-activities",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class ProductsService {
   /**
    * Create Product
@@ -7382,6 +8082,56 @@ export class ProjectsService {
   }
 }
 
+export class PublicService {
+  /**
+   * Get Public Activity Content Pack
+   * Public endpoint to get content pack for a specific activity (for website builder).
+   * @param data The data for the request.
+   * @param data.activitySlug Activity slug
+   * @returns ActivityContentPackResponse Successful Response
+   * @throws ApiError
+   */
+  public static activityContentGetPublicActivityContentPack(
+    data: ActivityContentGetPublicActivityContentPackData,
+  ): CancelablePromise<ActivityContentGetPublicActivityContentPackResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activity-content/public/content-packs/{activity_slug}",
+      path: {
+        activity_slug: data.activitySlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Public Activity Page Data
+   * Public endpoint to get complete activity page data (for website builder).
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.activitySlug Activity slug
+   * @returns ActivityPageDataResponse Successful Response
+   * @throws ApiError
+   */
+  public static activityContentGetPublicActivityPageData(
+    data: ActivityContentGetPublicActivityPageDataData,
+  ): CancelablePromise<ActivityContentGetPublicActivityPageDataResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/activity-content/public/business/{business_id}/activities/{activity_slug}/page-data",
+      path: {
+        business_id: data.businessId,
+        activity_slug: data.activitySlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class PurchaseOrdersService {
   /**
    * Create Purchase Order
@@ -7619,97 +8369,6 @@ export class PurchaseOrdersService {
 
 export class SeoService {
   /**
-   * Get Seo Pages
-   * Get SEO page data for a business.
-   *
-   * Priority:
-   * 1) generated_seo_pages (business-specific content)
-   * 2) Construct from business_services (service pages) + service_location_pages (combos)
-   * @param data The data for the request.
-   * @param data.businessId Business ID
-   * @param data.includeContent
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getSeoPages(
-    data: SeoGetSeoPagesData,
-  ): CancelablePromise<SeoGetSeoPagesResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/seo/pages/{business_id}",
-      path: {
-        business_id: data.businessId,
-      },
-      query: {
-        include_content: data.includeContent,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Generate Content
-   * Generate rich content for service pages using LLM.
-   * @param data The data for the request.
-   * @param data.businessId Business ID
-   * @param data.requestBody
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static generateContent(
-    data: SeoGenerateContentData,
-  ): CancelablePromise<SeoGenerateContentResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/seo/content/{business_id}/generate",
-      path: {
-        business_id: data.businessId,
-      },
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Seo Page Content
-   * Get content for a specific SEO page.
-   *
-   * Args:
-   * business_id: The unique identifier of the business
-   * page_path: The page path to get content for
-   *
-   * Returns:
-   * Dict containing page content
-   * @param data The data for the request.
-   * @param data.businessId Business ID
-   * @param data.pagePath
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static getSeoPageContent(
-    data: SeoGetSeoPageContentData,
-  ): CancelablePromise<SeoGetSeoPageContentResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/seo/page-content/{business_id}",
-      path: {
-        business_id: data.businessId,
-      },
-      query: {
-        page_path: data.pagePath,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
    * Trigger Revalidation
    * Trigger revalidation of website pages.
    *
@@ -7739,39 +8398,223 @@ export class SeoService {
   }
 
   /**
-   * Deploy Seo Pipeline
-   * Deploy SEO pipeline for a business.
+   * Generate Seo Artifacts
+   * Generate SEO artifacts for activities using RAG-enhanced LLM orchestration.
    *
-   * Steps:
-   * 1. Materialize default services (if needed)
-   * 2. Precompute SEO scaffolding (service_location_pages + service_seo_config)
-   * 3. Optionally trigger LLM content generation
-   * 4. Return the generated page map
-   *
-   * Args:
-   * business_id: The unique identifier of the business
-   * trigger_llm: Whether to trigger LLM content generation
-   *
-   * Returns:
-   * Dict containing deployment status and page map
+   * This endpoint queues artifact generation jobs that create typed, versioned
+   * content artifacts with quality gates and A/B testing support.
    * @param data The data for the request.
    * @param data.businessId Business ID
-   * @param data.triggerLlm
-   * @returns unknown Successful Response
+   * @param data.requestBody
+   * @returns GenerateArtifactsResponse Successful Response
    * @throws ApiError
    */
-  public static deploySeoPipeline(
-    data: SeoDeploySeoPipelineData,
-  ): CancelablePromise<SeoDeploySeoPipelineResponse> {
+  public static generateSeoArtifacts(
+    data: SeoGenerateSeoArtifactsData,
+  ): CancelablePromise<SeoGenerateSeoArtifactsResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/seo/deploy/{business_id}",
+      url: "/api/v1/seo/artifacts/{business_id}/generate",
+      path: {
+        business_id: data.businessId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Seo Artifacts
+   * List SEO artifacts for a business with filtering and pagination.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.status Filter by status
+   * @param data.activitySlug Filter by activity
+   * @param data.locationSlug Filter by location
+   * @param data.limit
+   * @param data.offset
+   * @returns ArtifactListResponse Successful Response
+   * @throws ApiError
+   */
+  public static listSeoArtifacts(
+    data: SeoListSeoArtifactsData,
+  ): CancelablePromise<SeoListSeoArtifactsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/seo/artifacts/{business_id}",
       path: {
         business_id: data.businessId,
       },
       query: {
-        trigger_llm: data.triggerLlm,
+        status: data.status,
+        activity_slug: data.activitySlug,
+        location_slug: data.locationSlug,
+        limit: data.limit,
+        offset: data.offset,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Seo Artifact
+   * Get a specific SEO artifact by ID.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.artifactId Artifact ID
+   * @returns ActivityPageArtifact Successful Response
+   * @throws ApiError
+   */
+  public static getSeoArtifact(
+    data: SeoGetSeoArtifactData,
+  ): CancelablePromise<SeoGetSeoArtifactResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/seo/artifacts/{business_id}/{artifact_id}",
+      path: {
+        business_id: data.businessId,
+        artifact_id: data.artifactId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Approve Seo Artifact
+   * Approve an SEO artifact for publication.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.artifactId Artifact ID
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static approveSeoArtifact(
+    data: SeoApproveSeoArtifactData,
+  ): CancelablePromise<SeoApproveSeoArtifactResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/seo/artifacts/{business_id}/{artifact_id}/approve",
+      path: {
+        business_id: data.businessId,
+        artifact_id: data.artifactId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Generate Sitemap Manifest
+   * Generate segmented sitemaps for a business.
+   *
+   * Creates sitemap index with separate sitemaps for:
+   * - Service pages
+   * - Location pages
+   * - Project pages
+   * - Static pages
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.requestBody
+   * @returns SitemapGenerationResponse Successful Response
+   * @throws ApiError
+   */
+  public static generateSitemapManifest(
+    data: SeoGenerateSitemapManifestData,
+  ): CancelablePromise<SeoGenerateSitemapManifestResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/seo/sitemaps/{business_id}/generate",
+      path: {
+        business_id: data.businessId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Sitemap Manifest
+   * Get sitemap manifest for a business.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns SitemapManifest Successful Response
+   * @throws ApiError
+   */
+  public static getSitemapManifest(
+    data: SeoGetSitemapManifestData,
+  ): CancelablePromise<SeoGetSitemapManifestResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/seo/sitemaps/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Seo Pages
+   * Aggregate SEO page payload expected by website-builder.
+   *
+   * Returns:
+   * {
+   * "pages": { [url]: { title, meta_description, h1_heading, ... } },
+   * "content_blocks": { [url]: { hero, benefits, faqs, ... } }
+   * }
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getSeoPages(
+    data: SeoGetSeoPagesData,
+  ): CancelablePromise<SeoGetSeoPagesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/seo/pages/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Promote Winning Variant
+   * Promote winning A/B test variant to production.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static promoteWinningVariant(
+    data: SeoPromoteWinningVariantData,
+  ): CancelablePromise<SeoPromoteWinningVariantResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/seo/experiments/{business_id}/promote",
+      path: {
+        business_id: data.businessId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },
@@ -7829,6 +8672,39 @@ export class ServiceAreasService {
       url: "/api/v1/public/availability/request",
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Public Service Areas
+   * Get active service areas for a business (public endpoint).
+   *
+   * This endpoint is public and used by website builders, SEO tools, and other
+   * applications that need to know where a business provides services.
+   * Only returns active service areas.
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.limit Number of results to return
+   * @param data.offset Number of results to skip
+   * @returns ServiceArea Successful Response
+   * @throws ApiError
+   */
+  public static getPublicServiceAreas(
+    data: ServiceAreasGetPublicServiceAreasData,
+  ): CancelablePromise<ServiceAreasGetPublicServiceAreasResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/service-areas/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        limit: data.limit,
+        offset: data.offset,
+      },
       errors: {
         422: "Validation Error",
       },
@@ -8759,6 +9635,236 @@ export class ServicesService {
   }
 
   /**
+   * Adopt Template By Slug
+   * Adopt a service template by slug with activity validation.
+   *
+   * This is the new activity-driven way to adopt service templates.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static adoptTemplateBySlug(
+    data: ServicesAdoptTemplateBySlugData,
+  ): CancelablePromise<ServicesAdoptTemplateBySlugResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/services/adopt-by-slug",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Adopt Template By Slug
+   * Adopt a service template by slug with activity validation.
+   *
+   * This is the new activity-driven way to adopt service templates.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static adoptTemplateBySlug1(
+    data: ServicesAdoptTemplateBySlug1Data,
+  ): CancelablePromise<ServicesAdoptTemplateBySlug1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/services/adopt-by-slug",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Templates For Activity
+   * Get all service templates available for a specific activity.
+   *
+   * This endpoint helps businesses discover what services they can offer
+   * for their selected activities.
+   * @param data The data for the request.
+   * @param data.activitySlug
+   * @returns ActivityTemplatesResponse Successful Response
+   * @throws ApiError
+   */
+  public static getTemplatesForActivity(
+    data: ServicesGetTemplatesForActivityData,
+  ): CancelablePromise<ServicesGetTemplatesForActivityResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/services/activity/{activity_slug}/templates",
+      path: {
+        activity_slug: data.activitySlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Templates For Activity
+   * Get all service templates available for a specific activity.
+   *
+   * This endpoint helps businesses discover what services they can offer
+   * for their selected activities.
+   * @param data The data for the request.
+   * @param data.activitySlug
+   * @returns ActivityTemplatesResponse Successful Response
+   * @throws ApiError
+   */
+  public static getTemplatesForActivity1(
+    data: ServicesGetTemplatesForActivity1Data,
+  ): CancelablePromise<ServicesGetTemplatesForActivity1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/services/activity/{activity_slug}/templates",
+      path: {
+        activity_slug: data.activitySlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Bulk Adopt Templates For Activity
+   * Adopt multiple service templates for an activity in bulk.
+   *
+   * This is useful for onboarding when businesses want to quickly
+   * adopt all recommended services for an activity.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static bulkAdoptTemplatesForActivity(
+    data: ServicesBulkAdoptTemplatesForActivityData,
+  ): CancelablePromise<ServicesBulkAdoptTemplatesForActivityResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/services/bulk-adopt-for-activity",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Bulk Adopt Templates For Activity
+   * Adopt multiple service templates for an activity in bulk.
+   *
+   * This is useful for onboarding when businesses want to quickly
+   * adopt all recommended services for an activity.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BusinessService Successful Response
+   * @throws ApiError
+   */
+  public static bulkAdoptTemplatesForActivity1(
+    data: ServicesBulkAdoptTemplatesForActivity1Data,
+  ): CancelablePromise<ServicesBulkAdoptTemplatesForActivity1Response> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/services/bulk-adopt-for-activity",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Adopted Templates
+   * Get all templates adopted by the current business.
+   *
+   * Shows the adoption history and current template usage.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getAdoptedTemplates(): CancelablePromise<ServicesGetAdoptedTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/services/adopted-templates",
+    })
+  }
+
+  /**
+   * Get Adopted Templates
+   * Get all templates adopted by the current business.
+   *
+   * Shows the adoption history and current template usage.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getAdoptedTemplates1(): CancelablePromise<ServicesGetAdoptedTemplates1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/services/adopted-templates",
+    })
+  }
+
+  /**
+   * Get Template By Slug
+   * Get a service template by slug.
+   *
+   * Useful for previewing template details before adoption.
+   * @param data The data for the request.
+   * @param data.templateSlug
+   * @returns ServiceTemplate Successful Response
+   * @throws ApiError
+   */
+  public static getTemplateBySlug(
+    data: ServicesGetTemplateBySlugData,
+  ): CancelablePromise<ServicesGetTemplateBySlugResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/services/template/{template_slug}",
+      path: {
+        template_slug: data.templateSlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Template By Slug
+   * Get a service template by slug.
+   *
+   * Useful for previewing template details before adoption.
+   * @param data The data for the request.
+   * @param data.templateSlug
+   * @returns ServiceTemplate Successful Response
+   * @throws ApiError
+   */
+  public static getTemplateBySlug1(
+    data: ServicesGetTemplateBySlug1Data,
+  ): CancelablePromise<ServicesGetTemplateBySlug1Response> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/services/template/{template_slug}",
+      path: {
+        template_slug: data.templateSlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Create Custom Service
    * Create a completely custom service (not from a template).
    *
@@ -9491,6 +10597,188 @@ export class TemplatesService {
   }
 }
 
+export class TradeTaxonomyService {
+  /**
+   * List Trade Profiles
+   * Get all trade profiles with optional filtering and pagination.
+   *
+   * This endpoint provides the canonical list of trade profiles that businesses
+   * can select from during onboarding.
+   * @param data The data for the request.
+   * @param data.segments Filter by market segments
+   * @param data.search Search in name and synonyms
+   * @param data.limit Maximum number of results
+   * @param data.offset Number of results to skip
+   * @param data.orderBy Field to order by
+   * @param data.orderDesc Order in descending order
+   * @returns TradeProfileResponse Successful Response
+   * @throws ApiError
+   */
+  public static listTradeProfiles(
+    data: TradeTaxonomyListTradeProfilesData = {},
+  ): CancelablePromise<TradeTaxonomyListTradeProfilesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/taxonomy/profiles",
+      query: {
+        segments: data.segments,
+        search: data.search,
+        limit: data.limit,
+        offset: data.offset,
+        order_by: data.orderBy,
+        order_desc: data.orderDesc,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Trade Profile
+   * Get a specific trade profile by slug.
+   * @param data The data for the request.
+   * @param data.slug
+   * @returns TradeProfileResponse Successful Response
+   * @throws ApiError
+   */
+  public static getTradeProfile(
+    data: TradeTaxonomyGetTradeProfileData,
+  ): CancelablePromise<TradeTaxonomyGetTradeProfileResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/taxonomy/profiles/{slug}",
+      path: {
+        slug: data.slug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Profiles With Activities
+   * Get trade profiles with their associated activities.
+   *
+   * This endpoint is useful for onboarding flows where users need to see
+   * both the trade profile and available activities in one request.
+   * @param data The data for the request.
+   * @param data.segments Filter by market segments
+   * @param data.search Search in name and synonyms
+   * @param data.limit Maximum number of results
+   * @param data.offset Number of results to skip
+   * @returns TradeProfileWithActivitiesResponse Successful Response
+   * @throws ApiError
+   */
+  public static listProfilesWithActivities(
+    data: TradeTaxonomyListProfilesWithActivitiesData = {},
+  ): CancelablePromise<TradeTaxonomyListProfilesWithActivitiesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/taxonomy/profiles-with-activities",
+      query: {
+        segments: data.segments,
+        search: data.search,
+        limit: data.limit,
+        offset: data.offset,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Trade Activities
+   * Get activities for a specific trade profile.
+   *
+   * This endpoint provides the activities that businesses can select
+   * for a given trade profile during onboarding.
+   * @param data The data for the request.
+   * @param data.tradeSlug
+   * @param data.tags Filter by tags
+   * @param data.search Search in name and synonyms
+   * @param data.limit Maximum number of results
+   * @param data.offset Number of results to skip
+   * @param data.orderBy Field to order by
+   * @param data.orderDesc Order in descending order
+   * @returns TradeActivityResponse Successful Response
+   * @throws ApiError
+   */
+  public static listTradeActivities(
+    data: TradeTaxonomyListTradeActivitiesData,
+  ): CancelablePromise<TradeTaxonomyListTradeActivitiesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/taxonomy/profiles/{trade_slug}/activities",
+      path: {
+        trade_slug: data.tradeSlug,
+      },
+      query: {
+        tags: data.tags,
+        search: data.search,
+        limit: data.limit,
+        offset: data.offset,
+        order_by: data.orderBy,
+        order_desc: data.orderDesc,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Trade Activity
+   * Get a specific trade activity by slug.
+   * @param data The data for the request.
+   * @param data.slug
+   * @returns TradeActivityResponse Successful Response
+   * @throws ApiError
+   */
+  public static getTradeActivity(
+    data: TradeTaxonomyGetTradeActivityData,
+  ): CancelablePromise<TradeTaxonomyGetTradeActivityResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/taxonomy/activities/{slug}",
+      path: {
+        slug: data.slug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Activities With Templates
+   * Get activities with their associated service templates.
+   *
+   * This endpoint is useful for understanding what service templates
+   * are available for each activity in a trade.
+   * @param data The data for the request.
+   * @param data.tradeSlug
+   * @returns ActivityWithTemplatesResponse Successful Response
+   * @throws ApiError
+   */
+  public static listActivitiesWithTemplates(
+    data: TradeTaxonomyListActivitiesWithTemplatesData,
+  ): CancelablePromise<TradeTaxonomyListActivitiesWithTemplatesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/taxonomy/profiles/{trade_slug}/activities-with-templates",
+      path: {
+        trade_slug: data.tradeSlug,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class UsersService {
   /**
    * Get Current User Profile
@@ -9625,6 +10913,103 @@ export class WebsiteBuilderService {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/websites/preview/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class WebsiteContextService {
+  /**
+   * Get Website Context
+   * Get complete website context for a business.
+   *
+   * This endpoint aggregates all data needed for website generation:
+   * - Business information (name, contact, address, service areas)
+   * - Selected activities with booking fields
+   * - Service templates with pricing
+   * - Trade information
+   *
+   * This replaces multiple API calls with a single optimized request.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.includeTemplates Include service templates
+   * @param data.includeTrades Include trade information
+   * @param data.activityLimit Limit number of activities
+   * @param data.templateLimit Limit number of templates
+   * @returns WebsiteContextResponse Successful Response
+   * @throws ApiError
+   */
+  public static getWebsiteContext(
+    data: WebsiteContextGetWebsiteContextData,
+  ): CancelablePromise<WebsiteContextGetWebsiteContextResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/website/context/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        include_templates: data.includeTemplates,
+        include_trades: data.includeTrades,
+        activity_limit: data.activityLimit,
+        template_limit: data.templateLimit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Website Activities Only
+   * Get only activities for a business (lightweight endpoint).
+   *
+   * Useful when you only need activity information without full context.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.limit Limit number of activities
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getWebsiteActivitiesOnly(
+    data: WebsiteContextGetWebsiteActivitiesOnlyData,
+  ): CancelablePromise<WebsiteContextGetWebsiteActivitiesOnlyResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/website/context/{business_id}/activities",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Website Summary
+   * Get website summary (business info + counts).
+   *
+   * Lightweight endpoint for basic website information.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getWebsiteSummary(
+    data: WebsiteContextGetWebsiteSummaryData,
+  ): CancelablePromise<WebsiteContextGetWebsiteSummaryResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/website/context/{business_id}/summary",
       path: {
         business_id: data.businessId,
       },

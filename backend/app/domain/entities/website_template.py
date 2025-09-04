@@ -494,7 +494,7 @@ class BusinessLocation(BaseModel):
     address: Optional[str] = None
     city: str = Field(..., min_length=1, max_length=100)
     state: str = Field(..., min_length=1, max_length=50)
-    zip_code: Optional[str] = Field(None, max_length=20)
+    postal_code: Optional[str] = Field(None, max_length=20)
     county: Optional[str] = Field(None, max_length=100)
     
     # Geographic data
@@ -527,8 +527,8 @@ class BusinessLocation(BaseModel):
         if self.address:
             parts.append(self.address)
         parts.append(f"{self.city}, {self.state}")
-        if self.zip_code:
-            parts.append(self.zip_code)
+        if self.postal_code:
+            parts.append(self.postal_code)
         return ", ".join(parts)
     
     def has_coordinates(self) -> bool:
@@ -575,7 +575,7 @@ class BusinessProps(BaseModel):
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
-    zip_code: Optional[str] = None
+    postal_code: Optional[str] = None
     
     # Business details
     trades: List[str] = Field(default_factory=list)

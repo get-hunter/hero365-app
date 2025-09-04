@@ -599,7 +599,7 @@ class SEODomainService:
                 "streetAddress": business.address,
                 "addressLocality": business.city,
                 "addressRegion": business.state,
-                "postalCode": business.zip_code,
+                "postalCode": business.postal_code,
                 "addressCountry": "US"
             },
             "areaServed": [
@@ -687,7 +687,7 @@ class SEODomainService:
                     "streetAddress": business.address,
                     "addressLocality": business.city,
                     "addressRegion": business.state,
-                    "postalCode": business.zip_code
+                    "postalCode": business.postal_code
                 }
             }
         }
@@ -706,7 +706,7 @@ class SEODomainService:
                 "streetAddress": business.address,
                 "addressLocality": business.city,
                 "addressRegion": business.state,
-                "postalCode": business.zip_code
+                "postalCode": business.postal_code
             },
             "foundingLocation": {
                 "@type": "Place",

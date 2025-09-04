@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "echo 'Skipping ngrok env setup for staging deployment'",
+    "prebuild-disabled": "node scripts/prebuild-seo.js",
     "build": "next build",
     "start": "next start",
     "generate": "npm run build",

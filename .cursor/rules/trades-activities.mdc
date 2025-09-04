@@ -24,3 +24,29 @@ And for residential:
 - Pest Control
 - Irrigation
 - Painting
+
+Trader-facing taxonomy
+
+- General Contractor — includes Building Contractor, General Constructor
+- Carpentry & Joinery — includes Carpenters, Joiners
+- Roofing — shingle/flat; Metal Roofing as a separate profile if needed
+- Metal Roofing — standing seam, sheet-metal roofing
+- Electrical
+- Plumbing
+- HVAC — heating, ventilation, air conditioning (covers “mechanical” for most use cases)
+- Commercial Refrigeration — walk‑ins, reach‑ins, ice machines
+- Security Systems — CCTV, access control, alarms
+- Landscaping & Gardening — includes Landscapers & Gardeners
+- Irrigation — sprinkler/drip systems
+- Painting & Decorating — includes Painters & Varnishers
+- Flooring & Tiling — includes Screed Layer
+- Plastering & Stucco — includes Plasterer, Stucco Worker
+- Drywall & Interior Finishing — taping, texturing, trim
+- Commercial Kitchen Equipment — ovens, fryers, hoods
+- Water Treatment — softeners, filtration, RO
+- Pool & Spa — service, repair, installation
+- Garage Doors — residential & commercial
+- Chimney & Fireplace — sweep, repair, lining
+- Septic Systems — install, pump, repair
+- Solar PV — design, install, maintenance
+- Metal Fabrication — railings, frames, custom metal

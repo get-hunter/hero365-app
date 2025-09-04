@@ -176,7 +176,7 @@ async def _create_or_find_contact(
             "street": customer.address,
             "city": customer.city,
             "state": customer.state,
-            "zip": customer.zip_code
+            "zip": customer.postal_code
         },
         "contact_type": "customer",
         "is_active": True,
@@ -220,7 +220,7 @@ async def _create_estimate_from_cart(
             "street": customer.address,
             "city": customer.city,
             "state": customer.state,
-            "zip": customer.zip_code
+            "zip": customer.postal_code
         },
         "notes": notes,
         "valid_until": (datetime.now() + timedelta(days=30)).isoformat(),
@@ -324,7 +324,7 @@ async def _schedule_installations(
         "service_address": customer.address,
         "service_city": customer.city,
         "service_state": customer.state,
-        "service_zip": customer.zip_code,
+        "service_zip": customer.postal_code,
         "problem_description": f"Installation of: {', '.join(service_description[:3])}{'...' if len(service_description) > 3 else ''}",
         "special_instructions": installation_prefs.special_instructions,
         "access_instructions": installation_prefs.access_instructions,

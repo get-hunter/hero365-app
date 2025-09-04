@@ -1,4 +1,25 @@
 {
   "version": 1,
-  "functions": {}
+  "functions": {
+    "/api/revalidate": {},
+    "/api/seo/pages/[businessId]": {},
+    "/sitemap.xml": {},
+    "/[...slug]": {},
+    "/booking": {},
+    "/cart": {},
+    "/checkout": {},
+    "/": {},
+    "/products/[slug]": {},
+    "/pricing": {},
+    "/products": {},
+    "/checkout/success": {},
+    "/projects/[slug]": {},
+    "/projects": {},
+    "/services/[activitySlug]": {},
+    "/services": {},
+    "/templates/professional/booking": {},
+    "/templates/professional": {},
+    "/widget-demo": {},
+    "/widget": {}
+  }
 }

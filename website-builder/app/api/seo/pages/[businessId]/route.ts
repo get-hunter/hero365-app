@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 // Configure for dynamic rendering
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 // Note: Using Node.js runtime for OpenNext compatibility
 // Edge runtime API routes need to be defined separately for OpenNext

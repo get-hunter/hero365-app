@@ -57,7 +57,8 @@ class SupabaseServiceCategoryRepository:
             if category_type:
                 query = query.eq('category_type', category_type)
             
-            query = query.order('sort_order', 'name')
+            # Supabase Python client order signature: order(column, *, desc=False)
+            query = query.order('sort_order').order('name')
             
             response = query.execute()
             
@@ -110,7 +111,7 @@ class SupabaseServiceCategoryRepository:
             if trade_types:
                 query = query.overlaps('trade_types', trade_types)
             
-            response = query.order('sort_order', 'name').execute()
+            response = query.order('sort_order').order('name').execute()
             
             result = []
             if response.data:
@@ -256,7 +257,19 @@ class SupabaseBusinessServiceRepository:
             if category_id:
                 query = query.eq('category_id', str(category_id))
             
-            response = query.order('is_featured', {'ascending': False}).order('sort_order').order('name').execute()
+            # Some environments may not have 'is_featured' column; order safely by existing fields
+            try:
+                response = query.order('is_featured', desc=True).order('sort_order').order('name').execute()
+            except Exception:
+                # Rebuild a fresh query without the 'is_featured' ordering to avoid duplicated order params
+                clean_query = self.client.table('business_services').select(select_fields).eq('business_id', str(business_id))
+                if is_active is not None:
+                    clean_query = clean_query.eq('is_active', is_active)
+                if is_featured is not None:
+                    clean_query = clean_query.eq('is_featured', is_featured)
+                if category_id:
+                    clean_query = clean_query.eq('category_id', str(category_id))
+                response = clean_query.order('sort_order').order('name').execute()
             
             services = []
             if response.data:
@@ -361,6 +374,93 @@ class SupabaseBusinessServiceRepository:
         except Exception as e:
             logger.error(f"Error checking service name exists: {str(e)}")
             return False
+
+    async def adopt_service_template_by_slug(
+        self,
+        business_id: UUID,
+        template_slug: str,
+        activity_slug: Optional[str] = None,
+        customizations: Dict = None
+    ) -> BusinessService:
+        """Create a business service from a template using slug-based adoption."""
+        try:
+            # Get the template by slug
+            template_response = self.client.table('service_templates').select('*').eq('template_slug', template_slug).eq('is_active', True).execute()
+            
+            if not template_response.data:
+                raise EntityNotFoundError(f"Template with slug '{template_slug}' not found or inactive")
+            
+            template_data = template_response.data[0]
+            
+            # Validate activity compatibility if provided
+            if activity_slug:
+                if template_data.get('activity_slug') and template_data['activity_slug'] != activity_slug:
+                    raise DomainValidationError(f"Template '{template_slug}' is not compatible with activity '{activity_slug}'")
+            
+            # Check if business already has this template
+            existing_response = self.client.table('business_services').select('id').eq('business_id', str(business_id)).eq('adopted_from_slug', template_slug).execute()
+            
+            if existing_response.data:
+                raise DuplicateEntityError(f"Business already has a service adopted from template '{template_slug}'")
+            
+            # Apply customizations or use template defaults
+            customizations = customizations or {}
+            
+            service_data = {
+                'business_id': str(business_id),
+                'adopted_from_slug': template_slug,
+                'template_version': template_data.get('version', 1),
+                'category_id': template_data['category_id'],
+                'name': customizations.get('name', template_data['name']),
+                'description': customizations.get('description', template_data.get('description')),
+                'pricing_model': customizations.get('pricing_model', template_data.get('pricing_model', 'quote_required')),
+                'pricing_config': customizations.get('pricing_config', template_data.get('pricing_config', {})),
+                'unit_of_measure': customizations.get('unit_of_measure', template_data.get('unit_of_measure', 'service')),
+                'estimated_duration_hours': customizations.get('estimated_duration_hours', template_data.get('estimated_duration_hours')),
+                'is_emergency': customizations.get('is_emergency', template_data.get('is_emergency', False)),
+                'requires_booking': customizations.get('requires_booking', True),
+                'booking_settings': customizations.get('booking_settings', template_data.get('default_booking_fields', {})),
+                'service_areas': customizations.get('service_areas', []),
+                'warranty_terms': customizations.get('warranty_terms'),
+                'terms_and_conditions': customizations.get('terms_and_conditions'),
+                'custom_fields': customizations.get('custom_fields', {}),
+                'is_active': True,
+                'is_featured': customizations.get('is_featured', False),
+                'created_at': datetime.utcnow().isoformat(),
+                'updated_at': datetime.utcnow().isoformat()
+            }
+            
+            # Check for duplicate name
+            if await self.check_service_name_exists(business_id, service_data['name']):
+                raise DuplicateEntityError(f"Service name '{service_data['name']}' already exists")
+            
+            # Create the service
+            response = self.client.table('business_services').insert(service_data).execute()
+            
+            if not response.data:
+                raise DatabaseError("Failed to create business service")
+            
+            # Update template usage count
+            await self.increment_template_usage(template_slug)
+            
+            # Record adoption
+            adoption_data = {
+                'business_id': str(business_id),
+                'template_slug': template_slug,
+                'activity_slug': activity_slug,
+                'adopted_at': datetime.utcnow().isoformat(),
+                'customizations_applied': bool(customizations)
+            }
+            
+            self.client.table('service_template_adoptions').insert(adoption_data).execute()
+            
+            return BusinessService(**response.data[0])
+            
+        except Exception as e:
+            logger.error(f"Error adopting service template by slug: {str(e)}")
+            if isinstance(e, (EntityNotFoundError, DuplicateEntityError, DomainValidationError)):
+                raise
+            raise DatabaseError(f"Failed to adopt service template: {str(e)}")
 
     async def adopt_service_template(
         self,
@@ -508,3 +608,120 @@ class SupabaseServiceTemplateAdoptionRepository:
         except Exception as e:
             logger.error(f"Error getting adoption stats for template {template_id}: {str(e)}")
             raise DatabaseError(f"Failed to get adoption statistics: {str(e)}")
+
+    async def get_templates_for_activity(self, activity_slug: str) -> List[ServiceTemplate]:
+        """Get all service templates available for a specific activity."""
+        try:
+            response = self.client.table('service_templates').select('*').eq('activity_slug', activity_slug).eq('is_active', True).order('name').execute()
+            
+            templates = []
+            if response.data:
+                for template_data in response.data:
+                    templates.append(ServiceTemplate(**template_data))
+            
+            return templates
+            
+        except Exception as e:
+            logger.error(f"Error getting templates for activity {activity_slug}: {str(e)}")
+            raise DatabaseError(f"Failed to get templates for activity: {str(e)}")
+
+    async def get_template_by_slug(self, template_slug: str) -> Optional[ServiceTemplate]:
+        """Get a service template by slug."""
+        try:
+            response = self.client.table('service_templates').select('*').eq('template_slug', template_slug).eq('is_active', True).execute()
+            
+            if response.data:
+                return ServiceTemplate(**response.data[0])
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting template by slug {template_slug}: {str(e)}")
+            raise DatabaseError(f"Failed to get template: {str(e)}")
+
+    async def increment_template_usage(self, template_slug: str) -> None:
+        """Increment the usage count for a template."""
+        try:
+            # Get current usage count
+            response = self.client.table('service_templates').select('usage_count').eq('template_slug', template_slug).execute()
+            
+            if response.data:
+                current_count = response.data[0].get('usage_count', 0)
+                new_count = current_count + 1
+                
+                # Update usage count
+                self.client.table('service_templates').update({'usage_count': new_count}).eq('template_slug', template_slug).execute()
+                
+        except Exception as e:
+            logger.error(f"Error incrementing template usage for {template_slug}: {str(e)}")
+            # Don't raise error as this is not critical
+
+    async def get_adopted_templates_for_business(self, business_id: UUID) -> List[Dict]:
+        """Get all templates adopted by a business with adoption details."""
+        try:
+            # Get business services with template information
+            response = self.client.table('business_services').select(
+                'id, name, adopted_from_slug, template_version, created_at, is_active'
+            ).eq('business_id', str(business_id)).not_.is_('adopted_from_slug', 'null').execute()
+            
+            adopted_templates = []
+            if response.data:
+                for service_data in response.data:
+                    # Get template details
+                    template_response = self.client.table('service_templates').select('name, description, pricing_model').eq('template_slug', service_data['adopted_from_slug']).execute()
+                    
+                    template_info = {}
+                    if template_response.data:
+                        template_info = template_response.data[0]
+                    
+                    adopted_templates.append({
+                        'service_id': service_data['id'],
+                        'service_name': service_data['name'],
+                        'template_slug': service_data['adopted_from_slug'],
+                        'template_name': template_info.get('name', 'Unknown Template'),
+                        'template_description': template_info.get('description'),
+                        'template_version': service_data.get('template_version', 1),
+                        'adopted_at': service_data['created_at'],
+                        'is_active': service_data['is_active']
+                    })
+            
+            return adopted_templates
+            
+        except Exception as e:
+            logger.error(f"Error getting adopted templates for business {business_id}: {str(e)}")
+            raise DatabaseError(f"Failed to get adopted templates: {str(e)}")
+
+    async def bulk_adopt_templates_for_activity(
+        self,
+        business_id: UUID,
+        activity_slug: str,
+        template_slugs: List[str],
+        customizations: Optional[Dict[str, Dict]] = None
+    ) -> List[BusinessService]:
+        """Adopt multiple templates for an activity in bulk."""
+        try:
+            adopted_services = []
+            customizations = customizations or {}
+            
+            for template_slug in template_slugs:
+                try:
+                    service = await self.adopt_service_template_by_slug(
+                        business_id=business_id,
+                        template_slug=template_slug,
+                        activity_slug=activity_slug,
+                        customizations=customizations.get(template_slug, {})
+                    )
+                    adopted_services.append(service)
+                except DuplicateEntityError:
+                    # Skip if already adopted
+                    logger.info(f"Template {template_slug} already adopted by business {business_id}")
+                    continue
+                except Exception as e:
+                    logger.error(f"Error adopting template {template_slug}: {str(e)}")
+                    # Continue with other templates
+                    continue
+            
+            return adopted_services
+            
+        except Exception as e:
+            logger.error(f"Error bulk adopting templates: {str(e)}")
+            raise DatabaseError(f"Failed to bulk adopt templates: {str(e)}")

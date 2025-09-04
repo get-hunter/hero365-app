@@ -3,9 +3,11 @@
   "environment": "development",
   "businessData": {
     "business_id": "550e8400-e29b-41d4-a716-446655440010",
-    "business_name": "Elite HVAC Austin",
-    "trade_type": "hvac",
+    "business_name": "Hero365 HVAC Austin",
+    "primary_trade_slug": "hvac",
+    "selected_activity_slugs": ["ac-installation", "ac-repair", "hvac-maintenance"],
     "description": "Professional HVAC provider",
+    "trade_type": "hvac",
     "phone": "+15125550100",
     "email": "info@elitehvac.com",
     "address": "123 Main St",

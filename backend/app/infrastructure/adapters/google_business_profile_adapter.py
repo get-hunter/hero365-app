@@ -156,7 +156,7 @@ class GoogleBusinessProfileAdapter(GoogleBusinessProfilePort):
                     "addressLines": [business.address],
                     "locality": business.city,
                     "administrativeArea": business.state,
-                    "postalCode": business.zip_code,
+                    "postalCode": business.postal_code,
                     "regionCode": "US"
                 },
                 "websiteUri": additional_info.get("website_url"),

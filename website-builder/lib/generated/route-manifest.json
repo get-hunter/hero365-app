@@ -1,0 +1,591 @@
+{
+  "generated_at": "2025-09-02T17:26:28.996Z",
+  "business_id": "550e8400-e29b-41d4-a716-446655440010",
+  "total_routes": 42,
+  "routes": [
+    {
+      "path": "/services/ac-installation",
+      "slug": "ac-installation",
+      "priority": 75,
+      "lastModified": "2025-09-02T17:26:28.985Z",
+      "changeFreq": "monthly"
+    },
+    {
+      "path": "/services/hvac-repair",
+      "slug": "hvac-repair",
+      "priority": 75,
+      "lastModified": "2025-09-02T17:26:28.987Z",
+      "changeFreq": "monthly"
+    },
+    {
+      "path": "/services/heating-installation",
+      "slug": "heating-installation",
+      "priority": 75,
+      "lastModified": "2025-09-02T17:26:28.987Z",
+      "changeFreq": "monthly"
+    },
+    {
+      "path": "/services/cooling-repair",
+      "slug": "cooling-repair",
+      "priority": 75,
+      "lastModified": "2025-09-02T17:26:28.987Z",
+      "changeFreq": "monthly"
+    },
+    {
+      "path": "/services/duct-cleaning",
+      "slug": "duct-cleaning",
+      "priority": 75,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "monthly"
+    },
+    {
+      "path": "/services/air-quality",
+      "slug": "air-quality",
+      "priority": 75,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "monthly"
+    },
+    {
+      "path": "/services/ac-installation/austin-tx",
+      "slug": "ac-installation-austin-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/ac-installation/round-rock-tx",
+      "slug": "ac-installation-round-rock-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/ac-installation/cedar-park-tx",
+      "slug": "ac-installation-cedar-park-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/ac-installation/pflugerville-tx",
+      "slug": "ac-installation-pflugerville-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/ac-installation/leander-tx",
+      "slug": "ac-installation-leander-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/ac-installation/georgetown-tx",
+      "slug": "ac-installation-georgetown-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/hvac-repair/austin-tx",
+      "slug": "hvac-repair-austin-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/hvac-repair/round-rock-tx",
+      "slug": "hvac-repair-round-rock-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/hvac-repair/cedar-park-tx",
+      "slug": "hvac-repair-cedar-park-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/hvac-repair/pflugerville-tx",
+      "slug": "hvac-repair-pflugerville-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/hvac-repair/leander-tx",
+      "slug": "hvac-repair-leander-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/hvac-repair/georgetown-tx",
+      "slug": "hvac-repair-georgetown-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/heating-installation/austin-tx",
+      "slug": "heating-installation-austin-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/heating-installation/round-rock-tx",
+      "slug": "heating-installation-round-rock-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/heating-installation/cedar-park-tx",
+      "slug": "heating-installation-cedar-park-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/heating-installation/pflugerville-tx",
+      "slug": "heating-installation-pflugerville-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/heating-installation/leander-tx",
+      "slug": "heating-installation-leander-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/heating-installation/georgetown-tx",
+      "slug": "heating-installation-georgetown-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/cooling-repair/austin-tx",
+      "slug": "cooling-repair-austin-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/cooling-repair/round-rock-tx",
+      "slug": "cooling-repair-round-rock-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/cooling-repair/cedar-park-tx",
+      "slug": "cooling-repair-cedar-park-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/cooling-repair/pflugerville-tx",
+      "slug": "cooling-repair-pflugerville-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/cooling-repair/leander-tx",
+      "slug": "cooling-repair-leander-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/cooling-repair/georgetown-tx",
+      "slug": "cooling-repair-georgetown-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.988Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/duct-cleaning/austin-tx",
+      "slug": "duct-cleaning-austin-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.989Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/duct-cleaning/round-rock-tx",
+      "slug": "duct-cleaning-round-rock-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.989Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/duct-cleaning/cedar-park-tx",
+      "slug": "duct-cleaning-cedar-park-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.989Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/duct-cleaning/pflugerville-tx",
+      "slug": "duct-cleaning-pflugerville-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.989Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/duct-cleaning/leander-tx",
+      "slug": "duct-cleaning-leander-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.989Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/duct-cleaning/georgetown-tx",
+      "slug": "duct-cleaning-georgetown-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.989Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/air-quality/austin-tx",
+      "slug": "air-quality-austin-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.989Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/air-quality/round-rock-tx",
+      "slug": "air-quality-round-rock-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.989Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/air-quality/cedar-park-tx",
+      "slug": "air-quality-cedar-park-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.989Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/air-quality/pflugerville-tx",
+      "slug": "air-quality-pflugerville-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.989Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/air-quality/leander-tx",
+      "slug": "air-quality-leander-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.989Z",
+      "changeFreq": "weekly"
+    },
+    {
+      "path": "/services/air-quality/georgetown-tx",
+      "slug": "air-quality-georgetown-tx",
+      "priority": 85,
+      "lastModified": "2025-09-02T17:26:28.989Z",
+      "changeFreq": "weekly"
+    }
+  ],
+  "staticParams": [
+    {
+      "slug": [
+        "services",
+        "ac-installation"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "hvac-repair"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "heating-installation"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "cooling-repair"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "duct-cleaning"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "air-quality"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "ac-installation",
+        "austin-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "ac-installation",
+        "round-rock-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "ac-installation",
+        "cedar-park-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "ac-installation",
+        "pflugerville-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "ac-installation",
+        "leander-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "ac-installation",
+        "georgetown-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "hvac-repair",
+        "austin-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "hvac-repair",
+        "round-rock-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "hvac-repair",
+        "cedar-park-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "hvac-repair",
+        "pflugerville-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "hvac-repair",
+        "leander-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "hvac-repair",
+        "georgetown-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "heating-installation",
+        "austin-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "heating-installation",
+        "round-rock-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "heating-installation",
+        "cedar-park-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "heating-installation",
+        "pflugerville-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "heating-installation",
+        "leander-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "heating-installation",
+        "georgetown-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "cooling-repair",
+        "austin-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "cooling-repair",
+        "round-rock-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "cooling-repair",
+        "cedar-park-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "cooling-repair",
+        "pflugerville-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "cooling-repair",
+        "leander-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "cooling-repair",
+        "georgetown-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "duct-cleaning",
+        "austin-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "duct-cleaning",
+        "round-rock-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "duct-cleaning",
+        "cedar-park-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "duct-cleaning",
+        "pflugerville-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "duct-cleaning",
+        "leander-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "duct-cleaning",
+        "georgetown-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "air-quality",
+        "austin-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "air-quality",
+        "round-rock-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "air-quality",
+        "cedar-park-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "air-quality",
+        "pflugerville-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "air-quality",
+        "leander-tx"
+      ]
+    },
+    {
+      "slug": [
+        "services",
+        "air-quality",
+        "georgetown-tx"
+      ]
+    }
+  ]
+}

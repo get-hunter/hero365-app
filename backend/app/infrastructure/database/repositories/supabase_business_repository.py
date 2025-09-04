@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from supabase import Client
 
 from app.domain.repositories.business_repository import BusinessRepository
-from app.domain.entities.business import Business, CompanySize, ReferralSource, TradeCategory, CommercialTrade, ResidentialTrade, MarketFocus
+from app.domain.entities.business import Business, CompanySize, ReferralSource, MarketFocus
 from app.domain.entities.business_membership import BusinessMembership
 from app.domain.exceptions.domain_exceptions import (
     EntityNotFoundError, DuplicateEntityError, DatabaseError
@@ -269,132 +269,22 @@ class SupabaseBusinessRepository(BusinessRepository):
         except Exception as e:
             raise DatabaseError(f"Failed to get recent businesses: {str(e)}"        ) 
     
-    def _parse_commercial_trades(self, data: dict) -> List[CommercialTrade]:
-        """Parse commercial trades from database data."""
-        # First try the dedicated commercial_trades field
-        if data.get("commercial_trades"):
-            trades_data = self._safe_json_parse(data.get("commercial_trades"), [])
-            commercial_trades = []
-            for trade in trades_data:
-                try:
-                    # Convert to lowercase and handle special cases
-                    trade_lower = trade.lower()
-                    # Map HVAC to mechanical for commercial trades
-                    if trade_lower == "hvac":
-                        trade_lower = "mechanical"
-                    commercial_trades.append(CommercialTrade(trade_lower))
-                except ValueError as e:
-                    logger.warning(f"Invalid commercial trade value: {trade} -> {e}")
-                    continue
-            return commercial_trades
-        
-        # Parse from primary_trade and secondary_trades fields
-        all_trades = []
-        if data.get("primary_trade"):
-            all_trades.append(data["primary_trade"])
-        if data.get("secondary_trades"):
-            secondary = data["secondary_trades"]
-            if isinstance(secondary, list):
-                all_trades.extend(secondary)
-            else:
-                # Handle case where it might be a JSON string
-                secondary_trades = self._safe_json_parse(secondary, [])
-                all_trades.extend(secondary_trades)
-        
-        commercial_trades = []
-        for trade in all_trades:
+    def _parse_selected_activity_slugs(self, data: dict) -> List[str]:
+        """Parse selected activity slugs from database data."""
+        activity_slugs = data.get("selected_activity_slugs", [])
+        if isinstance(activity_slugs, list):
+            return [slug for slug in activity_slugs if isinstance(slug, str)]
+        elif isinstance(activity_slugs, str):
+            # Handle JSON string format
             try:
-                # Convert to lowercase and handle special cases
-                trade_lower = trade.lower()
-                # Map HVAC to mechanical for commercial trades
-                if trade_lower == "hvac":
-                    trade_lower = "mechanical"
-                commercial_trades.append(CommercialTrade(trade_lower))
-            except ValueError:
-                # Not a commercial trade, skip
-                continue
-        return commercial_trades
+                parsed = json.loads(activity_slugs)
+                if isinstance(parsed, list):
+                    return [slug for slug in parsed if isinstance(slug, str)]
+            except (json.JSONDecodeError, TypeError):
+                logger.warning(f"Invalid activity_slugs format: {activity_slugs}")
+        return []
     
-    def _parse_residential_trades(self, data: dict) -> List[ResidentialTrade]:
-        """Parse residential trades from database data."""
-        # First try the dedicated residential_trades field
-        if data.get("residential_trades"):
-            trades_data = self._safe_json_parse(data.get("residential_trades"), [])
-            residential_trades = []
-            for trade in trades_data:
-                try:
-                    # Convert to lowercase for enum matching
-                    trade_lower = trade.lower()
-                    residential_trades.append(ResidentialTrade(trade_lower))
-                except ValueError as e:
-                    logger.warning(f"Invalid residential trade value: {trade} -> {e}")
-                    continue
-            return residential_trades
-        
-        # Parse from primary_trade and secondary_trades fields
-        all_trades = []
-        if data.get("primary_trade"):
-            all_trades.append(data["primary_trade"])
-        if data.get("secondary_trades"):
-            secondary = data["secondary_trades"]
-            if isinstance(secondary, list):
-                all_trades.extend(secondary)
-            else:
-                # Handle case where it might be a JSON string
-                secondary_trades = self._safe_json_parse(secondary, [])
-                all_trades.extend(secondary_trades)
-        
-        residential_trades = []
-        for trade in all_trades:
-            try:
-                # Convert to lowercase for enum matching
-                trade_lower = trade.lower()
-                residential_trades.append(ResidentialTrade(trade_lower))
-            except ValueError:
-                # Not a residential trade, skip
-                continue
-        return residential_trades
-    
-    def _parse_residential_services(self, data: dict) -> List[ResidentialTrade]:
-        """Parse residential services from new service-based database fields."""
-        # First try the new residential_services field
-        if data.get("residential_services"):
-            services_data = self._safe_json_parse(data.get("residential_services"), [])
-            residential_services = []
-            for service in services_data:
-                try:
-                    # Convert to lowercase for enum matching
-                    service_lower = service.lower()
-                    residential_services.append(ResidentialTrade(service_lower))
-                except ValueError as e:
-                    logger.warning(f"Invalid residential service value: {service} -> {e}")
-                    continue
-            return residential_services
-        
-        # Fallback to existing trade parsing logic for backward compatibility
-        return self._parse_residential_trades(data)
-    
-    def _parse_commercial_services(self, data: dict) -> List[CommercialTrade]:
-        """Parse commercial services from new service-based database fields."""
-        # First try the new commercial_services field
-        if data.get("commercial_services"):
-            services_data = self._safe_json_parse(data.get("commercial_services"), [])
-            commercial_services = []
-            for service in services_data:
-                try:
-                    # Convert to lowercase and handle special cases
-                    service_lower = service.lower()
-                    # Map HVAC to mechanical for commercial services
-                    if service_lower == "hvac":
-                        service_lower = "mechanical"
-                    commercial_services.append(CommercialTrade(service_lower))
-                except ValueError as e:
-                    logger.warning(f"Invalid commercial service value: {service} -> {e}")
-                    continue
-            return commercial_services
-        
-        # Fallback to existing trade parsing logic for backward compatibility
-        return self._parse_commercial_trades(data)
+
     
     def _safe_json_parse(self, value, default=None):
         """Helper function to safely handle JSONB fields that might be strings or already parsed."""
@@ -414,17 +304,20 @@ class SupabaseBusinessRepository(BusinessRepository):
         return {
             "id": str(business.id),
             "name": business.name,
-            "industry": business.industry,
-            "custom_industry": business.custom_industry,
+            "primary_trade_slug": business.primary_trade_slug,
             "company_size": business.company_size.value,
             # owner_id removed - use business_memberships instead
             "description": business.description,
-            # Canonical columns
-            "phone": business.phone_number,
-            "address": business.business_address,
+            # Address components
+            "phone_number": business.phone_number,
+            "business_address": business.business_address,
+            "address": business.address,
+            "city": business.city,
+            "state": business.state,
+            "postal_code": business.postal_code,
             "website": business.website,
             "logo_url": business.logo_url,
-            "email": business.business_email,
+            "business_email": business.business_email,
             "business_registration_number": business.business_registration_number,
             "tax_id": business.tax_id,
             "business_license": business.business_license,
@@ -442,17 +335,10 @@ class SupabaseBusinessRepository(BusinessRepository):
             "subscription_tier": business.subscription_tier,
             "enabled_features": business.enabled_features or [],  # Send as list for JSONB
             
-            # Trade Information
-            "trade_category": business.trade_category.value if business.trade_category else None,
-            "commercial_trades": [trade.value if hasattr(trade, 'value') else trade for trade in business.commercial_trades] if business.commercial_trades else [],
-            "residential_trades": [trade.value if hasattr(trade, 'value') else trade for trade in business.residential_trades] if business.residential_trades else [],
-            # New service-based fields (persist enums as strings)
-            "residential_services": [service.value if hasattr(service, 'value') else service for service in business.residential_services] if business.residential_services else [],
-            "commercial_services": [service.value if hasattr(service, 'value') else service for service in business.commercial_services] if business.commercial_services else [],
-            # Service key fields (persist as string arrays)
-            "selected_residential_service_keys": business.selected_residential_service_keys or [],
-            "selected_commercial_service_keys": business.selected_commercial_service_keys or [],
-            "service_areas": business.service_areas or [],
+            # Trade Information (clean model)
+            "market_focus": business.market_focus.value,
+            "selected_activity_slugs": business.selected_activity_slugs or [],  # Send as list for JSONB
+            # Note: service_areas removed - now managed via dedicated service_areas table
             
             "created_date": business.created_date.isoformat() if business.created_date else None,
             "last_modified": business.last_modified.isoformat() if business.last_modified else None
@@ -477,16 +363,19 @@ class SupabaseBusinessRepository(BusinessRepository):
             business = Business(
             id=uuid.UUID(data["id"]),
             name=data["name"],
-            industry=data.get("industry") or data.get("primary_trade"),
+            primary_trade_slug=data["primary_trade_slug"],
             company_size=CompanySize(data["company_size"]),
             # owner_id removed - use business_memberships instead
-            custom_industry=data.get("custom_industry"),
             description=data.get("description"),
-            phone_number=data.get("phone"),
-            business_address=data.get("address"),
+            phone_number=data.get("phone_number"),
+            business_address=data.get("business_address"),
+            address=data.get("address"),
+            city=data.get("city"),
+            state=data.get("state"),
+            postal_code=data.get("postal_code"),
             website=data.get("website"),
             logo_url=data.get("logo_url"),
-            business_email=data.get("email"),
+            business_email=data.get("business_email"),
             business_registration_number=data.get("business_registration_number"),
             tax_id=data.get("tax_id"),
             business_license=data.get("business_license"),
@@ -504,18 +393,10 @@ class SupabaseBusinessRepository(BusinessRepository):
             subscription_tier=data.get("subscription_tier"),
             enabled_features=safe_json_parse(data.get("enabled_features"), []),
             
-            # Trade Information
-            trade_category=TradeCategory(data["trade_category"]) if data.get("trade_category") else None,
+            # Trade Information (clean model)
             market_focus=MarketFocus(data.get("market_focus", "both")),
-            commercial_trades=self._parse_commercial_trades(data),
-            residential_trades=self._parse_residential_trades(data),
-            # New service-based fields
-            residential_services=self._parse_residential_services(data),
-            commercial_services=self._parse_commercial_services(data),
-            # Service key fields
-            selected_residential_service_keys=safe_json_parse(data.get("selected_residential_service_keys"), []),
-            selected_commercial_service_keys=safe_json_parse(data.get("selected_commercial_service_keys"), []),
-            service_areas=safe_json_parse(data.get("service_areas"), []),
+            selected_activity_slugs=self._parse_selected_activity_slugs(data),
+            # Note: service_areas removed - now managed via dedicated service_areas table
             
             created_date=datetime.fromisoformat(data["created_date"]) if data.get("created_date") else None,
             last_modified=datetime.fromisoformat(data["last_modified"]) if data.get("last_modified") else None

@@ -1,4 +1,6 @@
 import type { NextConfig } from "next";
+import webpack from "webpack";
+import path from "path";
 
 const nextConfig: NextConfig = {
   // Optimized for Cloudflare Workers with OpenNext adapter
@@ -71,10 +73,10 @@ const nextConfig: NextConfig = {
     },
   },
   
-  // Webpack optimizations
+  // Webpack optimizations - minimal configuration for SSR compatibility
   webpack: (config, { dev, isServer }) => {
-    // Production optimizations
-    if (!dev) {
+    // Production optimizations (client only)
+    if (!dev && !isServer) {
       config.optimization = {
         ...config.optimization,
         splitChunks: {
@@ -89,7 +91,7 @@ const nextConfig: NextConfig = {
         },
       };
     }
-    
+
     // SVG handling
     config.module.rules.push({
       test: /\.svg$/,

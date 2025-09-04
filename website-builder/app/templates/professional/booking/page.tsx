@@ -9,7 +9,7 @@
 // Static generation enabled for Cloudflare Pages
 
 import React from 'react';
-import BookingWizard from '../../../../components/booking/BookingWizard';
+import Hero365BookingWizard from '../../../../components/commerce/booking/Hero365BookingWizard';
 import { Button } from '../../../../components/ui/button';
 import { ArrowLeft, Phone, Mail, MapPin } from 'lucide-react';
 import Link from 'next/link';
@@ -183,7 +183,7 @@ export default function BookingPage() {
         </div>
 
         {/* Booking Wizard */}
-        <BookingWizard
+        <Hero365BookingWizard
           businessId={SAMPLE_BUSINESS_ID}
           services={SAMPLE_SERVICES}
           onComplete={handleBookingComplete}

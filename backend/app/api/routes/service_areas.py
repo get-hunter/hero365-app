@@ -78,6 +78,36 @@ async def create_availability_request(request: AvailabilityRequestCreate):
         raise HTTPException(status_code=500, detail="Failed to create availability request")
 
 
+@router.get("/public/service-areas/{business_id}", response_model=List[ServiceArea])
+async def get_public_service_areas(
+    business_id: str,
+    limit: int = Query(default=100, ge=1, le=1000, description="Number of results to return"),
+    offset: int = Query(default=0, ge=0, description="Number of results to skip")
+):
+    """
+    Get active service areas for a business (public endpoint).
+    
+    This endpoint is public and used by website builders, SEO tools, and other
+    applications that need to know where a business provides services.
+    Only returns active service areas.
+    """
+    try:
+        service = ServiceAreasService()
+        service_areas = await service.get_service_areas(
+            business_id=business_id,
+            q=None,  # No search filter for public endpoint
+            limit=limit,
+            offset=offset
+        )
+        # Filter to only return active service areas
+        active_areas = [area for area in service_areas if area.is_active]
+        return active_areas
+        
+    except Exception as e:
+        logger.error(f"Error fetching public service areas for business {business_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch service areas")
+
+
 # =====================================
 # PROFESSIONAL ENDPOINTS (auth required)
 # =====================================

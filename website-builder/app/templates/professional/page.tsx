@@ -9,13 +9,13 @@
 // Static generation enabled for Cloudflare Pages
 
 import React, { useEffect, useState } from 'react';
-import ProfessionalHero from '../../../components/professional/ProfessionalHero';
-import ServicesGrid from '../../../components/professional/ServicesGrid';
-import TrustRatingDisplay from '../../../components/professional/TrustRatingDisplay';
-import CustomerReviews from '../../../components/professional/CustomerReviews';
-import ContactSection from '../../../components/professional/ContactSection';
-import ProfessionalFooter from '../../../components/professional/ProfessionalFooter';
-import { BookingWidgetProvider } from '../../../components/booking/BookingWidgetProvider';
+import Hero365BusinessHero from '../../../components/business/Hero365BusinessHero';
+import Hero365ServicesOverview from '@/components/client/business/Hero365ServicesOverview';
+import Hero365TrustRating from '@/components/client/business/Hero365TrustRating';
+import Hero365CustomerReviews from '@/components/client/business/Hero365CustomerReviews';
+import Hero365ContactSection from '@/components/client/business/Hero365ContactSection';
+import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
+import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { BookableService } from '../../../lib/types/booking';
 
 // Sample bookable services - in production this would come from API
@@ -211,7 +211,7 @@ export default function ProfessionalTemplate() {
   } = SAMPLE_DATA;
 
   return (
-    <BookingWidgetProvider
+    <Hero365BookingProvider
       businessId="123e4567-e89b-12d3-a456-426614174000"
       services={SAMPLE_SERVICES}
       companyName={business.name}
@@ -222,41 +222,41 @@ export default function ProfessionalTemplate() {
     >
       <main className="min-h-screen">
         {/* Hero Section */}
-        <ProfessionalHero 
+        <Hero365BusinessHero 
           business={business}
           ratings={ratings}
           promos={promos}
         />
 
         {/* Trust Ratings */}
-        <TrustRatingDisplay ratings={ratings} />
+        <Hero365TrustRating ratings={ratings} />
 
         {/* Services Grid */}
-        <ServicesGrid 
+        <Hero365ServicesOverview 
           serviceCategories={serviceCategories}
           businessName={business.name}
         />
 
         {/* Customer Reviews */}
-        <CustomerReviews testimonials={testimonials.map(t => ({
+        <Hero365CustomerReviews testimonials={testimonials.map(t => ({
           ...t,
           quote: t.review_text,
           is_verified: true
         }))} />
 
         {/* Contact Section */}
-        <ContactSection 
+        <Hero365ContactSection 
           business={business}
           locations={[]}
         />
 
         {/* Footer */}
-        <ProfessionalFooter 
+        <Hero365BusinessFooter 
           business={business}
           serviceCategories={serviceCategories}
           locations={[]}
         />
       </main>
-    </BookingWidgetProvider>
+    </Hero365BookingProvider>
   );
 }

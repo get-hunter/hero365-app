@@ -18,7 +18,7 @@ from app.api.dtos.service_management_dtos import (
 )
 from app.domain.repositories.business_repository import BusinessRepository
 from app.domain.services.default_services_mapping import DefaultServicesMapping
-from app.domain.entities.business import MarketFocus, ResidentialTrade, CommercialTrade
+from app.domain.entities.business import MarketFocus
 from app.application.services.service_materialization_service import ServiceMaterializationService
 from app.api.deps import get_current_user, get_supabase_client
 from app.infrastructure.config.dependency_injection import get_business_repository
@@ -222,31 +222,13 @@ async def update_business_services(
         # Update services
         updates = {}
         
-        if request.residential_services is not None:
-            # Convert strings to ResidentialTrade enums
-            residential_services = []
-            for service_key in request.residential_services:
-                try:
-                    residential_services.append(ResidentialTrade(service_key))
-                except ValueError:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Invalid residential service: {service_key}"
-                    )
-            updates['residential_services'] = residential_services
+        # DEPRECATED: Legacy service management
+        # This endpoint is being phased out in favor of activity-based management
+        # For now, we'll just ignore the service updates and focus on activity slugs
         
-        if request.commercial_services is not None:
-            # Convert strings to CommercialTrade enums
-            commercial_services = []
-            for service_key in request.commercial_services:
-                try:
-                    commercial_services.append(CommercialTrade(service_key))
-                except ValueError:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Invalid commercial service: {service_key}"
-                    )
-            updates['commercial_services'] = commercial_services
+        if hasattr(request, 'selected_activity_slugs') and request.selected_activity_slugs is not None:
+            # Update selected activities (new model)
+            updates['selected_activity_slugs'] = request.selected_activity_slugs
         
         # Update business
         updated_business = business.model_copy(update=updates)

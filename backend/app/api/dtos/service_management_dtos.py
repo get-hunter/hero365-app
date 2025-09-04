@@ -5,7 +5,7 @@ Data Transfer Objects for service management operations
 
 from typing import List, Dict, Optional
 from pydantic import BaseModel, Field
-from app.domain.entities.business import MarketFocus, ResidentialTrade, CommercialTrade
+from app.domain.entities.business import MarketFocus
 
 
 class ServiceInfo(BaseModel):

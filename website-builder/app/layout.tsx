@@ -1,17 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import PerformanceOptimizer from "../components/performance/PerformanceOptimizer";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Use system fonts to avoid next/font server manifest during build
 
 export const metadata: Metadata = {
   title: "Professional HVAC Services | 24/7 Emergency Repair & Installation",
@@ -37,27 +26,20 @@ export const viewport: Viewport = {
   themeColor: "#667eea",
 };
 
+export const runtime: 'edge' | 'nodejs' = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "Professional Services";
-  
   return (
     <html lang="en">
-      <head>
-        <PerformanceOptimizer
-          businessName={businessName}
-          criticalResources={['/globals.css']}
-          preloadFonts={[
-            'https://fonts.gstatic.com/s/geist/v1/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa2JL7W0Q5n-wU.woff2'
-          ]}
-          enableServiceWorker={true}
-        />
-      </head>
+      <head></head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`antialiased`}
         suppressHydrationWarning={true}
       >
         {children}

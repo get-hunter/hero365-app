@@ -12,8 +12,8 @@ import {
   Booking,
   BookableService,
   TimeSlot
-} from '../types/booking';
-import { getApiConfig, buildAuthApiUrl, getDefaultHeaders } from '../config/api-config';
+} from '@/lib/shared/types/booking';
+import { getApiConfig, buildAuthApiUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
 
 export class BookingApiClient {
   private config = getApiConfig();

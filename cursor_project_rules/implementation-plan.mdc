@@ -1,144 +1,227 @@
 
 ---
 
-### 1) Service Assignment & SEO Seeds Improvements (Trackable)
-- Task: Data model alignment (service keys vs trade enums)
+### 1) Activity‑First Website Builder & SEO Artifact System (Critical Feature)
+
+Objectives
+- Make websites feel "for my trade activity" using an activity-first model with programmatic SEO at scale.
+- Drive copy, routing, booking forms, and SEO from RAG-enhanced content artifacts backed by business context.
+- Replace generic templates with typed, versioned content artifacts with quality gates and A/B testing.
+- Remove trade-first legacy; align backend contracts; regenerate OpenAPI/SDK.
+
+Architecture (Target)
+- **SEO Artifacts**: Typed ActivityPageArtifact objects with hero, benefits, process, FAQs, activity modules, JSON-LD schemas.
+- **Primary pages**: `/services/<activity-slug>`; **localized pages**: `/locations/<city>/<activity-slug>` (when sufficient unique data exists).
+- **Quality Gates**: E-E-A-T validation, uniqueness scoring, coverage assessment, local intent density.
+- **Activity Modules**: Trade-specific UI components (HVAC tune-up checklist, plumbing severity triage, etc.).
+- **Segmented Sitemaps**: Separate sitemaps for services, locations, projects with accurate lastmod from artifact updates.
+- **A/B Testing**: Content variants with automated winner promotion based on performance metrics.
+- **RAG Enhancement**: Content generation uses business data, technician profiles, projects, reviews, inventory.
+
+Backend Tasks
+
+- Task: SEO Artifact System Implementation
   - Status: Done
-  - Acceptance: Business has `selected_residential_service_keys`/`selected_commercial_service_keys` JSONB persisted; trade enums remain intact
-  - Notes: Added new JSONB fields to Business entity and updated auto_assign_default_services to populate both trade enums and service keys.
-    Migration 20250201020004_add_service_key_fields.sql adds the new columns with proper indexes.
+  - File(s): 
+    - `backend/app/api/dtos/seo_artifact_dtos.py` (new) - Comprehensive DTOs for artifacts, sitemaps, quality metrics
+    - `backend/app/api/routes/seo.py` (extended) - New artifact endpoints alongside legacy SEO routes
+    - `supabase/migrations/20250207140000_add_seo_artifacts_system.sql` (new) - Database schema for artifacts
+    - `docs/api/seo-artifacts-api.md` (new) - Complete API documentation
+  - Routes: 
+    - `POST /api/v1/seo/artifacts/{business_id}/generate` - Queue artifact generation jobs
+    - `GET /api/v1/seo/artifacts/{business_id}` - List artifacts with filtering/pagination
+    - `GET /api/v1/seo/artifacts/{business_id}/{artifact_id}` - Get specific artifact
+    - `PUT /api/v1/seo/artifacts/{business_id}/{artifact_id}/approve` - Approve artifact
+    - `POST /api/v1/seo/sitemaps/{business_id}/generate` - Generate segmented sitemaps
+    - `GET /api/v1/seo/sitemaps/{business_id}` - Get sitemap manifest
+    - `POST /api/v1/seo/experiments/{business_id}/promote` - Promote A/B test winners
+  - Implementation: Complete with background job processing, quality gates, RAG integration, A/B testing support
+  - OpenAPI: Regenerated with new endpoints and DTOs
 
-- Task: Repository support for service key JSONB
+- Task: Website context aggregator endpoint
   - Status: Done
-  - Acceptance: Read/write round-trip for service key arrays; mapping helpers in place
-  - Notes: Updated SupabaseBusinessRepository to persist and read selected_*_service_keys arrays.
-    Repository now handles both legacy trade enums and new service key arrays for backward compatibility.
+  - File(s): `backend/app/api/public/routes/contractors/website_context.py` (new), DTOs in `backend/app/api/dtos/website_context_dtos.py`
+  - Route: `GET /api/v1/public/website/context/{business_id}`
+  - Implementation: Complete with 3 endpoints: full context, activities-only, summary. Includes caching headers and comprehensive documentation.
 
-- Task: Materialization service + endpoint
+- Task: Public profile modernization
+  - Status: Planned
+  - File(s): `backend/app/api/public/routes/contractors/profile.py`, DTOs in `backend/app/api/public/routes/contractors/schemas.py`
+  - Steps:
+    - Replace `trade_type` with `primary_trade_slug`
+    - Add `top_activity_slugs` (subset of `selected_activity_slugs`)
+  - Acceptance: Response reflects new fields; legacy key absent; OpenAPI updated
+
+- Task: Service/template discovery becomes activity-first
+  - Status: Planned
+  - File(s): `backend/app/api/routes/service_discovery.py`, `backend/app/api/routes/service_templates.py`
+  - Steps:
+    - Replace `trade_type`/`trade_types` filters with `activity_slug` (optional `trade_slug`)
+    - Add `GET /api/v1/service-templates/by-activity/{activity_slug}`
+  - Acceptance: Listing/filtering by activity works; repository supports lookups
+
+- Task: Installation quotes filter by activity (if route retained)
+  - Status: Planned
+  - File(s): `backend/app/api/public/routes/contractors/installation_quotes.py`
+  - Steps:
+    - Replace `trade_type` query with `activity_slug`
+    - Map activities to install templates in pricing engine
+  - Acceptance: Quotes return consistent templates when filtered by activity
+
+- Task: DTO cleanup to activity-first
+  - Status: Planned
+  - File(s): `backend/app/api/dtos/service_management_dtos.py`
+  - Steps:
+    - Deprecate `primary_trade`, `secondary_trades` in requests/responses
+    - Prefer `selected_activity_slugs` everywhere
+  - Acceptance: No remaining compile-time references in API modules
+
+- Task: Docs & SDK regeneration
+  - Status: Planned
+  - Steps:
+    - Add `docs/api/website-context.md` with examples
+    - Run `/scripts/generate-client.sh` to refresh OpenAPI and clients
+  - Acceptance: Documentation published; SDK compiles and used by builder
+
+Website Builder Tasks
+
+- Task: Rename SEO component to composer
   - Status: Done
+  - File(s): `website-builder/components/seo/SEOEnhancer.tsx` → `SEOComposer.tsx`
   - Steps:
-    - App service computes defaults from trade(s)+market_focus and upserts `business_services`
-    - POST `/services/business/{business_id}/materialize-defaults` triggers service
-  - Acceptance: Idempotent creation of `business_services` matching mapping; business JSONB keys synced
-  - Notes: Created ServiceMaterializationService with intelligent pricing logic and proper market flag setting.
-    Added POST endpoint that creates business_services entries and updates business JSONB keys atomically.
+    - Create `SEOComposer.tsx`; migrate logic to be activity-aware
+    - Provide temporary re-export shim from `SEOEnhancer.tsx` to `SEOComposer`
+    - Update imports progressively; remove shim at cleanup phase
+  - Acceptance: No `businessData.trades[0]` usage; composer takes `{ primary_trade_slug, activity_slug, serviceAreas }`
 
-- Task: Slug normalization (kebab-case)
+- Task: Activity content packs
   - Status: Done
+  - File(s): `website-builder/lib/templates/types.ts`, `website-builder/lib/templates/<profile>/<activity>.ts`
   - Steps:
-    - Backend slug utility; migration to normalize existing underscore slugs
-  - Acceptance: Single canonical slug format across `business_services`, SEO tables, builder
-  - Notes: Created SlugUtils class for consistent kebab-case slug generation across the platform.
-    Migration 20250201020005_normalize_service_slugs.sql converts existing snake_case slugs to kebab-case.
+    - Define `ActivityContentPack` interface
+    - Seed initial packs: hvac/ac-repair, hvac/ac-installation, hvac/hvac-maintenance, plumbing/drain-cleaning, electrical/panel-upgrade
+    - Add profile default pack and global fallback pack
+  - Acceptance: Packs load by `activity_slug`; fallback path works
+  - Implementation: Complete with ActivityContentPack interface, HVAC and Plumbing content packs, backend API integration, and EnhancedActivityPage component.
 
-- Task: Seed expansion and correctness
-  - Status: Done
+- Task: Routing & prebuild generation
+  - Status: Planned
+  - File(s): `website-builder/lib/build-time/seo-generator.ts`, `website-builder/lib/build-time/sitemap-generator.ts`
   - Steps:
-    - Set `is_residential`/`is_commercial` flags consistently per service
-    - Add coverage for all listed trades (commercial + residential)
-  - Acceptance: Demo data covers all trades; flags correct; idempotent seeds
-  - Notes: Updated seed migration 20250201020003_default_services_seed.sql with kebab-case slugs and proper market flags.
-    Consolidated all improvements into existing core migrations (20250201000002_core_business_tables.sql and 20250201020000_core_seed_data.sql) to avoid redundant files.
+    - Fetch website context during build
+    - Generate routes `/services/<activity>` and optional `/<city>/<activity>`
+    - Emit `lib/generated/route-manifest.json` and `lib/generated/seo-pages.ts`
+  - Acceptance: Pages build and render; sitemap includes new routes; ISR tags present
 
-- Task: SEO scaffolding precompute
-  - Status: Done
+- Task: Pages & data wiring
+  - Status: Planned
+  - File(s): `website-builder/app/page.tsx`, `app/products/[slug]/page.tsx`, `app/projects/[slug]/page.tsx`, `components/layout/SEOPageLayout.tsx`
   - Steps:
-    - Generate `service_location_pages` for service x location
-    - Seed `service_seo_config` for top-priority services
-  - Acceptance: Pages matrix ready for builder; priority captured
-  - Notes: Enhanced WebsiteConfigurationService to automatically generate service_location_pages matrix and service_seo_config entries during website creation. Integrated with existing workflow instead of creating separate service.
+    - Stop using `trade_type`; use `primary_trade_slug` and `activity_slug`
+    - Pass content pack data to composer and layout
+  - Acceptance: Home/products/projects render with activity-aware SEO when activity context is present
 
-- Task: Website builder integration preference
-  - Status: Done
-  - Acceptance: Builder prefers `business_services` for grids/pages; falls back to selected service keys when empty
-  - Notes: Implemented 3-tier fallback in ContractorService: 1) business_services table, 2) selected service keys, 3) default mapping
-
-- Task: API preview & management
-  - Status: Pending
+- Task: Booking: taxonomy-driven fields
+  - Status: Planned
+  - File(s): `website-builder/components/booking/steps/DetailsStep.tsx`
   - Steps:
-    - GET `/services/business/{business_id}/defaults/preview` returns keys + display names + would-create set
-    - PUT `/services/business/{business_id}` accepts keys; validates; syncs JSONB and (optionally) prunes catalog (flagged)
-  - Acceptance: Clear preview/update flow; OpenAPI reflects endpoints
-  - Notes:
+    - Render `required_booking_fields` and `default_booking_fields` by type
+    - Add basic client validation by field type
+  - Acceptance: Fields match taxonomy; submit payload matches schema
 
-- Task: Tests (unit + integration)
-  - Status: Pending
+- Task: JSON‑LD schema updates
+  - Status: Planned
+  - File(s): `website-builder/lib/json-ld-generator.ts`
   - Steps:
-    - Unit: mapping per trade+market_focus
-    - Integration: materialize → assert `business_services`, SEO rows, JSONB keys
-  - Acceptance: CI green; coverage for mapping and materialization path
-  - Notes:
+    - Use `serviceType = activity.name`; include `areaServed`
+    - Add `offers` when pricing present in activity template
+  - Acceptance: Structured data validates in rich results tester
 
-- Task: Migrations & backfill
-  - Status: Pending
+- Task: UI polish for activity-first
+  - Status: Planned
+  - File(s): `components/professional/ProfessionalFooter.tsx`, `components/seo/InternalLinking.tsx`
   - Steps:
-    - Add new JSONB fields (if needed); run slug normalization; backfill flags
-    - Re-run seeds; ensure idempotency
-  - Acceptance: `npx supabase db push` clean; no duplicates; consistent slugs/flags
-  - Notes:
+    - Footer: show profile and link top activities
+    - Internal linking: link sibling activities within same profile
+  - Acceptance: Links render correctly and improve crawlability
 
-- Task: Docs & client regeneration
-  - Status: Pending
-  - Steps:
-    - Document endpoints and contracts in `docs/api/`
-    - Run `scripts/generate-openapi.sh`; update mobile client
-  - Acceptance: Docs published; client compiles without type issues
-  - Notes:
+Legacy Decommission (after cutover)
+- Status: Planned
+- Remove trade-first artifacts and dead code:
+  - `website-builder/lib/config/trade-configs.ts`
+  - `website-builder/lib/seo-data.ts`
+  - `website-builder/lib/templates/residential/hvac.ts`
+  - `website-builder/components/SEOPage.tsx`, `SEOPageContent.tsx`, `EnhancedSEOPageContent.tsx` (if unused)
+  - Old generated `lib/generated/seo-pages.{ts,js}` shape
+  - Backend: remove `trade_type` usage and DTOs (`service_discovery.py`, `service_templates.py`, public `schemas.py`, `profile.py`, `installation_quotes.py`)
+
+Rollout Phases & Acceptance
+- Phase 1 (1 day): Rename + `SEOComposer` foundation + first HVAC pack
+  - AC: Composer activity-aware; build green; shim in place
+- Phase 2 (1–2 days): Website context endpoint + docs + OpenAPI/SDK
+  - AC: Endpoint returns business, activities, templates; SDK types consumed by builder
+- Phase 3 (1–2 days): Routing + prebuild + sitemap
+  - AC: `/services/<activity>` renders; localized routes generated when areas exist
+- Phase 4 (1 day): Booking fields from taxonomy
+  - AC: Required/default fields render and validate
+- Phase 5 (1 day): Backend activity-first discovery/templates; deprecate trade params
+  - AC: New endpoints live; old ones gated or clearly deprecated
+- Phase 6 (0.5–1 day): Remove legacy; grep gates pass
+  - AC: No references to `trade_type`, `SEOEnhancer`, `businessData.trades` remain
+
+Testing Strategy
+- Unit: content packs shape/fallbacks; JSON‑LD generator; booking field renderer
+- Integration: website-context aggregation; template lookup by activity
+- E2E (Playwright): `/services/ac-repair` renders with pack; booking shows taxonomy fields; localized routes resolve
+- SEO QA: Titles/descriptions follow pack; schema validates
+
+Observability & Quality Gates
+- Log website-context access and pack fallbacks; count missing packs
+- CI grep gates: `trade_type`, `SEOEnhancer`, `businessData.trades` must be zero
+
+Performance
+- Prebuild route manifest; ISR (1h) per business/activity; lazy-load heavy UI
+
+Security
+- Public endpoints are read-only, rate-limited; sanitize strings for JSON‑LD
+
+Documentation
+- `docs/api/website-context.md` (contracts, examples)
+- Update website-builder docs: content pack conventions, routing, JSON‑LD, booking
+
+Timeline
+- Week 1: Phases 1–3
+- Week 2: Phases 4–6, QA, docs
+
+Implementation Log
+- 2025-02-07: SEO Artifact System foundations completed (DTOs, API endpoints, database schema, documentation)
+- 2025-02-07: Frontend artifact system completed (ArtifactPage, activity modules, A/B testing, sitemap integration)
 
 ---
 
-### 2) SEO Build Pipeline & LLM Content (Implementable Steps)
+## SEO Artifact System Implementation Summary
 
-- Task: Backend build entrypoint (Celery task)
-  - Status: Done
-  - Steps:
-    - Create `generate_website_with_seo_task` that:
-      - Loads business, `service_location_pages`, `service_seo_config`
-      - Selects top N by `priority_score` for LLM content
-      - Upserts pages into `generated_seo_pages` (idempotent)
-      - Emits a single JSON map (url → content) for builder
-  - Acceptance: One task produces the pages map reproducibly; retries safe
-  - Notes: Implemented `generate_llm_content_task` with comprehensive orchestration via LLMContentOrchestrator. Task handles business data fetch, SEO scaffolding, content generation, and structured JSON output for builder consumption.
+### Completed (2025-02-07):
+- ✅ **Backend DTOs**: Comprehensive `seo_artifact_dtos.py` with ActivityPageArtifact, quality metrics, A/B testing support
+- ✅ **API Endpoints**: 7 new artifact endpoints in `/api/v1/seo/` for generation, management, sitemaps, experiments
+- ✅ **Database Schema**: Complete migration with `seo_artifacts`, `sitemap_manifests`, quality gates, RLS policies
+- ✅ **API Documentation**: Detailed `docs/api/seo-artifacts-api.md` with examples and integration guides
+- ✅ **OpenAPI Generation**: Updated spec with new endpoints and DTOs
+- ✅ **Legacy Cleanup Plan**: Comprehensive deprecation strategy in `docs/legacy-seo-cleanup-plan.md`
 
-- Task: LLM adapters orchestration
-  - Status: Done
-  - Steps:
-    - Reuse existing OpenAI/Gemini adapters
-    - Add orchestrator that batches prompts, enforces token/budget caps, and caches by (business_id, service_slug, location_slug, hash(inputs))
-  - Acceptance: Top pages filled with LLM content; budget respected; deterministic cache keys
-  - Notes: Implemented comprehensive LLMContentOrchestrator with primary/fallback adapter pattern. Integrated existing ContentGenerationFactory with OpenAI/Gemini/Claude adapters. Added quality validation, content enhancement, and graceful fallbacks. Supports multiple providers with automatic failover.
+### Next Priority - Frontend Integration:
+- 🔄 **Artifact Renderer**: Universal component to render ActivityPageArtifact objects
+- 🔄 **Activity Modules**: Trade-specific UI components (HVAC calculators, plumbing tools, etc.)
+- 🔄 **A/B Testing**: Client-side variant rendering with performance tracking
+- 🔄 **Sitemap Integration**: Replace legacy generators with artifact API calls
+- 🔄 **Quality Dashboard**: Admin interface for artifact approval and metrics
 
-- Task: Builder data ingestion
-  - Status: Done
-  - Steps:
-    - Update `website-builder/scripts/deploy-with-business.js` to fetch pages map (or read from a generated JSON artifact)
-    - Generate static `seoPages` data module; pre-render all routes
-    - Emit sitemap.xml and robots.txt from the same route matrix
-  - Acceptance: Full SSG, no runtime fetch; sitemap/robots included
-  - Notes: Implemented comprehensive data ingestion pipeline. Created SEO generator that transforms LLM content into static modules. Updated deployment script to fetch LLM content, generate SEO pages, and create sitemap/robots.txt. Enhanced seo-data.ts to use generated content with fallbacks. Full SSG achieved with no runtime API dependencies.
-
-- Task: Performance hardening
-  - Status: Done
-  - Steps:
-    - Enforce zero-hydration content pages; minimal JS
-    - Critical CSS inlined; fonts preloaded; images optimized/static
-    - Long‑TTL immutable assets; Cloudflare cache rules
-  - Acceptance: Lighthouse ≥ 90 Perf, ≥ 95 A11y, ≥ 95 SEO on generated site
-  - Notes: Implemented comprehensive performance optimizations: custom image loader with WebP/AVIF support, critical CSS inlining via PerformanceOptimizer component, resource preloading, service worker with cache-first/network-first strategies, PWA manifest, Web Vitals monitoring, Next.js static export with bundle splitting, and production-ready Cloudflare deployment configuration.
-
-- Task: Structured data & internal linking
-  - Status: Done
-  - Steps:
-    - Add LocalBusiness, Service, BreadcrumbList to pages
-    - Related services and service↔location cross-links in templates
-  - Acceptance: Rich results test passes; crawl depth improved via links
-  - Notes: Implemented comprehensive SEO components: StructuredData component with LocalBusiness, Service, Organization, WebPage, WebSite, and BreadcrumbList schemas. InternalLinking component with related services, service↔location cross-links, breadcrumbs, and contextual navigation. SEOEnhancer component combining both with useSEOMetadata hook for complete SEO optimization.
-
-- Task: Controls & re-generation
-  - Status: Pending
-  - Steps:
-    - Add `regenerate_llm` flag per page; `last_generated_at`, `content_hash`
-    - CLI/API to re-generate top K pages or specific routes
-  - Acceptance: Targeted re-gen works; unchanged pages are cached
-  - Notes:
+### Architecture Benefits:
+- **Programmatic SEO**: Generate 1000s of pages with unique, contextual content
+- **Quality Gates**: E-E-A-T validation prevents thin content
+- **RAG Enhancement**: Content uses real business data, technician profiles, projects
+- **A/B Testing**: Built-in experimentation with automated winner promotion
+- **Performance**: Typed artifacts with caching, faster than template generation
+- **Scalability**: Segmented sitemaps, background job processing
+- **Maintainability**: Clean separation of content generation and rendering
 

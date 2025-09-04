@@ -1,8 +1,8 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getSEOPageData, getAllSEOPages, getContentBlocks } from '@/lib/seo-data'
-import SEOPageLayout from '@/components/layout/SEOPageLayout'
-import EnhancedSEOPageContent from '@/components/EnhancedSEOPageContent'
+import { getSEOPageData, getAllSEOPages, getContentBlocks } from '@/lib/server/seo-data'
+import SEOPageLayout from '@/components/server/seo/layouts/Hero365SEOPageLayout'
+import EnhancedSEOPageContent from '@/components/server/pages/Hero365SEOPageContent'
 
 interface DynamicPageProps {
   params: {
@@ -48,18 +48,14 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
 }
 
 export async function generateStaticParams() {
-  const allPages = await getAllSEOPages()
-  
-  return Object.keys(allPages)
-    .filter(url => url.startsWith('/') && url !== '/')
-    .map(url => ({
-      slug: url.split('/').filter(Boolean)
-    }))
+  // Avoid crawling during build; generate at runtime only
+  return []
 }
 
 // ISR Configuration
-export const revalidate = 86400 // 24 hours
-export const dynamic = 'force-static'
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export default async function DynamicPage({ params }: DynamicPageProps) {
   const { slug } = await params

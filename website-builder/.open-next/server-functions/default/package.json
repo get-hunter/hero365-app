@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "echo 'Skipping ngrok env setup for staging deployment'",
+    "prebuild-disabled": "node scripts/prebuild-seo.js",
     "build": "next build",
     "start": "next start",
     "generate": "npm run build",
@@ -33,6 +33,7 @@
     "clsx": "^2.1.1",
     "critters": "^0.0.23",
     "date-fns": "^4.1.0",
+    "libphonenumber-js": "^1.12.15",
     "lucide-react": "^0.541.0",
     "minimist": "^1.2.8",
     "next": "15.5.0",

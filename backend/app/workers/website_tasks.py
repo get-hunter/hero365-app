@@ -289,7 +289,8 @@ def generate_llm_content_task(
         )
         
         # Run the async content generation process
-        result = asyncio.run(_generate_llm_content_async(business_id, content_config, job_id))
+        # Legacy LLM pipeline removed
+        result = {"success": False, "error_message": "Legacy LLM content pipeline removed. Use SEO artifacts API."}
         
         if result.get("success"):
             logger.info(f"LLM content generation completed: {business_id}")
@@ -350,84 +351,8 @@ def generate_llm_content_task(
         raise
 
 
-async def _generate_llm_content_async(
-    business_id: str, 
-    content_config: Optional[Dict[str, Any]], 
-    job_id: str
-):
-    """
-    Async implementation of LLM content generation.
-    
-    This orchestrates the entire content generation pipeline:
-    1. Fetch business data and SEO scaffolding
-    2. Generate content using multiple LLM adapters
-    3. Optimize and validate content
-    4. Store results for website builder consumption
-    """
-    
-    start_time = datetime.utcnow()
-    
-    try:
-        # Step 1: Fetch business data and SEO scaffolding
-        logger.info(f"Fetching business data for {business_id}")
-        
-        from ..application.services.professional_data_service import ProfessionalDataService
-        from ..application.services.seo_scaffolding_service import SEOScaffoldingService
-        from ..core.db import get_supabase_client
-        
-        data_service = ProfessionalDataService()
-        business_data = await data_service.get_complete_professional_data(business_id)
-        
-        if not business_data or not business_data.get("profile"):
-            raise Exception(f"No business data found for {business_id}")
-        
-        # Get SEO scaffolding
-        supabase_client = get_supabase_client()
-        seo_service = SEOScaffoldingService(supabase_client)
-        
-        # This will use the precomputed scaffolding from website configuration
-        seo_scaffolding = await seo_service.get_seo_scaffolding(business_id)
-        
-        logger.info(f"Fetched data for: {business_data['profile'].get('business_name')}")
-        logger.info(f"SEO scaffolding: {len(seo_scaffolding.get('service_location_pages', []))} pages")
-        
-        # Step 2: Initialize LLM orchestration service
-        from ..application.services.llm_content_orchestrator import LLMContentOrchestrator
-        
-        orchestrator = LLMContentOrchestrator(
-            business_data=business_data,
-            seo_scaffolding=seo_scaffolding,
-            config=content_config or {}
-        )
-        
-        # Step 3: Generate all content types
-        logger.info("Starting comprehensive content generation")
-        
-        content_results = await orchestrator.generate_all_content()
-        
-        # Step 4: Store generated content for builder consumption
-        output_path = await _store_generated_content(business_id, job_id, content_results)
-        
-        # Calculate metrics
-        end_time = datetime.utcnow()
-        generation_time = (end_time - start_time).total_seconds()
-        
-        return {
-            "success": True,
-            "generation_time_seconds": generation_time,
-            "pages_generated": len(content_results.get("pages", [])),
-            "content_items": len(content_results.get("content_items", [])),
-            "seo_configs": len(content_results.get("seo_configs", [])),
-            "output_path": output_path,
-            "quality_score": content_results.get("quality_score", 85)
-        }
-        
-    except Exception as e:
-        logger.error(f"Error in async LLM content generation: {str(e)}")
-        return {
-            "success": False,
-            "error_message": str(e)
-        }
+async def _generate_llm_content_async(business_id: str, content_config: Optional[Dict[str, Any]], job_id: str):
+    return {"success": False, "error_message": "Legacy LLM content pipeline removed."}
 
 
 async def _store_generated_content(

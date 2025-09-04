@@ -366,7 +366,7 @@ Always return structured, well-formatted content that can be easily parsed and u
                 "name": business.name,
                 "phone": business.phone_number,
                 "email": business.business_email,
-                "address": f"{business.address}, {business.city}, {business.state} {business.zip_code}",
+                "address": f"{business.address}, {business.city}, {business.state} {business.postal_code}",
                 "service_areas": business.service_areas,
                 "primary_trade": business.get_primary_trade(),
                 "all_trades": business.get_all_trades()
@@ -786,7 +786,7 @@ Always return structured, well-formatted content that can be easily parsed and u
 - Service Areas: {', '.join(business.service_areas)}
 - Phone: {business.phone_number}
 - Email: {business.business_email}
-- Address: {business.address}, {business.city}, {business.state} {business.zip_code}
+- Address: {business.address}, {business.city}, {business.state} {business.postal_code}
 """
         
         # Build branding context

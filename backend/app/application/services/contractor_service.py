@@ -98,8 +98,8 @@ class ContractorService:
                 logger.warning(f"Failed to get business_services for {business_id}: {str(e)}")
             
             # PREFERENCE 2: Use selected service keys from business (fallback 1)
-            residential_keys = business.selected_residential_service_keys or []
-            commercial_keys = business.selected_commercial_service_keys or []
+            residential_keys = getattr(business, 'selected_residential_service_keys', []) or []
+            commercial_keys = getattr(business, 'selected_commercial_service_keys', []) or []
             all_service_keys = residential_keys + commercial_keys
             
             if all_service_keys:
@@ -108,9 +108,9 @@ class ContractorService:
             
             # PREFERENCE 3: Use default mapping based on trades (fallback 2)
             logger.info("Using default service mapping based on trades")
-            default_services = self.default_services_mapping.get_default_services(
-                primary_trade=business.primary_trade,
-                secondary_trades=business.secondary_trades or [],
+            default_services = self.default_services_mapping.get_default_services_for_business(
+                primary_trade=getattr(business, 'primary_trade_slug', ''),
+                secondary_trades=getattr(business, 'secondary_trades', []) or [],
                 market_focus=business.market_focus
             )
             
@@ -355,7 +355,9 @@ class ContractorService:
                 is_emergency=is_emergency,
                 is_available=True,
                 requires_consultation=is_installation,
-                service_areas=business.service_areas or [],
+                # Pull service areas from dedicated table via service areas service would be ideal;
+                # keep empty list here to avoid referencing removed Business.service_areas
+                service_areas=[],
                 certifications_required=[],
                 equipment_needed=[],
                 warranty_years=2 if is_installation else 1

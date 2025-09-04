@@ -8,8 +8,8 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import EmbeddableBookingWidget from '../../components/booking/EmbeddableBookingWidget';
-import { BookableService } from '../../lib/types/booking';
+import EmbeddableBookingWidget from '@/components/client/commerce/booking/Hero365BookingWidget';
+import { BookableService } from '@/lib/shared/types/booking';
 
 // Sample services - in production this would come from API based on businessId
 const getSampleServices = (businessId: string): BookableService[] => [
@@ -152,7 +152,7 @@ function WidgetContent() {
 
   return (
     <div className={`min-h-screen ${config.theme === 'dark' ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
-      <EmbeddableBookingWidget
+      <Hero365BookingWidget
         businessId={config.businessId}
         services={services}
         theme={config.theme}
