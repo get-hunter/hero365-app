@@ -105,7 +105,7 @@ class SupabaseServiceCategoryRepository:
         try:
             # Get categories that have services for this business
             query = self.client.table('service_categories').select(
-                '*, business_services!inner(id, business_id, name, description, unit_price, is_active, is_featured, sort_order)'
+                '*, business_services!inner(id, business_id, service_name, description, price_min, price_max, is_active, display_order)'
             ).eq('business_services.business_id', str(business_id)).eq('business_services.is_active', True)
             
             if trade_types:
@@ -124,7 +124,7 @@ class SupabaseServiceCategoryRepository:
                     elif service_data:  # Single service
                         services = [BusinessService(**service_data)]
                     
-                    category.services = sorted(services, key=lambda x: (x.sort_order, x.name))
+                    category.services = sorted(services, key=lambda x: (x.display_order, x.service_name))
                     category.service_count = len(services)
                     result.append(category)
             
@@ -251,25 +251,15 @@ class SupabaseBusinessServiceRepository:
             if is_active is not None:
                 query = query.eq('is_active', is_active)
             
-            if is_featured is not None:
-                query = query.eq('is_featured', is_featured)
+            # Note: is_featured column doesn't exist in business_services table
+            # if is_featured is not None:
+            #     query = query.eq('is_featured', is_featured)
             
             if category_id:
                 query = query.eq('category_id', str(category_id))
             
-            # Some environments may not have 'is_featured' column; order safely by existing fields
-            try:
-                response = query.order('is_featured', desc=True).order('sort_order').order('name').execute()
-            except Exception:
-                # Rebuild a fresh query without the 'is_featured' ordering to avoid duplicated order params
-                clean_query = self.client.table('business_services').select(select_fields).eq('business_id', str(business_id))
-                if is_active is not None:
-                    clean_query = clean_query.eq('is_active', is_active)
-                if is_featured is not None:
-                    clean_query = clean_query.eq('is_featured', is_featured)
-                if category_id:
-                    clean_query = clean_query.eq('category_id', str(category_id))
-                response = clean_query.order('sort_order').order('name').execute()
+            # Order by existing fields only (is_featured column doesn't exist in this table)
+            response = query.order('display_order').order('service_name').execute()
             
             services = []
             if response.data:

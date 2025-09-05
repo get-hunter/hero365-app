@@ -141,7 +141,7 @@ class WebsiteContextService:
     
     def __init__(self, supabase_client: Client, cache_adapter: Optional[Any] = None):
         self.supabase = supabase_client
-        self.cache = cache_adapter or None  # TODO: Implement Redis cache
+        self.cache = cache_adapter  # May be None when no cache is configured
         self.cache_ttl = 3600  # 1 hour
         
     async def get_comprehensive_context(self, business_id: str) -> Optional[BusinessContext]:
@@ -152,13 +152,16 @@ class WebsiteContextService:
         all data needed for trade-aware, personalized content.
         """
         try:
-            # Check cache first
+            # Check cache first (only if a cache adapter is configured)
             cache_key = f"enhanced_context:{business_id}"
-            cached_context = await self.cache.get(cache_key)
-            
-            if cached_context:
-                logger.info(f"✅ Cache hit for business context: {business_id}")
-                return BusinessContext(**json.loads(cached_context))
+            if self.cache is not None:
+                try:
+                    cached_context = await self.cache.get(cache_key)
+                    if cached_context:
+                        logger.info(f"✅ Cache hit for business context: {business_id}")
+                        return BusinessContext(**json.loads(cached_context))
+                except Exception as cache_err:
+                    logger.warning(f"⚠️ Cache get failed for {cache_key}: {cache_err}")
             
             logger.info(f"🔄 Building comprehensive context for business: {business_id}")
             
@@ -184,12 +187,16 @@ class WebsiteContextService:
             # Aggregate context
             business_context = await self._aggregate_context(business_id, context_data)
             
-            # Cache for 1 hour
-            await self.cache.set(
-                cache_key,
-                json.dumps(asdict(business_context)),
-                ttl=self.cache_ttl
-            )
+            # Cache for 1 hour (only if a cache adapter is configured)
+            if self.cache is not None:
+                try:
+                    await self.cache.set(
+                        cache_key,
+                        json.dumps(asdict(business_context)),
+                        ttl=self.cache_ttl
+                    )
+                except Exception as cache_err:
+                    logger.warning(f"⚠️ Cache set failed for {cache_key}: {cache_err}")
             
             logger.info(f"✅ Enhanced context built for {business_id}: "
                        f"{len(business_context.technicians)} technicians, "
@@ -206,20 +213,19 @@ class WebsiteContextService:
         """Get enhanced business profile data"""
         try:
             result = self.supabase.table("businesses").select(
-                "id, name, description, phone_number, business_email, address, "
+                "id, name, phone, email, address, "
                 "city, state, postal_code, website, primary_trade_slug, "
-                "selected_activity_slugs, market_focus, years_in_business, "
-                "company_values, awards_certifications, unique_selling_points"
+                "selected_activity_slugs, market_focus, years_in_business"
             ).eq("id", business_id).execute()
             
             if result.data:
                 business = result.data[0]
                 return {
-                    "id": business["id"],
-                    "name": business["name"],
+                    "id": business.get("id", ""),
+                    "name": business.get("name", ""),
                     "description": business.get("description", ""),
-                    "phone": business.get("phone_number", ""),
-                    "email": business.get("business_email", ""),
+                    "phone": business.get("phone", ""),
+                    "email": business.get("email", ""),
                     "address": business.get("address", ""),
                     "city": business.get("city", ""),
                     "state": business.get("state", ""),
@@ -228,10 +234,7 @@ class WebsiteContextService:
                     "primary_trade": business.get("primary_trade_slug", ""),
                     "selected_activities": business.get("selected_activity_slugs", []),
                     "market_focus": business.get("market_focus", "both"),
-                    "years_in_business": business.get("years_in_business", 0),
-                    "company_values": business.get("company_values", []),
-                    "awards_certifications": business.get("awards_certifications", []),
-                    "unique_selling_points": business.get("unique_selling_points", [])
+                    "years_in_business": business.get("years_in_business", 0)
                 }
             
             return {}
@@ -246,10 +249,7 @@ class WebsiteContextService:
             # Get technicians with their skills
             result = self.supabase.table("technicians").select(
                 "id, first_name, last_name, title, hire_date, "
-                "jobs_completed, average_job_rating, is_active, "
-                "technician_skills(skill_id, proficiency_level, years_experience, "
-                "certification_expires), "
-                "skills(name, category, description)"
+                "jobs_completed, average_job_rating, is_active"
             ).eq("business_id", business_id).eq("is_active", True).execute()
             
             technicians = []
@@ -266,12 +266,7 @@ class WebsiteContextService:
                 certifications = []
                 specializations = []
                 
-                for skill_rel in tech_data.get("technician_skills", []):
-                    skill_info = skill_rel.get("skills", {})
-                    if skill_info:
-                        specializations.append(skill_info["name"])
-                        if skill_rel.get("certification_expires"):
-                            certifications.append(f"{skill_info['name']} Certified")
+                # Skills relationships not available in current schema; leave empty lists
                 
                 technician = TechnicianProfile(
                     id=tech_data["id"],
@@ -301,9 +296,7 @@ class WebsiteContextService:
             # Get completed projects with job details
             result = self.supabase.table("projects").select(
                 "id, title, description, project_type, status, "
-                "estimated_cost, actual_cost, start_date, end_date, "
-                "jobs(id, title, description, status, estimated_cost, "
-                "assigned_technician_id, technicians(first_name, last_name, title))"
+                "estimated_cost, actual_cost, start_date, end_date"
             ).eq("business_id", business_id).eq("status", "completed").limit(20).execute()
             
             projects = []
@@ -313,13 +306,7 @@ class WebsiteContextService:
                 technician_id = ""
                 technician_certs = []
                 
-                jobs = project_data.get("jobs", [])
-                if jobs:
-                    job = jobs[0]  # Take first job's technician
-                    tech = job.get("technicians", {})
-                    if tech:
-                        technician_name = f"{tech['first_name']} {tech['last_name']}"
-                        technician_id = job.get("assigned_technician_id", "")
+                # No job/technician relationship in current schema
                 
                 project = ProjectShowcase(
                     id=project_data["id"],
@@ -358,8 +345,7 @@ class WebsiteContextService:
         try:
             # Get business locations
             result = self.supabase.table("business_locations").select(
-                "id, address, city, state, postal_code, is_primary, "
-                "service_radius_miles, response_time_hours"
+                "id, address, city, state, postal_code, is_primary, service_radius"
             ).eq("business_id", business_id).execute()
             
             service_areas = []
@@ -369,8 +355,8 @@ class WebsiteContextService:
                     slug=f"{location_data['city'].lower().replace(' ', '-')}-{location_data['state'].lower()}",
                     city=location_data["city"],
                     state=location_data["state"],
-                    coverage_radius_miles=location_data.get("service_radius_miles", 25),
-                    response_time_hours=location_data.get("response_time_hours", 2.0),
+                    coverage_radius_miles=location_data.get("service_radius", 25),
+                    response_time_hours=2.0,
                     is_primary=location_data.get("is_primary", False),
                     local_regulations=[],  # Could be enhanced with RAG
                     common_issues=[],  # Could be enhanced with RAG
@@ -606,5 +592,11 @@ class WebsiteContextService:
     async def invalidate_cache(self, business_id: str):
         """Invalidate cached context for a business"""
         cache_key = f"enhanced_context:{business_id}"
-        await self.cache.delete(cache_key)
-        logger.info(f"🗑️ Invalidated cache for business: {business_id}")
+        if self.cache is not None:
+            try:
+                await self.cache.delete(cache_key)
+                logger.info(f"🗑️ Invalidated cache for business: {business_id}")
+            except Exception as cache_err:
+                logger.warning(f"⚠️ Cache delete failed for {cache_key}: {cache_err}")
+        else:
+            logger.info(f"ℹ️ No cache configured; nothing to invalidate for {business_id}")

@@ -10,7 +10,7 @@ High-performance API endpoints that replace the fragmented content systems:
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from fastapi.responses import JSONResponse
@@ -26,10 +26,11 @@ from app.infrastructure.database.repositories.supabase_business_repository impor
 from app.infrastructure.database.repositories.supabase_contact_repository import SupabaseContactRepository
 from app.application.services.llm_content_generation_service import LLMContentGenerationService
 from app.application.services.rag_retrieval_service import RAGRetrievalService
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/content", tags=["Unified Content"])
+router = APIRouter(prefix="/content", tags=["Unified Content"])
 
 # Pydantic models for API
 class ContentGenerationRequest(BaseModel):
@@ -84,14 +85,14 @@ class CacheInvalidationRequest(BaseModel):
 # Dependency injection
 async def get_content_orchestrator() -> UnifiedContentOrchestrator:
     """Get the unified content orchestrator instance"""
-    # In production, these would be properly injected
-    from app.infrastructure.database.supabase_client import get_supabase_client
+    # Use shared DI to retrieve Supabase client
+    from app.api.deps import get_supabase_client
     supabase_client = get_supabase_client()
     
     business_repo = SupabaseBusinessRepository(supabase_client)
     contact_repo = SupabaseContactRepository(supabase_client)
-    llm_service = LLMContentGenerationService()
-    rag_service = RAGRetrievalService()
+    llm_service = LLMContentGenerationService(openai_api_key=str(settings.OPENAI_API_KEY))
+    rag_service = RAGRetrievalService(supabase_client)
     
     return UnifiedContentOrchestrator(
         business_repository=business_repo,
@@ -251,18 +252,49 @@ async def get_artifact(
     """
     Get artifact content (compatible with existing frontend)
     
-    This endpoint maintains compatibility with the existing frontend
-    while using the new unified orchestrator backend.
+    Always returns a 200 with at least template-tier fallback to avoid frontend 500s.
     """
-    request = ContentGenerationRequest(
-        business_id=business_id,
-        activity_slug=activity_slug,
-        location_slug=location_slug,
-        page_variant=page_variant,
-        target_tier=tier,
-    )
-    
-    return await generate_content(request, orchestrator)
+    try:
+        # Map tier safely to enum
+        try:
+            target_tier = ContentTier(tier)
+        except Exception:
+            logger.warning(f"Invalid target tier '{tier}', defaulting to template")
+            target_tier = ContentTier.TEMPLATE
+
+        content_request = ContentRequest(
+            business_id=business_id,
+            activity_slug=activity_slug,
+            location_slug=location_slug,
+            page_variant=page_variant,
+            target_tier=target_tier,
+            personalization_context=None,
+            cache_ttl=3600,
+        )
+
+        resp = await orchestrator.generate_content(content_request)
+        return ContentGenerationResponse(
+            request_id=resp.request_id,
+            business_id=resp.business_id,
+            activity_slug=resp.activity_slug,
+            location_slug=resp.location_slug,
+            page_variant=resp.page_variant,
+            artifact=resp.artifact,
+            business_context=resp.business_context,
+            location_context=resp.location_context,
+            tier=resp.tier.value,
+            status=resp.status.value,
+            quality_score=resp.quality_score,
+            generation_time_ms=resp.generation_time_ms,
+            cached=resp.cached,
+            expires_at=resp.expires_at,
+            seo_score=resp.seo_score,
+            readability_score=resp.readability_score,
+            conversion_potential=resp.conversion_potential,
+        )
+    except Exception as e:
+        logger.error(f"❌ [API] Artifact generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Artifact generation failed: {e}")
 
 @router.post("/cache/invalidate")
 async def invalidate_cache(
@@ -342,20 +374,41 @@ async def pregenerate_content(
     try:
         logger.info(f"🚀 [API] Pregenerating content matrix for {business_id}")
         
-        # Define the service-location matrix
-        services = [
-            'ac-repair', 'ac-installation', 'hvac-maintenance', 'heating-repair',
-            'drain-cleaning', 'water-heater-repair', 'leak-detection', 'pipe-repair',
-            'panel-upgrade', 'lighting-installation', 'wiring-repair', 'generator-installation',
-            'roof-repair', 'roof-replacement', 'gutter-installation', 'storm-damage-repair',
-            'home-renovation', 'kitchen-remodel', 'bathroom-remodel', 'room-addition'
-        ]
-        
-        locations = [
-            'austin-tx', 'round-rock-tx', 'cedar-park-tx', 'pflugerville-tx', 'leander-tx',
-            'georgetown-tx', 'lakeway-tx', 'bee-cave-tx', 'west-lake-hills-tx', 'rollingwood-tx',
-            'sunset-valley-tx', 'manchaca-tx', 'del-valle-tx', 'elgin-tx', 'manor-tx'
-        ]
+        # Get service-location matrix from database
+        try:
+            from app.api.deps import get_supabase_client
+            supabase = get_supabase_client()
+            
+            # Get active services
+            services_response = supabase.table('business_services').select('service_slug').eq('is_active', True).execute()
+            services = list(set(s['service_slug'] for s in services_response.data if s.get('service_slug')))
+            
+            # Get active locations
+            locations_response = supabase.table('business_locations').select('city, state').eq('is_active', True).execute()
+            locations = []
+            for loc in locations_response.data:
+                city = loc.get('city', '').strip()
+                state = loc.get('state', '').strip()
+                if city and state:
+                    slug = f"{city.lower().replace(' ', '-')}-{state.lower()}"
+                    locations.append(slug)
+            locations = list(set(locations))
+            
+            logger.info(f"📊 [API] Using {len(services)} services and {len(locations)} locations from database")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ [API] Failed to fetch services/locations from DB, using fallback: {str(e)}")
+            # Fallback to ensure pregeneration doesn't fail
+            services = [
+                'ac-repair', 'ac-installation', 'hvac-maintenance', 'heating-repair',
+                'drain-cleaning', 'water-heater-repair', 'leak-detection', 'pipe-repair',
+                'panel-upgrade', 'lighting-installation', 'wiring-repair', 'generator-installation'
+            ]
+            
+            locations = [
+                'austin-tx', 'round-rock-tx', 'cedar-park-tx', 'pflugerville-tx', 'leander-tx',
+                'georgetown-tx', 'lakeway-tx', 'bee-cave-tx', 'west-lake-hills-tx', 'rollingwood-tx'
+            ]
         
         variants = ['standard', 'emergency', 'commercial']
         

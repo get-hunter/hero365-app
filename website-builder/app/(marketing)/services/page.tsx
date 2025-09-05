@@ -5,7 +5,10 @@ import Link from 'next/link';
 
 // This would come from environment or config
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-const BUSINESS_ID = process.env.NEXT_PUBLIC_BUSINESS_ID || 'demo-business-id';
+const BUSINESS_ID = process.env.NEXT_PUBLIC_BUSINESS_ID as string;
+if (!BUSINESS_ID) {
+  throw new Error('NEXT_PUBLIC_BUSINESS_ID is required');
+}
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://example.com';
 
 interface BusinessData {

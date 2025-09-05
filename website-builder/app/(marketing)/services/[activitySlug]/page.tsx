@@ -25,7 +25,10 @@ interface ActivityPageProps {
 }
 
 // Configuration from environment
-const BUSINESS_ID = process.env.NEXT_PUBLIC_BUSINESS_ID || 'demo-business-id';
+const BUSINESS_ID = process.env.NEXT_PUBLIC_BUSINESS_ID as string;
+if (!BUSINESS_ID) {
+  throw new Error('NEXT_PUBLIC_BUSINESS_ID is required');
+}
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
 
 /**

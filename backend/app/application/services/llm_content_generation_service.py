@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 import openai
-from redis import Redis
+from redis.asyncio import Redis as AsyncRedis
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -62,11 +62,11 @@ class LLMContentGenerationService:
     def __init__(
         self,
         openai_api_key: str,
-        redis_client: Optional[Redis] = None,
+        redis_client: Optional[AsyncRedis] = None,
         weather_api_key: Optional[str] = None
     ):
         self.openai_client = openai.AsyncOpenAI(api_key=openai_api_key)
-        self.redis_client = redis_client or Redis(host='localhost', port=6379, db=0)
+        self.redis_client = redis_client or AsyncRedis(host='localhost', port=6379, db=0)
         self.weather_api_key = weather_api_key
         
         # Content generation templates
@@ -106,6 +106,60 @@ class LLMContentGenerationService:
         
         logger.info(f"Generated new content for {request.content_type}")
         return generated_content
+
+    async def enhance_artifact_content(
+        self,
+        artifact: Dict[str, Any],
+        business_context: Dict[str, Any],
+        location_context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Enhance a base artifact with LLM-generated copy.
+
+        This method is used by the content orchestrator for the ENHANCED tier.
+        It updates hero headline/subheadline/CTA and may adjust meta fields.
+        On any error or if LLM is unavailable, returns a minimally improved artifact.
+        """
+        try:
+            # Build minimal trade config from the artifact
+            activity_name = artifact.get('activity_name') or artifact.get('activity_slug', '').replace('-', ' ').title()
+            trade_config = { 'display_name': activity_name }
+
+            # Ensure business context shape contains expected keys
+            business_ctx = dict(business_context or {})
+            if location_context:
+                # Provide a simple location object for prompts
+                business_ctx.setdefault('city', location_context.get('city'))
+                business_ctx.setdefault('state', location_context.get('state'))
+
+            # Generate improved hero copy
+            hero_content = await self.generate_hero_content(business_ctx, trade_config)
+
+            # Apply enhancements
+            enhanced = dict(artifact)
+            enhanced.setdefault('hero', {})
+            enhanced['hero'].update({
+                'headline': hero_content.primary_text or enhanced['hero'].get('headline') or activity_name,
+                'subheadline': hero_content.secondary_text or enhanced['hero'].get('subheadline') or '',
+                'cta_text': hero_content.cta_text or enhanced['hero'].get('cta_text') or 'Get Free Estimate',
+            })
+
+            # If business phone is present, set CTA URL
+            phone = (business_ctx.get('phone') or '').strip()
+            if phone:
+                enhanced['hero']['cta_url'] = f"tel:{phone}"
+
+            # Optionally adjust meta title/description
+            city = business_ctx.get('city') or (location_context or {}).get('city')
+            state = business_ctx.get('state') or (location_context or {}).get('state')
+            if city and state:
+                enhanced['meta_title'] = enhanced.get('meta_title') or f"{activity_name} in {city}, {state} | Professional Service"
+                if not enhanced.get('meta_description'):
+                    enhanced['meta_description'] = f"Professional {activity_name.lower()} in {city}, {state}. Call today for prompt, reliable service."
+
+            return enhanced
+        except Exception as e:
+            logger.warning(f"enhance_artifact_content failed; returning base artifact. Error: {e}")
+            return artifact
 
     async def generate_hero_content(
         self,
@@ -672,7 +726,7 @@ async def create_llm_content_service(
 ) -> LLMContentGenerationService:
     """Factory function to create LLM content generation service."""
     
-    redis_client = Redis(host=redis_host, port=redis_port, db=0)
+    redis_client = AsyncRedis(host=redis_host, port=redis_port, db=0)
     
     return LLMContentGenerationService(
         openai_api_key=openai_api_key,

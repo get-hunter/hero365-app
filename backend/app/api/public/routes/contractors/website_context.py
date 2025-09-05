@@ -68,16 +68,17 @@ async def get_website_context(
                 detail=f"Website context not found for business: {business_id}"
             )
         
-        # Add caching headers for performance
+        # Serialize dataclass to dict and add caching headers
+        from dataclasses import asdict
+        content_dict = asdict(context)
         response = JSONResponse(
-            content=context.model_dump(),
+            content=content_dict,
             headers={
-                "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
-                "ETag": f'"{business_id}-{context.metadata.get("generated_at", "")}"',
+                "Cache-Control": "public, max-age=3600",
+                "ETag": f'"{business_id}-{content_dict.get("generated_at", "")}"',
                 "Vary": "Accept-Encoding"
             }
         )
-        
         return response
         
     except HTTPException:

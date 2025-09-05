@@ -27,55 +27,48 @@ interface ServiceLocationPageProps {
 }
 
 // Configuration
-const BUSINESS_ID = process.env.NEXT_PUBLIC_BUSINESS_ID || 'demo-business-id';
+const BUSINESS_ID = process.env.NEXT_PUBLIC_BUSINESS_ID as string;
+if (!BUSINESS_ID) {
+  throw new Error('NEXT_PUBLIC_BUSINESS_ID is required');
+}
 
 /**
  * Enhanced data fetching with location context
  */
-async function getServiceLocationData(activitySlug: string, locationSlug: string): Promise<{
-  artifact: ActivityPageArtifact;
-  businessContext: BusinessContext;
-  tradeConfig: TradeConfiguration;
-  locationData: LocationData;
-} | null> {
-  try {
-    console.log(`🔄 [SSR] Loading service-location data: ${activitySlug} in ${locationSlug}`);
-    const startTime = Date.now();
+async function getServiceLocationData(
+  activitySlug: string,
+  locationSlug: string
+): Promise<{ artifact: ActivityPageArtifact; businessContext: BusinessContext; tradeConfig: TradeConfiguration; locationData: LocationData; }> {
+  console.log(`🔄 [SSR] Loading service-location data: ${activitySlug} in ${locationSlug}`);
+  const startTime = Date.now();
 
-    // Parallel data fetching for optimal performance
-    const [artifact, businessContext, locationData] = await Promise.all([
-      getArtifactByActivity(BUSINESS_ID, activitySlug, locationSlug), // Location-aware artifact
-      getBusinessContext(BUSINESS_ID),
-      getLocationData(locationSlug)
-    ]);
+  // Parallel data fetching for optimal performance
+  const [artifact, businessContext, locationData] = await Promise.all([
+    getArtifactByActivity(BUSINESS_ID, activitySlug, locationSlug), // Location-aware artifact
+    getBusinessContext(BUSINESS_ID),
+    getLocationData(locationSlug)
+  ]);
 
-    if (!artifact) {
-      console.warn(`❌ No artifact found for ${activitySlug} in ${locationSlug}`);
-      return null;
-    }
-
-    if (!businessContext) {
-      console.warn(`❌ No business context found for: ${BUSINESS_ID}`);
-      return null;
-    }
-
-    if (!locationData) {
-      console.warn(`❌ No location data found for: ${locationSlug}`);
-      return null;
-    }
-
-    // Get trade configuration
-    const primaryTrade = businessContext.trade_profile.primary_trade || artifact.activity_type;
-    const tradeConfig = getTradeConfig(primaryTrade);
-
-    const loadTime = Date.now() - startTime;
-    console.log(`✅ [SSR] Service-location data loaded in ${loadTime}ms`);
-
-    return { artifact, businessContext, tradeConfig, locationData };
-  } catch (error) {
-    console.error('❌ Error fetching service-location data:', error);
-    return null;
+  if (!artifact) {
+    throw new Error(`Artifact not found for activity '${activitySlug}' in location '${locationSlug}'`);
   }
+
+  if (!businessContext) {
+    throw new Error(`Business context not found for business '${BUSINESS_ID}'`);
+  }
+
+  if (!locationData) {
+    throw new Error(`Location data not found for '${locationSlug}'`);
+  }
+
+  // Get trade configuration
+  const primaryTrade = businessContext.trade_profile.primary_trade || artifact.activity_type;
+  const tradeConfig = getTradeConfig(primaryTrade);
+
+  const loadTime = Date.now() - startTime;
+  console.log(`✅ [SSR] Service-location data loaded in ${loadTime}ms`);
+
+  return { artifact, businessContext, tradeConfig, locationData };
 }
 
 /**
@@ -83,66 +76,66 @@ async function getServiceLocationData(activitySlug: string, locationSlug: string
  */
 export async function generateMetadata({ params }: ServiceLocationPageProps): Promise<Metadata> {
   const { activitySlug, locationSlug } = await params;
-  const data = await getServiceLocationData(activitySlug, locationSlug);
+  try {
+    const data = await getServiceLocationData(activitySlug, locationSlug);
 
-  if (!data) {
+    const { artifact, businessContext, locationData } = data;
+  
+    // Location-optimized SEO metadata
+    const businessName = businessContext.business.name;
+    const serviceName = artifact.activity_name;
+    const city = locationData.city;
+    const state = locationData.state;
+
+    const title = `${serviceName} in ${city}, ${state} | ${businessName}`;
+    const description = `Expert ${serviceName.toLowerCase()} services in ${city}, ${state}. ${businessName} serves ${city} with ${businessContext.combined_experience_years} years of experience. Call ${businessContext.business.phone}`;
+
     return {
-      title: 'Service Not Available',
-      description: 'The requested service is not available in this location.',
+      title,
+      description,
+      alternates: {
+        canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/services/${activitySlug}/${locationSlug}`,
+      },
+      openGraph: {
+        title,
+        description,
+        url: `${process.env.NEXT_PUBLIC_SITE_URL}/services/${activitySlug}/${locationSlug}`,
+        siteName: businessName,
+        locale: 'en_US',
+        type: 'website',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+      },
+      robots: {
+        index: true,
+        follow: true,
+        nocache: false,
+        googleBot: {
+          index: true,
+          follow: true,
+          noimageindex: false,
+          'max-video-preview': -1,
+          'max-snippet': -1,
+        },
+      },
+      // Location-specific structured data
+      other: {
+        'geo.region': `US-${state}`,
+        'geo.placename': city,
+        'geo.position': `${locationData.latitude};${locationData.longitude}`,
+        'ICBM': `${locationData.latitude}, ${locationData.longitude}`,
+      },
+    };
+  } catch (e: any) {
+    return {
+      title: `Error loading page: ${e?.message || 'Unknown error'}`,
+      description: 'The requested page could not be generated due to missing content.',
       robots: { index: false, follow: false }
     };
   }
-
-  const { artifact, businessContext, locationData } = data;
-  
-  // Location-optimized SEO metadata
-  const businessName = businessContext.business.name;
-  const serviceName = artifact.activity_name;
-  const city = locationData.city;
-  const state = locationData.state;
-
-  const title = `${serviceName} in ${city}, ${state} | ${businessName}`;
-  const description = `Expert ${serviceName.toLowerCase()} services in ${city}, ${state}. ${businessName} serves ${city} with ${businessContext.combined_experience_years} years of experience. Call ${businessContext.business.phone}`;
-
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/services/${activitySlug}/${locationSlug}`,
-    },
-    openGraph: {
-      title,
-      description,
-      url: `${process.env.NEXT_PUBLIC_SITE_URL}/services/${activitySlug}/${locationSlug}`,
-      siteName: businessName,
-      locale: 'en_US',
-      type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-    },
-    robots: {
-      index: true,
-      follow: true,
-      nocache: false,
-      googleBot: {
-        index: true,
-        follow: true,
-        noimageindex: false,
-        'max-video-preview': -1,
-        'max-snippet': -1,
-      },
-    },
-    // Location-specific structured data
-    other: {
-      'geo.region': `US-${state}`,
-      'geo.placename': city,
-      'geo.position': `${locationData.latitude};${locationData.longitude}`,
-      'ICBM': `${locationData.latitude}, ${locationData.longitude}`,
-    },
-  };
 }
 
 /**
@@ -150,10 +143,18 @@ export async function generateMetadata({ params }: ServiceLocationPageProps): Pr
  */
 export default async function ServiceLocationPage({ params }: ServiceLocationPageProps) {
   const { activitySlug, locationSlug } = await params;
-  const data = await getServiceLocationData(activitySlug, locationSlug);
-
-  if (!data) {
-    notFound();
+  let data;
+  try {
+    data = await getServiceLocationData(activitySlug, locationSlug);
+  } catch (e: any) {
+    return (
+      <div className="container mx-auto px-4 py-10">
+        <article className="prose max-w-3xl mx-auto">
+          <h1>Failed to load page</h1>
+          <p>{e?.message || 'Unknown error'}</p>
+        </article>
+      </div>
+    );
   }
 
   const { artifact, businessContext, tradeConfig, locationData } = data;
@@ -201,9 +202,10 @@ export async function generateStaticParams() {
     console.log('🔄 [BUILD] Generating service-location static params...');
 
     // Get all services and locations
+    const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
     const [servicesResponse, locationsResponse] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/public/services/active`),
-      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/public/locations/active`)
+      fetch(`${backend}/api/v1/public/services/active`),
+      fetch(`${backend}/api/v1/public/locations/active`)
     ]);
 
     if (!servicesResponse.ok || !locationsResponse.ok) {

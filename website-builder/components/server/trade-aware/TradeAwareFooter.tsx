@@ -144,8 +144,8 @@ export function TradeAwareFooter({
             <div key={section.title} className="lg:col-span-1">
               <h4 className="text-lg font-semibold mb-4">{section.title}</h4>
               <ul className="space-y-2">
-                {section.links.map((link) => (
-                  <li key={link.href}>
+                {section.links.map((link, idx) => (
+                  <li key={`${link.href}-${idx}`}>
                     {link.external ? (
                       <a
                         href={link.href}
@@ -336,6 +336,18 @@ function generateFooterSections(
   
   const sections: FooterSection[] = [];
   
+  const dedupeByHref = (links: FooterLink[]): FooterLink[] => {
+    const seen = new Set<string>();
+    const result: FooterLink[] = [];
+    for (const link of links) {
+      if (!link.href) continue;
+      if (seen.has(link.href)) continue;
+      seen.add(link.href);
+      result.push(link);
+    }
+    return result;
+  };
+  
   // Services Section
   if (options.showServiceLinks && activities.length > 0) {
     const serviceLinks: FooterLink[] = [];
@@ -373,7 +385,7 @@ function generateFooterSections(
     
     sections.push({
       title: `${tradeConfig.display_name} Services`,
-      links: serviceLinks
+      links: dedupeByHref(serviceLinks)
     });
   }
   
@@ -393,7 +405,7 @@ function generateFooterSections(
     
     sections.push({
       title: 'Service Areas',
-      links: locationLinks
+      links: dedupeByHref(locationLinks)
     });
   }
   

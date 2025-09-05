@@ -61,31 +61,23 @@ class BusinessService(BaseModel):
     """Business-specific instance of a service."""
     id: UUID
     business_id: UUID
-    template_id: Optional[UUID] = Field(None, description="Template this service was created from")
-    category_id: UUID
-    name: str
+    service_name: str  # Maps to database 'service_name'
+    service_slug: Optional[str] = None
     description: Optional[str] = None
-    pricing_model: str
-    unit_price: Optional[Decimal] = None
-    minimum_price: Optional[Decimal] = None
-    unit_of_measure: str = "service"
-    estimated_duration_hours: Optional[Decimal] = None
-    markup_percentage: Optional[Decimal] = Field(None, ge=0)
-    cost_price: Optional[Decimal] = Field(None, ge=0)
-    is_active: bool = True
-    is_featured: bool = False
+    category: Optional[str] = None  # Maps to database 'category' (not category_id)
+    price_type: str = "range"  # Maps to database 'price_type' (not pricing_model)
+    price_min: Optional[Decimal] = None
+    price_max: Optional[Decimal] = None
+    price_unit: Optional[str] = None
     is_emergency: bool = False
-    requires_booking: bool = True
-    availability_schedule: Optional[Dict] = None
-    service_areas: List[str] = Field(default_factory=list)
+    is_commercial: bool = False
+    is_residential: bool = True
+    is_active: bool = True
+    display_order: int = 0  # Maps to database 'display_order' (not sort_order)
+    adopted_from_slug: Optional[str] = None
+    template_version: int = 1
+    pricing_config: Dict = Field(default_factory=dict)
     booking_settings: Dict = Field(default_factory=dict)
-    warranty_terms: Optional[str] = None
-    terms_and_conditions: Optional[str] = None
-    custom_fields: Dict = Field(default_factory=dict)
-    sort_order: int = 0
-    total_bookings: int = 0
-    average_rating: Optional[Decimal] = Field(None, ge=0, le=5)
-    last_booked_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

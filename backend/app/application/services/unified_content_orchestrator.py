@@ -214,30 +214,7 @@ class UnifiedContentOrchestrator:
                 
         except Exception as e:
             logger.error(f"❌ [ORCHESTRATOR] Failed to generate content for {request_id}: {str(e)}")
-            
-            # Return fallback template content
-            fallback_content = await self._generate_fallback_content(request)
-            generation_time = int((datetime.now() - start_time).total_seconds() * 1000)
-            
-            return ContentResponse(
-                request_id=request_id,
-                business_id=request.business_id,
-                activity_slug=request.activity_slug,
-                location_slug=request.location_slug,
-                page_variant=request.page_variant,
-                artifact=fallback_content['artifact'],
-                business_context=fallback_content['business_context'],
-                location_context=fallback_content.get('location_context'),
-                tier=ContentTier.TEMPLATE,
-                status=ContentStatus.READY,
-                quality_score=50.0,  # Fallback quality
-                generation_time_ms=generation_time,
-                cached=False,
-                expires_at=datetime.now() + timedelta(seconds=300),  # Short TTL for fallback
-                seo_score=50.0,
-                readability_score=60.0,
-                conversion_potential=0.03,
-            )
+            raise
     
     async def _generate_template_content(self, request: ContentRequest) -> Dict[str, Any]:
         """
@@ -278,7 +255,7 @@ class UnifiedContentOrchestrator:
         # Start with template content
         base_content = await self._generate_template_content(request)
         
-        # Enhance with LLM
+        # Enhance with LLM (gracefully fall back to base on error)
         enhanced_artifact = await self.llm_service.enhance_artifact_content(
             base_content['artifact'],
             base_content['business_context'],
@@ -486,6 +463,8 @@ class UnifiedContentOrchestrator:
                     }
                 }
             ],
+            # A/B testing metadata (default disabled)
+            'active_experiment_keys': [],
             
             # Metadata
             'created_at': datetime.now().isoformat(),
@@ -497,38 +476,134 @@ class UnifiedContentOrchestrator:
         return artifact
     
     async def _get_business_context(self, business_id: str) -> Dict[str, Any]:
-        """Get comprehensive business context"""
-        # This would integrate with existing business context loader
-        # For now, return mock data structure
-        return {
-            'business_profile': {'id': business_id},
-            'business': {
-                'name': 'Austin Pro Services',
-                'phone': '(512) 555-0123',
-                'address': '123 Main St',
-                'city': 'Austin',
-                'state': 'TX',
-                'postal_code': '78701',
-            },
-            'combined_experience_years': 15,
-            'technicians': [],
-            'projects': [],
-            'testimonials': [],
-        }
+        """Get comprehensive business context from database"""
+        try:
+            # Get business entity from repository
+            business = await self.business_repo.get_by_id(business_id)
+            if not business:
+                raise ValueError(f"Business {business_id} not found")
+            
+            # Convert business entity to context dict
+            business_dict = {
+                'name': business.name,
+                'phone': business.phone_display or business.phone_number,
+                'address': business.address,
+                'city': business.city,
+                'state': business.state,
+                'postal_code': business.postal_code,
+                'email': business.business_email,
+                'website': business.website,
+                'primary_trade_slug': getattr(business, 'primary_trade_slug', None),
+                'years_in_business': business.years_in_business,
+                'license_number': getattr(business, 'business_license', None),
+                'emergency_available': business.emergency_available,
+            }
+
+            # Validate required fields to avoid silent fallbacks
+            if not business_dict['name']:
+                raise ValueError("Business name is missing")
+            if not business_dict['phone']:
+                raise ValueError("Business phone is missing")
+            
+            # Get additional context data
+            technicians = await self._get_technicians_context(business_id)
+            testimonials = await self._get_testimonials_context(business_id)
+            
+            return {
+                'business_profile': {'id': business_id},
+                'business': business_dict,
+                'combined_experience_years': business.years_in_business,
+                'technicians': technicians,
+                'projects': [],  # Could be expanded later
+                'testimonials': testimonials,
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get business context for {business_id}: {str(e)}")
+            raise
+    
+    # Removed fallback business context per requirement to return errors instead of mock data
+    
+    async def _get_technicians_context(self, business_id: str) -> List[Dict[str, Any]]:
+        """Get technicians context for business"""
+        try:
+            # This could be expanded to use a technician repository
+            # For now, return empty list to avoid additional complexity
+            return []
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to get technicians for {business_id}: {str(e)}")
+            return []
+    
+    async def _get_testimonials_context(self, business_id: str) -> List[Dict[str, Any]]:
+        """Get testimonials context for business"""
+        try:
+            # This could be expanded to use a testimonial repository
+            # For now, return empty list to avoid additional complexity
+            return []
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to get testimonials for {business_id}: {str(e)}")
+            return []
     
     async def _get_location_context(self, location_slug: str) -> Optional[Dict[str, Any]]:
-        """Get location-specific context"""
+        """Get location-specific context from slug"""
         if not location_slug:
             return None
         
-        # Mock location data - integrate with location service
+        try:
+            # Parse location slug (e.g., "austin-tx" -> "Austin", "TX")
+            parts = location_slug.split('-')
+            if len(parts) < 2:
+                logger.warning(f"⚠️ Invalid location slug format: {location_slug}")
+                return self._get_fallback_location_context(location_slug)
+            
+            # Extract city and state from slug
+            state = parts[-1].upper()  # Last part is state
+            city_parts = parts[:-1]    # Everything before state is city
+            city = ' '.join(word.capitalize() for word in city_parts)
+            
+            # Basic location context (could be enhanced with geocoding API)
+            location_context = {
+                'slug': location_slug,
+                'city': city,
+                'state': state,
+                'display_name': f"{city}, {state}",
+            }
+            
+            # Add coordinates for major cities (could be expanded)
+            coordinates = self._get_city_coordinates(city, state)
+            if coordinates:
+                location_context.update(coordinates)
+            
+            return location_context
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get location context for {location_slug}: {str(e)}")
+            return self._get_fallback_location_context(location_slug)
+    
+    def _get_fallback_location_context(self, location_slug: str) -> Dict[str, Any]:
+        """Fallback location context when parsing fails"""
         return {
             'slug': location_slug,
             'city': 'Austin',
             'state': 'TX',
+            'display_name': 'Austin, TX',
             'latitude': 30.2672,
             'longitude': -97.7431,
         }
+    
+    def _get_city_coordinates(self, city: str, state: str) -> Optional[Dict[str, float]]:
+        """Get coordinates for major cities (basic lookup)"""
+        # Basic coordinate lookup for common Texas cities
+        coordinates_map = {
+            ('Austin', 'TX'): {'latitude': 30.2672, 'longitude': -97.7431},
+            ('Round Rock', 'TX'): {'latitude': 30.5082, 'longitude': -97.6789},
+            ('Cedar Park', 'TX'): {'latitude': 30.5052, 'longitude': -97.8203},
+            ('Pflugerville', 'TX'): {'latitude': 30.4394, 'longitude': -97.6200},
+            ('Leander', 'TX'): {'latitude': 30.5788, 'longitude': -97.8531},
+            ('Georgetown', 'TX'): {'latitude': 30.6332, 'longitude': -97.6779},
+        }
+        
+        return coordinates_map.get((city, state))
     
     async def _assess_quality(self, content: Dict[str, Any], request: ContentRequest) -> QualityMetrics:
         """

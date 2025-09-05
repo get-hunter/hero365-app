@@ -62,6 +62,8 @@ class Business(BaseModel):
     phone_number: Optional[str] = Field(None, max_length=20)
     phone_country_code: Optional[str] = Field(None, max_length=5)
     phone_display: Optional[str] = Field(None, max_length=25)
+    years_in_business: Optional[int] = Field(None, ge=0)
+    emergency_available: Optional[bool] = False
     business_address: Optional[str] = None
     
     # Address components (for SEO and local business features)

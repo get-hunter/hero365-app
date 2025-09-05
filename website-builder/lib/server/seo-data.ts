@@ -62,17 +62,51 @@ async function loadSEOPagesInternal(businessId: string): Promise<void> {
   try {
     const isServerSide = typeof window === 'undefined'
 
-    // PRIORITY 1: Load generated content only on the client to avoid SSR bundling issues
+    // PRIORITY 1: Load generated content
+    // - Client: try generated file
+    // - Server (development): prefer seo-pages-dev.js, then fallback to seo-pages.js
     if (!isServerSide) {
       try {
         const { getAllSEOPages, getAllContentBlocks } = await import('../generated/seo-pages.js')
         seoPages = getAllSEOPages()
         contentBlocks = getAllContentBlocks()
-        console.log('✅ [SEO] Loaded generated SEO pages (client):', Object.keys(seoPages).length, 'pages')
-        console.log('✅ [SEO] Loaded generated content blocks (client):', Object.keys(contentBlocks).length, 'blocks')
-        return
+        const pageCount = Object.keys(seoPages).length
+        const blockCount = Object.keys(contentBlocks).length
+        if (pageCount > 0 || blockCount > 0) {
+          console.log('✅ [SEO] Loaded generated SEO pages (client):', pageCount, 'pages')
+          console.log('✅ [SEO] Loaded generated content blocks (client):', blockCount, 'blocks')
+          return
+        } else {
+          console.log('ℹ️ [SEO] No generated SEO content available (normal for new setup)')
+        }
       } catch (error: any) {
         console.log('⚠️ [SEO] Generated content not available on client:', error?.message || error)
+      }
+    } else if (process.env.NODE_ENV !== 'production') {
+      // Server-side development: try dev file first
+      try {
+        const { getAllSEOPages, getAllContentBlocks } = await import('../generated/seo-pages-dev.js')
+        seoPages = getAllSEOPages()
+        contentBlocks = getAllContentBlocks()
+        const pageCount = Object.keys(seoPages).length
+        const blockCount = Object.keys(contentBlocks).length
+        console.log('✅ [SEO] Loaded generated SEO pages (server dev):', pageCount, 'pages')
+        console.log('✅ [SEO] Loaded generated content blocks (server dev):', blockCount, 'blocks')
+        return
+      } catch (devErr: any) {
+        console.log('ℹ️ [SEO] Dev SEO file not found, falling back to default:', devErr?.message || devErr)
+        try {
+          const { getAllSEOPages, getAllContentBlocks } = await import('../generated/seo-pages.js')
+          seoPages = getAllSEOPages()
+          contentBlocks = getAllContentBlocks()
+          const pageCount = Object.keys(seoPages).length
+          const blockCount = Object.keys(contentBlocks).length
+          console.log('✅ [SEO] Loaded generated SEO pages (server):', pageCount, 'pages')
+          console.log('✅ [SEO] Loaded generated content blocks (server):', blockCount, 'blocks')
+          return
+        } catch (genErr: any) {
+          console.log('⚠️ [SEO] Generated content not available on server:', genErr?.message || genErr)
+        }
       }
     }
 
@@ -94,8 +128,16 @@ async function loadSEOPagesInternal(businessId: string): Promise<void> {
         
         seoPages = data.pages || {}
         contentBlocks = data.content_blocks || {}
-        console.log('✅ [SEO] Loaded SEO pages from API:', Object.keys(seoPages).length, 'pages')
-        console.log('✅ [SEO] Loaded content blocks from API:', Object.keys(contentBlocks).length, 'blocks')
+        const pageCount = Object.keys(seoPages).length
+        const blockCount = Object.keys(contentBlocks).length
+        
+        // Only log if there's actual content, otherwise just note it's empty (expected for new setups)
+        if (pageCount > 0 || blockCount > 0) {
+          console.log('✅ [SEO] Loaded SEO pages from API:', pageCount, 'pages')
+          console.log('✅ [SEO] Loaded content blocks from API:', blockCount, 'blocks')
+        } else {
+          console.log('ℹ️ [SEO] No SEO content configured yet (normal for new setup)')
+        }
         return
       } else {
         console.log('⚠️ [SEO] API responded non-OK:', response.status)

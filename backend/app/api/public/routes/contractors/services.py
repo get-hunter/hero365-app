@@ -22,6 +22,76 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+# Real database-backed discovery endpoints for static generation
+@router.get("/services/active", response_model=List[dict])
+async def get_active_services_for_static():
+    """Return a list of active service slugs from the database for static generation."""
+    from app.api.deps import get_supabase_client
+    
+    try:
+        supabase = get_supabase_client()
+        response = supabase.table('business_services').select('service_slug').eq('is_active', True).execute()
+        
+        # Extract unique slugs and return in expected format
+        slugs = set()
+        for service in response.data:
+            if service.get('service_slug'):
+                slugs.add(service['service_slug'])
+        
+        services = [{"slug": slug} for slug in sorted(slugs)]
+        logger.info(f"✅ [API] Returning {len(services)} active service slugs from database")
+        return services
+        
+    except Exception as e:
+        logger.error(f"❌ [API] Failed to fetch active services: {str(e)}")
+        # Fallback to ensure static generation doesn't fail
+        fallback_services = [
+            {"slug": s} for s in [
+                'ac-repair', 'ac-installation', 'hvac-maintenance', 'heating-repair',
+                'drain-cleaning', 'water-heater-repair', 'leak-detection', 'pipe-repair',
+                'panel-upgrade', 'lighting-installation', 'wiring-repair', 'generator-installation'
+            ]
+        ]
+        logger.warning(f"⚠️ [API] Using fallback services ({len(fallback_services)} items)")
+        return fallback_services
+
+
+@router.get("/locations/active", response_model=List[dict])
+async def get_active_locations_for_static():
+    """Return a list of active location slugs from the database for static generation."""
+    from app.api.deps import get_supabase_client
+    
+    try:
+        supabase = get_supabase_client()
+        response = supabase.table('business_locations').select('city, state').eq('is_active', True).execute()
+        
+        # Create location slugs from city-state combinations
+        slugs = set()
+        for location in response.data:
+            city = location.get('city', '').strip()
+            state = location.get('state', '').strip()
+            if city and state:
+                # Convert to slug format: "Austin, TX" -> "austin-tx"
+                slug = f"{city.lower().replace(' ', '-')}-{state.lower()}"
+                slugs.add(slug)
+        
+        locations = [{"slug": slug} for slug in sorted(slugs)]
+        logger.info(f"✅ [API] Returning {len(locations)} active location slugs from database")
+        return locations
+        
+    except Exception as e:
+        logger.error(f"❌ [API] Failed to fetch active locations: {str(e)}")
+        # Fallback to ensure static generation doesn't fail
+        fallback_locations = [
+            {"slug": slug} for slug in [
+                'austin-tx', 'round-rock-tx', 'cedar-park-tx', 'pflugerville-tx', 'leander-tx',
+                'georgetown-tx', 'lakeway-tx', 'bee-cave-tx', 'west-lake-hills-tx', 'rollingwood-tx'
+            ]
+        ]
+        logger.warning(f"⚠️ [API] Using fallback locations ({len(fallback_locations)} items)")
+        return fallback_locations
+
+
 def get_contractor_service():
     """Get contractor service with proper dependency injection."""
     business_repo = get_business_repository()
@@ -221,3 +291,5 @@ async def get_service_pricing(
     except Exception as e:
         logger.error(f"Unexpected error calculating service pricing for {service_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+

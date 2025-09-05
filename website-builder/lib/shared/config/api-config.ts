@@ -118,9 +118,11 @@ function createEnvironmentConfig(): EnvironmentConfig {
     business: {
       // For development: use test business with real data
       // For production: must be set via deployment scripts or environment variables
-      defaultBusinessId: process.env.NEXT_PUBLIC_BUSINESS_ID || 
-                        process.env.NEXT_PUBLIC_DEV_BUSINESS_ID || 
-                        'demo-business-id',
+      defaultBusinessId: (() => {
+        const id = process.env.NEXT_PUBLIC_BUSINESS_ID || process.env.NEXT_PUBLIC_DEV_BUSINESS_ID;
+        if (!id) throw new Error('NEXT_PUBLIC_BUSINESS_ID is required');
+        return id;
+      })(),
       defaultBusinessName: process.env.NEXT_PUBLIC_BUSINESS_NAME || 'Demo Business',
       defaultBusinessPhone: process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+1-555-123-4567',
       defaultBusinessEmail: process.env.NEXT_PUBLIC_BUSINESS_EMAIL || 'contact@example.com'

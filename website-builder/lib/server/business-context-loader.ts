@@ -69,11 +69,15 @@ export async function getBusinessContext(businessId: string): Promise<BusinessCo
  * Transform API response to BusinessContext format
  */
 function transformToBusinessContext(apiData: any): BusinessContext {
+  if (!apiData?.business?.name) {
+    throw new Error('Business name missing in website context response');
+  }
+
   return {
     // Core Business Data
     business: {
       id: apiData.business?.id || '',
-      name: apiData.business?.name || 'Professional Services',
+      name: apiData.business?.name,
       description: apiData.business?.description || '',
       phone: apiData.business?.phone || '',
       email: apiData.business?.email || '',
