@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { getActivityContentPack } from '../../../lib/templates/activity-content-packs';
+// TODO: Replace with trade-specific components
+// import { getActivityContentPack } from '../../../lib/templates/activity-content-packs';
 
 // This would come from environment or config
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -61,17 +62,20 @@ async function getAvailableActivities(): Promise<ActivitySummary[]> {
     const activities: ActivitySummary[] = [];
     
     for (const slug of data.activity_slugs) {
-      const contentPack = getActivityContentPack(slug);
-      if (contentPack) {
-        activities.push({
-          slug,
-          name: contentPack.hero.title.replace('Professional ', '').replace(' Services', ''),
-          trade_name: contentPack.schema.category || 'Services',
-          description: contentPack.hero.subtitle || contentPack.schema.description,
-          icon: contentPack.hero.icon,
-          pricing: contentPack.pricing
-        });
-      }
+      // TODO: Replace with trade-specific component data
+      // const contentPack = getActivityContentPack(slug);
+      // For now, create basic activity data
+      activities.push({
+        slug,
+        name: slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        trade_name: 'Services',
+        description: `Professional ${slug.replace(/-/g, ' ')} services`,
+        icon: 'wrench',
+        pricing: {
+          starting_price: 150,
+          price_range: '$150 - $500'
+        }
+      });
     }
 
     return activities;

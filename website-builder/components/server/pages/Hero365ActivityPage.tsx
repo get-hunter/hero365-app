@@ -1,5 +1,6 @@
 import React from 'react';
-import { ActivityPageData } from '@/lib/shared/templates/types';
+// TODO: Replace with trade-specific component types
+// import { ActivityPageData } from '@/lib/shared/templates/types';
 import Hero365SEOComposer from '../seo/Hero365SEOComposer';
 import Hero365BookingForm from '../forms/Hero365BookingForm';
 

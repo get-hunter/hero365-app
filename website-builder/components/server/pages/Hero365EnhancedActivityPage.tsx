@@ -6,7 +6,7 @@
  */
 
 import { useMemo } from 'react';
-import { useWebsiteContext, useActivityContentPack, WebsiteActivityInfo } from '@/lib/shared/hooks/useWebsiteContext';
+import { useWebsiteContext, useActivityContentPack, WebsiteActivityInfo } from '@/lib/client/hooks/useWebsiteContext';
 import SEOComposer from '../seo/SEOComposer';
 import BookingForm from '../forms/BookingForm';
 

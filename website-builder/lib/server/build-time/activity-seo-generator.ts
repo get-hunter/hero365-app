@@ -13,8 +13,9 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { activityContentPacks } from '../templates/activity-content-packs';
-import { ActivityContentPack, BusinessActivityData } from '../templates/types';
+// TODO: Replace with trade-specific component data
+// import { activityContentPacks } from '../templates/activity-content-packs';
+// import { ActivityContentPack, BusinessActivityData } from '../templates/types';
 
 // Types for the generated content structure
 interface ActivitySEOPage {
