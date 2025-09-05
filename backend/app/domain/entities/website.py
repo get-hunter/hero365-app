@@ -12,7 +12,13 @@ from typing import Optional, Dict, List, Any, Union
 from enum import Enum
 from pydantic import BaseModel, Field, HttpUrl, validator, model_validator
 
-from .business import TradeCategory, CommercialTrade, ResidentialTrade
+# from .business import TradeCategory, CommercialTrade, ResidentialTrade  # TODO: Define trade entities
+
+class TradeCategory(str, Enum):
+    """Trade category classification."""
+    COMMERCIAL = "commercial"
+    RESIDENTIAL = "residential"
+    BOTH = "both"
 
 
 class WebsiteStatus(str, Enum):

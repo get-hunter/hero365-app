@@ -27,10 +27,8 @@ def get_website_context_service(supabase_client=Depends(get_supabase_client)) ->
     service_template_repo = SupabaseServiceTemplateRepository(supabase_client)
     
     return WebsiteContextService(
-        business_repository=business_repo,
-        trade_activity_repository=trade_activity_repo,
-        trade_profile_repository=trade_profile_repo,
-        service_template_repository=service_template_repo
+        supabase_client=supabase_client,
+        cache_adapter=None  # TODO: Add Redis cache when available
     )
 
 
@@ -62,7 +60,7 @@ async def get_website_context(
             template_limit=template_limit
         )
         
-        context = await website_context_service.get_website_context(business_id, request)
+        context = await website_context_service.get_comprehensive_context(business_id)
         
         if not context:
             raise HTTPException(
@@ -109,7 +107,7 @@ async def get_website_activities_only(
             activity_limit=limit
         )
         
-        context = await website_context_service.get_website_context(business_id, request)
+        context = await website_context_service.get_comprehensive_context(business_id)
         
         if not context:
             raise HTTPException(
@@ -149,7 +147,7 @@ async def get_website_summary(
             activity_limit=0  # Don't fetch full activity data
         )
         
-        context = await website_context_service.get_website_context(business_id, request)
+        context = await website_context_service.get_comprehensive_context(business_id)
         
         if not context:
             raise HTTPException(

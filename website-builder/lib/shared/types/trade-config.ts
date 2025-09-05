@@ -1,159 +1,108 @@
 /**
- * Trade Configuration System
+ * Trade Configuration Types
  * 
- * Defines all supported trades and their specific configurations
+ * TypeScript definitions for trade-specific configurations
+ * used in the enhanced website generation system.
  */
 
-export type TradeType = 'commercial' | 'residential';
-
-export type CommercialTrade = 
-  | 'mechanical'
-  | 'refrigeration' 
-  | 'plumbing'
-  | 'electrical'
-  | 'security_systems'
-  | 'landscaping'
-  | 'roofing'
-  | 'kitchen_equipment'
-  | 'water_treatment'
-  | 'pool_spa';
-
-export type ResidentialTrade =
-  | 'hvac'
-  | 'plumbing'
-  | 'electrical'
-  | 'chimney'
-  | 'roofing'
-  | 'garage_door'
-  | 'septic'
-  | 'pest_control'
-  | 'irrigation'
-  | 'painting';
-
-export type Trade = CommercialTrade | ResidentialTrade;
-
-export interface ServiceCategory {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  services: TradeService[];
-  starting_price?: number;
-  is_emergency?: boolean;
-  is_popular?: boolean;
+export interface TradeColors {
+  primary: string;
+  secondary: string;
+  accent: string;
 }
 
-export interface TradeService {
-  id: string;
+export interface TradeHero {
+  headline_template: string;
+  subtitle_points: string[];
+  primary_cta: string;
+  secondary_cta: string;
+  emergency_message: string;
+}
+
+export interface ServiceCategory {
   name: string;
   description: string;
-  estimated_duration_minutes: number;
-  base_price?: number;
-  price_type: 'fixed' | 'estimate' | 'hourly';
-  requires_site_visit: boolean;
-  is_emergency?: boolean;
-  tags: string[];
+  starting_price: number;
+  emergency_available: boolean;
+  seasonal_demand: 'year_round' | 'high_summer' | 'high_winter' | 'spring_summer' | 'fall_winter' | 'spring_fall';
+}
+
+export interface SeasonalPatterns {
+  peak_months: number[];
+  slow_months: number[];
+  maintenance_months: number[];
 }
 
 export interface TradeConfiguration {
-  trade: Trade;
-  type: TradeType;
+  // Basic Info
+  trade: string;
   display_name: string;
-  industry_terms: {
-    professional_title: string; // "HVAC Technician", "Electrician", "Plumber"
-    service_area: string; // "HVAC services", "electrical work", "plumbing repairs"
-    emergency_type: string; // "HVAC emergency", "electrical emergency", "plumbing emergency"
-    maintenance_term: string; // "tune-up", "inspection", "maintenance"
-  };
-  hero: {
-    headline_template: string; // "{city}'s Most Trusted {trade} Experts"
-    subtitle_points: string[];
-    emergency_message?: string;
-    primary_cta: string; // "Book HVAC Service", "Schedule Electrical Work"
-    secondary_cta: string; // "Call Now", "Get Free Quote"
-  };
+  full_name: string;
+  category: 'residential' | 'commercial';
+  description: string;
+  
+  // Visual Identity
+  colors: TradeColors;
+  
+  // Hero Section Configuration
+  hero: TradeHero;
+  
+  // Service Information
   service_categories: ServiceCategory[];
-  trust_indicators: {
-    certifications: string[];
-    guarantees: string[];
-    features: string[];
-  };
-  booking: {
-    default_services: string[];
-    emergency_services: string[];
-    lead_times: {
-      emergency_hours: number;
-      standard_hours: number;
-      maintenance_days: number;
-    };
-  };
-  seo: {
-    title_template: string;
-    description_template: string;
-    keywords: string[];
-  };
-  colors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    emergency: string;
-  };
-}
-
-export interface BusinessProfile {
-  // Core business info
-  name: string;
-  trade: Trade;
-  type: TradeType;
+  emergency_services: boolean;
+  seasonal_patterns: SeasonalPatterns;
   
-  // Contact details
-  phone: string;
-  email: string;
-  website_url?: string;
-  
-  // Location & service area
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
-  service_areas: string[];
-  service_radius_miles: number;
-  
-  // Business details
-  established_year?: number;
-  license_number?: string;
-  insurance_info?: string;
+  // Professional Credentials
   certifications: string[];
   
-  // Branding
-  logo_url?: string;
-  brand_colors?: {
-    primary?: string;
-    secondary?: string;
+  // Activity Modules
+  activity_modules: string[];
+}
+
+// Helper types for trade-specific content
+export interface TradeMessaging {
+  emergency_headline: string;
+  value_propositions: string[];
+  trust_indicators: string[];
+  seasonal_messages: Record<string, string>;
+}
+
+export interface TradeKeywords {
+  primary: string[];
+  secondary: string[];
+  local_modifiers: string[];
+  service_modifiers: string[];
+}
+
+export interface TradeCompliance {
+  required_licenses: string[];
+  insurance_requirements: string[];
+  safety_certifications: string[];
+  local_regulations: string[];
+}
+
+// Extended trade configuration for advanced features
+export interface ExtendedTradeConfiguration extends TradeConfiguration {
+  messaging?: TradeMessaging;
+  keywords?: TradeKeywords;
+  compliance?: TradeCompliance;
+  
+  // Advanced features
+  booking_flow?: {
+    required_fields: string[];
+    optional_fields: string[];
+    emergency_flow: boolean;
   };
   
-  // Social media
-  social_media?: {
-    facebook?: string;
-    instagram?: string;
-    linkedin?: string;
-    google_business?: string;
+  pricing_strategy?: {
+    model: 'flat_rate' | 'hourly' | 'diagnostic_plus' | 'tiered';
+    emergency_multiplier: number;
+    after_hours_multiplier: number;
   };
   
-  // Business hours
-  hours: {
-    [key: string]: { open: string; close: string; closed?: boolean };
+  content_templates?: {
+    faq_categories: string[];
+    process_steps: string[];
+    maintenance_tips: string[];
   };
-  emergency_available: boolean;
-  
-  // Stats & credentials
-  years_in_business?: number;
-  customers_served?: number;
-  projects_completed?: number;
-  satisfaction_rate?: number;
-  
-  // Team info
-  team_size?: number;
-  owner_name?: string;
-  owner_bio?: string;
 }

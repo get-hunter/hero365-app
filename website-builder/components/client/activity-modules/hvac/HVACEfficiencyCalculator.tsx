@@ -1,419 +1,366 @@
 /**
- * HVAC Efficiency Calculator Module
+ * HVAC Efficiency Calculator - Interactive Module
  * 
- * Interactive calculator for SEER ratings, BTU requirements, and energy savings.
- * Helps customers understand HVAC efficiency and potential cost savings.
+ * Helps customers calculate potential energy savings with a new HVAC system.
+ * This is a client-side interactive component that showcases technical expertise.
  */
 
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Calculator, Zap, DollarSign, Thermometer, Home, TrendingUp } from 'lucide-react';
-import { ActivityModuleProps } from '@/lib/shared/types/seo-artifacts';
+import { BusinessContext } from '@/lib/shared/types/business-context';
+import { TradeConfiguration } from '@/lib/shared/types/trade-config';
 
-interface CalculatorInputs {
-  squareFootage: number;
+interface HVACEfficiencyCalculatorProps {
+  businessContext: BusinessContext;
+  tradeConfig: TradeConfiguration;
+  config?: {
+    showAdvanced?: boolean;
+    includeRebates?: boolean;
+    showTechnicians?: boolean;
+  };
+}
+
+interface CalculationInputs {
+  homeSize: number;
   currentSEER: number;
   newSEER: number;
+  monthlyBill: number;
+  heatingType: 'gas' | 'electric' | 'heat_pump';
+  coolingMonths: number;
+  heatingMonths: number;
   electricityRate: number;
-  coolingHours: number;
-  heatingHours: number;
+  gasRate: number;
 }
 
-interface CalculatorResults {
-  requiredBTU: number;
-  currentAnnualCost: number;
-  newAnnualCost: number;
+interface CalculationResults {
   annualSavings: number;
-  lifetimeSavings: number;
+  monthlySavings: number;
   paybackPeriod: number;
   co2Reduction: number;
+  lifetimeSavings: number;
+  rebateAmount: number;
 }
 
-export function HVACEfficiencyCalculator({ config, businessData }: ActivityModuleProps) {
-  const [inputs, setInputs] = useState<CalculatorInputs>({
-    squareFootage: 2000,
+export function HVACEfficiencyCalculator({ 
+  businessContext, 
+  tradeConfig,
+  config = {}
+}: HVACEfficiencyCalculatorProps) {
+  const [inputs, setInputs] = useState<CalculationInputs>({
+    homeSize: 2000,
     currentSEER: 10,
     newSEER: 16,
+    monthlyBill: 150,
+    heatingType: 'gas',
+    coolingMonths: 6,
+    heatingMonths: 6,
     electricityRate: 0.12,
-    coolingHours: 1500,
-    heatingHours: 1200
+    gasRate: 1.20
   });
 
-  const [results, setResults] = useState<CalculatorResults | null>(null);
-  const [activeTab, setActiveTab] = useState<'calculator' | 'seer-guide' | 'rebates'>('calculator');
+  const [results, setResults] = useState<CalculationResults | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
 
-  // Calculate results when inputs change
+  // Calculate efficiency savings
   useEffect(() => {
-    const newResults = calculateEfficiency(inputs);
-    setResults(newResults);
+    const calculateSavings = () => {
+      setIsCalculating(true);
+      
+      // Simulate calculation delay for better UX
+      setTimeout(() => {
+        // SEER efficiency calculation
+        const efficiencyImprovement = (inputs.newSEER - inputs.currentSEER) / inputs.currentSEER;
+        
+        // Cooling savings calculation
+        const coolingPortion = 0.6; // Assume 60% of bill is cooling in summer
+        const coolingSavings = inputs.monthlyBill * coolingPortion * efficiencyImprovement * inputs.coolingMonths;
+        
+        // Heating savings (if heat pump)
+        let heatingSavings = 0;
+        if (inputs.heatingType === 'heat_pump') {
+          const heatingPortion = 0.4;
+          heatingSavings = inputs.monthlyBill * heatingPortion * (efficiencyImprovement * 0.7) * inputs.heatingMonths;
+        }
+        
+        const annualSavings = coolingSavings + heatingSavings;
+        const monthlySavings = annualSavings / 12;
+        
+        // Estimate system cost and payback
+        const systemCost = inputs.homeSize * 4; // $4 per sq ft estimate
+        const paybackPeriod = systemCost / annualSavings;
+        
+        // Environmental impact
+        const co2Reduction = annualSavings * 0.0007; // tons CO2 per dollar saved
+        
+        // Lifetime savings (15 years)
+        const lifetimeSavings = annualSavings * 15;
+        
+        // Rebate estimation
+        const rebateAmount = Math.min(systemCost * 0.1, 2000); // 10% up to $2000
+        
+        setResults({
+          annualSavings: Math.round(annualSavings),
+          monthlySavings: Math.round(monthlySavings),
+          paybackPeriod: Math.round(paybackPeriod * 10) / 10,
+          co2Reduction: Math.round(co2Reduction * 10) / 10,
+          lifetimeSavings: Math.round(lifetimeSavings),
+          rebateAmount: Math.round(rebateAmount)
+        });
+        
+        setIsCalculating(false);
+      }, 500);
+    };
+
+    calculateSavings();
   }, [inputs]);
 
-  const handleInputChange = (field: keyof CalculatorInputs, value: number) => {
+  const updateInput = (field: keyof CalculationInputs, value: number | string) => {
     setInputs(prev => ({ ...prev, [field]: value }));
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
-        <div className="flex items-center space-x-3">
-          <Calculator className="w-8 h-8" />
-          <div>
-            <h3 className="text-2xl font-bold">HVAC Efficiency Calculator</h3>
-            <p className="text-blue-100">Calculate your potential energy savings with a new HVAC system</p>
-          </div>
-        </div>
+      <div 
+        className="px-6 py-4 text-white"
+        style={{ backgroundColor: tradeConfig.colors.primary }}
+      >
+        <h3 className="text-xl font-bold mb-2">HVAC Efficiency Calculator</h3>
+        <p className="text-sm opacity-90">
+          Calculate your potential energy savings with a high-efficiency HVAC system
+        </p>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
-        <nav className="flex space-x-8 px-6">
-          {[
-            { id: 'calculator', label: 'Calculator', icon: Calculator },
-            { id: 'seer-guide', label: 'SEER Guide', icon: Thermometer },
-            { id: 'rebates', label: 'Rebates', icon: DollarSign }
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id as any)}
-              className={`flex items-center space-x-2 py-4 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Tab Content */}
       <div className="p-6">
-        {activeTab === 'calculator' && (
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Input Form */}
-            <div className="space-y-6">
-              <h4 className="text-lg font-semibold text-gray-900">System Details</h4>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Home className="w-4 h-4 inline mr-1" />
-                    Square Footage
-                  </label>
-                  <input
-                    type="number"
-                    value={inputs.squareFootage}
-                    onChange={(e) => handleInputChange('squareFootage', Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min="500"
-                    max="10000"
-                    step="100"
-                  />
-                </div>
+        
+        {/* Input Form */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          
+          {/* Home Size */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Home Size (sq ft)
+            </label>
+            <input
+              type="number"
+              value={inputs.homeSize}
+              onChange={(e) => updateInput('homeSize', parseInt(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              min="500"
+              max="10000"
+              step="100"
+            />
+          </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Zap className="w-4 h-4 inline mr-1" />
-                    Electricity Rate ($/kWh)
-                  </label>
-                  <input
-                    type="number"
-                    value={inputs.electricityRate}
-                    onChange={(e) => handleInputChange('electricityRate', Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min="0.05"
-                    max="0.50"
-                    step="0.01"
-                  />
-                </div>
+          {/* Current SEER */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Current System SEER Rating
+            </label>
+            <select
+              value={inputs.currentSEER}
+              onChange={(e) => updateInput('currentSEER', parseInt(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={8}>8 SEER (Very Old)</option>
+              <option value={10}>10 SEER (Old)</option>
+              <option value={12}>12 SEER (Older)</option>
+              <option value={13}>13 SEER (Minimum)</option>
+              <option value={14}>14 SEER (Standard)</option>
+            </select>
+          </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Current SEER Rating
-                  </label>
-                  <select
-                    value={inputs.currentSEER}
-                    onChange={(e) => handleInputChange('currentSEER', Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {[8, 9, 10, 11, 12, 13, 14, 15, 16].map(seer => (
-                      <option key={seer} value={seer}>{seer} SEER</option>
-                    ))}
-                  </select>
-                </div>
+          {/* New SEER */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              New System SEER Rating
+            </label>
+            <select
+              value={inputs.newSEER}
+              onChange={(e) => updateInput('newSEER', parseInt(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={14}>14 SEER (Standard)</option>
+              <option value={16}>16 SEER (High Efficiency)</option>
+              <option value={18}>18 SEER (Very High)</option>
+              <option value={20}>20 SEER (Premium)</option>
+              <option value={22}>22 SEER (Ultra High)</option>
+            </select>
+          </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    New SEER Rating
-                  </label>
-                  <select
-                    value={inputs.newSEER}
-                    onChange={(e) => handleInputChange('newSEER', Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {[14, 15, 16, 17, 18, 19, 20, 21, 22].map(seer => (
-                      <option key={seer} value={seer}>{seer} SEER</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+          {/* Monthly Bill */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Average Monthly Energy Bill ($)
+            </label>
+            <input
+              type="number"
+              value={inputs.monthlyBill}
+              onChange={(e) => updateInput('monthlyBill', parseInt(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              min="50"
+              max="1000"
+              step="10"
+            />
+          </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Annual Cooling Hours
-                  </label>
-                  <input
-                    type="number"
-                    value={inputs.coolingHours}
-                    onChange={(e) => handleInputChange('coolingHours', Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min="500"
-                    max="3000"
-                    step="100"
-                  />
-                </div>
+          {/* Heating Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Heating Type
+            </label>
+            <select
+              value={inputs.heatingType}
+              onChange={(e) => updateInput('heatingType', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="gas">Natural Gas</option>
+              <option value="electric">Electric</option>
+              <option value="heat_pump">Heat Pump</option>
+            </select>
+          </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Annual Heating Hours
-                  </label>
-                  <input
-                    type="number"
-                    value={inputs.heatingHours}
-                    onChange={(e) => handleInputChange('heatingHours', Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min="500"
-                    max="3000"
-                    step="100"
-                  />
-                </div>
-              </div>
+          {/* Cooling Months */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Cooling Months per Year
+            </label>
+            <input
+              type="range"
+              min="3"
+              max="12"
+              value={inputs.coolingMonths}
+              onChange={(e) => updateInput('coolingMonths', parseInt(e.target.value))}
+              className="w-full"
+            />
+            <div className="text-center text-sm text-gray-600 mt-1">
+              {inputs.coolingMonths} months
             </div>
+          </div>
 
-            {/* Results */}
-            {results && (
-              <div className="space-y-6">
-                <h4 className="text-lg font-semibold text-gray-900">Your Savings Potential</h4>
+        </div>
+
+        {/* Results */}
+        {results && (
+          <div className="border-t pt-6">
+            <h4 className="text-lg font-semibold mb-4 text-gray-900">
+              Your Potential Savings
+            </h4>
+            
+            {isCalculating ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-3 text-gray-600">Calculating savings...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <DollarSign className="w-5 h-5 text-green-600" />
-                      <span className="font-medium text-green-800">Annual Savings</span>
-                    </div>
-                    <div className="text-2xl font-bold text-green-900">
-                      ${results.annualSavings.toFixed(0)}
-                    </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">
+                    ${results.annualSavings.toLocaleString()}
                   </div>
-
-                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <TrendingUp className="w-5 h-5 text-blue-600" />
-                      <span className="font-medium text-blue-800">15-Year Savings</span>
-                    </div>
-                    <div className="text-2xl font-bold text-blue-900">
-                      ${results.lifetimeSavings.toFixed(0)}
-                    </div>
-                  </div>
-
-                  <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Thermometer className="w-5 h-5 text-orange-600" />
-                      <span className="font-medium text-orange-800">Required BTU</span>
-                    </div>
-                    <div className="text-2xl font-bold text-orange-900">
-                      {results.requiredBTU.toLocaleString()}
-                    </div>
-                  </div>
-
-                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Zap className="w-5 h-5 text-purple-600" />
-                      <span className="font-medium text-purple-800">CO₂ Reduction</span>
-                    </div>
-                    <div className="text-2xl font-bold text-purple-900">
-                      {results.co2Reduction.toFixed(1)} lbs/yr
-                    </div>
-                  </div>
+                  <div className="text-sm text-gray-600">Annual Savings</div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h5 className="font-medium text-gray-900 mb-2">Cost Comparison</h5>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Current annual cost ({inputs.currentSEER} SEER):</span>
-                      <span className="font-medium">${results.currentAnnualCost.toFixed(0)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>New annual cost ({inputs.newSEER} SEER):</span>
-                      <span className="font-medium">${results.newAnnualCost.toFixed(0)}</span>
-                    </div>
-                    <div className="flex justify-between border-t pt-2">
-                      <span className="font-medium">Annual savings:</span>
-                      <span className="font-bold text-green-600">${results.annualSavings.toFixed(0)}</span>
-                    </div>
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">
+                    ${results.monthlySavings}
                   </div>
+                  <div className="text-sm text-gray-600">Monthly Savings</div>
                 </div>
 
-                <div className="text-center">
-                  <button
-                    onClick={() => {
-                      // Track calculator usage
-                      if (typeof window !== 'undefined' && (window as any).gtag) {
-                        (window as any).gtag('event', 'hvac_calculator_used', {
-                          business_id: businessData.id,
-                          square_footage: inputs.squareFootage,
-                          seer_upgrade: `${inputs.currentSEER}_to_${inputs.newSEER}`,
-                          annual_savings: results.annualSavings
-                        });
-                      }
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-                  >
-                    Get Free Quote for {inputs.newSEER} SEER System
-                  </button>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {results.paybackPeriod} yrs
+                  </div>
+                  <div className="text-sm text-gray-600">Payback Period</div>
                 </div>
+
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <div className="text-2xl font-bold text-orange-600">
+                    ${results.lifetimeSavings.toLocaleString()}
+                  </div>
+                  <div className="text-sm text-gray-600">15-Year Savings</div>
+                </div>
+
               </div>
             )}
-          </div>
-        )}
 
-        {activeTab === 'seer-guide' && (
-          <SEERGuide />
-        )}
-
-        {activeTab === 'rebates' && config.include_rebates && (
-          <RebatesInfo businessData={businessData} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Helper function to calculate efficiency savings
-function calculateEfficiency(inputs: CalculatorInputs): CalculatorResults {
-  // BTU calculation (rough estimate: 20-25 BTU per sq ft)
-  const requiredBTU = Math.round(inputs.squareFootage * 22);
-  
-  // Energy consumption calculation
-  const coolingKWh = (requiredBTU * inputs.coolingHours) / (inputs.currentSEER * 1000);
-  const newCoolingKWh = (requiredBTU * inputs.coolingHours) / (inputs.newSEER * 1000);
-  
-  // Cost calculations
-  const currentAnnualCost = coolingKWh * inputs.electricityRate;
-  const newAnnualCost = newCoolingKWh * inputs.electricityRate;
-  const annualSavings = currentAnnualCost - newAnnualCost;
-  const lifetimeSavings = annualSavings * 15; // 15-year lifespan
-  
-  // Payback period (assuming $3000 upgrade cost)
-  const upgradeCost = 3000;
-  const paybackPeriod = upgradeCost / annualSavings;
-  
-  // CO2 reduction (0.92 lbs CO2 per kWh saved)
-  const kWhSaved = coolingKWh - newCoolingKWh;
-  const co2Reduction = kWhSaved * 0.92;
-
-  return {
-    requiredBTU,
-    currentAnnualCost,
-    newAnnualCost,
-    annualSavings,
-    lifetimeSavings,
-    paybackPeriod,
-    co2Reduction
-  };
-}
-
-// SEER Guide Component
-function SEERGuide() {
-  const seerData = [
-    { rating: 14, efficiency: 'Minimum', description: 'Federal minimum for new systems', savings: 'Baseline' },
-    { rating: 16, efficiency: 'Good', description: 'Standard high-efficiency option', savings: '12-15%' },
-    { rating: 18, efficiency: 'Better', description: 'Premium efficiency with good ROI', savings: '20-25%' },
-    { rating: 20, efficiency: 'Best', description: 'Top-tier efficiency for maximum savings', savings: '30-35%' },
-  ];
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h4 className="text-lg font-semibold text-gray-900 mb-2">Understanding SEER Ratings</h4>
-        <p className="text-gray-600">
-          SEER (Seasonal Energy Efficiency Ratio) measures how efficiently your air conditioning system uses electricity. 
-          Higher SEER ratings mean lower energy costs and better environmental impact.
-        </p>
-      </div>
-
-      <div className="grid gap-4">
-        {seerData.map((item) => (
-          <div key={item.rating} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="font-bold text-blue-600">{item.rating}</span>
-                </div>
-                <div>
-                  <div className="font-medium text-gray-900">{item.efficiency} Efficiency</div>
-                  <div className="text-sm text-gray-600">{item.description}</div>
-                </div>
+            {/* Environmental Impact */}
+            {results && !isCalculating && (
+              <div className="bg-green-50 p-4 rounded-lg mb-6">
+                <h5 className="font-semibold text-green-800 mb-2">Environmental Impact</h5>
+                <p className="text-green-700">
+                  Your new high-efficiency system would reduce CO₂ emissions by approximately{' '}
+                  <strong>{results.co2Reduction} tons per year</strong> - equivalent to planting{' '}
+                  {Math.round(results.co2Reduction * 16)} trees!
+                </p>
               </div>
-              <div className="text-right">
-                <div className="font-medium text-green-600">{item.savings}</div>
-                <div className="text-sm text-gray-500">vs 10 SEER</div>
+            )}
+
+            {/* Rebates */}
+            {config.includeRebates && results && !isCalculating && (
+              <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                <h5 className="font-semibold text-blue-800 mb-2">Available Rebates</h5>
+                <p className="text-blue-700">
+                  You may qualify for up to <strong>${results.rebateAmount.toLocaleString()}</strong> in 
+                  federal tax credits and local utility rebates for high-efficiency equipment.
+                </p>
+              </div>
+            )}
+
+            {/* Expert Consultation CTA */}
+            <div className="bg-gray-50 p-6 rounded-lg text-center">
+              <h5 className="font-semibold text-gray-900 mb-2">
+                Ready to Start Saving?
+              </h5>
+              <p className="text-gray-600 mb-4">
+                Get a personalized assessment from our certified HVAC experts
+              </p>
+              
+              {config.showTechnicians && businessContext.technicians.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-2">Our Expert Technicians:</p>
+                  <div className="flex justify-center space-x-4">
+                    {businessContext.technicians.slice(0, 3).map((tech) => (
+                      <div key={tech.id} className="text-center">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-1">
+                          <span className="text-blue-600 font-semibold text-sm">
+                            {tech.name.split(' ').map(n => n[0]).join('')}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-600">{tech.name}</div>
+                        <div className="text-xs text-gray-500">{tech.years_experience}y exp</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <a
+                  href={`tel:${businessContext.business.phone}`}
+                  className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <span className="mr-2">📞</span>
+                  Call {businessContext.business.phone}
+                </a>
+                
+                <a
+                  href="/booking"
+                  className="inline-flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-900 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <span className="mr-2">📅</span>
+                  Schedule Assessment
+                </a>
               </div>
             </div>
+
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+        )}
 
-// Rebates Info Component
-function RebatesInfo({ businessData }: { businessData: any }) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h4 className="text-lg font-semibold text-gray-900 mb-2">Available Rebates & Incentives</h4>
-        <p className="text-gray-600">
-          Take advantage of federal, state, and utility rebates to reduce your HVAC upgrade costs.
-        </p>
-      </div>
-
-      <div className="grid gap-4">
-        <div className="border border-green-200 rounded-lg p-4 bg-green-50">
-          <h5 className="font-medium text-green-800 mb-2">Federal Tax Credit</h5>
-          <p className="text-sm text-green-700 mb-2">
-            Up to $2,000 credit for qualifying high-efficiency HVAC systems (16+ SEER)
-          </p>
-          <div className="text-xs text-green-600">Valid through December 2032</div>
-        </div>
-
-        <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
-          <h5 className="font-medium text-blue-800 mb-2">Utility Rebates</h5>
-          <p className="text-sm text-blue-700 mb-2">
-            Local utility companies offer rebates up to $1,500 for energy-efficient systems
-          </p>
-          <div className="text-xs text-blue-600">Contact your utility provider for details</div>
-        </div>
-
-        <div className="border border-purple-200 rounded-lg p-4 bg-purple-50">
-          <h5 className="font-medium text-purple-800 mb-2">Manufacturer Rebates</h5>
-          <p className="text-sm text-purple-700 mb-2">
-            Equipment manufacturers offer seasonal rebates up to $1,200
-          </p>
-          <div className="text-xs text-purple-600">Ask about current promotions</div>
-        </div>
-      </div>
-
-      <div className="text-center">
-        <button className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
-          Get Quote with Rebate Calculation
-        </button>
       </div>
     </div>
   );
