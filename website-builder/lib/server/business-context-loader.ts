@@ -3,7 +3,7 @@
  * 
  * Loads comprehensive business context for SSR pages.
  * This module runs only on the server and provides optimized
- * data fetching for enhanced artifact pages.
+ * data fetching for artifact pages.
  */
 
 import { BusinessContext } from '@/lib/shared/types/business-context';
@@ -14,7 +14,7 @@ const contextCache = new Map<string, { data: BusinessContext; timestamp: number 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Get enhanced business context with caching
+ * Get business context with caching
  */
 export async function getBusinessContext(businessId: string): Promise<BusinessContext | null> {
   try {
@@ -25,7 +25,7 @@ export async function getBusinessContext(businessId: string): Promise<BusinessCo
       return cached.data;
     }
 
-    console.log(`🔄 [API] Fetching enhanced business context for: ${businessId}`);
+    console.log(`🔄 [API] Fetching business context for: ${businessId}`);
     
     const backendUrl = getBackendUrl();
     const response = await fetch(
@@ -55,7 +55,7 @@ export async function getBusinessContext(businessId: string): Promise<BusinessCo
       timestamp: Date.now()
     });
 
-    console.log(`✅ [API] Enhanced business context loaded: ${businessContext.technicians.length} technicians, ${businessContext.projects.length} projects`);
+    console.log(`✅ [API] Business context loaded: ${businessContext.technicians.length} technicians, ${businessContext.projects.length} projects`);
     
     return businessContext;
 
@@ -234,7 +234,7 @@ function transformToBusinessContext(apiData: any): BusinessContext {
 
     // Metadata
     generated_at: new Date().toISOString(),
-    cache_key: `enhanced_context:${apiData.business?.id || ''}`
+    cache_key: `business_context:${apiData.business?.id || ''}`
   };
 }
 
@@ -249,7 +249,7 @@ function getFallbackBusinessContext(businessId: string): BusinessContext {
       id: businessId,
       name: process.env.NEXT_PUBLIC_BUSINESS_NAME || 'Professional Services',
       description: 'Professional home services with expert technicians',
-      phone: process.env.NEXT_PUBLIC_BUSINESS_PHONE || '(555) 123-4567',
+      phone: process.env.NEXT_PUBLIC_BUSINESS_PHONE?.trim() || '(555) 123-4567',
       email: process.env.NEXT_PUBLIC_BUSINESS_EMAIL || 'info@business.com',
       address: process.env.NEXT_PUBLIC_BUSINESS_ADDRESS || '123 Main St',
       city: process.env.NEXT_PUBLIC_BUSINESS_CITY || 'Austin',

@@ -258,54 +258,54 @@ export function PlumbingSeverityTriage({
         
         {!result ? (
           <>
-            {/* Progress Bar */}
+      {/* Progress Bar */}
             <div className="mb-6">
-              <div className="flex justify-between text-sm text-gray-600 mb-2">
-                <span>Question {currentQuestion + 1} of {triageQuestions.length}</span>
+        <div className="flex justify-between text-sm text-gray-600 mb-2">
+          <span>Question {currentQuestion + 1} of {triageQuestions.length}</span>
                 <span>{Math.round(((currentQuestion + 1) / triageQuestions.length) * 100)}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${((currentQuestion + 1) / triageQuestions.length) * 100}%` }}
                 ></div>
-              </div>
-            </div>
+        </div>
+      </div>
 
             {/* Current Question */}
-            <div className="mb-6">
+        <div className="mb-6">
               <h4 className="text-lg font-semibold text-gray-900 mb-4">
                 {triageQuestions[currentQuestion].question}
-              </h4>
-              
-              <div className="space-y-3">
+          </h4>
+          
+            <div className="space-y-3">
                 {triageQuestions[currentQuestion].options.map((option, index) => (
-                  <button
-                    key={index}
+                <button
+                  key={index}
                     onClick={() => handleAnswer(triageQuestions[currentQuestion].id, option.value)}
                     className="w-full text-left p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
-                  >
+                >
                     <div className="font-medium text-gray-900 mb-1">
                       {option.text}
                     </div>
                     {option.description && (
                       <div className="text-sm text-gray-600">
                         {option.description}
-                      </div>
+                  </div>
                     )}
-                  </button>
-                ))}
-              </div>
+                </button>
+              ))}
             </div>
+        </div>
 
             {/* Back Button */}
             {currentQuestion > 0 && (
-              <button
+          <button
                 onClick={() => setCurrentQuestion(currentQuestion - 1)}
                 className="text-blue-600 hover:text-blue-800 font-medium"
-              >
+          >
                 ← Previous Question
-              </button>
+          </button>
             )}
           </>
         ) : (
@@ -336,26 +336,26 @@ export function PlumbingSeverityTriage({
                         <p className={`text-${getSeverityColor(result.severity)}-700 text-sm`}>
                           {result.urgency}
                         </p>
-                      </div>
-                      <div>
+    </div>
+          <div>
                         <h5 className={`font-semibold text-${getSeverityColor(result.severity)}-800 mb-1`}>
                           Estimated Cost:
                         </h5>
                         <p className={`text-${getSeverityColor(result.severity)}-700 text-sm`}>
                           {result.estimatedCost}
                         </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          </div>
+        </div>
+          </div>
+        </div>
 
-                {/* Recommendations */}
+        {/* Recommendations */}
                 <div className="mb-6">
                   <h5 className="font-semibold text-gray-900 mb-3">
                     Immediate Steps to Take:
                   </h5>
                   <ul className="space-y-2">
-                    {result.recommendations.map((rec, index) => (
+            {result.recommendations.map((rec, index) => (
                       <li key={index} className="flex items-start">
                         <span className="text-blue-600 mr-2 mt-1">•</span>
                         <span className="text-gray-700">{rec}</span>
@@ -407,10 +407,10 @@ export function PlumbingSeverityTriage({
                             </div>
                             <div className="text-xs text-gray-600">{tech.name}</div>
                             <div className="text-xs text-gray-500">{tech.years_experience}y exp</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+              </div>
+            ))}
+          </div>
+        </div>
                   )}
                   
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -443,18 +443,18 @@ export function PlumbingSeverityTriage({
                     <p className="mt-4 text-sm text-red-600 font-medium">
                       🚨 24/7 Emergency Service Available - We're here to help!
                     </p>
-                  )}
-                </div>
+          )}
+        </div>
 
-                {/* Reset Button */}
+        {/* Reset Button */}
                 <div className="mt-6 text-center">
-                  <button
+          <button
                     onClick={resetAssessment}
                     className="text-blue-600 hover:text-blue-800 font-medium"
-                  >
+          >
                     ← Take Assessment Again
-                  </button>
-                </div>
+          </button>
+        </div>
               </>
             )}
           </>

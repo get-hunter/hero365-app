@@ -1,5 +1,5 @@
 /**
- * Enhanced Artifact Page Component - SSR Optimized
+ * Artifact Page Component - SSR Optimized
  * 
  * This is the main page component for trade-aware websites with:
  * - Server-side rendering for optimal performance
@@ -28,7 +28,7 @@ import { StructuredDataRenderer } from '@/components/server/seo/StructuredDataRe
 import { ABTestingProvider } from '@/components/client/testing/ABTestingProvider';
 import { PerformanceMonitor } from '@/components/client/monitoring/PerformanceMonitor';
 
-interface EnhancedArtifactPageProps {
+interface ArtifactPageProps {
   artifact: ActivityPageArtifact;
   businessContext: BusinessContext;
   tradeConfig: TradeConfiguration;
@@ -37,7 +37,7 @@ interface EnhancedArtifactPageProps {
 }
 
 /**
- * Enhanced Artifact Page - Server Component
+ * Artifact Page - Server Component
  * 
  * This component is rendered on the server for optimal performance.
  * It uses real business data to create personalized, trade-aware content.
@@ -48,7 +48,7 @@ export default function ArtifactPage({
   tradeConfig,
   enableABTesting = false,
   experimentConfig = {}
-}: EnhancedArtifactPageProps) {
+}: ArtifactPageProps) {
   
   // Merge artifact variants with experiment config
   const allVariants = {
@@ -57,7 +57,7 @@ export default function ArtifactPage({
   };
 
   // Generate structured data with business context
-  const structuredData = generateEnhancedStructuredData(artifact, businessContext, tradeConfig);
+  const structuredData = generateStructuredData(artifact, businessContext, tradeConfig);
 
   return (
     <ABTestingProvider 
@@ -281,9 +281,9 @@ export default function ArtifactPage({
 }
 
 /**
- * Generate enhanced structured data with business context
+ * Generate structured data with business context
  */
-function generateEnhancedStructuredData(
+function generateStructuredData(
   artifact: ActivityPageArtifact,
   businessContext: BusinessContext,
   tradeConfig: TradeConfiguration

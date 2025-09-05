@@ -1,9 +1,9 @@
 /**
- * Enhanced Activity Page Route - SSR Optimized
+ * Activity Page Route - SSR Optimized
  * 
  * This page route provides:
  * - Server-side rendering for optimal performance
- * - Enhanced business context integration
+ * - Business context integration
  * - Trade-aware content generation
  * - Static generation for published artifacts
  */
@@ -29,15 +29,15 @@ const BUSINESS_ID = process.env.NEXT_PUBLIC_BUSINESS_ID || 'demo-business-id';
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
 
 /**
- * Enhanced data fetching with parallel loading for optimal performance
+ * Data fetching with parallel loading for optimal performance
  */
-async function getEnhancedActivityData(activitySlug: string): Promise<{
+async function getActivityData(activitySlug: string): Promise<{
   artifact: ActivityPageArtifact;
   businessContext: BusinessContext;
   tradeConfig: TradeConfiguration;
 } | null> {
   try {
-    console.log(`🔄 [SSR] Loading enhanced data for activity: ${activitySlug}`);
+    console.log(`🔄 [SSR] Loading data for activity: ${activitySlug}`);
     const startTime = Date.now();
     
     // Parallel data fetching for optimal performance
@@ -61,21 +61,21 @@ async function getEnhancedActivityData(activitySlug: string): Promise<{
     const tradeConfig = getTradeConfig(primaryTrade);
 
     const loadTime = Date.now() - startTime;
-    console.log(`✅ [SSR] Enhanced data loaded in ${loadTime}ms: ${businessContext.technicians.length} technicians, ${businessContext.projects.length} projects`);
+    console.log(`✅ [SSR] Data loaded in ${loadTime}ms: ${businessContext.technicians.length} technicians, ${businessContext.projects.length} projects`);
 
     return { artifact, businessContext, tradeConfig };
   } catch (error) {
-    console.error('❌ Error fetching enhanced activity data:', error);
+    console.error('❌ Error fetching activity data:', error);
     return null;
   }
 }
 
 /**
- * Generate enhanced metadata with business context
+ * Generate metadata with business context
  */
 export async function generateMetadata({ params }: ActivityPageProps): Promise<Metadata> {
   const { activitySlug } = await params;
-  const data = await getEnhancedActivityData(activitySlug);
+  const data = await getActivityData(activitySlug);
 
   if (!data) {
     return {
@@ -99,11 +99,11 @@ export async function generateMetadata({ params }: ActivityPageProps): Promise<M
 }
 
 /**
- * Main page component with enhanced SSR
+ * Main page component with SSR
  */
-export default async function EnhancedActivityPageRoute({ params }: ActivityPageProps) {
+export default async function ActivityPageRoute({ params }: ActivityPageProps) {
   const { activitySlug } = await params;
-  const data = await getEnhancedActivityData(activitySlug);
+  const data = await getActivityData(activitySlug);
 
   if (!data) {
     notFound();
@@ -115,7 +115,7 @@ export default async function EnhancedActivityPageRoute({ params }: ActivityPage
   const enableABTesting = artifact.active_experiment_keys.length > 0;
 
   // Log rendering info for monitoring
-  console.log(`🎨 [SSR] Rendering enhanced page for ${artifact.activity_name} - ${businessContext.business.name}`);
+  console.log(`🎨 [SSR] Rendering page for ${artifact.activity_name} - ${businessContext.business.name}`);
 
   return (
     <ArtifactPage 

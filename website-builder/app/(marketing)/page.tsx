@@ -153,11 +153,11 @@ export default async function HomePage() {
     .map((word: string) => (word && word.length > 0 ? word[0].toUpperCase() + word.slice(1) : ''))
     .join(' ');
 
-  const generatedContent: ContentData = {
+  const businessData: ContentData = {
     businessName: (profile as any).business_name ?? '',
     tagline: `Professional ${formattedTradeName} Services`,
     description: profile.description ?? '',
-    phone: profile.phone ?? '',
+    phone: profile.phone?.trim() || '(555) 123-4567',
     email: profile.email ?? '',
     address: profile.address ?? '',
     serviceAreas: Array.isArray(profile.service_areas) ? profile.service_areas : [],
@@ -179,10 +179,10 @@ export default async function HomePage() {
       <div className="min-h-screen bg-white">
         {/* Header (server) with client CTA/cart slots */}
         <Header 
-          businessName={generatedContent.businessName}
-          city={generatedContent.serviceAreas[0] || 'Austin'}
+          businessName={businessData.businessName}
+          city={businessData.serviceAreas[0] || 'Austin'}
           state={'TX'}
-          phone={generatedContent.phone}
+          phone={businessData.phone}
           supportHours={'24/7'}
         />
 
@@ -190,21 +190,21 @@ export default async function HomePage() {
         <div>
           {/* Hero Section (server component) */}
           <HeroSection
-            businessName={generatedContent.businessName}
-            headline={`Professional ${generatedContent.businessName} Services`}
-            subheadline={generatedContent.tagline}
-            city={generatedContent.serviceAreas[0] || 'Austin'}
-            phone={generatedContent.phone}
-            averageRating={generatedContent.averageRating}
-            totalReviews={generatedContent.totalReviews}
-            emergencyMessage={generatedContent.emergencyService ? '24/7 Emergency Service Available' : undefined}
+            businessName={businessData.businessName}
+            headline={`Professional ${businessData.businessName} Services`}
+            subheadline={businessData.tagline}
+            city={businessData.serviceAreas[0] || 'Austin'}
+            phone={businessData.phone}
+            averageRating={businessData.averageRating}
+            totalReviews={businessData.totalReviews}
+            emergencyMessage={businessData.emergencyService ? '24/7 Emergency Service Available' : undefined}
           />
 
           {/* Services Grid (server component) */}
           <ServicesGrid
-            businessName={generatedContent.businessName}
-            city={generatedContent.serviceAreas[0] || 'Austin'}
-            phone={generatedContent.phone}
+            businessName={businessData.businessName}
+            city={businessData.serviceAreas[0] || 'Austin'}
+            phone={businessData.phone}
           />
 
           {/* Products Showcase */}
@@ -337,10 +337,10 @@ export default async function HomePage() {
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <a 
-                      href={`tel:${generatedContent.phone}`}
+                      href={`tel:${businessData.phone}`}
                       className="px-6 py-2 bg-white border border-blue-300 text-blue-700 font-medium rounded-lg hover:bg-blue-50 transition-colors"
                     >
-                      Call {generatedContent.phone}
+                      Call {businessData.phone}
                     </a>
                     <a 
                       href="/products"
@@ -363,7 +363,7 @@ export default async function HomePage() {
                   Recent Projects
                 </h2>
                 <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                  See our latest work and successful installations for {generatedContent.serviceAreas[0] || 'Austin'} area customers
+                  See our latest work and successful installations for {businessData.serviceAreas[0] || 'Austin'} area customers
                 </p>
               </div>
               
@@ -383,7 +383,7 @@ export default async function HomePage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      {generatedContent.serviceAreas[0] || 'Austin'}, TX
+                      {businessData.serviceAreas[0] || 'Austin'}, TX
                     </div>
                   </div>
                 </div>
@@ -404,7 +404,7 @@ export default async function HomePage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      {generatedContent.serviceAreas[0] || 'Austin'}, TX
+                      {businessData.serviceAreas[0] || 'Austin'}, TX
                     </div>
                   </div>
                 </div>
@@ -424,7 +424,7 @@ export default async function HomePage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      {generatedContent.serviceAreas[0] || 'Austin'}, TX
+                      {businessData.serviceAreas[0] || 'Austin'}, TX
                     </div>
                   </div>
                 </div>
@@ -458,11 +458,11 @@ export default async function HomePage() {
           <Hero365ContactSection 
             business={{
               id: businessId,
-              name: generatedContent.businessName,
-              phone_number: generatedContent.phone,
-              business_email: generatedContent.email,
-              address: generatedContent.address,
-              service_areas: generatedContent.serviceAreas,
+              name: businessData.businessName,
+              phone_number: businessData.phone,
+              business_email: businessData.email,
+              address: businessData.address,
+              service_areas: businessData.serviceAreas,
               trades: [],
               seo_keywords: []
             }}
@@ -475,9 +475,9 @@ export default async function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {/* Company Info */}
                 <div className="lg:col-span-2">
-                  <h3 className="text-2xl font-bold mb-4">{generatedContent.businessName || 'Professional HVAC Services'}</h3>
+                  <h3 className="text-2xl font-bold mb-4">{businessData.businessName || 'Professional HVAC Services'}</h3>
                   <p className="text-gray-300 mb-4">
-                    Professional HVAC services for {generatedContent.serviceAreas[0] || 'Austin'} and surrounding areas. 
+                    Professional HVAC services for {businessData.serviceAreas[0] || 'Austin'} and surrounding areas. 
                     Licensed, insured, and committed to quality service.
                   </p>
                   <div className="space-y-2">
@@ -485,20 +485,20 @@ export default async function HomePage() {
                       <svg className="h-5 w-5 text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21L6.16 11.37a11.045 11.045 0 005.516 5.516l1.983-4.064a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
-                      <span>{generatedContent.phone || '(512) 555-0100'}</span>
+                      <span>{businessData.phone || '(512) 555-0100'}</span>
                     </div>
                     <div className="flex items-center">
                       <svg className="h-5 w-5 text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
-                      <span>{generatedContent.email || 'info@example.com'}</span>
+                      <span>{businessData.email || 'info@example.com'}</span>
                     </div>
                     <div className="flex items-center">
                       <svg className="h-5 w-5 text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <span>{generatedContent.address || 'Austin, TX'}</span>
+                      <span>{businessData.address || 'Austin, TX'}</span>
                     </div>
                   </div>
                 </div>
@@ -518,8 +518,8 @@ export default async function HomePage() {
                 <div>
                   <h4 className="text-lg font-semibold mb-4">Service Areas</h4>
                   <ul className="space-y-2 text-gray-300">
-                    {generatedContent.serviceAreas.length > 0 ? (
-                      generatedContent.serviceAreas.slice(0, 4).map((area, index) => (
+                    {businessData.serviceAreas.length > 0 ? (
+                      businessData.serviceAreas.slice(0, 4).map((area, index) => (
                         <li key={index}><a href={`/locations/${area.toLowerCase().replace(/[^a-z0-9]/g, '-')}`} className="hover:text-white transition-colors">{area}</a></li>
                       ))
                     ) : (
@@ -537,7 +537,7 @@ export default async function HomePage() {
               {/* Bottom Bar */}
               <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
                 <p className="text-gray-400 text-sm">
-                  © {new Date().getFullYear()} {generatedContent.businessName || 'Professional HVAC Services'}. All rights reserved.
+                  © {new Date().getFullYear()} {businessData.businessName || 'Professional HVAC Services'}. All rights reserved.
                 </p>
                 <div className="flex space-x-6 mt-4 md:mt-0">
                   <a href="/privacy" className="text-gray-400 hover:text-white text-sm transition-colors">Privacy Policy</a>
