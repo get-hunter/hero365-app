@@ -60,6 +60,8 @@ class Business(BaseModel):
     # Business Profile
     description: Optional[str] = None
     phone_number: Optional[str] = Field(None, max_length=20)
+    phone_country_code: Optional[str] = Field(None, max_length=5)
+    phone_display: Optional[str] = Field(None, max_length=25)
     business_address: Optional[str] = None
     
     # Address components (for SEO and local business features)
