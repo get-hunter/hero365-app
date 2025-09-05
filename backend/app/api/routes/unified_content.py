@@ -16,8 +16,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from app.application.services.unified_content_orchestrator import (
-    UnifiedContentOrchestrator,
+from app.application.services.content_orchestrator import (
+    ContentOrchestrator,
     ContentRequest,
     ContentTier,
     ContentStatus
@@ -83,7 +83,7 @@ class CacheInvalidationRequest(BaseModel):
     location_slug: Optional[str] = None
 
 # Dependency injection
-async def get_content_orchestrator() -> UnifiedContentOrchestrator:
+async def get_content_orchestrator() -> ContentOrchestrator:
     """Get the unified content orchestrator instance"""
     # Use shared DI to retrieve Supabase client
     from app.api.deps import get_supabase_client
@@ -94,7 +94,7 @@ async def get_content_orchestrator() -> UnifiedContentOrchestrator:
     llm_service = LLMContentGenerationService(openai_api_key=str(settings.OPENAI_API_KEY))
     rag_service = RAGRetrievalService(supabase_client)
     
-    return UnifiedContentOrchestrator(
+    return ContentOrchestrator(
         business_repository=business_repo,
         contact_repository=contact_repo,
         llm_service=llm_service,
@@ -104,7 +104,7 @@ async def get_content_orchestrator() -> UnifiedContentOrchestrator:
 @router.post("/generate", response_model=ContentGenerationResponse)
 async def generate_content(
     request: ContentGenerationRequest,
-    orchestrator: UnifiedContentOrchestrator = Depends(get_content_orchestrator)
+    orchestrator: ContentOrchestrator = Depends(get_content_orchestrator)
 ) -> ContentGenerationResponse:
     """
     Generate content for a specific service and location
@@ -165,7 +165,7 @@ async def generate_content(
 async def generate_bulk_content(
     request: BulkContentRequest,
     background_tasks: BackgroundTasks,
-    orchestrator: UnifiedContentOrchestrator = Depends(get_content_orchestrator)
+    orchestrator: ContentOrchestrator = Depends(get_content_orchestrator)
 ) -> JSONResponse:
     """
     Generate content for multiple services/locations in parallel
@@ -247,7 +247,7 @@ async def get_artifact(
     location_slug: Optional[str] = Query(None),
     page_variant: str = Query("standard"),
     tier: str = Query("enhanced"),
-    orchestrator: UnifiedContentOrchestrator = Depends(get_content_orchestrator)
+    orchestrator: ContentOrchestrator = Depends(get_content_orchestrator)
 ) -> ContentGenerationResponse:
     """
     Get artifact content (compatible with existing frontend)
@@ -299,7 +299,7 @@ async def get_artifact(
 @router.post("/cache/invalidate")
 async def invalidate_cache(
     request: CacheInvalidationRequest,
-    orchestrator: UnifiedContentOrchestrator = Depends(get_content_orchestrator)
+    orchestrator: ContentOrchestrator = Depends(get_content_orchestrator)
 ) -> JSONResponse:
     """
     Invalidate cached content
@@ -333,7 +333,7 @@ async def invalidate_cache(
 
 @router.get("/stats")
 async def get_generation_stats(
-    orchestrator: UnifiedContentOrchestrator = Depends(get_content_orchestrator)
+    orchestrator: ContentOrchestrator = Depends(get_content_orchestrator)
 ) -> JSONResponse:
     """
     Get content generation statistics
@@ -361,7 +361,7 @@ async def pregenerate_content(
     business_id: str,
     background_tasks: BackgroundTasks,
     tier: str = Query("template", description="Content tier to pregenerate"),
-    orchestrator: UnifiedContentOrchestrator = Depends(get_content_orchestrator)
+    orchestrator: ContentOrchestrator = Depends(get_content_orchestrator)
 ) -> JSONResponse:
     """
     Pregenerate content for all service-location combinations
@@ -462,7 +462,7 @@ async def pregenerate_content(
 
 async def _execute_bulk_generation(
     request: BulkContentRequest,
-    orchestrator: UnifiedContentOrchestrator
+    orchestrator: ContentOrchestrator
 ) -> None:
     """Execute bulk generation in background"""
     try:
