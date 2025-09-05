@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import Link from 'next/link';
 import Header from '@/components/server/layout/header';
 import HeroSection from '@/components/server/hero/hero-section';
 import ServicesGrid from '@/components/server/services/services-grid';
@@ -206,6 +207,22 @@ export default async function HomePage() {
             city={businessData.serviceAreas[0] || 'Austin'}
             phone={businessData.phone}
           />
+          
+          {/* View All Services Link */}
+          <div className="text-center py-8">
+            <Link
+              href="/services"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              View All Services →
+            </Link>
+            <Link
+              href="/locations"
+              className="inline-flex items-center px-6 py-3 ml-4 bg-white text-blue-600 font-semibold rounded-lg border-2 border-blue-600 hover:bg-blue-50 transition-colors"
+            >
+              Service Areas →
+            </Link>
+          </div>
 
           {/* Products Showcase */}
           {serverProducts && serverProducts.length > 0 && (
