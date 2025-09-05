@@ -24,10 +24,10 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
 
-from app.domain.entities.contractor import Contractor
-from app.domain.entities.service_area import ServiceArea
-from app.infrastructure.database.repositories.contractor_repository import ContractorRepository
-from app.infrastructure.database.repositories.service_area_repository import ServiceAreaRepository
+from app.domain.entities.business import Business
+from app.domain.entities.contact import Contact
+from app.infrastructure.database.repositories.supabase_business_repository import SupabaseBusinessRepository
+from app.infrastructure.database.repositories.supabase_contact_repository import SupabaseContactRepository
 from app.application.services.llm_content_generation_service import LLMContentGenerationService
 from app.application.services.rag_retrieval_service import RAGRetrievalService
 
@@ -115,13 +115,13 @@ class UnifiedContentOrchestrator:
     
     def __init__(
         self,
-        contractor_repository: ContractorRepository,
-        service_area_repository: ServiceAreaRepository,
+        business_repository: SupabaseBusinessRepository,
+        contact_repository: SupabaseContactRepository,
         llm_service: LLMContentGenerationService,
         rag_service: RAGRetrievalService,
     ):
-        self.contractor_repo = contractor_repository
-        self.service_area_repo = service_area_repository
+        self.business_repo = business_repository
+        self.contact_repo = contact_repository
         self.llm_service = llm_service
         self.rag_service = rag_service
         

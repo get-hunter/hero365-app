@@ -157,7 +157,7 @@ export default async function HomePage() {
     businessName: (profile as any).business_name ?? '',
     tagline: `Professional ${formattedTradeName} Services`,
     description: profile.description ?? '',
-    phone: profile.phone?.trim() || '(555) 123-4567',
+    phone: profile.phone?.trim() || null,
     email: profile.email ?? '',
     address: profile.address ?? '',
     serviceAreas: Array.isArray(profile.service_areas) ? profile.service_areas : [],
@@ -336,12 +336,14 @@ export default async function HomePage() {
                     Our experts can help you select the perfect equipment for your needs.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <a 
-                      href={`tel:${businessData.phone}`}
-                      className="px-6 py-2 bg-white border border-blue-300 text-blue-700 font-medium rounded-lg hover:bg-blue-50 transition-colors"
-                    >
-                      Call {businessData.phone}
-                    </a>
+                    {businessData.phone && (
+                      <a 
+                        href={`tel:${businessData.phone}`}
+                        className="px-6 py-2 bg-white border border-blue-300 text-blue-700 font-medium rounded-lg hover:bg-blue-50 transition-colors"
+                      >
+                        Call {businessData.phone}
+                      </a>
+                    )}
                     <a 
                       href="/products"
                       className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"

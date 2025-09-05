@@ -41,7 +41,7 @@ export async function getBusinessContext(businessId: string): Promise<BusinessCo
 
     if (!response.ok) {
       console.error(`❌ [API] Business context API failed: ${response.status} ${response.statusText}`);
-      return getFallbackBusinessContext(businessId);
+      return null;
     }
 
     const contextData = await response.json();
@@ -61,7 +61,7 @@ export async function getBusinessContext(businessId: string): Promise<BusinessCo
 
   } catch (error) {
     console.error(`❌ [API] Error fetching business context for ${businessId}:`, error);
-    return getFallbackBusinessContext(businessId);
+    return null;
   }
 }
 
@@ -238,126 +238,6 @@ function transformToBusinessContext(apiData: any): BusinessContext {
   };
 }
 
-/**
- * Fallback business context when API fails
- */
-function getFallbackBusinessContext(businessId: string): BusinessContext {
-  console.log(`⚠️ [FALLBACK] Using fallback business context for: ${businessId}`);
-  
-  return {
-    business: {
-      id: businessId,
-      name: process.env.NEXT_PUBLIC_BUSINESS_NAME || 'Professional Services',
-      description: 'Professional home services with expert technicians',
-      phone: process.env.NEXT_PUBLIC_BUSINESS_PHONE?.trim() || '(555) 123-4567',
-      email: process.env.NEXT_PUBLIC_BUSINESS_EMAIL || 'info@business.com',
-      address: process.env.NEXT_PUBLIC_BUSINESS_ADDRESS || '123 Main St',
-      city: process.env.NEXT_PUBLIC_BUSINESS_CITY || 'Austin',
-      state: process.env.NEXT_PUBLIC_BUSINESS_STATE || 'TX',
-      postal_code: '78701',
-      website: process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com',
-      primary_trade: 'hvac',
-      selected_activities: ['ac-repair', 'hvac-installation'],
-      market_focus: 'both',
-      years_in_business: 10,
-      company_values: ['Quality', 'Reliability', 'Customer Service'],
-      awards_certifications: ['BBB A+ Rating', 'Licensed & Insured'],
-      unique_selling_points: ['24/7 Emergency Service', 'Satisfaction Guaranteed']
-    },
-
-    trade_profile: {
-      primary_trade: 'hvac',
-      selected_activities: ['ac-repair', 'hvac-installation'],
-      market_focus: 'both',
-      emergency_services: true,
-      commercial_focus: true,
-      residential_focus: true
-    },
-
-    activities: [
-      {
-        slug: 'ac-repair',
-        name: 'AC Repair',
-        trade_slug: 'hvac',
-        trade_name: 'HVAC',
-        synonyms: ['air conditioning repair'],
-        tags: ['emergency', 'repair'],
-        is_featured: true,
-        is_emergency: true,
-        booking_frequency: 100,
-        default_booking_fields: [],
-        required_booking_fields: []
-      }
-    ],
-
-    technicians: [
-      {
-        id: 'tech-1',
-        name: 'John Smith',
-        title: 'Senior HVAC Technician',
-        years_experience: 15,
-        certifications: ['NATE Certified', 'EPA Licensed'],
-        specializations: ['AC Repair', 'System Installation'],
-        bio: null,
-        completed_jobs: 500,
-        average_rating: 4.9,
-        is_public_profile: true,
-        photo_url: null
-      }
-    ],
-
-    combined_experience_years: 15,
-    total_certifications: ['NATE Certified', 'EPA Licensed'],
-
-    service_areas: [
-      {
-        name: `${process.env.NEXT_PUBLIC_BUSINESS_CITY || 'Austin'}, ${process.env.NEXT_PUBLIC_BUSINESS_STATE || 'TX'}`,
-        slug: 'primary',
-        city: process.env.NEXT_PUBLIC_BUSINESS_CITY || 'Austin',
-        state: process.env.NEXT_PUBLIC_BUSINESS_STATE || 'TX',
-        coverage_radius_miles: 25,
-        response_time_hours: 2.0,
-        is_primary: true,
-        local_regulations: [],
-        common_issues: [],
-        seasonal_factors: []
-      }
-    ],
-
-    primary_area: {
-      name: `${process.env.NEXT_PUBLIC_BUSINESS_CITY || 'Austin'}, ${process.env.NEXT_PUBLIC_BUSINESS_STATE || 'TX'}`,
-      slug: 'primary',
-      city: process.env.NEXT_PUBLIC_BUSINESS_CITY || 'Austin',
-      state: process.env.NEXT_PUBLIC_BUSINESS_STATE || 'TX',
-      coverage_radius_miles: 25,
-      response_time_hours: 2.0,
-      is_primary: true,
-      local_regulations: [],
-      common_issues: [],
-      seasonal_factors: []
-    },
-
-    projects: [],
-    showcase_projects: [],
-    completed_count: 0,
-    average_project_value: 0,
-
-    testimonials: [],
-    total_served: 100,
-    average_rating: 4.8,
-    repeat_customer_rate: 0.3,
-
-    market_insights: {},
-    competitive_advantages: [
-      'Local expertise',
-      'Fast response times',
-      'Quality workmanship'
-    ],
-
-    generated_at: new Date().toISOString(),
-    cache_key: `fallback_context:${businessId}`
-  };
-}
 
 /**
  * Invalidate business context cache

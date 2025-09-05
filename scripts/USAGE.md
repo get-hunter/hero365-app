@@ -1,105 +1,185 @@
-# Interactive Business Website Deployer - Usage Guide
+# 🚀 Hero365 Deployment System - Usage Guide
 
 ## Quick Start
 
-The easiest way to deploy a business website is using the interactive script:
+We've completely redesigned the deployment system for simplicity and performance. Use these **2 unified scripts** for all your deployment needs:
+
+### **🏗️ Production Deployment**
+```bash
+# Deploy any business to Cloudflare
+./scripts/build-static-website.sh \
+  --business-id YOUR_BUSINESS_ID \
+  --environment production
+```
+
+### **🛠️ Development Environment**
+```bash
+# Start development with static data (no API spam!)
+./scripts/dev-with-static-data.sh \
+  --business-id YOUR_BUSINESS_ID
+```
+
+## ✨ What's New
+
+### **🧹 Legacy Cleanup**
+- ❌ Removed **6 legacy scripts** that caused confusion
+- ❌ Eliminated **API spam** and logging noise
+- ❌ No more complex interactive prompts
+- ✅ **2 clean, focused scripts** with clear purposes
+
+### **⚡ Performance Improvements**
+- **Static generation** instead of runtime API calls
+- **30-60 second builds** instead of 2-5 minutes
+- **Clean logs** with meaningful messages only
+- **Zero API dependencies** for static content
+
+## 📋 Usage Examples
+
+### **1. Development**
+```bash
+# Full development environment
+./scripts/dev-with-static-data.sh --business-id 550e8400-e29b-41d4-a716-446655440010
+
+# Frontend only (no backend)
+./scripts/dev-with-static-data.sh --business-id YOUR_ID --no-backend
+
+# Skip static generation (use existing)
+./scripts/dev-with-static-data.sh --business-id YOUR_ID --no-static
+```
+
+### **2. Build & Deploy**
+```bash
+# Build only (no deployment)
+./scripts/build-static-website.sh --business-id YOUR_ID --build-only
+
+# Deploy to development
+./scripts/build-static-website.sh --business-id YOUR_ID --environment development
+
+# Deploy to production with custom project name
+./scripts/build-static-website.sh \
+  --business-id YOUR_ID \
+  --environment production \
+  --project-name elite-hvac-austin
+```
+
+## 🎯 Business-Specific Deployment
+
+Each business gets its own Cloudflare project and URL:
 
 ```bash
-# Run the interactive deployer
-./scripts/deploy-business-website.sh
-
-# Or with specific options
-./scripts/deploy-business-website.sh --env staging --build-only
+Business ID: 550e8400-e29b-41d4-a716-446655440010
+Environment: production
+↓
+Project: hero365-550e8400-e29b-41d4-a716-446655440010-production
+URL: https://hero365-550e8400-e29b-41d4-a716-446655440010-production.pages.dev
 ```
 
-## What the Script Does
+## 🔧 Configuration
 
-1. **Connects to Database**: Automatically connects to your Supabase database
-2. **Fetches Businesses**: Retrieves all active businesses and displays them in a beautiful table
-3. **Interactive Selection**: Lets you choose which business to deploy
-4. **Automated Deployment**: Builds and deploys the website to Cloudflare Workers
-
-## Example Session
-
-```
-🚀 Interactive Website Deployer
-Environment: staging
-Mode: Build & Deploy
-
-✅ Found 3 active businesses
-
-                           🏢 Available Businesses                            
-┏━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ #  ┃ Business Name        ┃ Trade         ┃ Location           ┃ Contact                 ┃
-┡━━━━╇━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ 1  │ Elite HVAC Services  │ HVAC          │ Austin, TX         │ contact@elitehvac.com   │
-│    │                      │               │                    │ (512) 555-0123          │
-│ 2  │ Pro Plumbing Co      │ Plumbing      │ Dallas, TX         │ info@proplumbing.com    │
-│    │                      │               │                    │ (214) 555-0456          │
-│ 3  │ Ace Electrical       │ Electrical    │ Houston, TX        │ service@aceelectric.com │
-│    │                      │               │                    │ (713) 555-0789          │
-└────┴──────────────────────┴───────────────┴────────────────────┴─────────────────────────┘
-
-📋 Select a business to deploy:
-Enter business number (1-3) or 'q' to quit [1]: 1
-
-┌─ Selected Business ─────────────────────────────────────────────────────────┐
-│ Elite HVAC Services                                                         │
-│ Trade: HVAC                                                                 │
-│ Location: Austin, TX                                                        │
-│ Email: contact@elitehvac.com                                                │
-│ Phone: (512) 555-0123                                                       │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-Deploy website for this business? [Y/n]: y
-
-🚀 Starting website deployment for Elite HVAC Services
-Environment: staging
-Build Only: False
-
-[Deployment process begins...]
+### **Required Environment Variables**
+```bash
+# For Cloudflare deployment
+export CLOUDFLARE_API_TOKEN="your-cloudflare-api-token"
+export CLOUDFLARE_ACCOUNT_ID="your-account-id"  # optional
 ```
 
-## Available Options
+### **Business Configuration**
+```bash
+# Business-specific settings (optional - has fallbacks)
+export NEXT_PUBLIC_BUSINESS_NAME="Elite HVAC Austin"
+export NEXT_PUBLIC_BUSINESS_PHONE="(512) 555-0100"
+export NEXT_PUBLIC_BUSINESS_EMAIL="info@elitehvac.com"
+```
 
-- `--env staging|production|development`: Target environment (default: staging)
-- `--build-only`: Only build the website, don't deploy to Cloudflare
-- `--help`: Show help information
+## 📊 Example Session
 
-## Prerequisites
+```bash
+$ ./scripts/build-static-website.sh --business-id 550e8400-e29b-41d4-a716-446655440010 --environment production
 
-1. **Environment Variables**: Ensure your `environments/.env` file contains:
-   ```bash
-   SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_KEY=your-anon-key
-   ```
+🏗️ Unified Static Website Builder
 
-2. **Dependencies**: All required dependencies are automatically managed through the backend environment
+🚀 Starting static website build...
+Business ID: 550e8400-e29b-41d4-a716-446655440010
+Environment: production
+Cloud Provider: cloudflare
+Cloudflare Project: hero365-550e8400-e29b-41d4-a716-446655440010-production
+Build only: false
 
-3. **Cloudflare Setup**: For actual deployment (not build-only), ensure Cloudflare is configured
+🔍 Checking backend health...
+✅ Backend is healthy at http://localhost:8000
 
-## Troubleshooting
+📊 Generating static data...
+✅ Static data generated successfully
 
-### "Missing required environment variables"
-- Check your `environments/.env` file
-- Ensure SUPABASE_URL and SUPABASE_KEY are properly set
+🏗️ Building Next.js application...
+✅ Next.js build completed successfully
 
-### "No active businesses found"
-- Verify businesses exist in your database
-- Check that businesses have `is_active = true`
+🚀 Deploying to Cloudflare Pages...
+✅ Deployment completed successfully
+🌐 Website URL: https://hero365-550e8400-e29b-41d4-a716-446655440010-production.pages.dev
 
-### Build/Deployment Errors
-- The website builder may need additional configuration for Edge Runtime
-- Check the detailed logs in the terminal output
-- Use `--build-only` flag to test without deployment
+✅ Validating deployment...
+✅ Generated 1247 static files
 
-## Integration with Existing Workflow
+🎉 Build completed! Next steps:
+   🌐 Website deployed successfully!
+   🔗 URL: https://hero365-550e8400-e29b-41d4-a716-446655440010-production.pages.dev
+   📊 Monitor in Cloudflare dashboard: https://dash.cloudflare.com/
+   📋 Project: hero365-550e8400-e29b-41d4-a716-446655440010-production
 
-This script integrates seamlessly with the existing Hero365 infrastructure:
+🎯 All done!
+```
 
-- Uses the same Supabase database
-- Leverages existing website-builder configuration
-- Follows the same deployment patterns
-- Maintains all existing business data relationships
+## 🆘 Help & Troubleshooting
 
-The script is designed to be the primary way to deploy business websites, replacing manual business ID entry with an intuitive selection interface.
+### **Get Help**
+```bash
+./scripts/build-static-website.sh --help
+./scripts/dev-with-static-data.sh --help
+```
+
+### **Common Issues**
+
+**1. Missing Business ID**
+```bash
+❌ Business ID is required
+✅ Use: --business-id YOUR_BUSINESS_ID
+```
+
+**2. Cloudflare Authentication**
+```bash
+❌ Cloudflare deployment failed
+✅ Set: export CLOUDFLARE_API_TOKEN="your-token"
+```
+
+**3. Build Failures**
+```bash
+❌ Next.js build failed
+✅ Check: npm install in website-builder/
+```
+
+## 🎉 Migration from Legacy Scripts
+
+### **Old Way (Deprecated)**
+```bash
+# Don't use these anymore - they've been removed
+./scripts/deploy-seo-matrix.sh
+./scripts/interactive-website-deployer.py
+./website-builder/scripts/prebuild-seo.js
+```
+
+### **New Way (Use This)**
+```bash
+# Simple, clean, fast
+./scripts/build-static-website.sh --business-id YOUR_ID --environment production
+```
+
+---
+
+## 📚 Additional Resources
+
+- **Legacy Cleanup Plan**: `docs/LEGACY-CODE-CLEANUP-PLAN.md`
+- **Unified Deployment System**: `docs/UNIFIED-DEPLOYMENT-SYSTEM.md`
+- **Static Data Generator**: `website-builder/lib/server/static-data-generator.ts`
+
+The new system is **faster**, **cleaner**, and **more reliable** than the legacy approach!

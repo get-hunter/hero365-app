@@ -309,7 +309,7 @@ class SupabaseBusinessRepository(BusinessRepository):
             # owner_id removed - use business_memberships instead
             "description": business.description,
             # Address components
-            "phone_number": business.phone_number,
+            "phone": business.phone_number,
             "business_address": business.business_address,
             "address": business.address,
             "city": business.city,
@@ -367,7 +367,7 @@ class SupabaseBusinessRepository(BusinessRepository):
             company_size=CompanySize(data["company_size"]),
             # owner_id removed - use business_memberships instead
             description=data.get("description"),
-            phone_number=data.get("phone_number"),
+            phone_number=data.get("phone"),
             business_address=data.get("business_address"),
             address=data.get("address"),
             city=data.get("city"),

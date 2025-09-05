@@ -53,8 +53,8 @@ export default function Header({
   ctaSlot,
   cartSlot
 }: Hero365HeaderServerProps) {
-  const displayPhone = formatPhoneForDisplay(phone);
-  const telPhone = phone.replace(/\D/g, ''); // Simple phone normalization for tel: links
+  const displayPhone = phone ? formatPhoneForDisplay(phone) : null;
+  const telPhone = phone ? phone.replace(/\D/g, '') : null; // Simple phone normalization for tel: links
 
   // Static service categories for server rendering
   const serviceCategories: ServiceCategory[] = [
@@ -122,28 +122,32 @@ export default function Header({
             </div>
             
             {/* Desktop Phone Display */}
-            <div className="hidden md:flex items-center">
-              <span className="text-green-400 font-medium">Support {supportHours}:</span>
-              <a 
-                href={`tel:${telPhone}`}
-                className="ml-2 text-white hover:text-blue-400 transition-colors font-bold text-lg"
-              >
-                {formatPhoneForDisplay(phone)}
-              </a>
-            </div>
+            {displayPhone && telPhone && (
+              <div className="hidden md:flex items-center">
+                <span className="text-green-400 font-medium">Support {supportHours}:</span>
+                <a 
+                  href={`tel:${telPhone}`}
+                  className="ml-2 text-white hover:text-blue-400 transition-colors font-bold text-lg"
+                >
+                  {displayPhone}
+                </a>
+              </div>
+            )}
             
             {/* Mobile Phone Display */}
-            <div className="md:hidden flex items-center">
-              <svg className="w-4 h-4 mr-1 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-              <a 
-                href={`tel:${telPhone}`}
-                className="text-white hover:text-blue-400 transition-colors font-bold"
-              >
-                {formatPhoneForDisplay(phone)}
-              </a>
-            </div>
+            {displayPhone && telPhone && (
+              <div className="md:hidden flex items-center">
+                <svg className="w-4 h-4 mr-1 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                <a 
+                  href={`tel:${telPhone}`}
+                  className="text-white hover:text-blue-400 transition-colors font-bold"
+                >
+                  {displayPhone}
+                </a>
+              </div>
+            )}
           </div>
           <div className="flex items-center space-x-4">
             <button className="px-3 py-1 text-xs border border-white text-white hover:bg-white hover:text-gray-900 rounded transition-colors font-medium">

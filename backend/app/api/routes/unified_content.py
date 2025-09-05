@@ -22,8 +22,8 @@ from app.application.services.unified_content_orchestrator import (
     ContentTier,
     ContentStatus
 )
-from app.infrastructure.database.repositories.contractor_repository import ContractorRepository
-from app.infrastructure.database.repositories.service_area_repository import ServiceAreaRepository
+from app.infrastructure.database.repositories.supabase_business_repository import SupabaseBusinessRepository
+from app.infrastructure.database.repositories.supabase_contact_repository import SupabaseContactRepository
 from app.application.services.llm_content_generation_service import LLMContentGenerationService
 from app.application.services.rag_retrieval_service import RAGRetrievalService
 
@@ -85,14 +85,17 @@ class CacheInvalidationRequest(BaseModel):
 async def get_content_orchestrator() -> UnifiedContentOrchestrator:
     """Get the unified content orchestrator instance"""
     # In production, these would be properly injected
-    contractor_repo = ContractorRepository()
-    service_area_repo = ServiceAreaRepository()
+    from app.infrastructure.database.supabase_client import get_supabase_client
+    supabase_client = get_supabase_client()
+    
+    business_repo = SupabaseBusinessRepository(supabase_client)
+    contact_repo = SupabaseContactRepository(supabase_client)
     llm_service = LLMContentGenerationService()
     rag_service = RAGRetrievalService()
     
     return UnifiedContentOrchestrator(
-        contractor_repository=contractor_repo,
-        service_area_repository=service_area_repo,
+        business_repository=business_repo,
+        contact_repository=contact_repo,
         llm_service=llm_service,
         rag_service=rag_service,
     )
