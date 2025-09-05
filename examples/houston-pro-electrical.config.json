@@ -1,0 +1,50 @@
+{
+  "business_id": "houston-pro-electrical",
+  "business_name": "Houston Pro Electrical",
+  "phone": "(713) 555-0789",
+  "email": "info@houstonproelectrical.com",
+  "address": "9012 Energy Corridor",
+  "city": "Houston",
+  "state": "TX",
+  "postal_code": "77079",
+  "primary_trade": "electrical",
+  "service_areas": [
+    "Houston",
+    "Sugar Land",
+    "Katy",
+    "The Woodlands",
+    "Pearland",
+    "Pasadena",
+    "League City",
+    "Missouri City",
+    "Stafford",
+    "Cypress",
+    "Spring",
+    "Tomball",
+    "Humble",
+    "Kingwood",
+    "Conroe"
+  ],
+  "domain": "houstonproelectrical.com",
+  "environment": "production",
+  "seo_config": {
+    "enable_location_pages": true,
+    "enable_emergency_pages": true,
+    "enable_commercial_pages": true,
+    "target_keywords": ["electrical", "electrician", "panel upgrade", "wiring", "lighting", "Houston"],
+    "business_description": "Professional electrical services in Houston, TX. Licensed master electricians with 20+ years experience.",
+    "service_radius_miles": 40
+  },
+  "services": [
+    "panel-upgrade",
+    "lighting-installation",
+    "wiring-repair",
+    "generator-installation",
+    "ev-charger-installation",
+    "ceiling-fan-installation",
+    "outlet-installation",
+    "electrical-inspection",
+    "commercial-electrical",
+    "emergency-electrical"
+  ]
+}

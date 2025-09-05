@@ -1,0 +1,50 @@
+ th{
+  "business_id": "austin-pro-hvac",
+  "business_name": "Austin Pro HVAC",
+  "phone": "(512) 555-0123",
+  "email": "info@austinprohvac.com",
+  "address": "1234 Industrial Blvd",
+  "city": "Austin",
+  "state": "TX",
+  "postal_code": "78701",
+  "primary_trade": "hvac",
+  "service_areas": [
+    "Austin",
+    "Round Rock", 
+    "Cedar Park",
+    "Pflugerville",
+    "Leander",
+    "Georgetown",
+    "Lakeway",
+    "Bee Cave",
+    "West Lake Hills",
+    "Rollingwood",
+    "Sunset Valley",
+    "Manchaca",
+    "Del Valle",
+    "Elgin",
+    "Manor"
+  ],
+  "domain": "austinprohvac.com",
+  "environment": "production",
+  "seo_config": {
+    "enable_location_pages": true,
+    "enable_emergency_pages": true,
+    "enable_commercial_pages": true,
+    "target_keywords": ["hvac", "air conditioning", "heating", "repair", "installation", "maintenance", "Austin"],
+    "business_description": "Professional HVAC services in Austin, TX. Licensed and insured with 15+ years of experience.",
+    "service_radius_miles": 30
+  },
+  "services": [
+    "ac-repair",
+    "ac-installation", 
+    "hvac-maintenance",
+    "heating-repair",
+    "furnace-installation",
+    "duct-cleaning",
+    "air-quality-testing",
+    "thermostat-installation",
+    "commercial-hvac",
+    "emergency-hvac-repair"
+  ]
+}

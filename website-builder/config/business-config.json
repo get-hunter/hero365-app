@@ -1,40 +1,31 @@
 {
-  "businessId": "550e8400-e29b-41d4-a716-446655440010",
-  "environment": "development",
-  "businessData": {
-    "business_id": "550e8400-e29b-41d4-a716-446655440010",
-    "business_name": "Hero365 HVAC Austin",
-    "primary_trade_slug": "hvac",
-    "selected_activity_slugs": ["ac-installation", "ac-repair", "hvac-maintenance"],
-    "description": "Professional HVAC provider",
-    "trade_type": "hvac",
-    "phone": "+15125550100",
-    "email": "info@elitehvac.com",
-    "address": "123 Main St",
-    "website": "https://elitehvac.com/",
-    "service_areas": [],
-    "emergency_service": true,
-    "years_in_business": 10,
-    "license_number": null,
-    "insurance_verified": false,
-    "average_rating": 4.8,
-    "total_reviews": 150,
-    "certifications": []
+  "business_id": "austin-pro-hvac",
+  "business_profile": {
+    "business_name": "Austin Pro HVAC",
+    "phone": "(512) 555-0123",
+    "email": "info@austinprohvac.com",
+    "address": "1234 Industrial Blvd",
+    "city": "Austin",
+    "state": "TX",
+    "website": "https://austinprohvac.com",
+    "primary_trade": "hvac"
   },
-  "apiConfig": {
-    "baseUrl": "http://127.0.0.1:8000",
-    "timeout": 30000,
-    "retries": 1
+  "service_areas": ["Austin", "Round Rock", "Cedar Park", "Pflugerville", "Leander", "Georgetown", "Lakeway", "Bee Cave", "West Lake Hills", "Rollingwood", "Sunset Valley", "Manchaca", "Del Valle", "Elgin", "Manor"],
+  "seo_config": {
+    "enable_location_pages": true,
+    "enable_emergency_pages": true,
+    "enable_commercial_pages": true,
+    "target_keywords": ["hvac", "repair", "installation", "maintenance", "Austin"],
+    "local_schema": {
+      "business_type": "LocalBusiness",
+      "service_type": "hvac",
+      "area_served": "Austin, TX"
+    }
   },
-  "websiteConfig": {
-    "baseUrl": "http://localhost:3000"
-  },
-  "features": {
-    "analytics": false,
-    "errorReporting": false,
-    "debugMode": true,
-    "voiceAgent": false,
-    "bookingWidget": true
-  },
-  "generatedAt": "2025-09-02T14:18:15.282Z"
+  "deployment": {
+    "domain": "austinprohvac.com",
+    "environment": "production",
+    "cdn_enabled": true,
+    "ssl_enabled": true
+  }
 }

@@ -136,6 +136,30 @@ export async function getArtifactByActivity(
   locationSlug?: string
 ): Promise<ActivityPageArtifact | null> {
   try {
+    // Try new unified content API first
+    const params = new URLSearchParams({
+      tier: 'enhanced',
+      page_variant: 'standard',
+    });
+    
+    if (locationSlug) {
+      params.append('location_slug', locationSlug);
+    }
+
+    try {
+      const response = await apiClient<{ artifact: ActivityPageArtifact }>(
+        `/api/v1/content/artifact/${businessId}/${activitySlug}?${params.toString()}`
+      );
+      
+      if (response.artifact) {
+        console.log(`✅ [UNIFIED] Got artifact from unified API for ${activitySlug}`);
+        return response.artifact;
+      }
+    } catch (unifiedError) {
+      console.warn(`⚠️ [UNIFIED] Unified API failed for ${activitySlug}, falling back to legacy`);
+    }
+
+    // Fallback to legacy API
     const artifacts = await listArtifacts(businessId, {
       activity_slug: activitySlug,
       location_slug: locationSlug,
@@ -144,6 +168,7 @@ export async function getArtifactByActivity(
     });
 
     if (artifacts.artifacts.length > 0) {
+      console.log(`✅ [LEGACY] Got artifact from legacy API for ${activitySlug}`);
       return artifacts.artifacts[0];
     }
 

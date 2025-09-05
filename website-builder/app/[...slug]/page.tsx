@@ -61,6 +61,14 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   const { slug } = await params
   const urlPath = '/' + (slug || []).join('/')
   
+  // Skip processing for static assets and known system paths
+  if (urlPath.includes('.') || 
+      urlPath.startsWith('/_next/') || 
+      urlPath.startsWith('/api/') ||
+      urlPath.startsWith('/.well-known/')) {
+    notFound()
+  }
+  
   // Fetch page data and content blocks server-side
   const [pageData, contentBlocks] = await Promise.all([
     getSEOPageData(urlPath),

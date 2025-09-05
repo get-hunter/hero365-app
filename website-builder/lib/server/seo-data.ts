@@ -21,10 +21,44 @@ interface SEOPageData {
 let seoPages: Record<string, SEOPageData> = {}
 let contentBlocks: Record<string, any> = {}
 
+// Cache management
+let isLoading = false
+let loadPromise: Promise<void> | null = null
+let lastLoadTime = 0
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
 /**
  * Load SEO pages from generated content or fallback
  */
 export async function loadSEOPages(businessId: string): Promise<void> {
+  // Return existing promise if already loading
+  if (isLoading && loadPromise) {
+    return loadPromise
+  }
+  
+  // Return cached data if still valid
+  const now = Date.now()
+  if (lastLoadTime > 0 && (now - lastLoadTime) < CACHE_TTL && Object.keys(seoPages).length > 0) {
+    return Promise.resolve()
+  }
+  
+  // Start loading
+  isLoading = true
+  loadPromise = loadSEOPagesInternal(businessId)
+  
+  try {
+    await loadPromise
+    lastLoadTime = now
+  } finally {
+    isLoading = false
+    loadPromise = null
+  }
+}
+
+/**
+ * Internal function to actually load SEO pages
+ */
+async function loadSEOPagesInternal(businessId: string): Promise<void> {
   try {
     const isServerSide = typeof window === 'undefined'
 
@@ -51,13 +85,21 @@ export async function loadSEOPages(businessId: string): Promise<void> {
 
       if (response.ok) {
         const data = await response.json()
+        
+        // Check if the response contains an error message
+        if (data.detail && data.detail.includes('Failed')) {
+          console.log('⚠️ [SEO] Backend returned error:', data.detail)
+          throw new Error(data.detail)
+        }
+        
         seoPages = data.pages || {}
         contentBlocks = data.content_blocks || {}
-        console.log('✅ [SEO] Loaded SEO pages from API (fallback):', Object.keys(seoPages).length, 'pages')
-        console.log('✅ [SEO] Loaded content blocks from API (fallback):', Object.keys(contentBlocks).length, 'blocks')
+        console.log('✅ [SEO] Loaded SEO pages from API:', Object.keys(seoPages).length, 'pages')
+        console.log('✅ [SEO] Loaded content blocks from API:', Object.keys(contentBlocks).length, 'blocks')
         return
       } else {
         console.log('⚠️ [SEO] API responded non-OK:', response.status)
+        throw new Error(`API responded with status ${response.status}`)
       }
     } catch (apiError: any) {
       console.log('⚠️ [SEO] API call failed:', apiError?.message || apiError)

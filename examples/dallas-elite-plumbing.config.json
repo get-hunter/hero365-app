@@ -1,0 +1,50 @@
+{
+  "business_id": "dallas-elite-plumbing",
+  "business_name": "Dallas Elite Plumbing",
+  "phone": "(214) 555-0456",
+  "email": "service@dallaseliteplumbing.com",
+  "address": "5678 Commerce St",
+  "city": "Dallas",
+  "state": "TX",
+  "postal_code": "75201",
+  "primary_trade": "plumbing",
+  "service_areas": [
+    "Dallas",
+    "Plano",
+    "Frisco",
+    "McKinney",
+    "Allen",
+    "Richardson",
+    "Garland",
+    "Irving",
+    "Carrollton",
+    "Mesquite",
+    "Grand Prairie",
+    "Duncanville",
+    "DeSoto",
+    "Cedar Hill",
+    "Lancaster"
+  ],
+  "domain": "dallaseliteplumbing.com",
+  "environment": "production",
+  "seo_config": {
+    "enable_location_pages": true,
+    "enable_emergency_pages": true,
+    "enable_commercial_pages": true,
+    "target_keywords": ["plumbing", "drain cleaning", "water heater", "leak repair", "pipe repair", "Dallas"],
+    "business_description": "Expert plumbing services in Dallas, TX. 24/7 emergency service, licensed and insured.",
+    "service_radius_miles": 35
+  },
+  "services": [
+    "drain-cleaning",
+    "water-heater-repair",
+    "water-heater-installation",
+    "leak-detection",
+    "pipe-repair",
+    "sewer-line-service",
+    "toilet-repair",
+    "faucet-installation",
+    "garbage-disposal-repair",
+    "emergency-plumbing"
+  ]
+}
