@@ -18,8 +18,8 @@ import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { getBusinessDataService } from '@/lib/services/business-data-service';
 import { formatCurrencyUSD, formatCompletionYear, formatTradeName } from '@/lib/shared/utils/formatters';
 import type { BusinessProfile, ProductItem, ProjectItem } from '@/lib/shared/types/api-responses';
-import type { EnhancedBusinessProfile, DiagnosticsInfo } from '@/lib/shared/types/enhanced-api-responses';
-import { extractBusinessData } from '@/lib/shared/types/enhanced-api-responses';
+import type { EnhancedBusinessProfile, DiagnosticsInfo } from '@/lib/shared/types/api-responses';
+import { extractBusinessData } from '@/lib/shared/types/api-responses';
 
 
 export default async function HomePage() {
@@ -123,7 +123,7 @@ export default async function HomePage() {
           headline={`Professional ${enhancedBusinessData.businessName} Services`}
           subheadline={enhancedBusinessData.tagline}
           city={enhancedBusinessData.serviceAreas[0] || 'Austin'}
-          phone={enhancedBusinessData.phone || undefined}
+          phone={enhancedBusinessData.phone || '(555) 123-4567'}
           averageRating={enhancedBusinessData.averageRating}
           totalReviews={enhancedBusinessData.totalReviews}
           emergencyMessage={enhancedBusinessData.emergency_service ? '24/7 Emergency Service Available' : undefined}
@@ -133,7 +133,7 @@ export default async function HomePage() {
         <ServicesGrid
           businessName={enhancedBusinessData.businessName}
           city={enhancedBusinessData.serviceAreas[0] || 'Austin'}
-          phone={enhancedBusinessData.phone || undefined}
+          phone={enhancedBusinessData.phone || '(555) 123-4567'}
         />
         
         {/* View All Services Link */}
@@ -301,7 +301,11 @@ export default async function HomePage() {
         <Hero365ContactSection 
           business={{
             ...enhancedBusinessData,
-            phone_number: enhancedBusinessData.phone_number || undefined
+            phone_number: enhancedBusinessData.phone_number ?? undefined,
+            business_email: enhancedBusinessData.business_email ?? undefined,
+            trades: enhancedBusinessData.trades || [],
+            service_areas: enhancedBusinessData.service_areas || [],
+            seo_keywords: enhancedBusinessData.seo_keywords || []
           }}
           locations={[]}
         />

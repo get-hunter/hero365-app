@@ -103,7 +103,7 @@ export default async function CheckoutSuccessPage() {
           
           <Hero365Footer 
             business={profile} 
-            serviceCategories={[]} 
+            services={[]} 
             locations={[]} 
           />
       

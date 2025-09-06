@@ -15,7 +15,7 @@ import type {
   ServiceCategory,
   LocationItem
 } from '@/lib/shared/types/api-responses';
-import type { EnhancedHomepageData } from '@/lib/shared/types/enhanced-api-responses';
+import type { EnhancedHomepageData } from '@/lib/shared/types/api-responses';
 
 // Get the service instance
 const dataService = getBusinessDataService();
@@ -26,7 +26,8 @@ const dataService = getBusinessDataService();
  */
 export async function serverFetchJson<T>(endpointPath: string): Promise<T | null> {
   console.warn('serverFetchJson is deprecated. Use BusinessDataService instead.');
-  return dataService.fetchWithRetry<T>(endpointPath) as any;
+  // This function is deprecated and should not be used
+  return null;
 }
 
 /**

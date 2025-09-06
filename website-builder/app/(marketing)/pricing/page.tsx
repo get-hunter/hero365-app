@@ -246,7 +246,7 @@ export default async function PricingPage() {
             trades: [],
             seo_keywords: []
           }}
-          serviceCategories={[]}
+          services={serverServices}
           locations={[]}
         />
 

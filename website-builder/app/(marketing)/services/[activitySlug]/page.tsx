@@ -135,8 +135,11 @@ export async function generateStaticParams() {
   try {
     console.log('🔄 [BUILD] Generating static params for activity pages...');
     
+    // Get business ID from host resolver
+    const { businessId } = await getBusinessIdFromHost();
+    
     // Get all published artifacts for this business
-    const response = await listArtifacts(BUSINESS_ID, {
+    const response = await listArtifacts(businessId, {
       status: 'published',
       limit: 100
     });

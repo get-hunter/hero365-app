@@ -227,7 +227,7 @@ export default async function ProjectDetailPage({
 
             <Hero365Footer
               business={footerBusinessData}
-              serviceCategories={[]}
+              services={[]}
               locations={[]}
             />
           </div>

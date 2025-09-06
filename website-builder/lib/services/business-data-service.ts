@@ -17,7 +17,7 @@ import type {
   EnhancedHomepageData,
   DiagnosticsInfo,
   MembershipPlan
-} from '../shared/types/enhanced-api-responses';
+} from '../shared/types/api-responses';
 
 // Service configuration
 interface ServiceConfig {
@@ -165,10 +165,31 @@ export class BusinessDataService {
     if (options.limit) params.set('limit', String(options.limit));
     
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    const result = await this.fetchWithRetry<EnhancedServiceItem[]>(
+    const result = await this.fetchWithRetry<any[]>(
       `/api/v1/public/contractors/services/${businessId}${queryString}`
     );
-    return result || [];
+    
+    // Add slug field to each service for navigation (matches backend logic)
+    const servicesWithSlugs = (result || []).map(service => ({
+      ...service,
+      slug: this.generateServiceSlug(service.name || '')
+    }));
+    
+    return servicesWithSlugs;
+  }
+
+  /**
+   * Generate service slug from name (matches backend SlugUtils.normalize_service_slug)
+   */
+  private generateServiceSlug(serviceName: string): string {
+    if (!serviceName) return '';
+    
+    return serviceName
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Remove multiple consecutive hyphens
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
   }
 
   /**

@@ -1,0 +1,172 @@
+Title: Canonical Slugs, Service Navigation, and SEO Pages – Implementation Plan
+
+Owner: Platform
+Status: Draft
+Scope: Website Builder (Next.js) + Backend API (FastAPI) + Supabase schema
+Non‑Goals: Analytics/dashboards, legacy redirects beyond minimal alias normalization during development
+
+Objectives
+- Establish a single canonical slug system for all services/activities and locations
+- Make header/footer/navigation data-driven from business activities and published artifacts
+- Ensure artifact generation produces location-based service pages suitable for SEO
+- Make sitemap/robots authoritative and artifact-driven
+
+Design Principles
+- Backend is the source of truth for services, activities, and canonical slugs
+- Frontend consumes only canonical slugs; no legacy slug support needed during development
+- Prefer published artifacts for linking; otherwise, guarantee template-tier fallback
+- Keep responsibilities single-sourced (one sitemap authority)
+
+Phase 1 — Canonical Slug Model (DB + Backend)
+1) Schema additions (Supabase)
+   - Table: service_templates
+     - id (uuid pk)
+     - canonical_slug (text, unique, not null)
+     - display_name (text, not null)
+     - trade (text, not null)
+     - aliases (text[], default '{}')
+     - is_emergency (boolean, default false)
+   - Table: business_services (ensure columns)
+     - business_id (uuid)
+     - canonical_slug (text, not null)  // replaces service_slug
+     - display_name (text)
+     - is_active (boolean)
+   - Location model unification: see section below (merge business_locations → service_areas with kind/location_slug)
+
+2) Backend canonicalization utilities
+   - Module: slug_resolver.py
+     - normalize_service_slug(input_slug) → canonical_slug
+       - Lookup by canonical match, else search aliases in service_templates
+     - normalize_location_slug(city, state) → location_slug ("austin-tx")
+
+3) Data contracts
+   - All APIs expose only canonical_slug; aliases remain internal to resolver
+
+Phase 2 — Artifact Generation (Backend)
+1) Fix seo.py generation mapping
+   - When selecting from business_services, fetch canonical_slug, display_name
+   - Map to activity_slug = canonical_slug, activity_name = display_name
+
+2) Generate location-based pages
+   - For each active canonical service and each active location slug, generate artifacts (template tier fast path, enhanced/premium async)
+   - Artifacts carry: activity_slug, location_slug (optional for non-localized), status (published/draft)
+
+3) Unified Content API
+   - /api/v1/content/artifact/{business_id}/{activity_slug}?location_slug=&tier=
+   - Returns at least template-tier content to ensure no broken links
+
+Business → Services Mapping & Public API
+1) Simplify to a single source of truth
+   - Use business_services (is_active=true) as the only authoritative list of services per business.
+   - Keep service_templates only as a seed library; no runtime joins are required.
+   - Optional provenance: retain adopted_from_slug on business_services.
+
+2) Public API (minimal, stable)
+   - GET /api/v1/public/contractors/{business_id}/services
+     - Returns: [{ canonical_slug, name, trade_slug, category, is_emergency, is_featured, sort_order }]
+     - Options: only_active=true (default), include_pricing=false, include_booking=false
+   - GET /api/v1/public/contractors/{business_id}/navigation
+     - Derives categories/featured/emergency from the same list; includes location summary from service_areas.
+
+3) Website consumption
+   - NavigationService reads /services for header/footer.
+   - Sitemap builder enumerates /services/{canonical_slug} and service+location from /services + service_areas; prefers published artifacts when available.
+   - If empty, trigger /api/v1/content/pregenerate/{business_id}?tier=template (async) and temporarily fall back to generated/seo-pages.
+
+4) Migration/Backfill
+   - Add UNIQUE (business_id, canonical_slug) to business_services; backfill canonical_slug from service_slug.
+   - Materialize any existing service_template_adoptions into business_services, then deprecate adoptions in a later migration.
+
+Services Domain Simplification
+1) Data model
+   - business_services is the SoT with minimal fields:
+     - id, business_id, canonical_slug (unique per business), name, trade_slug, category, tags[], is_active, is_featured, is_emergency, sort_order
+     - pricing_model, price_min, price_max, unit (optional)
+     - booking_schema jsonb (optional)
+   - service_templates remains as a library; adoption is an offline copy step, not a runtime dependency.
+
+2) Removed/deprecated
+   - service_template_adoptions (drop after materialization)
+   - businesses.selected_activity_slugs for navigation (keep only for onboarding defaults)
+
+3) Reasoning
+   - Eliminates fan-out joins, simplifies caching, and makes menus/pages deterministic per business.
+
+Location Model Unification (DB + Backend)
+1) Goal
+   - Use a single canonical table to represent both physical business locations and wider service coverage areas.
+
+2) Keep and extend: service_areas (source of truth)
+   - Add columns:
+     - kind text CHECK (kind IN ('physical','coverage')) DEFAULT 'coverage'
+     - location_slug text NOT NULL
+     - address text NULL, county text NULL
+     - is_primary boolean DEFAULT false (relevant for kind='physical')
+   - Existing columns remain: city, state, postal_code, service_radius_miles, travel_fee, minimum_job_amount, priority_level, is_active.
+   - Constraints:
+     - UNIQUE (business_id, location_slug)
+     - At most one primary physical row per business (soft validation in API; optional partial unique index on (business_id) WHERE kind='physical' AND is_primary).
+   - Derivation:
+     - location_slug = slugify(lower(city) || '-' || lower(state)).
+
+3) Migration sequence
+   - Add new columns to service_areas with defaults.
+   - Backfill from business_locations into service_areas with kind='physical', compute location_slug, copy city/state/address/is_primary/service_radius → service_radius_miles.
+   - Backfill missing location_slug for existing service_areas rows (kind default 'coverage').
+   - Update all backend queries/endpoints to read from service_areas only.
+   - Freeze writes to business_locations; drop in a later migration.
+
+4) System impacts
+   - Sitemap/robots and page URLs use service_areas.location_slug only.
+   - Artifact generation iterates service_areas (both kinds) for service+location pages.
+   - Header/footer address and LocalBusiness schema use the primary physical service_areas row.
+
+Phase 3 — Navigation and Footer (Frontend)
+1) NavigationService (server-only)
+   - Source priority:
+     a) Backend: /api/v1/public/contractors/{business_id}/navigation (new)
+     b) BusinessContext.activities
+     c) Generated fallback: lib/generated/seo-pages.js
+   - Only include activities with published artifacts, else guarantee template-tier via unified content
+
+2) Header integration
+   - Replace static menu in components/server/layout/header.tsx with DynamicNavigationGenerator fed by NavigationService output
+
+3) Footer integration
+   - Map activities → services prop for Hero365Footer using canonical_slug and display name
+
+Phase 4 — Sitemap & Robots Authority
+1) Single authority decision: Backend XML (recommended)
+   - Keep endpoint: /api/v1/public/contractors/{business_id}/sitemap.xml
+   - Build entries from published artifacts only (service and service+location URLs)
+   - Frontend /sitemap.xml proxies backend output
+
+2) robots.txt
+   - Keep simple allowlist; point to {baseUrl}/sitemap.xml
+
+Phase 5 — Build & Runtime Consistency
+1) Static params
+   - /services/[activitySlug]/generateStaticParams uses listArtifacts(status=published)
+   - If empty, call /api/v1/content/pregenerate/{business_id}?tier=template and retry once (non-blocking in dev)
+
+2) Cache invalidation
+   - On changes to business_services or service_areas, call /api/v1/content/cache/invalidate and (optionally) re-run pregeneration
+
+Phase 6 — Acceptance Criteria
+- Header/mega-menu and footer show only canonical services; all links 200 OK
+- /services/{canonical_slug} and /services/{canonical_slug}/{location_slug} render without 404 (template-tier acceptable)
+- sitemap.xml lists only published artifact URLs plus hubs and key static pages
+- robots.txt references the correct sitemap
+- No references to legacy or alias slugs in frontend URLs
+
+Risks & Mitigations
+- Empty artifacts → Use template-tier fallback via unified content API
+- Partial data in DB → NavigationService falls back to business context then generated fallback
+
+Operational Notes
+- After schema changes: create a migration under supabase/migrations and run npx supabase db push
+- After API changes: run scripts/generate-client.sh to refresh openapi.json
+
+Next Steps (Dev Tasks)
+- Add slug_resolver, update seo.py generation, implement navigation endpoint, refactor header/footer wiring, update sitemap proxy.
+

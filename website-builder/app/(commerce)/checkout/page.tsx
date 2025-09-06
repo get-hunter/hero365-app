@@ -7,6 +7,7 @@ import ClientAppProviders from '@/components/client/providers/ClientAppProviders
 import Hero365Footer from '@/components/shared/Hero365Footer';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '@/lib/client/contexts/CartContext';
+import { fetchBusinessServices } from '@/lib/server/data-fetchers';
 
 // Configure for Edge Runtime (required for Cloudflare Pages)
 // Note: Using Node.js runtime for OpenNext compatibility
@@ -56,7 +57,10 @@ async function loadBusinessProfile(businessId: string) {
 export default async function CheckoutPage() {
   const businessConfig = getBusinessConfig();
   const businessId = businessConfig.defaultBusinessId;
-  const businessProfile = await loadBusinessProfile(businessId);
+  const [businessProfile, services] = await Promise.all([
+    loadBusinessProfile(businessId),
+    fetchBusinessServices(businessId)
+  ]);
 
   // Fallback data if API fails
   const fallbackProfile = {
@@ -109,7 +113,7 @@ export default async function CheckoutPage() {
       </ClientAppProviders>
       <Hero365Footer 
         business={profile} 
-        serviceCategories={[]} 
+        services={services} 
         locations={[]} 
       />
     </div>
