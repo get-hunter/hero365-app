@@ -96,7 +96,7 @@ async def get_featured_projects(
                 equipment_installed=project_dto.equipment_installed,
                 warranty_info=project_dto.warranty_info,
                 is_featured=project_dto.is_featured,
-                seo_slug=project_dto.seo_slug,
+                slug=project_dto.slug,
                 tags=project_dto.tags,
                 display_order=project_dto.display_order
             )
@@ -167,7 +167,7 @@ async def get_project_details(
             equipment_installed=project_dto.equipment_installed,
             warranty_info=project_dto.warranty_info,
             is_featured=project_dto.is_featured,
-            seo_slug=project_dto.seo_slug,
+            slug=project_dto.slug,
             tags=project_dto.tags,
             display_order=project_dto.display_order
         )

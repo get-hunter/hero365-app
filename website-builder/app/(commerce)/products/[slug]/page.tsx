@@ -1,51 +1,61 @@
 import { ProductDetailClient } from './ProductDetailClient';
-import { getBusinessConfig, getBackendUrl } from '@/lib/shared/config/api-config';
+import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '@/lib/client/contexts/CartContext';
-import Header from '@/components/server/layout/header';
+import BusinessHeader from '@/components/shared/BusinessHeader';
 import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
+import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
+import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 300;
 // Note: Using Node.js runtime for OpenNext compatibility
 
 async function getProduct(businessId: string, slug: string) {
-  // Try API calls during build time for hybrid rendering
-
   try {
-    // Call backend API directly (CORS is allowed in local env), absolute URL required on server
     const base = getBackendUrl();
     const url = `${base}/api/v1/public/contractors/product-by-slug/${businessId}/${encodeURIComponent(slug)}`;
+    console.log('🔄 [PRODUCT] Loading product:', slug, 'for business:', businessId);
+    
     const res = await fetch(url, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      headers: getDefaultHeaders(),
+      next: { revalidate: 300, tags: ['product', businessId, slug] }
     });
+    
     if (!res.ok) {
+      console.error('❌ [PRODUCT] Product API failed:', res.status, res.statusText);
       return null;
     }
-    return res.json();
+    
+    const product = await res.json();
+    console.log('✅ [PRODUCT] Product loaded:', product.name);
+    return product;
   } catch (error) {
-    console.log('⚠️ [PRODUCT] Product API failed:', error.message);
+    console.error('❌ [PRODUCT] Product API error:', error);
     return null;
   }
 }
 
 async function getBusinessProfile(businessId: string) {
-  // Try API calls during build time for hybrid rendering
-
   try {
     const base = getBackendUrl();
     const url = `${base}/api/v1/public/contractors/profile/${businessId}`;
+    
     const res = await fetch(url, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      headers: getDefaultHeaders(),
+      next: { revalidate: 3600, tags: ['profile', businessId] }
     });
-    if (!res.ok) return null;
-    return res.json();
+    
+    if (!res.ok) {
+      console.error('❌ [PRODUCT] Profile API failed:', res.status, res.statusText);
+      return null;
+    }
+    
+    const profile = await res.json();
+    console.log('✅ [PRODUCT] Profile loaded:', profile.business_name);
+    return profile;
   } catch (error) {
-    console.log('⚠️ [PRODUCT] Profile API failed:', error.message);
+    console.error('❌ [PRODUCT] Profile API error:', error);
     return null;
   }
 }
@@ -70,7 +80,10 @@ async function getMembershipPlans(businessId: string) {
 }
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const businessId = getBusinessConfig().defaultBusinessId;
+  // Get business ID from host for multi-tenant support
+  const resolution = await getBusinessIdFromHost();
+  const businessId = resolution.businessId;
+  
   const { slug } = await params;
   const [product, profile, membershipPlans] = await Promise.all([
     getProduct(businessId, slug),
@@ -78,24 +91,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     getMembershipPlans(businessId)
   ]);
 
-  if (!product) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-16">
-        <h1 className="text-2xl font-semibold mb-2">Product not found</h1>
-        <p className="text-gray-600">Please go back to the products page and try another item.</p>
-        <a href="/products" className="inline-block mt-6 px-4 py-2 bg-blue-600 text-white rounded">Back to Products</a>
-      </div>
-    );
+  // Enforce no-fallback policy
+  if (!product || !profile) {
+    notFound();
   }
 
-  // Prefer real profile; fallback to defaults
-  const businessProfile = profile || ({
-    business_name: 'Professional Services',
-    phone: '(555) 123-4567',
-    email: 'info@example.com',
-    address: 'Local Area',
-    service_areas: ['Local Area']
-  } as any);
+  const businessProfile = profile;
   const categories: any[] = [];
 
   return (
@@ -108,12 +109,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         companyEmail={businessProfile.email}
       >
         <div className="min-h-screen bg-white">
-          <Header 
-            businessName={businessProfile.business_name}
-            city={businessProfile.service_areas?.[0] || 'Austin'}
-            state={'TX'}
-            phone={businessProfile.phone}
-            supportHours={'24/7'}
+          <BusinessHeader 
+            businessProfile={businessProfile}
+            showCTA={false}
+            showCart={true}
           />
 
           <ProductDetailClient 

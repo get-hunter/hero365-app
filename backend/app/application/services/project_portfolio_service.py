@@ -69,7 +69,7 @@ class ProjectPortfolioService:
                 completion_date, project_duration_days, project_duration, project_value, 
                 customer_name, customer_testimonial, featured_image_url, gallery_images,
                 before_images, after_images, video_url, challenges_faced, solutions_provided,
-                equipment_installed, warranty_info, is_featured, slug, seo_slug, tags,
+                equipment_installed, warranty_info, is_featured, slug, tags,
                 display_order, project_address, meta_description, is_active, created_at, updated_at
                 """
             ).eq("business_id", business_id)
@@ -132,7 +132,7 @@ class ProjectPortfolioService:
                 completion_date, project_duration_days, project_duration, project_value, 
                 customer_name, customer_testimonial, featured_image_url, gallery_images,
                 before_images, after_images, video_url, challenges_faced, solutions_provided,
-                equipment_installed, warranty_info, is_featured, slug, seo_slug, tags,
+                equipment_installed, warranty_info, is_featured, slug, tags,
                 display_order, project_address, meta_description, is_active, created_at, updated_at
                 """
             ).eq("business_id", business_id).eq("slug", project_slug).execute()
@@ -298,7 +298,7 @@ class ProjectPortfolioService:
             equipment_installed=project_data.get("equipment_installed") or [],
             warranty_info=project_data.get("warranty_info"),
             is_featured=project_data.get("is_featured", False),
-            seo_slug=(project_data.get("seo_slug") or project_data.get("slug") or ""),
+            slug=project_data.get("slug") or "",
             tags=project_data.get("tags") or [],
             display_order=project_data.get("display_order", 0)
         )

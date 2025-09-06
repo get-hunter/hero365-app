@@ -1,25 +1,25 @@
 {
   "version": 1,
   "functions": {
-    "/api/seo/pages/[businessId]": {},
     "/api/revalidate": {},
+    "/api/seo/pages/[businessId]": {},
     "/booking": {},
-    "/checkout": {},
     "/checkout/success": {},
+    "/cart": {},
     "/products": {},
+    "/emergency/[activitySlug]/[locationSlug]": {},
+    "/checkout": {},
+    "/locations": {},
     "/products/[slug]": {},
     "/commercial/[activitySlug]/[locationSlug]": {},
-    "/emergency/[activitySlug]/[locationSlug]": {},
     "/services/[activitySlug]/[locationSlug]": {},
     "/pricing": {},
-    "/services/[activitySlug]": {},
-    "/cart": {},
     "/projects/[slug]": {},
-    "/services": {},
-    "/locations": {},
-    "/projects": {},
     "/[...slug]": {},
+    "/services": {},
+    "/projects": {},
     "/": {},
+    "/services/[activitySlug]": {},
     "/widget": {}
   }
 }

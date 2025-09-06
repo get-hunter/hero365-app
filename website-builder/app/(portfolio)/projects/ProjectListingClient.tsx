@@ -31,7 +31,7 @@ interface FeaturedProject {
   equipment_installed: string[];
   warranty_info?: string;
   is_featured: boolean;
-  seo_slug: string;
+  slug: string;
   tags: string[];
   display_order: number;
 }
@@ -311,7 +311,7 @@ export default function ProjectListingClient({
             : 'grid-cols-1'
         }`}>
           {sortedProjects.map((project) => (
-            <Link key={project.id} href={`/projects/${project.seo_slug}`}>
+            <Link key={project.id} href={`/projects/${project.slug}`}>
               <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
                 <div className="relative h-64">
                   {project.after_images.length > 0 ? (

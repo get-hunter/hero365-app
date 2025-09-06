@@ -42,7 +42,7 @@ class FeaturedProjectDTO(BaseModel):
     
     # SEO and organization
     is_featured: bool = Field(False, description="Is featured project")
-    seo_slug: str = Field(..., description="SEO slug")
+    slug: str = Field(..., description="URL slug")
     tags: List[str] = Field(default_factory=list, description="Project tags")
     display_order: int = Field(0, description="Display order")
 

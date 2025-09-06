@@ -436,7 +436,7 @@ class FeaturedProject(BaseModel):
     equipment_installed: List[str] = Field(default_factory=list, description="Equipment installed")
     warranty_info: Optional[str] = Field(None, description="Warranty information")
     is_featured: bool = Field(False, description="Is featured project")
-    seo_slug: str = Field(..., description="SEO slug")
+    slug: str = Field(..., description="URL slug")
     tags: List[str] = Field(default_factory=list, description="Project tags")
     display_order: int = Field(0, description="Display order")
 

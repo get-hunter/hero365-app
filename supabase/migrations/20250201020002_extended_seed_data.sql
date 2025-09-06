@@ -265,19 +265,19 @@ ON CONFLICT (id) DO NOTHING;
 -- Featured projects
 INSERT INTO featured_projects (
     id, business_id, title, description, trade, completion_date,
-    project_value, location, is_featured, display_order
+    project_value, location, is_featured, display_order, slug
 ) VALUES
 ('550e8400-e29b-41d4-a716-446655440200', '550e8400-e29b-41d4-a716-446655440010',
  'Downtown Office Complex HVAC Upgrade', 'Complete HVAC system replacement for 50,000 sq ft office building',
- 'HVAC', '2023-05-15', 85000.00, 'Downtown Austin, TX', true, 1),
+ 'HVAC', '2023-05-15', 85000.00, 'Downtown Austin, TX', true, 1, 'downtown-office-complex-hvac-upgrade'),
 
 ('550e8400-e29b-41d4-a716-446655440201', '550e8400-e29b-41d4-a716-446655440010',
  'Luxury Home Heat Pump Installation', 'High-efficiency heat pump system for 4,500 sq ft custom home',
- 'HVAC', '2023-06-20', 18500.00, 'West Lake Hills, TX', true, 2),
+ 'HVAC', '2023-06-20', 18500.00, 'West Lake Hills, TX', true, 2, 'luxury-home-heat-pump-installation'),
 
 ('550e8400-e29b-41d4-a716-446655440202', '550e8400-e29b-41d4-a716-446655440010',
  'Restaurant Kitchen Ventilation System', 'Commercial kitchen exhaust and HVAC system installation',
- 'HVAC', '2023-07-10', 32000.00, 'South Austin, TX', true, 3)
+ 'HVAC', '2023-07-10', 32000.00, 'South Austin, TX', true, 3, 'restaurant-kitchen-ventilation-system')
 ON CONFLICT (id) DO NOTHING;
 
 -- Testimonials
@@ -358,7 +358,7 @@ INSERT INTO featured_projects (
     business_id, title, description, trade, completion_date, project_value, 
     gallery_images, before_images, after_images, location, is_featured, display_order,
     project_duration, challenges_faced, solutions_provided, equipment_installed,
-    warranty_info, tags, slug, seo_slug, customer_name, customer_testimonial
+    warranty_info, tags, slug, customer_name, customer_testimonial
 ) VALUES
 ((SELECT id FROM businesses WHERE name = 'Elite HVAC Austin' LIMIT 1), 
  'Luxury Home HVAC System', 
@@ -374,7 +374,6 @@ INSERT INTO featured_projects (
  '{"Carrier 19VS Heat Pump", "Ecobee Smart Thermostats", "Zoning dampers"}',
  '10-year manufacturer warranty, 2-year labor warranty',
  '{"luxury-home", "zoned-hvac", "energy-efficient"}',
- 'luxury-home-hvac-system',
  'luxury-home-hvac-system',
  'Sarah Johnson',
  'Elite HVAC transformed our home comfort. The zoned system is perfect for our large home.'),
@@ -394,7 +393,6 @@ INSERT INTO featured_projects (
  '5-year comprehensive warranty',
  '{"commercial", "office-building", "energy-efficient", "vrf"}',
  'commercial-office-building-hvac',
- 'commercial-office-building-hvac',
  'Mike Chen',
  'Professional installation with minimal disruption to our business operations.'),
 
@@ -413,7 +411,6 @@ INSERT INTO featured_projects (
  '1-year warranty on parts and labor',
  '{"emergency-repair", "commercial", "same-day"}',
  'emergency-ac-repair-heat-wave',
- 'emergency-ac-repair-heat-wave',
  'Restaurant Manager',
  'They saved our business! AC fixed in 4 hours during the hottest day of summer.'),
 
@@ -431,7 +428,6 @@ INSERT INTO featured_projects (
  '{"Nest Learning Thermostat", "Air quality monitors", "Smart vents"}',
  '2-year warranty on smart devices',
  '{"smart-home", "automation", "air-quality"}',
- 'smart-home-integration',
  'smart-home-integration',
  'Tech Enthusiast',
  'Love the smart controls and air quality monitoring. Very professional installation.');

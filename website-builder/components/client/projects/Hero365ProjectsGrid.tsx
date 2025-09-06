@@ -30,7 +30,7 @@ interface FeaturedProject {
   equipment_installed: string[];
   warranty_info?: string;
   is_featured: boolean;
-  seo_slug: string;
+  slug: string;
   tags: string[];
   display_order: number;
 }
@@ -112,7 +112,7 @@ export default function FeaturedProjectsGrid({
             equipment_installed: ['Carrier Infinity 19VS Heat Pump', 'Carrier Infinity Air Handler', 'Ecobee Smart Thermostat Pro', 'New insulated ductwork'],
             warranty_info: '10-year manufacturer warranty on equipment, 5-year warranty on installation',
             is_featured: true,
-            seo_slug: 'complete-hvac-system-replacement-austin',
+            slug: 'complete-hvac-system-replacement-austin',
             tags: ['Residential', 'Energy Efficient', 'Smart Home'],
             display_order: 1
           },
@@ -137,7 +137,7 @@ export default function FeaturedProjectsGrid({
             equipment_installed: ['PEX piping and fittings', 'New shutoff valve', 'Pipe insulation'],
             warranty_info: '2-year warranty on all parts and labor',
             is_featured: true,
-            seo_slug: 'emergency-plumbing-repair-burst-pipe',
+            slug: 'emergency-plumbing-repair-burst-pipe',
             tags: ['Emergency', 'Residential'],
             display_order: 2
           },
@@ -162,7 +162,7 @@ export default function FeaturedProjectsGrid({
             equipment_installed: ['Ring Alarm Pro System', '8 Door/Window Sensors', '4 Motion Detectors', '6 Security Cameras', 'Smart Door Locks'],
             warranty_info: '3-year manufacturer warranty, 1-year installation warranty',
             is_featured: true,
-            seo_slug: 'smart-home-security-system-installation',
+            slug: 'smart-home-security-system-installation',
             tags: ['Residential', 'Smart Home', 'Security'],
             display_order: 3
           }
@@ -357,7 +357,7 @@ export default function FeaturedProjectsGrid({
                 )}
 
                 {/* View Project Button */}
-                <Link href={`/projects/${project.seo_slug}`}>
+                <Link href={`/projects/${project.slug}`}>
                   <Button variant="outline" className="w-full group-hover:bg-blue-600 group-hover:text-white transition-colors">
                     View Project Details
                     <ArrowRight className="w-4 h-4 ml-2" />

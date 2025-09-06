@@ -22,7 +22,7 @@ async function loadBusinessData(businessId: string) {
     const backendUrl = getBackendUrl();
     console.log('🔄 [SERVER] Backend URL:', backendUrl);
     
-    const [profileResponse, servicesResponse, productsResponse] = await Promise.all([
+    const [profileResponse, servicesResponse, productsResponse, projectsResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
         headers: getDefaultHeaders(),
         next: { revalidate: 3600, tags: ['profile', businessId] }
@@ -43,12 +43,20 @@ async function loadBusinessData(businessId: string) {
       }).catch(err => {
         console.log('⚠️ [SERVER] Products API failed:', err.message);
         return { ok: false };
+      }),
+      fetch(`${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}?featured_only=true&limit=6`, {
+        headers: getDefaultHeaders(),
+        next: { revalidate: 900, tags: ['projects', businessId] }
+      }).catch(err => {
+        console.log('⚠️ [SERVER] Projects API failed:', err.message);
+        return { ok: false };
       })
     ]);
     
     let profile = null;
     let services = [];
     let products = [];
+    let projects = [];
     
     if (profileResponse && 'ok' in profileResponse && profileResponse.ok) {
       profile = await (profileResponse as Response).json();
@@ -64,11 +72,16 @@ async function loadBusinessData(businessId: string) {
       products = await (productsResponse as Response).json();
       console.log('✅ [SERVER] Products loaded:', products.length, 'items');
     }
+
+    if (projectsResponse && 'ok' in projectsResponse && projectsResponse.ok) {
+      projects = await (projectsResponse as Response).json();
+      console.log('✅ [SERVER] Projects loaded:', projects.length, 'items');
+    }
     
-    return { profile, services, products };
+    return { profile, services, products, projects };
   } catch (error) {
     console.error('⚠️ [SERVER] Failed to load business data:', error);
-    return { profile: null, services: [], products: [] };
+    return { profile: null, services: [], products: [], projects: [] };
   }
 }
 
@@ -78,12 +91,13 @@ export default async function HomePage() {
   const businessId = resolution.businessId;
   
   // Load business data server-side
-  const { profile: serverProfile, services: serverServices, products: serverProducts } = await loadBusinessData(businessId);
+  const { profile: serverProfile, services: serverServices, products: serverProducts, projects: serverProjects } = await loadBusinessData(businessId);
   
   // Debug logging
   console.log('🔍 [DEBUG] Server profile:', serverProfile ? 'LOADED' : 'NULL');
   console.log('🔍 [DEBUG] Server services count:', serverServices?.length || 0);
   console.log('🔍 [DEBUG] Server products count:', serverProducts?.length || 0);
+  console.log('🔍 [DEBUG] Server projects count:', serverProjects?.length || 0);
   console.log('🔍 [DEBUG] Business ID:', businessId);
   
   // Enforce no-fallback policy
@@ -216,6 +230,86 @@ export default async function HomePage() {
                           ${product.unit_price?.toLocaleString() || '0'}
                         </span>
                       </div>
+                    </div>
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Projects Showcase */}
+      {serverProjects && serverProjects.length > 0 && (
+        <div className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                Our Recent Projects
+              </h2>
+              <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-6">
+                See examples of our professional work and satisfied customers.
+              </p>
+              <div className="flex justify-center">
+                <a 
+                  href="/projects"
+                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  View All Projects
+                  <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {serverProjects.slice(0, 3).filter((project: any) => project.slug).length > 0 ? (
+                serverProjects.slice(0, 3).filter((project: any) => project.slug).map((project: any) => (
+                <div key={project.id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 group border border-gray-200">
+                  <a href={`/projects/${project.slug}`} className="block h-full">
+                    <div className="relative">
+                      <div className="aspect-w-16 aspect-h-9 w-full overflow-hidden rounded-t-lg bg-gray-200">
+                        {project.featured_image_url ? (
+                          <img 
+                            src={project.featured_image_url} 
+                            alt={project.title}
+                            className="h-48 w-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                        ) : (
+                          <div className="h-48 w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center group-hover:from-gray-200 group-hover:to-gray-300 transition-colors duration-200">
+                            <svg className="h-12 w-12 text-gray-400 group-hover:text-gray-500 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h6m-6 4h6m-2 4h2" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        {project.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                        {project.description}
+                      </p>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-sm font-medium text-blue-600">
+                          {project.category || 'Project'}
+                        </span>
+                        {project.completion_date && (
+                          <span className="text-sm text-gray-500">
+                            {new Date(project.completion_date).getFullYear()}
+                          </span>
+                        )}
+                      </div>
+                      {project.customer_testimonial && (
+                        <div className="border-t pt-4">
+                          <p className="text-sm text-gray-600 italic">
+                            "{project.customer_testimonial.slice(0, 100)}..."
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </a>
                 </div>

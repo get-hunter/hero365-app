@@ -1,11 +1,13 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { getBusinessConfig, getDefaultHeaders } from '@/lib/shared/config/api-config';
-import Header from '@/components/server/layout/header';
+import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import BusinessHeader from '@/components/shared/BusinessHeader';
 import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '@/lib/client/contexts/CartContext';
 import ProjectDetailClient from './ProjectDetailClient';
+import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
+import { notFound } from 'next/navigation';
 
 // Note: Using Node.js runtime for OpenNext compatibility
 export const dynamic = 'force-dynamic';
@@ -17,7 +19,7 @@ async function loadProjectData(businessId: string, projectSlug: string) {
     // Try API calls during build time for hybrid rendering
     // Only fall back to demo data if API is actually unavailable
     
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    const backendUrl = getBackendUrl();
     
     const [projectResponse, profileResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}/${projectSlug}`, {
@@ -79,7 +81,7 @@ interface FeaturedProject {
   equipment_installed: string[];
   warranty_info?: string;
   is_featured: boolean;
-  seo_slug: string;
+  slug: string;
   tags: string[];
   display_order: number;
 }
@@ -107,28 +109,21 @@ interface BusinessProfile {
 }
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  // Get business ID from host for multi-tenant support
+  const resolution = await getBusinessIdFromHost();
+  const businessId = resolution.businessId;
+  
   const resolvedParams = await params;
-  const businessConfig = getBusinessConfig();
-  const businessId = businessConfig.defaultBusinessId;
   const projectSlug = resolvedParams.slug;
 
   const { project: serverProject, profile: serverProfile } = await loadProjectData(businessId, projectSlug);
 
-  // Prefer real profile; fallback to defaults
-  const profile: BusinessProfile = serverProfile || ({
-    business_id: businessId,
-    business_name: businessConfig.defaultBusinessName,
-    primary_trade_slug: 'hvac',
-    selected_activity_slugs: ['ac-installation', 'ac-repair', 'hvac-maintenance'],
-    phone: businessConfig.defaultBusinessPhone,
-    email: businessConfig.defaultBusinessEmail,
-    address: '123 Main St',
-    service_areas: ['Austin, TX'],
-    emergency_service: true,
-    years_in_business: 10,
-    average_rating: 4.8,
-    total_reviews: 150
-  } as any);
+  // Enforce no-fallback policy
+  if (!serverProject || !serverProfile) {
+    notFound();
+  }
+
+  const profile: BusinessProfile = serverProfile;
 
   // Business data for header
   const headerData = {
@@ -175,11 +170,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         companyPhone={profile.phone}
       >
         <div className="min-h-screen bg-white">
-          <Header
-            businessName={headerData.businessName}
-            city={headerData.serviceAreas[0]?.split(',')[0] || 'Austin'}
-            state={headerData.serviceAreas[0]?.split(',')[1]?.trim() || 'TX'}
-            phone={headerData.phone}
+          <BusinessHeader
+            businessProfile={serverProfile}
+            showCTA={false}
+            showCart={false}
           />
 
           <ProjectDetailClient
