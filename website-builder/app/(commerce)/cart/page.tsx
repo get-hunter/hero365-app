@@ -5,7 +5,7 @@ import { CartPageClient } from './CartPageClient';
 
 // Static generation enabled for Cloudflare Pages
 import Header from '@/components/server/layout/header';
-import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
+import Hero365Footer from '@/components/shared/Hero365Footer';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '@/lib/client/contexts/CartContext';
 
@@ -72,20 +72,9 @@ export default async function CartPage() {
             <CartPageClient businessProfile={businessProfile} />
           </Suspense>
           
-          <Hero365BusinessFooter 
-            business={{
-              id: businessProfile.id || 'default-id',
-              name: businessProfile.business_name,
-              phone_number: businessProfile.phone,
-              business_email: businessProfile.email,
-              address: businessProfile.address,
-              website: profile?.website,
-              trades: businessProfile.trades || [],
-              service_areas: businessProfile.service_areas || [],
-              seo_keywords: []
-            }}
-            serviceCategories={[]}
-            locations={[]}
+          <Hero365Footer 
+            business={businessProfile}
+            showEmergencyBanner={!!businessProfile.emergency_service}
           />
         </div>
       </Hero365BookingProvider>

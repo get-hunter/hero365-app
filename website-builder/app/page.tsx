@@ -12,117 +12,30 @@ import Link from 'next/link';
 import BusinessHeader from '@/components/shared/BusinessHeader';
 import HeroSection from '@/components/server/hero/hero-section';
 import ServicesGrid from '@/components/server/services/services-grid';
-import { notFound } from 'next/navigation';
 import Hero365ContactSection from '@/components/client/business/Hero365ContactSection';
-import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import Hero365Footer from '@/components/shared/Hero365Footer';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
-import { getRuntimeConfig } from '@/lib/server/runtime-config';
+import { loadHomepageData } from '@/lib/server/data-fetchers';
+import { formatCurrencyUSD, formatCompletionYear, formatTradeName } from '@/lib/shared/utils/formatters';
+import type { BusinessProfile, ProductItem, ProjectItem } from '@/lib/shared/types/api-responses';
 
-async function loadBusinessData(businessId: string) {
-  try {
-    console.log('🔄 [SERVER] Loading business data for:', businessId);
-    
-    // Use runtime configuration to get correct API URL for environment
-    const config = await getRuntimeConfig();
-    const backendUrl = config.apiUrl;
-    console.log('🔄 [SERVER] Runtime config:', { environment: config.environment, backendUrl });
-    
-    const [profileResponse, servicesResponse, productsResponse, projectsResponse] = await Promise.all([
-      fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
-        headers: getDefaultHeaders(),
-        cache: 'no-store'
-      }).catch(err => {
-        console.log('⚠️ [SERVER] Profile API failed:', err.message);
-        return { ok: false };
-      }),
-      fetch(`${backendUrl}/api/v1/public/contractors/services/${businessId}`, {
-        headers: getDefaultHeaders(),
-        cache: 'no-store'
-      }).catch(err => {
-        console.log('⚠️ [SERVER] Services API failed:', err.message);
-        return { ok: false };
-      }),
-      fetch(`${backendUrl}/api/v1/public/contractors/product-catalog/${businessId}?featured_only=true&limit=6`, {
-        headers: getDefaultHeaders(),
-        cache: 'no-store'
-      }).catch(err => {
-        console.log('⚠️ [SERVER] Products API failed:', err.message);
-        return { ok: false };
-      }),
-      fetch(`${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}?featured_only=true&limit=6`, {
-        headers: getDefaultHeaders(),
-        cache: 'no-store'
-      }).catch(err => {
-        console.log('⚠️ [SERVER] Projects API failed:', err.message);
-        return { ok: false };
-      })
-    ]);
-    
-    let profile = null;
-    let services = [];
-    let products = [];
-    let projects = [];
-
-    const profileOk = !!(profileResponse && 'ok' in profileResponse && (profileResponse as Response).ok);
-    const servicesOk = !!(servicesResponse && 'ok' in servicesResponse && (servicesResponse as Response).ok);
-    const productsOk = !!(productsResponse && 'ok' in productsResponse && (productsResponse as Response).ok);
-    const projectsOk = !!(projectsResponse && 'ok' in projectsResponse && (projectsResponse as Response).ok);
-    
-    if (profileOk) {
-      profile = await (profileResponse as Response).json();
-      console.log('✅ [SERVER] Profile loaded:', profile.business_name);
-    }
-    
-    if (servicesOk) {
-      services = await (servicesResponse as Response).json();
-      console.log('✅ [SERVER] Services loaded:', services.length, 'items');
-    }
-
-    if (productsOk) {
-      products = await (productsResponse as Response).json();
-      console.log('✅ [SERVER] Products loaded:', products.length, 'items');
-    }
-
-    if (projectsOk) {
-      projects = await (projectsResponse as Response).json();
-      console.log('✅ [SERVER] Projects loaded:', projects.length, 'items');
-    }
-    
-    return { 
-      profile, 
-      services, 
-      products, 
-      projects,
-      diagnostics: {
-        backendUrl,
-        profileOk,
-        servicesOk,
-        productsOk,
-        projectsOk
-      }
-    };
-  } catch (error) {
-    console.error('⚠️ [SERVER] Failed to load business data:', error);
-    return { profile: null, services: [], products: [], projects: [] };
-  }
-}
 
 export default async function HomePage() {
   try {
     // Get business ID from host for multi-tenant support
     const resolution = await getBusinessIdFromHost();
     const businessId = resolution.businessId;
-    
+
     // Load business data server-side
-    const { profile: serverProfile, services: serverServices, products: serverProducts, projects: serverProjects, diagnostics } = await loadBusinessData(businessId);
-    
+    const { profile: serverProfile, services: serverServices, products: serverProducts, projects: serverProjects, diagnostics } = await loadHomepageData(businessId);
+
     // Debug logging
     console.log('🔍 [DEBUG] Server profile:', serverProfile ? 'LOADED' : 'NULL');
     console.log('🔍 [DEBUG] Server services count:', serverServices?.length || 0);
     console.log('🔍 [DEBUG] Server products count:', serverProducts?.length || 0);
     console.log('🔍 [DEBUG] Server projects count:', serverProjects?.length || 0);
     console.log('🔍 [DEBUG] Business ID:', businessId);
-    
+
     // Strict: only real data. If profile is missing, show explicit error + diagnostics
     if (!serverProfile) {
       return (
@@ -147,19 +60,13 @@ export default async function HomePage() {
       );
     }
 
-    const profile = serverProfile as any;
+    const profile = serverProfile as BusinessProfile;
 
     const services = serverServices || [];
 
     // Generate dynamic content based on real business profile
-    const primaryTradeSlugSafe = typeof (profile as any).primary_trade_slug === 'string'
-      ? ((profile as any).primary_trade_slug as string)
-      : 'hvac';
-    const formattedTradeName = primaryTradeSlugSafe
-      .split('-')
-      .filter(Boolean)
-      .map((word: string) => (word && word.length > 0 ? word[0].toUpperCase() + word.slice(1) : ''))
-      .join(' ');
+    const primaryTradeSlugSafe = profile.primary_trade_slug || 'hvac';
+    const formattedTradeName = formatTradeName(primaryTradeSlugSafe);
 
     const businessData = {
       businessName: (profile as any).business_name ?? '',
@@ -178,6 +85,9 @@ export default async function HomePage() {
       certifications: Array.isArray((profile as any).certifications) ? (profile as any).certifications : [],
       website: (profile as any).website ?? ''
     };
+
+    const topProducts = (serverProducts || []).slice(0, 3);
+    const topProjects = (serverProjects || []).filter((p: ProjectItem) => p.slug).slice(0, 3);
 
     return (
       <div className="min-h-screen bg-white">
@@ -224,7 +134,7 @@ export default async function HomePage() {
         </div>
 
         {/* Products Showcase */}
-        {serverProducts && serverProducts.length > 0 && (
+        {topProducts && topProducts.length > 0 && (
           <div className="py-16 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-12">
@@ -235,7 +145,7 @@ export default async function HomePage() {
                   Shop professional-grade equipment with expert installation services.
                 </p>
                 <div className="flex justify-center">
-                  <a 
+                  <Link 
                     href="/products"
                     className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
                   >
@@ -243,14 +153,14 @@ export default async function HomePage() {
                     <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                     </svg>
-                  </a>
+                  </Link>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {serverProducts.slice(0, 3).map((product: any) => (
+                {topProducts.map((product: ProductItem) => (
                   <div key={product.id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 group">
-                    <a href={`/products/${product.slug}`} className="block h-full">
+                    <Link href={`/products/${product.slug}`} className="block h-full">
                       <div className="relative">
                         <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg bg-gray-200">
                           <div className="h-48 w-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center group-hover:from-blue-200 group-hover:to-blue-300 transition-colors duration-200">
@@ -266,22 +176,15 @@ export default async function HomePage() {
                           {product.name}
                         </h3>
                         <p className="text-gray-600 text-sm mb-4">
-                          {product.description}
+                          {product.description || ''}
                         </p>
                         <div className="flex items-center justify-between mb-4">
                           <span className="text-lg font-bold text-gray-900">
-                            ${(() => {
-                              try {
-                                const price = product.unit_price;
-                                return typeof price === 'number' && !isNaN(price) ? price.toLocaleString() : '0';
-                              } catch {
-                                return '0';
-                              }
-                            })()}
+                            {formatCurrencyUSD(product.unit_price)}
                           </span>
                         </div>
                       </div>
-                    </a>
+                    </Link>
                   </div>
                 ))}
               </div>
@@ -290,7 +193,7 @@ export default async function HomePage() {
         )}
 
         {/* Projects Showcase */}
-        {serverProjects && serverProjects.length > 0 && (
+        {topProjects && topProjects.length > 0 && (
           <div className="py-16 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-12">
@@ -301,7 +204,7 @@ export default async function HomePage() {
                   See examples of our professional work and satisfied customers.
                 </p>
                 <div className="flex justify-center">
-                  <a 
+                  <Link 
                     href="/projects"
                     className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
                   >
@@ -309,15 +212,14 @@ export default async function HomePage() {
                     <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                     </svg>
-                  </a>
+                  </Link>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {serverProjects.slice(0, 3).filter((project: any) => project.slug).length > 0 ? (
-                  serverProjects.slice(0, 3).filter((project: any) => project.slug).map((project: any) => (
+                {topProjects.map((project: ProjectItem) => (
                   <div key={project.id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 group border border-gray-200">
-                    <a href={`/projects/${project.slug}`} className="block h-full">
+                    <Link href={`/projects/${project.slug}`} className="block h-full">
                       <div className="relative">
                         <div className="aspect-w-16 aspect-h-9 w-full overflow-hidden rounded-t-lg bg-gray-200">
                           {project.featured_image_url ? (
@@ -341,7 +243,7 @@ export default async function HomePage() {
                           {project.title}
                         </h3>
                         <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                          {project.description}
+                          {project.description || ''}
                         </p>
                         <div className="flex items-center justify-between mb-4">
                           <span className="text-sm font-medium text-blue-600">
@@ -349,14 +251,7 @@ export default async function HomePage() {
                           </span>
                           {project.completion_date && (
                             <span className="text-sm text-gray-500">
-                              {(() => {
-                                try {
-                                  const date = new Date(project.completion_date);
-                                  return isNaN(date.getTime()) ? '' : date.getFullYear();
-                                } catch {
-                                  return '';
-                                }
-                              })()}
+                              {formatCompletionYear(project.completion_date)}
                             </span>
                           )}
                         </div>
@@ -375,13 +270,9 @@ export default async function HomePage() {
                           </div>
                         )}
                       </div>
-                    </a>
+                    </Link>
                   </div>
-                ))) : (
-                  <div className="col-span-full text-center py-8">
-                    <p className="text-gray-500">No projects available at the moment.</p>
-                  </div>
-                )}
+                ))}
               </div>
             </div>
           </div>
@@ -403,51 +294,11 @@ export default async function HomePage() {
         />
 
         {/* Footer */}
-        <footer className="bg-gray-900 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              <div className="lg:col-span-2">
-                <h3 className="text-2xl font-bold mb-4">{businessData.businessName}</h3>
-                <p className="text-gray-300 mb-4">
-                  Professional HVAC services for {businessData.serviceAreas[0] || 'Austin'} and surrounding areas.
-                </p>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <svg className="h-5 w-5 text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21L6.16 11.37a11.045 11.045 0 005.516 5.516l1.983-4.064a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    <span>{businessData.phone}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <svg className="h-5 w-5 text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    <span>{businessData.email}</span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h4 className="text-lg font-semibold mb-4">Services</h4>
-                <ul className="space-y-2 text-gray-300">
-                  <li><a href="/services" className="hover:text-white transition-colors">All Services</a></li>
-                  <li><a href="/locations" className="hover:text-white transition-colors">Service Areas</a></li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-lg font-semibold mb-4">Contact</h4>
-                <ul className="space-y-2 text-gray-300">
-                  <li><a href="/contact" className="hover:text-white transition-colors">Get Quote</a></li>
-                  <li><a href="/projects" className="hover:text-white transition-colors">Our Work</a></li>
-                </ul>
-              </div>
-            </div>
-            <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-              <p className="text-gray-400 text-sm">
-                © {new Date().getFullYear()} {businessData.businessName}. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </footer>
+        <Hero365Footer 
+          business={profile}
+          services={serverServices}
+          showEmergencyBanner={businessData.emergencyService}
+        />
       </div>
     );
   } catch (error) {

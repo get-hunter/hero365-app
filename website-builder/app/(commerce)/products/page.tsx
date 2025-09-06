@@ -1,65 +1,18 @@
 import React from 'react';
 import { Metadata } from 'next';
 import BusinessHeader from '@/components/shared/BusinessHeader';
-import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
+import Hero365Footer from '@/components/shared/Hero365Footer';
 import ProductListingClient from './ProductListingClient';
-import { getDefaultHeaders } from '@/lib/shared/config/api-config';
-import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
+import { loadPageData } from '@/lib/server/data-fetchers';
 import { notFound } from 'next/navigation';
+import type { BusinessProfile, ProductItem } from '@/lib/shared/types/api-responses';
 
 export const metadata: Metadata = {
   title: 'Professional Products & Installation Services - Shop Online',
   description: 'Shop professional-grade HVAC, electrical, and plumbing products with expert installation. Get instant pricing with membership discounts.',
 };
 
-async function loadProductData(businessId: string) {
-  try {
-    console.log('🔄 [PRODUCTS] Loading product catalog for:', businessId);
-    
-    const config = await getRuntimeConfig();
-    const backendUrl = config.apiUrl;
-    
-    const [catalogResponse, categoriesResponse, profileResponse] = await Promise.all([
-      fetch(`${backendUrl}/api/v1/public/contractors/product-catalog/${businessId}`, {
-        headers: getDefaultHeaders(),
-        next: { revalidate: 300 } // Cache for 5 minutes
-      }),
-      fetch(`${backendUrl}/api/v1/public/contractors/product-categories/${businessId}`, {
-        headers: getDefaultHeaders(),
-        next: { revalidate: 600 } // Cache for 10 minutes
-      }),
-      fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
-        headers: getDefaultHeaders(),
-        next: { revalidate: 600 } // Cache for 10 minutes
-      })
-    ]);
-    
-    let products = [];
-    let categories = [];
-    let profile = null;
-    
-    if (catalogResponse.ok) {
-      products = await catalogResponse.json();
-      console.log('✅ [PRODUCTS] Products loaded:', products.length, 'items');
-    }
-    
-    if (categoriesResponse.ok) {
-      categories = await categoriesResponse.json();
-      console.log('✅ [PRODUCTS] Categories loaded:', categories.length, 'categories');
-    }
-    
-    if (profileResponse.ok) {
-      profile = await profileResponse.json();
-      console.log('✅ [PRODUCTS] Profile loaded:', profile.business_name);
-    }
-    
-    return { products, categories, profile };
-  } catch (error) {
-    console.error('⚠️ [PRODUCTS] Failed to load product data:', error);
-    return { products: [], categories: [], profile: null };
-  }
-}
 
 export default async function ProductsPage() {
   // Get business ID from host for multi-tenant support
@@ -67,10 +20,13 @@ export default async function ProductsPage() {
   const businessId = resolution.businessId;
   
   const { 
+    profile: serverProfile,
     products: serverProducts,
-    categories: serverCategories, 
-    profile: serverProfile
-  } = await loadProductData(businessId);
+    categories: serverCategories
+  } = await loadPageData(businessId, {
+    includeProducts: true,
+    includeCategories: true
+  });
   
   // Enforce no-fallback policy
   if (!serverProfile) {
@@ -79,20 +35,6 @@ export default async function ProductsPage() {
   
   const profile = serverProfile;
 
-  const businessData = {
-    businessName: profile.business_name,
-    phone: profile.phone,
-    email: profile.email,
-    address: profile.address,
-    serviceAreas: profile.service_areas || ['Local Area'],
-    emergencyService: profile.emergency_service,
-    yearsInBusiness: profile.years_in_business,
-    licenseNumber: profile.license_number || 'Licensed & Insured',
-    insuranceVerified: true,
-    averageRating: profile.average_rating,
-    totalReviews: profile.total_reviews,
-    certifications: profile.certifications || []
-  };
 
   return (
       <div className="min-h-screen bg-gray-50">
@@ -145,20 +87,9 @@ export default async function ProductsPage() {
           hasRealData={serverProducts.length > 0}
         />
 
-        <Hero365BusinessFooter 
-          business={{
-            id: businessId,
-            name: businessData.businessName,
-            phone_number: businessData.phone,
-            business_email: businessData.email,
-            address: businessData.address,
-            website: undefined,
-            service_areas: businessData.serviceAreas,
-            trades: [],
-            seo_keywords: []
-          }}
-          serviceCategories={[]}
-          locations={[]}
+        <Hero365Footer 
+          business={profile}
+          showEmergencyBanner={!!profile.emergency_service}
         />
 
         {serverProducts.length === 0 && (
