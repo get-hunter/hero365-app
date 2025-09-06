@@ -1,13 +1,13 @@
 import React from 'react';
 import { Metadata } from 'next';
-import BusinessHeader from '@/components/shared/BusinessHeader';
+import Hero365Header from '@/components/server/layout/Hero365Header';
 import Hero365Footer from '@/components/shared/Hero365Footer';
 import ProductListingClient from './ProductListingClient';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { loadPageData } from '@/lib/server/data-fetchers';
 import { notFound } from 'next/navigation';
 import type { BusinessProfile, ProductItem } from '@/lib/shared/types/api-responses';
-import type { ProductCatalogItem } from '@/lib/shared/types/products';
+import type { ProductCatalogItem, ProductCategory } from '@/lib/shared/types/products';
 
 export const metadata: Metadata = {
   title: 'Professional Products & Installation Services - Shop Online',
@@ -63,9 +63,24 @@ export default async function ProductsPage() {
     installation_options: []
   }));
 
+  // Derive ProductCategory[] from available products (backend categories endpoint not implemented yet)
+  const derivedCategories: ProductCategory[] = (() => {
+    const counts = new Map<string, number>();
+    for (const p of convertedProducts) {
+      const name = p.category_name || 'General';
+      counts.set(name, (counts.get(name) || 0) + 1);
+    }
+    return Array.from(counts.entries()).map(([name, count]) => ({
+      id: name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-'),
+      name,
+      product_count: count,
+      sort_order: 0
+    }));
+  })();
+
   return (
       <div className="min-h-screen bg-gray-50">
-        <BusinessHeader 
+        <Hero365Header 
           businessProfile={serverProfile}
           showCTA={false}
           showCart={true}
@@ -109,7 +124,7 @@ export default async function ProductsPage() {
         {/* Product Listing Content */}
         <ProductListingClient 
           products={convertedProducts}
-          categories={serverCategories}
+          categories={derivedCategories}
           businessId={businessId}
           hasRealData={serverProducts.length > 0}
         />

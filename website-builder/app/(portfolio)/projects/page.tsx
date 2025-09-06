@@ -1,12 +1,11 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
-import BusinessHeader from '@/components/shared/BusinessHeader';
+import Hero365Header from '@/components/server/layout/Hero365Header';
 import Hero365Footer from '@/components/shared/Hero365Footer';
 import { notFound } from 'next/navigation';
 import ProjectListingClient from './ProjectListingClient';
 import { loadPageData } from '@/lib/server/data-fetchers';
-import type { BusinessProfile } from '@/lib/shared/types/api-responses';
 
 export const metadata: Metadata = {
   title: 'Project Portfolio | Professional Services',
@@ -42,7 +41,7 @@ export default async function ProjectsPage() {
 
   return (
       <div className="min-h-screen bg-white">
-        <BusinessHeader 
+        <Hero365Header 
           businessProfile={serverProfile as any}
           showCTA={false}
           showCart={false}

@@ -8,7 +8,7 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import BusinessHeader from '@/components/shared/BusinessHeader';
+import Hero365Header from '@/components/shared/Hero365Header';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 
 // Dynamically import the booking wizard to avoid SSR issues
@@ -35,7 +35,7 @@ interface BookingPageClientProps {
 
 export function BookingPageClient({ businessProfile, businessServices, businessId }: BookingPageClientProps) {
   // Transform business profile to header format
-  // Business data is now handled by BusinessHeader component
+  // Business data is now handled by Hero365Header component
 
   // Transform services for booking provider
   const bookingServices = businessServices.map(service => ({
@@ -56,7 +56,7 @@ export function BookingPageClient({ businessProfile, businessServices, businessI
       primaryColor="#2563eb"
     >
       <div className="min-h-screen bg-gray-50">
-        <BusinessHeader
+        <Hero365Header
           businessProfile={businessProfile}
           showCTA={true}
           showCart={true}

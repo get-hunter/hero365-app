@@ -3,7 +3,7 @@ import { getDefaultHeaders } from '@/lib/shared/config/api-config';
 import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '@/lib/client/contexts/CartContext';
-import BusinessHeader from '@/components/shared/BusinessHeader';
+import Hero365Header from '@/components/server/layout/Hero365Header';
 import Hero365Footer from '@/components/shared/Hero365Footer';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { notFound } from 'next/navigation';
@@ -113,7 +113,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         companyEmail={businessProfile.email}
       >
         <div className="min-h-screen bg-white">
-          <BusinessHeader 
+          <Hero365Header 
             businessProfile={businessProfile}
             showCTA={false}
             showCart={true}

@@ -2,7 +2,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import { getDefaultHeaders } from '@/lib/shared/config/api-config';
 import { getRuntimeConfig } from '@/lib/server/runtime-config';
-import BusinessHeader from '@/components/shared/BusinessHeader';
+import Hero365Header from '@/components/server/layout/Hero365Header';
 import Hero365Footer from '@/components/shared/Hero365Footer';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '@/lib/client/contexts/CartContext';
@@ -211,7 +211,7 @@ export default async function ProjectDetailPage({
           companyPhone={profile.phone}
         >
           <div className="min-h-screen bg-white">
-            <BusinessHeader
+            <Hero365Header
               businessProfile={profile}
               showCTA={false}
               showCart={false}

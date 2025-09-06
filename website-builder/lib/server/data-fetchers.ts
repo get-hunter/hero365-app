@@ -26,8 +26,15 @@ const dataService = getBusinessDataService();
  */
 export async function serverFetchJson<T>(endpointPath: string): Promise<T | null> {
   console.warn('serverFetchJson is deprecated. Use BusinessDataService instead.');
-  // This function is deprecated and should not be used
-  return null;
+  // Delegate to BusinessDataService for backward compatibility if possible
+  try {
+    // We do not expose a raw fetch by endpoint on the service; callers should
+    // migrate to concrete methods. For safety, return null here to avoid
+    // accidental network calls with unknown paths.
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -53,10 +60,8 @@ export async function fetchFeaturedProducts(
   businessId: string, 
   limit: number = 6
 ): Promise<ProductItem[]> {
-  const result = await serverFetchJson<ProductItem[]>(
-    `/api/v1/public/contractors/products/${businessId}?featured_only=true&limit=${limit}`
-  );
-  return result || [];
+  // Use new service method
+  return (await dataService.getBusinessProducts(businessId, { featuredOnly: true, limit })) as any;
 }
 
 /**
@@ -66,50 +71,36 @@ export async function fetchFeaturedProjects(
   businessId: string,
   limit: number = 6
 ): Promise<ProjectItem[]> {
-  const result = await serverFetchJson<ProjectItem[]>(
-    `/api/v1/public/contractors/featured-projects/${businessId}?featured_only=true&limit=${limit}`
-  );
-  return result || [];
+  return (await dataService.getBusinessProjects(businessId, { featuredOnly: true, limit })) as any;
 }
 
 /**
  * Fetch all products
  */
 export async function fetchAllProducts(businessId: string): Promise<ProductItem[]> {
-  const result = await serverFetchJson<ProductItem[]>(
-    `/api/v1/public/contractors/products/${businessId}`
-  );
-  return result || [];
+  // Fetch full catalog from new endpoint
+  return (await dataService.getBusinessProducts(businessId)) as any;
 }
 
 /**
  * Fetch all projects
  */
 export async function fetchAllProjects(businessId: string): Promise<ProjectItem[]> {
-  const result = await serverFetchJson<ProjectItem[]>(
-    `/api/v1/public/contractors/featured-projects/${businessId}`
-  );
-  return result || [];
+  return (await dataService.getBusinessProjects(businessId)) as any;
 }
 
 /**
  * Fetch service categories
  */
 export async function fetchServiceCategories(businessId: string): Promise<ServiceCategory[]> {
-  const result = await serverFetchJson<ServiceCategory[]>(
-    `/api/v1/public/contractors/service-categories/${businessId}`
-  );
-  return result || [];
+  return (await dataService.getServiceCategories(businessId)) as any;
 }
 
 /**
  * Fetch business locations
  */
 export async function fetchBusinessLocations(businessId: string): Promise<LocationItem[]> {
-  const result = await serverFetchJson<LocationItem[]>(
-    `/api/v1/public/contractors/locations/${businessId}`
-  );
-  return result || [];
+  return (await dataService.getBusinessLocations(businessId)) as any;
 }
 
 /**

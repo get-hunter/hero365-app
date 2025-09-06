@@ -224,9 +224,9 @@ export class BusinessDataService {
     if (options.category) params.set('category', options.category);
     
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    const endpoint = options.featuredOnly ? 'featured-projects' : 'projects';
+    // Backend exposes only 'featured-projects' endpoints for listings and details
     const result = await this.fetchWithRetry<EnhancedProjectItem[]>(
-      `/api/v1/public/contractors/${endpoint}/${businessId}${queryString}`
+      `/api/v1/public/contractors/featured-projects/${businessId}${queryString}`
     );
     return result || [];
   }
@@ -275,7 +275,7 @@ export class BusinessDataService {
    */
   async getProject(businessId: string, projectSlug: string): Promise<EnhancedProjectItem | null> {
     return this.fetchWithRetry<EnhancedProjectItem>(
-      `/api/v1/public/contractors/projects/${businessId}/${projectSlug}`
+      `/api/v1/public/contractors/featured-projects/${businessId}/${projectSlug}`
     );
   }
 

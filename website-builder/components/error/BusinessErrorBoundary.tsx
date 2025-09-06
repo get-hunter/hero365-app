@@ -8,9 +8,6 @@
  */
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home, Phone } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Error types
 export interface BusinessError {
@@ -164,56 +161,59 @@ export class BusinessErrorBoundary extends Component<
 
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <Card className="max-w-2xl w-full shadow-xl">
-            <CardHeader className="text-center">
+          <div className="max-w-2xl w-full bg-white rounded-lg shadow-xl">
+            <div className="text-center p-8">
               <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
               </div>
-              <CardTitle className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 Something went wrong
-              </CardTitle>
-              <p className="text-gray-600 mt-2">
+              </h2>
+              <p className="text-gray-600 mb-8">
                 We're sorry, but there was an error loading the {businessName} website. 
                 Our team has been notified and is working to fix the issue.
               </p>
-            </CardHeader>
 
-            <CardContent className="space-y-6">
               {/* Error Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button 
+              <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+                <button 
                   onClick={this.handleRetry}
-                  className="flex items-center gap-2"
-                  variant="default"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                   Try Again
-                </Button>
+                </button>
                 
-                <Button 
+                <button 
                   onClick={this.handleGoHome}
-                  className="flex items-center gap-2"
-                  variant="outline"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors"
                 >
-                  <Home className="w-4 h-4" />
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
                   Go Home
-                </Button>
+                </button>
 
                 {businessPhone && (
-                  <Button 
+                  <button 
                     onClick={this.handleContactSupport}
-                    className="flex items-center gap-2"
-                    variant="outline"
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    <Phone className="w-4 h-4" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
                     Call Support
-                  </Button>
+                  </button>
                 )}
               </div>
 
               {/* Error ID for support */}
               {errorId && (
-                <div className="text-center p-4 bg-gray-100 rounded-lg">
+                <div className="text-center p-4 bg-gray-100 rounded-lg mb-6">
                   <p className="text-sm text-gray-600">
                     <strong>Error ID:</strong> {errorId}
                   </p>
@@ -259,8 +259,8 @@ export class BusinessErrorBoundary extends Component<
                   )}
                 </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       );
     }
