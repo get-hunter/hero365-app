@@ -112,7 +112,9 @@ async function loadSEOPagesInternal(businessId: string): Promise<void> {
 
     // FALLBACK 1: Try backend API if generated content fails
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || (isServerSide ? 'http://127.0.0.1:8000' : window.location.origin)
+      const { getRuntimeConfig } = await import('@/lib/server/runtime-config');
+      const config = await getRuntimeConfig();
+      const baseUrl = config.apiUrl;
       const response = await fetch(`${baseUrl}/api/v1/seo/pages/${businessId}?include_content=true`, {
         cache: 'no-store'
       })

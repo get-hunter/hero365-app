@@ -293,8 +293,14 @@ export function isProduction(): boolean {
 /**
  * Get the backend API base URL (without /api/v1 path)
  * This is the global setting for all API calls
+ * Note: For client components only. Server components should use getRuntimeConfig()
  */
 export function getBackendUrl(): string {
+  // Client-side: use environment variable if available
+  if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  
   const environment = getEnvironment();
   return getApiBaseUrl(environment);
 }
@@ -326,37 +332,6 @@ export function getDefaultHeaders(): Record<string, string> {
   return headers;
 }
 
-/**
- * Configuration for different deployment environments
- */
-export const DEPLOYMENT_CONFIGS = {
-  development: {
-    apiUrl: 'http://localhost:8000',
-    websiteUrl: 'http://localhost:3001',
-    features: {
-      analytics: false,
-      errorReporting: false,
-      debugMode: true
-    }
-  },
-  staging: {
-    apiUrl: 'http://localhost:8000',
-    websiteUrl: 'https://staging.hero365.ai',
-    features: {
-      analytics: true,
-      errorReporting: true,
-      debugMode: true
-    }
-  },
-  production: {
-    apiUrl: 'https://api.hero365.ai',
-    websiteUrl: 'https://hero365.ai',
-    features: {
-      analytics: true,
-      errorReporting: true,
-      debugMode: false
-    }
-  }
-} as const;
+// Legacy DEPLOYMENT_CONFIGS removed - use getRuntimeConfig() instead
 
 export default getConfig;

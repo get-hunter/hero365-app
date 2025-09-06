@@ -19,14 +19,14 @@ import {
   ArtifactStatus,
   QualityMetrics
 } from '@/lib/shared/types/seo-artifacts';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { getRuntimeConfig } from '@/lib/server/runtime-config';
 
 /**
  * Generic API client with error handling
  */
 async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const config = await getRuntimeConfig();
+  const url = `${config.apiUrl}${endpoint}`;
   
   const defaultOptions: RequestInit = {
     headers: {

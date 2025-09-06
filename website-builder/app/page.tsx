@@ -16,14 +16,16 @@ import { notFound } from 'next/navigation';
 import Hero365ContactSection from '@/components/client/business/Hero365ContactSection';
 import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
+import { getRuntimeConfig } from '@/lib/server/runtime-config';
 
 async function loadBusinessData(businessId: string) {
   try {
     console.log('🔄 [SERVER] Loading business data for:', businessId);
     
-    // Force ngrok URL for staging environment to prevent localhost fallback
-    const backendUrl = 'https://5ab8f8ec32f1.ngrok-free.app';
-    console.log('🔄 [SERVER] Backend URL:', backendUrl);
+    // Use runtime configuration to get correct API URL for environment
+    const config = await getRuntimeConfig();
+    const backendUrl = config.apiUrl;
+    console.log('🔄 [SERVER] Runtime config:', { environment: config.environment, backendUrl });
     
     const [profileResponse, servicesResponse, productsResponse, projectsResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {

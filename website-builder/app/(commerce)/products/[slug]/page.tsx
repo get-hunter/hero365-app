@@ -1,5 +1,6 @@
 import { ProductDetailClient } from './ProductDetailClient';
-import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '@/lib/client/contexts/CartContext';
 import BusinessHeader from '@/components/shared/BusinessHeader';
@@ -13,7 +14,8 @@ export const revalidate = 300;
 
 async function getProduct(businessId: string, slug: string) {
   try {
-    const base = getBackendUrl();
+    const config = await getRuntimeConfig();
+    const base = config.apiUrl;
     const url = `${base}/api/v1/public/contractors/product-by-slug/${businessId}/${encodeURIComponent(slug)}`;
     console.log('🔄 [PRODUCT] Loading product:', slug, 'for business:', businessId);
     
@@ -64,7 +66,8 @@ async function getMembershipPlans(businessId: string) {
   // Try API calls during build time for hybrid rendering
 
   try {
-    const base = getBackendUrl();
+    const config = await getRuntimeConfig();
+    const base = config.apiUrl;
     const url = `${base}/api/v1/public/contractors/membership-plans/${businessId}`;
     const res = await fetch(url, {
       method: 'GET',

@@ -3,7 +3,8 @@ import { Metadata } from 'next';
 import BusinessHeader from '@/components/shared/BusinessHeader';
 import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
 import ProductListingClient from './ProductListingClient';
-import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { notFound } from 'next/navigation';
 
@@ -16,7 +17,8 @@ async function loadProductData(businessId: string) {
   try {
     console.log('🔄 [PRODUCTS] Loading product catalog for:', businessId);
     
-    const backendUrl = getBackendUrl();
+    const config = await getRuntimeConfig();
+    const backendUrl = config.apiUrl;
     
     const [catalogResponse, categoriesResponse, profileResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/product-catalog/${businessId}`, {

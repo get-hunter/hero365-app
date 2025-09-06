@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
-import { getBusinessConfig, getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getBusinessConfig, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import { CheckoutPageClient } from './CheckoutPageClient';
 import Header from '@/components/server/layout/header';
 import ClientAppProviders from '@/components/client/providers/ClientAppProviders';
@@ -15,8 +16,9 @@ export const revalidate = 0
 
 async function loadBusinessProfile(businessId: string) {
   try {
-    // Use global backend URL configuration
-    const backendUrl = getBackendUrl();
+    // Use runtime configuration for backend URL
+    const config = await getRuntimeConfig();
+    const backendUrl = config.apiUrl;
       
     console.log('🔧 [CHECKOUT] Loading business profile:', { 
       businessId, 
@@ -45,7 +47,7 @@ async function loadBusinessProfile(businessId: string) {
     console.error('Error loading business profile:', {
       error: error instanceof Error ? error.message : error,
       businessId,
-      backendUrl: getBackendUrl()
+      backendUrl: (await getRuntimeConfig()).apiUrl
     });
     return null;
   }

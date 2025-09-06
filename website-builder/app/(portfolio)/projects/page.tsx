@@ -1,6 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import BusinessHeader from '@/components/shared/BusinessHeader';
 import { notFound } from 'next/navigation';
@@ -16,7 +17,8 @@ async function loadProjectData(businessId: string) {
   try {
     console.log('🔄 [PROJECTS] Loading project data for:', businessId);
     
-    const backendUrl = getBackendUrl();
+    const config = await getRuntimeConfig();
+    const backendUrl = config.apiUrl;
     
     const [projectsResponse, categoriesResponse, tagsResponse, profileResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}?limit=12&offset=0&featured_only=true`, {

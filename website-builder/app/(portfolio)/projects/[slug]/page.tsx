@@ -1,6 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import BusinessHeader from '@/components/shared/BusinessHeader';
 import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
@@ -19,7 +20,8 @@ async function loadProjectData(businessId: string, projectSlug: string) {
     // Try API calls during build time for hybrid rendering
     // Only fall back to demo data if API is actually unavailable
     
-    const backendUrl = getBackendUrl();
+    const config = await getRuntimeConfig();
+    const backendUrl = config.apiUrl;
     
     const [projectResponse, profileResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}/${projectSlug}`, {

@@ -7,6 +7,7 @@
 
 import { headers } from 'next/headers';
 import { getBackendUrl } from '../shared/config/api-config';
+import { getRuntimeConfig } from './runtime-config';
 
 interface BusinessResolution {
   businessId: string;
@@ -38,7 +39,8 @@ function parseHostname(hostname: string): { subdomain: string; isCustomDomain: b
  * Resolve business ID from hostname via backend API
  */
 async function resolveBusinessFromBackend(hostname: string): Promise<string | null> {
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://5ab8f8ec32f1.ngrok-free.app';
+  const config = await getRuntimeConfig();
+  const backendUrl = config.apiUrl;
   const url = `${backendUrl}/api/v1/public/websites/resolve?host=${encodeURIComponent(hostname)}`;
   console.log(`🔍 [HOST-RESOLVER] Resolving business for: ${hostname} → ${url}`);
   
@@ -85,16 +87,16 @@ export async function getBusinessIdFromHost(): Promise<BusinessResolution> {
   const headersList = headers();
   const hostname = headersList.get('host') || 'localhost:3000';
   const hostKey = hostname.toLowerCase();
+  const config = await getRuntimeConfig();
   
-  // Development fallback
-  if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
-    const devBusinessId = process.env.NEXT_PUBLIC_BUSINESS_ID;
-    if (!devBusinessId) {
+  // Development: always use explicit business ID
+  if (config.environment === 'development') {
+    if (!config.businessId) {
       throw new Error('NEXT_PUBLIC_BUSINESS_ID required for development');
     }
     
     return {
-      businessId: devBusinessId,
+      businessId: config.businessId,
       subdomain: 'localhost',
       hostname,
       isCustomDomain: false
@@ -104,12 +106,10 @@ export async function getBusinessIdFromHost(): Promise<BusinessResolution> {
   // Parse hostname
   const { subdomain, isCustomDomain } = parseHostname(hostname);
   
-  // Staging fallback: allow explicit business ID via env var to avoid
-  // external resolution flakiness when using tunnels/proxies
-  const explicitBusinessId = process.env.NEXT_PUBLIC_BUSINESS_ID;
-  if (explicitBusinessId) {
+  // Staging: allow explicit business ID override for testing
+  if (config.environment === 'staging' && config.businessId) {
     return {
-      businessId: explicitBusinessId,
+      businessId: config.businessId,
       subdomain,
       hostname,
       isCustomDomain

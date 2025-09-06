@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { ProductCatalogItem, ProductCategory, MembershipType, ProductInstallationOption } from '@/lib/shared/types/products';
 import { SimpleCTAButton } from '@/components/client/interactive/cta-button';
 import { useCart } from '@/lib/client/contexts/CartContext';
-import { getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getDefaultHeaders, getBackendUrl } from '@/lib/shared/config/api-config';
 import Hero365MembershipPricing from '@/components/client/commerce/products/Hero365MembershipPricing';
 import Hero365ProductVariants from '@/components/client/commerce/products/Hero365ProductVariants';
 import ProductSchema from '@/components/server/seo/Hero365ProductSchema';
@@ -101,7 +101,7 @@ export function ProductDetailClient({
     
     setLoading(true);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+      const backendUrl = getBackendUrl();
       const params = new URLSearchParams({
         installation_option_id: selectedInstallation.id,
         quantity: String(quantity)

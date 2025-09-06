@@ -8,7 +8,8 @@ import React from 'react';
 import Header from '@/components/server/layout/header';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
-import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import { notFound } from 'next/navigation';
 import { BookingPageClient } from './BookingPageClient';
 
@@ -19,7 +20,8 @@ async function loadBusinessData(businessId: string) {
   try {
     console.log('🔄 [BOOKING] Loading business data for:', businessId);
     
-    const backendUrl = getBackendUrl();
+    const config = await getRuntimeConfig();
+    const backendUrl = config.apiUrl;
     const headers = getDefaultHeaders();
 
     const [profileResponse, servicesResponse] = await Promise.all([

@@ -1,5 +1,6 @@
 import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
+import { getRuntimeConfig } from '@/lib/server/runtime-config';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -7,7 +8,8 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const resolution = await getBusinessIdFromHost();
-    const backendUrl = 'https://5ab8f8ec32f1.ngrok-free.app';
+    const config = await getRuntimeConfig();
+    const backendUrl = config.apiUrl;
     const profileUrl = `${backendUrl}/api/v1/public/contractors/profile/${resolution.businessId}`;
 
     let profileStatus: number | null = null;
@@ -24,9 +26,10 @@ export async function GET() {
     }
 
     return Response.json({
-      environment: process.env.NEXT_PUBLIC_ENVIRONMENT || 'unknown',
+      environment: config.environment,
       backendUrl,
       resolution,
+      runtimeConfig: config,
       profile: {
         url: profileUrl,
         status: profileStatus,

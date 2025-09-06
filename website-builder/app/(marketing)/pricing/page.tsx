@@ -13,7 +13,8 @@ import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessF
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '../../../lib/client/contexts/CartContext';
 import PricingPageClient from './PricingPageClient';
-import { getBusinessConfig, getBackendUrl, getDefaultHeaders } from '../../../lib/shared/config/api-config';
+import { getBusinessConfig, getDefaultHeaders } from '../../../lib/shared/config/api-config';
+import { getRuntimeConfig } from '../../../lib/server/runtime-config';
 
 import { ServicePricing, MembershipPlan } from '../../../lib/types/membership';
 
@@ -35,7 +36,8 @@ async function loadBusinessData(businessId: string) {
     // Only fall back to demo data if API is actually unavailable
     
     // Make direct API calls to the backend (server-to-server)
-    const backendUrl = getBackendUrl();
+    const config = await getRuntimeConfig();
+    const backendUrl = config.apiUrl;
     console.log('🔄 [PRICING] Backend URL:', backendUrl);
     
     const [profileResponse, servicesResponse, membershipResponse, pricingResponse] = await Promise.all([
