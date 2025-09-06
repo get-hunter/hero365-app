@@ -5,6 +5,7 @@
  * basic offline functionality for contractor websites.
  */
 
+const IS_LOCALHOST = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 const CACHE_NAME = 'hero365-contractor-v1';
 const STATIC_CACHE = 'hero365-static-v1';
 const DYNAMIC_CACHE = 'hero365-dynamic-v1';
@@ -32,7 +33,12 @@ const API_ENDPOINTS = [
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
   console.log('Service Worker: Installing...');
-  
+  if (IS_LOCALHOST) {
+    // In dev, skip caching to avoid stale chunks
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
+
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
@@ -52,7 +58,14 @@ self.addEventListener('install', (event) => {
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   console.log('Service Worker: Activating...');
-  
+  if (IS_LOCALHOST) {
+    // In dev, clear all caches aggressively and claim clients
+    event.waitUntil(
+      caches.keys().then((names) => Promise.all(names.map((n) => caches.delete(n)))).then(() => self.clients.claim())
+    );
+    return;
+  }
+
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
@@ -85,6 +98,11 @@ self.addEventListener('fetch', (event) => {
   // Skip chrome-extension and other non-http requests
   if (!url.protocol.startsWith('http')) {
     return;
+  }
+
+  // In dev, bypass SW for all requests to avoid chunk staleness
+  if (IS_LOCALHOST) {
+    return; // Let the network handle it
   }
   
   // Handle different types of requests with appropriate strategies
@@ -208,7 +226,8 @@ async function staleWhileRevalidateStrategy(request, cacheName) {
 function isStaticAsset(request) {
   const url = new URL(request.url);
   return (
-    url.pathname.startsWith('/_next/static/') ||
+    // Exclude Next.js build chunks from SW caching to prevent stale code
+    (url.pathname.startsWith('/_next/static/') && false) ||
     url.pathname.startsWith('/static/') ||
     url.pathname.endsWith('.css') ||
     url.pathname.endsWith('.js') ||

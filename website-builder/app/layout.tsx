@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import ClientRoot from "./ClientRoot";
+import SimpleErrorBoundary from "@/components/error/SimpleErrorBoundary";
 // Use system fonts to avoid next/font server manifest during build
 
 export const metadata: Metadata = {
@@ -42,14 +42,35 @@ export default function RootLayout({
         <meta name="x-build" content="cache-fix-v3" />
         <meta name="cache-bust" content={`${Date.now()}`} />
         <meta name="force-refresh" content="home-page-fix" />
+        {process.env.NODE_ENV === 'development' && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function(){
+                  if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function(regs){
+                      regs.forEach(function(r){ r.unregister(); });
+                    });
+                  }
+                  if (window.caches && caches.keys) {
+                    caches.keys().then(function(keys){ keys.forEach(function(k){ caches.delete(k); }); });
+                  }
+                })();
+              `
+            }}
+          />
+        )}
       </head>
       <body
         className={`antialiased`}
         suppressHydrationWarning={true}
       >
-        <ClientRoot>
+        <SimpleErrorBoundary 
+          businessName="Professional Services"
+          showErrorDetails={process.env.NODE_ENV === 'development'}
+        >
           {children}
-        </ClientRoot>
+        </SimpleErrorBoundary>
       </body>
     </html>
   );
