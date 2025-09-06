@@ -10,6 +10,7 @@
 - ✅ **Cloudflare REST API**: Direct domain mapping without CLI dependencies
 - ✅ **Zero Fallbacks**: Strict validation - fails fast if data is incomplete
 - ✅ **Auto-Generated SEO**: Dynamic sitemaps and robots.txt per business
+- ✅ **Tradesites.app Domain**: Uses `*.tradesites.app` subdomain pattern
 
 ---
 
@@ -17,42 +18,46 @@
 
 ### **1. Deployment Endpoint**
 ```bash
-POST /api/v1/public/contractors/{business_id}/deploy?site_url=https://elite-hvac-austin.hero365.ai
+POST /api/v1/public/contractors/{business_id}/deploy?site_url=https://elite-hvac-austin.tradesites.app
 ```
 
 **What it does:**
 1. Validates business exists and has complete data
 2. Generates subdomain from business name (`elite-hvac-austin`)
-3. Maps `elite-hvac-austin.hero365.ai` to Cloudflare Worker via REST API
-4. Returns deployment status and site URL
+3. Maps `elite-hvac-austin.tradesites.app` to Cloudflare Worker via REST API
+4. Creates DNS CNAME record pointing to Worker
+5. Returns deployment status and site URL
 
 **Response:**
 ```json
 {
-  "deployment_id": "deploy_550e8400-e29b-41d4-a716-446655440010_1704067200",
+  "deployment_id": "deploy_550e8400-e29b-41d4-a716-446655440010_1757158685",
   "business_id": "550e8400-e29b-41d4-a716-446655440010",
-  "site_url": "https://elite-hvac-austin.hero365.ai",
+  "site_url": "https://elite-hvac-austin.tradesites.app",
   "subdomain": "elite-hvac-austin",
   "business_name": "Elite HVAC Austin",
   "status": "deployed",
   "cloudflare": {
-    "hostname": "elite-hvac-austin.hero365.ai",
+    "hostname": "elite-hvac-austin.tradesites.app",
     "worker_service": "hero365-website-staging",
+    "worker_environment": "staging",
+    "zone_id": "c28e66bcb1f56af2ac253ae47bf341f4",
+    "dns_record_id": "74924a03b5177754513c7da60d5330d6",
     "status": "success"
   },
-  "deployed_at": "2024-01-01T12:00:00Z",
+  "deployed_at": "2025-09-06T13:38:05.886210",
   "estimated_propagation": "1-2 minutes"
 }
 ```
 
 ### **2. Host Resolution Endpoint**
 ```bash
-GET /api/v1/public/websites/resolve?host=elite-hvac-austin.hero365.ai
+GET /api/v1/public/websites/resolve?host=elite-hvac-austin.tradesites.app
 ```
 
 **What it does:**
 - Resolves hostname to business ID for multi-tenant routing
-- Supports both `*.hero365.ai` subdomains and custom domains
+- Supports both `*.tradesites.app` subdomains and custom domains
 - Used by website at runtime to load correct business context
 
 ### **3. Environment Variables Required**
@@ -66,7 +71,8 @@ CLOUDFLARE_WORKER_ENV=staging
 
 **Cloudflare API Token Permissions:**
 - `Workers Scripts:Edit`
-- `Zone:Zone:Read` 
+- `Zone:Zone:Read` (for tradesites.app zone)
+- `Zone:DNS:Edit` (for creating DNS records)
 - `Workers Custom Domains:Edit`
 
 ---
@@ -102,16 +108,22 @@ export async function getBusinessContextFromHost(): Promise<BusinessContext | nu
 }
 ```
 
-### **3. Simplified Worker Configuration**
+### **3. Worker Configuration**
 ```toml
 # website-builder/wrangler.toml
 [env.staging.vars]
-NEXT_PUBLIC_API_URL = "https://api.hero365.ai"
+NEXT_PUBLIC_API_URL = "https://5ab8f8ec32f1.ngrok-free.app"
+NEXT_PUBLIC_API_VERSION = "v1"
+NEXT_PUBLIC_DEBUG_MODE = "true"
+NEXT_PUBLIC_ANALYTICS_ENABLED = "true"
 NEXT_PUBLIC_ENVIRONMENT = "staging"
-# Multi-tenant: Business resolved from Host header at runtime
+
+[[env.staging.routes]]
+pattern = "*.tradesites.app/*"
+zone_id = "c28e66bcb1f56af2ac253ae47bf341f4"
 ```
 
-**No more per-business environment variables needed!**
+**Multi-tenant routing via Host header - no per-business environment variables needed!**
 
 ---
 
@@ -162,17 +174,19 @@ Mobile App → POST /api/v1/public/contractors/{business_id}/deploy
 ### **Step 2: Backend Validates & Provisions**
 1. ✅ Validate business exists and has complete data
 2. ✅ Generate subdomain: `elite-hvac-austin`
-3. ✅ Call Cloudflare API to map domain to Worker
-4. ✅ Return deployment details
+3. ✅ Get tradesites.app zone ID from Cloudflare
+4. ✅ Create DNS CNAME record pointing to Worker
+5. ✅ Update business record with subdomain
+6. ✅ Return deployment details
 
 ### **Step 3: DNS Propagation (1-2 minutes)**
 - Cloudflare automatically handles DNS
-- Site becomes live at `https://elite-hvac-austin.hero365.ai`
+- Site becomes live at `https://elite-hvac-austin.tradesites.app`
 
 ### **Step 4: Dynamic Content Loading**
-1. User visits `https://elite-hvac-austin.hero365.ai`
+1. User visits `https://elite-hvac-austin.tradesites.app`
 2. Worker receives request with Host header
-3. Website calls `/api/v1/public/websites/resolve?host=elite-hvac-austin.hero365.ai`
+3. Website calls `/api/v1/public/websites/resolve?host=elite-hvac-austin.tradesites.app`
 4. Backend returns business ID
 5. Website loads business-specific content and SEO
 
@@ -182,30 +196,34 @@ Mobile App → POST /api/v1/public/contractors/{business_id}/deploy
 
 ### **Dynamic Sitemap**
 ```xml
-<!-- https://elite-hvac-austin.hero365.ai/sitemap.xml -->
+<!-- https://elite-hvac-austin.tradesites.app/sitemap.xml -->
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://elite-hvac-austin.hero365.ai</loc>
+    <loc>https://elite-hvac-austin.tradesites.app</loc>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://elite-hvac-austin.hero365.ai/services/ac-repair/austin-tx</loc>
+    <loc>https://elite-hvac-austin.tradesites.app/services/ac-repair/austin-tx</loc>
     <priority>0.7</priority>
   </url>
-  <!-- 144+ service/location combinations -->
+  <url>
+    <loc>https://elite-hvac-austin.tradesites.app/projects/luxury-home-hvac-system</loc>
+    <priority>0.8</priority>
+  </url>
+  <!-- 144+ service/location combinations + featured projects -->
 </urlset>
 ```
 
 ### **Dynamic Robots.txt**
 ```
-# https://elite-hvac-austin.hero365.ai/robots.txt
+# https://elite-hvac-austin.tradesites.app/robots.txt
 User-Agent: *
 Allow: /
 Disallow: /api/
 
 # Business: Elite HVAC Austin
-Sitemap: https://elite-hvac-austin.hero365.ai/sitemap.xml
+Sitemap: https://elite-hvac-austin.tradesites.app/sitemap.xml
 ```
 
 ---
@@ -214,15 +232,15 @@ Sitemap: https://elite-hvac-austin.hero365.ai/sitemap.xml
 
 ### **1. Test Deployment Endpoint**
 ```bash
-# Test without Cloudflare (will show credential error)
-curl -X POST "http://localhost:8000/api/v1/public/contractors/550e8400-e29b-41d4-a716-446655440010/deploy?site_url=https://elite-hvac-austin.hero365.ai"
+# Test with actual deployment (requires Cloudflare credentials)
+curl -X POST "http://localhost:8000/api/v1/public/contractors/550e8400-e29b-41d4-a716-446655440010/deploy"
 
-# Expected: {"detail": "Deployment failed: 500: Cloudflare credentials not configured..."}
+# Expected: Successful deployment response with tradesites.app URL
 ```
 
 ### **2. Test Host Resolution**
 ```bash
-curl "http://localhost:8000/api/v1/public/websites/resolve?host=elite-hvac-austin.hero365.ai"
+curl "http://localhost:8000/api/v1/public/websites/resolve?host=elite-hvac-austin.tradesites.app"
 
 # Expected: Business resolution or fallback
 ```
@@ -232,6 +250,17 @@ curl "http://localhost:8000/api/v1/public/websites/resolve?host=elite-hvac-austi
 curl "http://localhost:8000/api/v1/public/contractors/550e8400-e29b-41d4-a716-446655440010/context"
 
 # Expected: Full business context JSON
+```
+
+### **4. Test Live Website**
+```bash
+# Test main page
+curl "https://elite-hvac-austin.tradesites.app/"
+
+# Test project detail page
+curl "https://elite-hvac-austin.tradesites.app/projects/luxury-home-hvac-system"
+
+# Expected: Full HTML pages with business-specific content
 ```
 
 ---
@@ -256,8 +285,10 @@ SUPABASE_ANON_KEY=your_anon_key
 2. **Permissions**:
    - `Workers Scripts:Edit`
    - `Zone:Zone:Read`
+   - `Zone:DNS:Edit`
    - `Workers Custom Domains:Edit`
-3. **Zone Resources**: Include `hero365.ai`
+3. **Zone Resources**: Include `tradesites.app`
+4. **Worker Service**: Deploy `hero365-website-staging` to handle `*.tradesites.app/*` routes
 
 ---
 
@@ -275,6 +306,7 @@ SUPABASE_ANON_KEY=your_anon_key
 3. **A/B Testing**: Multiple Worker environments per business
 4. **Analytics Integration**: Per-business Google Analytics
 5. **SSL Automation**: Auto-provision SSL for custom domains
+6. **Production API**: Replace ngrok with production backend URL
 
 ---
 
@@ -312,9 +344,30 @@ export CLOUDFLARE_API_TOKEN="your_token"
 export CLOUDFLARE_ACCOUNT_ID="your_account_id"
 
 # Test deployment
-curl -X POST "http://localhost:8000/api/v1/public/contractors/550e8400-e29b-41d4-a716-446655440010/deploy?site_url=https://elite-hvac-austin.hero365.ai"
+curl -X POST "http://localhost:8000/api/v1/public/contractors/550e8400-e29b-41d4-a716-446655440010/deploy"
 
 # Expected: Successful deployment with live site URL
 ```
 
-🎯 **Result**: Users tap "Deploy" → Live website in 2 minutes → Google discovers 144+ pages automatically!
+🎯 **Result**: Users tap "Deploy" → Live website in 2 minutes → Google discovers 144+ pages + featured projects automatically!
+
+## 🎯 **Current Implementation Status**
+
+✅ **Fully Implemented & Working**:
+- Backend deployment API with Cloudflare integration
+- Multi-tenant Worker serving `*.tradesites.app` domains
+- Dynamic DNS record creation via Cloudflare REST API
+- Host-based business resolution
+- Featured projects display and detail pages
+- SEO-optimized pages with dynamic content
+
+✅ **Successfully Tested**:
+- Elite HVAC Austin deployment: `https://elite-hvac-austin.tradesites.app`
+- Featured projects loading on home page
+- Individual project detail pages working
+- Multi-tenant routing via Host header
+
+🔄 **Development Environment**:
+- Backend API: ngrok tunnel for development
+- Frontend: Cloudflare Worker on staging environment
+- Database: Supabase with complete business and project data
