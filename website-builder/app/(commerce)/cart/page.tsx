@@ -4,7 +4,7 @@ import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import { CartPageClient } from './CartPageClient';
 
 // Static generation enabled for Cloudflare Pages
-import Header from '@/components/server/layout/header';
+import Hero365Header from '@/components/server/layout/Hero365Header';
 import Hero365Footer from '@/components/shared/Hero365Footer';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '@/lib/client/contexts/CartContext';
@@ -53,12 +53,10 @@ export default async function CartPage() {
         services={[]}
       >
         <div className="min-h-screen bg-white">
-          <Header 
-            businessName={businessProfile.business_name}
-            city={businessProfile.service_areas?.[0] || "Austin"}
-            state="TX"
-            phone={businessProfile.phone}
-            supportHours="24/7"
+          <Hero365Header 
+            businessProfile={businessProfile}
+            showCTA={false}
+            showCart={true}
           />
           
           <Suspense fallback={

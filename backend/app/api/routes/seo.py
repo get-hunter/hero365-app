@@ -594,17 +594,17 @@ async def _generate_artifacts_background(
         business_data = business_result.data[0]
         
         # Get activities to generate from business_services (canonical source)
-        # Map service_slug -> activity_slug and service_name -> activity_name
+        # Use canonical_slug and service_name for proper mapping
         activities_query = (
             supabase
             .table("business_services")
-            .select("service_slug,service_name")
+            .select("canonical_slug,service_name")
             .eq("business_id", business_id)
             .eq("is_active", True)
         )
 
         if request.activity_slugs:
-            activities_query = activities_query.in_("service_slug", request.activity_slugs)
+            activities_query = activities_query.in_("canonical_slug", request.activity_slugs)
         
         activities_result = activities_query.execute()
         
@@ -619,7 +619,7 @@ async def _generate_artifacts_background(
                     business_id=business_id,
                     business_data=business_data,
                     activity={
-                        "activity_slug": activity.get("service_slug"),
+                        "activity_slug": activity.get("canonical_slug"),
                         "activity_name": activity.get("service_name"),
                     },
                     quality_threshold=request.quality_threshold

@@ -8,7 +8,7 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { Phone, Star, Award } from 'lucide-react';
-import Header from '@/components/server/layout/header';
+import Hero365Header from '@/components/server/layout/Hero365Header';
 import Hero365Footer from '@/components/shared/Hero365Footer';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '../../../lib/client/contexts/CartContext';
@@ -183,12 +183,17 @@ export default async function PricingPage() {
       >
         <div className="min-h-screen bg-white">
           {/* Hero365 Header (server-safe) */}
-          <Header 
-            businessName={finalBusinessData.businessName}
-            city={finalBusinessData.serviceAreas[0] || 'Austin'}
-            state={'TX'}
-            phone={finalBusinessData.phone}
-            supportHours={'24/7'}
+          <Hero365Header 
+            businessProfile={{
+              business_id: finalBusinessData.businessId,
+              business_name: finalBusinessData.businessName,
+              phone: finalBusinessData.phone,
+              email: finalBusinessData.email || "",
+              city: finalBusinessData.serviceAreas[0] || 'Austin',
+              state: 'TX'
+            }}
+            showCTA={false}
+            showCart={false}
           />
 
         {/* Pricing Page Content with hero section using real data */}

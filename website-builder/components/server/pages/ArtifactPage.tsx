@@ -15,7 +15,7 @@ import { BusinessContext, TechnicianProfile, ProjectShowcase } from '@/lib/share
 import { TradeConfiguration } from '@/lib/shared/types/trade-config';
 
 // SSR-Optimized Components
-import Header from '@/components/server/layout/header';
+import Hero365Header from '@/components/server/layout/Hero365Header';
 import { TradeAwareHero } from '@/components/server/trade-aware/TradeAwareHero';
 // import { ContextAwareServiceGrid } from '@/components/server/trade-aware/ContextAwareServiceGrid';
 import { ActivityModuleSection } from '@/components/client/trade-aware/ActivityModuleSection';
@@ -79,7 +79,7 @@ export default function ArtifactPage({
         <StructuredDataRenderer schemas={structuredData} />
         
         {/* Trade-Aware Header */}
-        <Header 
+        <Hero365Header 
           businessName={businessContext.business.name}
           city={businessContext.primary_area?.city || businessContext.business.city}
           state={businessContext.primary_area?.state || businessContext.business.state}
@@ -87,7 +87,6 @@ export default function ArtifactPage({
           supportHours={tradeConfig.emergency_services ? "24/7" : "Business Hours"}
           logo={businessContext.business.logo_url}
           primaryColor={tradeConfig.colors.primary}
-          tradeConfig={tradeConfig}
         />
 
         {/* Main Content */}
@@ -270,10 +269,38 @@ export default function ArtifactPage({
 
         {/* Trade-Aware Footer */}
         <Hero365Footer 
-          businessContext={businessContext}
-          tradeConfig={tradeConfig}
-          activities={businessContext.activities}
-          serviceAreas={businessContext.service_areas}
+          business={{
+            business_id: businessContext.business.id,
+            business_name: businessContext.business.name,
+            description: businessContext.business.description,
+            phone: businessContext.business.phone,
+            email: businessContext.business.email,
+            address: businessContext.business.address,
+            city: businessContext.business.city,
+            state: businessContext.business.state,
+            postal_code: businessContext.business.postal_code,
+            website: businessContext.business.website,
+            years_in_business: businessContext.business.years_in_business,
+            average_rating: businessContext.average_rating,
+            license_number: businessContext.business.license_number,
+            emergency_service: tradeConfig.emergency_services,
+            service_areas: businessContext.service_areas.map(area => area.name)
+          }}
+          services={businessContext.activities?.map(activity => ({
+            id: activity.slug,
+            name: activity.name,
+            slug: activity.slug,
+            is_featured: activity.is_featured,
+            category: activity.trade_name
+          })) || []}
+          locations={businessContext.service_areas?.map(area => ({
+            id: area.slug,
+            name: area.name,
+            city: area.city,
+            state: area.state,
+            address: area.name,
+            is_primary: area.is_primary
+          })) || []}
         />
       </div>
     </ABTestingProvider>
@@ -378,26 +405,18 @@ export async function generateArtifactMetadata({
   tradeConfig: TradeConfiguration;
 }): Promise<Metadata> {
   
-  const title = artifact.title.replace(
-    '{business_name}', 
-    businessContext.business.name
-  ).replace(
-    '{city}', 
-    businessContext.primary_area?.city || businessContext.business.city
-  );
+  const title = (artifact.title || artifact.meta_title || `${artifact.activity_name} Services`)
+    .replace('{business_name}', businessContext.business.name)
+    .replace('{city}', businessContext.primary_area?.city || businessContext.business.city);
 
-  const description = artifact.meta_description.replace(
-    '{business_name}', 
-    businessContext.business.name
-  ).replace(
-    '{years_experience}', 
-    businessContext.combined_experience_years.toString()
-  );
+  const description = (artifact.meta_description || `Professional ${artifact.activity_name} services`)
+    .replace('{business_name}', businessContext.business.name)
+    .replace('{years_experience}', businessContext.combined_experience_years?.toString() || '10');
 
   return {
     title,
     description,
-    keywords: artifact.target_keywords.join(', '),
+    keywords: (artifact.target_keywords || []).join(', '),
     openGraph: {
       title,
       description,

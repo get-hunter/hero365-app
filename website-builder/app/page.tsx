@@ -9,7 +9,7 @@ import React from 'react';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 import Link from 'next/link';
-import BusinessHeader from '@/components/shared/BusinessHeader';
+import Hero365Header from '@/components/server/layout/Hero365Header';
 import HeroSection from '@/components/server/hero/hero-section';
 import ServicesGrid from '@/components/server/services/services-grid';
 import Hero365ContactSection from '@/components/client/business/Hero365ContactSection';
@@ -43,7 +43,7 @@ export default async function HomePage() {
     if (!serverProfile) {
       return (
         <div className="min-h-screen bg-white">
-          <BusinessHeader businessProfile={null} showCTA={false} showCart={false} />
+          <Hero365Header businessProfile={null} showCTA={false} showCart={false} />
           <div className="max-w-3xl mx-auto py-16 px-4">
             <h1 className="text-2xl font-bold text-red-600 mb-4">Error: Missing business profile</h1>
             <p className="text-gray-700 mb-6">The backend did not return a profile for this business. No placeholder data is shown.</p>
@@ -100,7 +100,7 @@ export default async function HomePage() {
     return (
       <div className="min-h-screen bg-white">
         {/* Header */}
-        <BusinessHeader 
+        <Hero365Header 
           businessProfile={{
             business_id: profile.business_id || profile.id || '',
             business_name: profile.business_name,

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { CheckoutSuccessClient } from './CheckoutSuccessClient';
-import Header from '@/components/server/layout/header';
+import Hero365Header from '@/components/server/layout/Hero365Header';
 import ClientAppProviders from '@/components/client/providers/ClientAppProviders';
 import Hero365Footer from '@/components/shared/Hero365Footer';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
@@ -67,12 +67,18 @@ export default async function CheckoutSuccessPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header 
-        businessName={profile.business_name}
-        city="Austin"
-        state="TX"
-        phone={profile.phone}
-        supportHours="24/7"
+      <Hero365Header 
+        businessProfile={{
+          business_id: profile.id,
+          business_name: profile.business_name,
+          phone: profile.phone || "(512) 555-0100",
+          email: profile.email || "",
+          city: "Austin",
+          state: "TX",
+          logo_url: profile.logo_url
+        }}
+        showCTA={false}
+        showCart={true}
       />
           
       <ClientAppProviders 

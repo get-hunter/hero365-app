@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import Header from '@/components/server/layout/header';
+import BusinessHeader from '@/components/shared/BusinessHeader';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { getDefaultHeaders } from '@/lib/shared/config/api-config';

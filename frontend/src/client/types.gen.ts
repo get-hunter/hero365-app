@@ -1129,6 +1129,23 @@ export type AnalyticsResponse = {
 }
 
 /**
+ * Public service item for website consumption.
+ */
+export type app__api__public__routes__contractors__business_services__ServiceItem =
+  {
+    canonical_slug: string
+    name: string
+    trade_slug?: string | null
+    category?: string | null
+    is_emergency?: boolean
+    is_featured?: boolean
+    is_commercial?: boolean
+    is_residential?: boolean
+    sort_order?: number
+    pricing_summary?: string | null
+  }
+
+/**
  * Service category with services.
  */
 export type app__api__public__routes__contractors__schemas__ServiceCategory = {
@@ -1151,7 +1168,69 @@ export type app__api__public__routes__contractors__schemas__ServiceCategory = {
   /**
    * Services in this category
    */
-  services?: Array<ServiceItem>
+  services?: Array<app__api__public__routes__contractors__schemas__ServiceItem>
+}
+
+/**
+ * Professional service information.
+ */
+export type app__api__public__routes__contractors__schemas__ServiceItem = {
+  /**
+   * Service ID
+   */
+  id: string
+  /**
+   * Service name
+   */
+  name: string
+  /**
+   * Service description
+   */
+  description: string
+  /**
+   * Service category
+   */
+  category: string
+  /**
+   * Base price
+   */
+  base_price?: number | null
+  /**
+   * Minimum price
+   */
+  price_range_min?: number | null
+  /**
+   * Maximum price
+   */
+  price_range_max?: number | null
+  /**
+   * Pricing unit
+   */
+  pricing_unit?: string
+  /**
+   * Estimated duration
+   */
+  duration_minutes?: number | null
+  /**
+   * Emergency service available
+   */
+  is_emergency?: boolean
+  /**
+   * Requires custom quote
+   */
+  requires_quote?: boolean
+  /**
+   * Currently available
+   */
+  available?: boolean
+  /**
+   * Service areas
+   */
+  service_areas?: Array<string>
+  /**
+   * SEO keywords
+   */
+  keywords?: Array<string>
 }
 
 /**
@@ -5888,6 +5967,19 @@ export type LocationData = {
 }
 
 /**
+ * Public location item for website consumption.
+ */
+export type LocationItem = {
+  location_slug: string
+  name: string
+  city: string
+  state: string
+  kind: string
+  is_primary?: boolean
+  service_radius_miles?: number | null
+}
+
+/**
  * Request to update user location.
  */
 export type LocationUpdateRequest = {
@@ -6123,6 +6215,22 @@ export type MobileTemplateResponse = {
   }
   created_at: string
   updated_at: string
+}
+
+/**
+ * Navigation data for website menus.
+ */
+export type NavigationResponse = {
+  services: Array<app__api__public__routes__contractors__business_services__ServiceItem>
+  featured_services: Array<app__api__public__routes__contractors__business_services__ServiceItem>
+  emergency_services: Array<app__api__public__routes__contractors__business_services__ServiceItem>
+  service_categories: {
+    [
+      key: string
+    ]: Array<app__api__public__routes__contractors__business_services__ServiceItem>
+  }
+  locations: Array<LocationItem>
+  primary_location?: LocationItem | null
 }
 
 /**
@@ -8761,68 +8869,6 @@ export type ServiceInfo = {
 }
 
 /**
- * Professional service information.
- */
-export type ServiceItem = {
-  /**
-   * Service ID
-   */
-  id: string
-  /**
-   * Service name
-   */
-  name: string
-  /**
-   * Service description
-   */
-  description: string
-  /**
-   * Service category
-   */
-  category: string
-  /**
-   * Base price
-   */
-  base_price?: number | null
-  /**
-   * Minimum price
-   */
-  price_range_min?: number | null
-  /**
-   * Maximum price
-   */
-  price_range_max?: number | null
-  /**
-   * Pricing unit
-   */
-  pricing_unit?: string
-  /**
-   * Estimated duration
-   */
-  duration_minutes?: number | null
-  /**
-   * Emergency service available
-   */
-  is_emergency?: boolean
-  /**
-   * Requires custom quote
-   */
-  requires_quote?: boolean
-  /**
-   * Currently available
-   */
-  available?: boolean
-  /**
-   * Service areas
-   */
-  service_areas?: Array<string>
-  /**
-   * SEO keywords
-   */
-  keywords?: Array<string>
-}
-
-/**
  * Service pricing with membership discounts.
  */
 export type ServicePricing = {
@@ -11148,6 +11194,72 @@ export type BusinessesDeclineInvitationData = {
 
 export type BusinessesDeclineInvitationResponse = Message
 
+export type BusinessServicesGetBusinessServicesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Include pricing summary
+   */
+  includePricing?: boolean
+  /**
+   * Only return active services
+   */
+  onlyActive?: boolean
+}
+
+export type BusinessServicesGetBusinessServicesResponse =
+  Array<app__api__public__routes__contractors__business_services__ServiceItem>
+
+export type BusinessServicesGetBusinessLocationsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Only return active locations
+   */
+  onlyActive?: boolean
+}
+
+export type BusinessServicesGetBusinessLocationsResponse = Array<LocationItem>
+
+export type BusinessServicesGetBusinessNavigationData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type BusinessServicesGetBusinessNavigationResponse = NavigationResponse
+
+export type BusinessServicesGetServiceSlugsOnlyData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Only return active services
+   */
+  onlyActive?: boolean
+}
+
+export type BusinessServicesGetServiceSlugsOnlyResponse = Array<string>
+
+export type BusinessServicesGetLocationSlugsOnlyData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Only return active locations
+   */
+  onlyActive?: boolean
+}
+
+export type BusinessServicesGetLocationSlugsOnlyResponse = Array<string>
+
 export type CreateContactNoSlashData = {
   requestBody: ContactCreateRequest
 }
@@ -11745,7 +11857,7 @@ export type ContractorsServicesGetContractorServicesData = {
 }
 
 export type ContractorsServicesGetContractorServicesResponse =
-  Array<ServiceItem>
+  Array<app__api__public__routes__contractors__schemas__ServiceItem>
 
 export type ContractorsServicesGetContractorServiceCategoriesData = {
   /**
@@ -11813,7 +11925,8 @@ export type GetContractorServicesData = {
   offset?: number
 }
 
-export type GetContractorServicesResponse = Array<ServiceItem>
+export type GetContractorServicesResponse =
+  Array<app__api__public__routes__contractors__schemas__ServiceItem>
 
 export type GetContractorServiceCategoriesData = {
   /**

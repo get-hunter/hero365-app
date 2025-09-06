@@ -135,17 +135,47 @@ export async function generateStaticParams() {
   try {
     console.log('🔄 [BUILD] Generating static params for activity pages...');
     
-    // Get business ID from host resolver
-    const { businessId } = await getBusinessIdFromHost();
+    // For build time, use environment variable instead of headers
+    const businessId = process.env.NEXT_PUBLIC_BUSINESS_ID;
     
-    // Get all published artifacts for this business
+    if (!businessId) {
+      console.warn('⚠️ [BUILD] No NEXT_PUBLIC_BUSINESS_ID found, using fallback static params');
+      return getFallbackStaticParams();
+    }
+    
+    // Try to get service slugs from backend first
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const response = await fetch(`${backendUrl}/api/v1/public/contractors/${businessId}/service-slugs`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Hero365-Website/1.0'
+        }
+      });
+      
+      if (response.ok) {
+        const serviceSlugs = await response.json();
+        const staticParams = serviceSlugs.map((slug: string) => ({
+          activitySlug: slug,
+        }));
+        
+        console.log(`✅ [BUILD] Generated ${staticParams.length} static params from backend service slugs`);
+        return staticParams;
+      } else {
+        console.warn(`⚠️ [BUILD] Backend service slugs API failed: ${response.status}`);
+      }
+    } catch (apiError) {
+      console.warn('⚠️ [BUILD] Backend API unavailable, trying artifacts fallback:', apiError);
+    }
+    
+    // Fallback: Get all published artifacts for this business
     const response = await listArtifacts(businessId, {
       status: 'published',
       limit: 100
     });
     
     if (!response || response.artifacts.length === 0) {
-      console.warn('⚠️ [BUILD] No published artifacts found for static generation');
+      console.warn('⚠️ [BUILD] No published artifacts found, using fallback static params');
       return getFallbackStaticParams();
     }
 
@@ -156,11 +186,11 @@ export async function generateStaticParams() {
         activitySlug: artifact.activity_slug,
       }));
 
-    console.log(`✅ [BUILD] Generated ${staticParams.length} static params for activity pages`);
+    console.log(`✅ [BUILD] Generated ${staticParams.length} static params from published artifacts`);
     return staticParams;
       
   } catch (error) {
-    console.error('❌ [BUILD] Error generating static params from artifacts:', error);
+    console.error('❌ [BUILD] Error generating static params:', error);
     return getFallbackStaticParams();
   }
 }

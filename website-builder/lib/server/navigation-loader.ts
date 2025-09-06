@@ -2,10 +2,12 @@
  * Server-only navigation data loader
  */
 
-import { getBackendUrl, getDefaultHeaders } from '../config/api-config';
+import { getBackendUrl, getDefaultHeaders } from '../shared/config/api-config';
+import { getBusinessIdFromHost } from './host-business-resolver';
 
 // Cache for navigation data
 let navigationCache: {
+  businessId?: string;
   serviceCategories?: any[];
   locations?: any[];
   lastUpdated?: number;
@@ -13,14 +15,22 @@ let navigationCache: {
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+interface NavigationData {
+  serviceCategories: any[];
+  locations: any[];
+}
+
 /**
- * Load navigation data from backend or generated content
+ * Load navigation data from backend API
  */
-export async function loadNavigationData() {
+export async function loadNavigationData(): Promise<NavigationData> {
+  const { businessId } = await getBusinessIdFromHost();
   const now = Date.now();
   
-  // Return cached data if still valid
-  if (navigationCache.lastUpdated && (now - navigationCache.lastUpdated) < CACHE_DURATION) {
+  // Return cached data if still valid and for same business
+  if (navigationCache.businessId === businessId && 
+      navigationCache.lastUpdated && 
+      (now - navigationCache.lastUpdated) < CACHE_DURATION) {
     return {
       serviceCategories: navigationCache.serviceCategories || [],
       locations: navigationCache.locations || []
@@ -28,27 +38,93 @@ export async function loadNavigationData() {
   }
 
   try {
-    // Try to load from generated content first
+    // Primary: Load from backend navigation API
+    const backendUrl = getBackendUrl();
+    const navigationUrl = `${backendUrl}/api/v1/public/contractors/${businessId}/navigation`;
+    
+    console.log(`🔍 [NAV] Fetching navigation data from: ${navigationUrl}`);
+    
+    const response = await fetch(navigationUrl, {
+      headers: getDefaultHeaders(),
+      next: { revalidate: 300 } // Cache for 5 minutes
+    });
+    
+    if (response.ok) {
+      const navigationData = await response.json();
+      
+      // Transform to expected format
+      const serviceCategories = navigationData.services?.map((service: any) => ({
+        name: service.name,
+        slug: service.canonical_slug,
+        href: `/services/${service.canonical_slug}`,
+        is_emergency: service.is_emergency,
+        is_featured: service.is_featured
+      })) || [];
+      
+      const locations = navigationData.locations?.map((location: any) => ({
+        name: location.name,
+        slug: location.location_slug,
+        href: `/locations/${location.location_slug}`,
+        is_primary: location.is_primary
+      })) || [];
+      
+      navigationCache = {
+        businessId,
+        serviceCategories,
+        locations,
+        lastUpdated: now
+      };
+      
+      console.log(`✅ [NAV] Loaded ${serviceCategories.length} services, ${locations.length} locations from API`);
+      
+      return {
+        serviceCategories,
+        locations
+      };
+    } else {
+      console.warn(`⚠️ [NAV] API responded with ${response.status}, trying fallback`);
+    }
+  } catch (error) {
+    console.warn('⚠️ [NAV] Backend API failed, trying generated content fallback:', error);
+  }
+
+  // Fallback 1: Try generated content
+  try {
     const { getBusinessNavigation } = await import('../generated/seo-pages.js');
     const navigation = getBusinessNavigation();
     
     if (navigation && navigation.services && navigation.locations) {
+      const serviceCategories = navigation.services.map((service: any) => ({
+        name: service.name,
+        slug: service.slug,
+        href: `/services/${service.slug}`
+      }));
+      
+      const locations = navigation.locations.map((location: any) => ({
+        name: location.name,
+        slug: location.slug,
+        href: `/locations/${location.slug}`
+      }));
+      
       navigationCache = {
-        serviceCategories: navigation.services,
-        locations: navigation.locations,
+        businessId,
+        serviceCategories,
+        locations,
         lastUpdated: now
       };
       
+      console.log('✅ [NAV] Loaded from generated content fallback');
+      
       return {
-        serviceCategories: navigation.services,
-        locations: navigation.locations
+        serviceCategories,
+        locations
       };
     }
   } catch (error) {
-    console.log('Generated navigation not available, using fallback');
+    console.log('⚠️ [NAV] Generated navigation not available, using hardcoded fallback');
   }
 
-  // Fallback to basic navigation
+  // Fallback 2: Hardcoded basic navigation
   const fallbackNavigation = {
     serviceCategories: [
       { name: 'AC Installation', slug: 'ac-installation', href: '/services/ac-installation' },
@@ -63,11 +139,13 @@ export async function loadNavigationData() {
   };
 
   navigationCache = {
+    businessId,
     serviceCategories: fallbackNavigation.serviceCategories,
     locations: fallbackNavigation.locations,
     lastUpdated: now
   };
 
+  console.log('⚠️ [NAV] Using hardcoded fallback navigation');
   return fallbackNavigation;
 }
 

@@ -1,5 +1,5 @@
 import React from 'react'
-import Header from '@/components/server/layout/header'
+import Hero365Header from '@/components/server/layout/Hero365Header'
 import Hero365Footer from '@/components/shared/Hero365Footer';
 import { getServiceCategoriesForFooter, getLocations } from '@/lib/server/navigation-loader'
 import { generateJSONLD } from '@/lib/server/json-ld-generator'
@@ -56,7 +56,7 @@ export default async function SEOPageLayout({ data, contentBlocks, children }: S
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <Header 
+      <Hero365Header 
         businessName={businessConfig.businessName}
         city="Austin"
         state="TX"

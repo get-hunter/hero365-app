@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver'
 import { headers } from 'next/headers'
+import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Get business ID from host for multi-tenant support
@@ -8,35 +9,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const businessId = resolution.businessId;
   
   // Get the current host to build the base URL
-  const headersList = headers();
+  const headersList = await headers();
   const host = headersList.get('host') || 'localhost:3000';
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const baseUrl = `${protocol}://${host}`;
   
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  
   try {
-    // Fetch business-specific data from backend
-    const [servicesRes, locationsRes, businessRes] = await Promise.all([
-      fetch(`${backendUrl}/api/v1/public/services/active`, { 
+    // Use new business-specific service and location endpoints
+    const backendUrl = getBackendUrl();
+    const [servicesRes, locationsRes] = await Promise.all([
+      fetch(`${backendUrl}/api/v1/public/contractors/${businessId}/service-slugs`, { 
+        headers: getDefaultHeaders(),
         next: { revalidate: 3600 } // Cache for 1 hour
       }),
-      fetch(`${backendUrl}/api/v1/public/locations/active`, { 
-        next: { revalidate: 3600 } // Cache for 1 hour
-      }),
-      fetch(`${backendUrl}/api/v1/public/contractors/website/context/${businessId}`, {
+      fetch(`${backendUrl}/api/v1/public/contractors/${businessId}/location-slugs`, { 
+        headers: getDefaultHeaders(),
         next: { revalidate: 3600 } // Cache for 1 hour
       })
-    ])
+    ]);
 
-    const services = await servicesRes.json()
-    const locations = await locationsRes.json()
-    const businessContext = await businessRes.json()
+    const serviceSlugs = await servicesRes.json();
+    const locationSlugs = await locationsRes.json();
 
-    const entries: MetadataRoute.Sitemap = []
+    const entries: MetadataRoute.Sitemap = [];
     
     // Log sitemap generation for this business
-    console.log(`✅ [SITEMAP] Generating for business: ${businessContext.business?.name || businessId}`)
+    console.log(`✅ [SITEMAP] Generating for business: ${businessId}`);
 
     // Homepage - highest priority
     entries.push({
@@ -44,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 1.0,
-    })
+    });
 
     // Service hub page
     entries.push({
@@ -52,7 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.9,
-    })
+    });
 
     // Location hub page
     entries.push({
@@ -60,46 +58,46 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.9,
-    })
+    });
 
     // Individual service pages (without location)
-    for (const service of services) {
+    for (const serviceSlug of serviceSlugs) {
       entries.push({
-        url: `${baseUrl}/services/${service.slug}`,
+        url: `${baseUrl}/services/${serviceSlug}`,
         lastModified: new Date(),
         changeFrequency: 'weekly',
         priority: 0.8,
-      })
+      });
     }
 
     // Service + Location combination pages
-    for (const service of services) {
-      for (const location of locations) {
+    for (const serviceSlug of serviceSlugs) {
+      for (const locationSlug of locationSlugs) {
         entries.push({
-          url: `${baseUrl}/services/${service.slug}/${location.slug}`,
+          url: `${baseUrl}/services/${serviceSlug}/${locationSlug}`,
           lastModified: new Date(),
           changeFrequency: 'weekly',
           priority: 0.7,
-        })
+        });
       }
     }
 
     // About, Contact, Privacy, Terms pages
-    const staticPages = ['/about', '/contact', '/privacy', '/terms']
+    const staticPages = ['/about', '/contact', '/privacy', '/terms'];
     for (const page of staticPages) {
       entries.push({
         url: `${baseUrl}${page}`,
         lastModified: new Date(),
         changeFrequency: 'monthly',
         priority: 0.5,
-      })
+      });
     }
 
-    console.log(`✅ [SITEMAP] Generated ${entries.length} URLs`)
-    return entries
+    console.log(`✅ [SITEMAP] Generated ${entries.length} URLs (${serviceSlugs.length} services × ${locationSlugs.length} locations)`);
+    return entries;
 
   } catch (error) {
-    console.error('❌ [SITEMAP] Failed to generate sitemap:', error)
+    console.error('❌ [SITEMAP] Failed to generate sitemap:', error);
     
     // Return minimal sitemap on error
     return [
@@ -109,6 +107,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'weekly',
         priority: 1.0,
       }
-    ]
+    ];
   }
 }

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import BusinessErrorBoundary from "@/components/error/BusinessErrorBoundary";
+import { BusinessErrorBoundary } from "@/components/error/BusinessErrorBoundary";
 // Use system fonts to avoid next/font server manifest during build
 
 export const metadata: Metadata = {

@@ -84,7 +84,7 @@ async function resolveBusinessFromBackend(hostname: string): Promise<string | nu
  * Get business ID from current request host (server-side only)
  */
 export async function getBusinessIdFromHost(): Promise<BusinessResolution> {
-  const headersList = headers();
+  const headersList = await headers();
   const hostname = headersList.get('host') || 'localhost:3000';
   const hostKey = hostname.toLowerCase();
   const config = await getRuntimeConfig();

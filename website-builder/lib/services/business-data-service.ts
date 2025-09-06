@@ -343,9 +343,9 @@ export class BusinessDataService {
 
       console.log(`✅ [DATA-SERVICE] Business data loaded in ${loadTime}ms:`, {
         profile: !!data.profile,
-        services: data.services.length,
-        products: data.products.length,
-        projects: data.projects.length
+        services: data.services?.length || 0,
+        products: data.products?.length || 0,
+        projects: data.projects?.length || 0
       });
 
       return data;

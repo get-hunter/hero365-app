@@ -133,6 +133,16 @@ import type {
   BusinessesCancelInvitationResponse,
   BusinessesDeclineInvitationData,
   BusinessesDeclineInvitationResponse,
+  BusinessServicesGetBusinessServicesData,
+  BusinessServicesGetBusinessServicesResponse,
+  BusinessServicesGetBusinessLocationsData,
+  BusinessServicesGetBusinessLocationsResponse,
+  BusinessServicesGetBusinessNavigationData,
+  BusinessServicesGetBusinessNavigationResponse,
+  BusinessServicesGetServiceSlugsOnlyData,
+  BusinessServicesGetServiceSlugsOnlyResponse,
+  BusinessServicesGetLocationSlugsOnlyData,
+  BusinessServicesGetLocationSlugsOnlyResponse,
   CreateContactNoSlashData,
   CreateContactNoSlashResponse,
   ListContactsNoSlashData,
@@ -2530,6 +2540,149 @@ export class BusinessesService {
   }
 }
 
+export class BusinessServicesService {
+  /**
+   * Get Business Services
+   * Get all services offered by a business.
+   *
+   * This is the primary endpoint for website service listings.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.onlyActive Only return active services
+   * @param data.includePricing Include pricing summary
+   * @returns app__api__public__routes__contractors__business_services__ServiceItem Successful Response
+   * @throws ApiError
+   */
+  public static getBusinessServices(
+    data: BusinessServicesGetBusinessServicesData,
+  ): CancelablePromise<BusinessServicesGetBusinessServicesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/{business_id}/services",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        only_active: data.onlyActive,
+        include_pricing: data.includePricing,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Business Locations
+   * Get all service areas/locations for a business.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.onlyActive Only return active locations
+   * @returns LocationItem Successful Response
+   * @throws ApiError
+   */
+  public static getBusinessLocations(
+    data: BusinessServicesGetBusinessLocationsData,
+  ): CancelablePromise<BusinessServicesGetBusinessLocationsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/{business_id}/locations",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        only_active: data.onlyActive,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Business Navigation
+   * Get structured navigation data for website menus and sitemaps.
+   *
+   * This endpoint combines services and locations into a navigation-friendly format.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns NavigationResponse Successful Response
+   * @throws ApiError
+   */
+  public static getBusinessNavigation(
+    data: BusinessServicesGetBusinessNavigationData,
+  ): CancelablePromise<BusinessServicesGetBusinessNavigationResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/{business_id}/navigation",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Service Slugs Only
+   * Get just the canonical service slugs for a business.
+   *
+   * Lightweight endpoint for sitemap generation and URL validation.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.onlyActive Only return active services
+   * @returns string Successful Response
+   * @throws ApiError
+   */
+  public static getServiceSlugsOnly(
+    data: BusinessServicesGetServiceSlugsOnlyData,
+  ): CancelablePromise<BusinessServicesGetServiceSlugsOnlyResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/{business_id}/service-slugs",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        only_active: data.onlyActive,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Location Slugs Only
+   * Get just the location slugs for a business.
+   *
+   * Lightweight endpoint for sitemap generation and URL validation.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.onlyActive Only return active locations
+   * @returns string Successful Response
+   * @throws ApiError
+   */
+  public static getLocationSlugsOnly(
+    data: BusinessServicesGetLocationSlugsOnlyData,
+  ): CancelablePromise<BusinessServicesGetLocationSlugsOnlyResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/{business_id}/location-slugs",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        only_active: data.onlyActive,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class ContactsService {
   /**
    * Create Contact
@@ -4073,7 +4226,7 @@ export class ContractorsServicesService {
    * @param data.emergencyOnly Show only emergency services
    * @param data.limit Maximum number of services to return
    * @param data.offset Offset for pagination
-   * @returns ServiceItem Successful Response
+   * @returns app__api__public__routes__contractors__schemas__ServiceItem Successful Response
    * @throws ApiError
    */
   public static getContractorServices(
@@ -4232,7 +4385,7 @@ export class DefaultService {
    * @param data.emergencyOnly Show only emergency services
    * @param data.limit Maximum number of services to return
    * @param data.offset Offset for pagination
-   * @returns ServiceItem Successful Response
+   * @returns app__api__public__routes__contractors__schemas__ServiceItem Successful Response
    * @throws ApiError
    */
   public static getContractorServices(
