@@ -42,7 +42,7 @@ interface FeaturedProject {
   equipment_installed: string[];
   warranty_info?: string;
   is_featured: boolean;
-  seo_slug: string;
+  slug: string;
   tags: string[];
   display_order: number;
 }

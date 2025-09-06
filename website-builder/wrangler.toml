@@ -21,9 +21,9 @@ pattern = "*.tradesites.app/*"
 zone_id = "c28e66bcb1f56af2ac253ae47bf341f4"
 
 # Multi-tenant routing - configure domains as needed
-# [env.production.routes]
-# pattern = "*.hero365.app/*"
-# zone_id = "YOUR_ZONE_ID"
+[[env.production.routes]]
+pattern = "*.tradesites.app/*"
+zone_id = "c28e66bcb1f56af2ac253ae47bf341f4"
 
 # Environment variables
 [vars]

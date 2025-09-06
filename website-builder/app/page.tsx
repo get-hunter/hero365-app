@@ -313,7 +313,11 @@ export default async function HomePage() {
                     </div>
                   </a>
                 </div>
-              ))}
+              ))) : (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-gray-500">No projects available at the moment.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
