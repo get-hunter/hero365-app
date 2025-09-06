@@ -16,6 +16,7 @@ import { BusinessContext } from '@/lib/shared/types/business-context';
 import { TradeConfiguration } from '@/lib/shared/types/trade-config';
 import ArtifactPage from '@/components/server/pages/ArtifactPage';
 import { getBusinessContext } from '@/lib/server/business-context-loader';
+import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { getTradeConfig } from '@/lib/shared/config/complete-trade-configs';
 import { getLocationData, LocationData } from '@/lib/server/location-data-loader';
 
@@ -26,18 +27,15 @@ interface CommercialServicePageProps {
   };
 }
 
-const BUSINESS_ID = process.env.NEXT_PUBLIC_BUSINESS_ID as string;
-if (!BUSINESS_ID) {
-  throw new Error('NEXT_PUBLIC_BUSINESS_ID is required');
-}
 
 async function getCommercialServiceData(activitySlug: string, locationSlug: string) {
   try {
     console.log(`🏢 [SSR] Loading commercial service data: ${activitySlug} in ${locationSlug}`);
     
+    const { businessId } = await getBusinessIdFromHost();
     const [artifact, businessContext, locationData] = await Promise.all([
-      getArtifactByActivity(BUSINESS_ID, activitySlug, locationSlug),
-      getBusinessContext(BUSINESS_ID),
+      getArtifactByActivity(businessId, activitySlug, locationSlug),
+      getBusinessContext(businessId),
       getLocationData(locationSlug)
     ]);
 

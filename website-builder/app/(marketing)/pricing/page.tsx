@@ -11,9 +11,9 @@ import { Phone, Star, Award } from 'lucide-react';
 import Header from '@/components/server/layout/header';
 import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
-import { CartProvider } from '../../../lib/contexts/CartContext';
+import { CartProvider } from '../../../lib/client/contexts/CartContext';
 import PricingPageClient from './PricingPageClient';
-import { getBusinessConfig, getBackendUrl, getDefaultHeaders } from '../../../lib/config/api-config';
+import { getBusinessConfig, getBackendUrl, getDefaultHeaders } from '../../../lib/shared/config/api-config';
 
 import { ServicePricing, MembershipPlan } from '../../../lib/types/membership';
 

@@ -246,6 +246,10 @@ import type {
   GetEnvironmentVariablesResponse,
   TriggerDeploymentData,
   TriggerDeploymentResponse,
+  ResolveBusinessFromHostData,
+  ResolveBusinessFromHostResponse,
+  ValidateBusinessData,
+  ValidateBusinessResponse,
   CreateEstimateNoSlashData,
   CreateEstimateNoSlashResponse,
   ListEstimatesNoSlashData,
@@ -4446,8 +4450,9 @@ export class DefaultService {
 
   /**
    * Trigger Deployment
-   * Trigger deployment for a business website
-   * This would integrate with your deployment platform (Vercel, Netlify, etc.)
+   * Trigger automated deployment for a business website
+   * - Maps custom domain to Cloudflare Worker
+   * - No rebuilds required (multi-tenant routing)
    * @param data The data for the request.
    * @param data.businessId
    * @param data.siteUrl
@@ -4465,6 +4470,54 @@ export class DefaultService {
       },
       query: {
         site_url: data.siteUrl,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Resolve Business From Host
+   * Resolve business ID from hostname for multi-tenant routing
+   * Supports both hero365.ai subdomains and custom domains
+   * @param data The data for the request.
+   * @param data.host Hostname to resolve (e.g., elite-hvac-austin.hero365.ai)
+   * @returns HostResolution Successful Response
+   * @throws ApiError
+   */
+  public static resolveBusinessFromHost(
+    data: ResolveBusinessFromHostData,
+  ): CancelablePromise<ResolveBusinessFromHostResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/websites/resolve",
+      query: {
+        host: data.host,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Validate Business
+   * Quick validation that business exists and is active
+   * Returns 200 if valid, 404 if not found
+   * @param data The data for the request.
+   * @param data.businessId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static validateBusiness(
+    data: ValidateBusinessData,
+  ): CancelablePromise<ValidateBusinessResponse> {
+    return __request(OpenAPI, {
+      method: "HEAD",
+      url: "/api/v1/public/websites/{business_id}/validate",
+      path: {
+        business_id: data.businessId,
       },
       errors: {
         422: "Validation Error",

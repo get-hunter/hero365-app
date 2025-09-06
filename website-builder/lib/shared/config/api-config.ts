@@ -116,11 +116,13 @@ function createEnvironmentConfig(): EnvironmentConfig {
       errorReporting: environment === 'production'
     },
     business: {
-      // For development: use test business with real data
-      // For production: must be set via deployment scripts or environment variables
+      // In development, require explicit business ID for localhost testing
+      // In staging/production, host-based resolution is used; don't require env var
       defaultBusinessId: (() => {
-        const id = process.env.NEXT_PUBLIC_BUSINESS_ID || process.env.NEXT_PUBLIC_DEV_BUSINESS_ID;
-        if (!id) throw new Error('NEXT_PUBLIC_BUSINESS_ID is required');
+        const id = process.env.NEXT_PUBLIC_BUSINESS_ID || process.env.NEXT_PUBLIC_DEV_BUSINESS_ID || '';
+        if (environment === 'development' && !id) {
+          throw new Error('NEXT_PUBLIC_BUSINESS_ID is required in development');
+        }
         return id;
       })(),
       defaultBusinessName: process.env.NEXT_PUBLIC_BUSINESS_NAME || 'Demo Business',

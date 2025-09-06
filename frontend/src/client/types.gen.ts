@@ -5037,6 +5037,17 @@ export type GoogleSignInRequest = {
   picture_url?: string | null
 }
 
+/**
+ * Host resolution response
+ */
+export type HostResolution = {
+  business_id: string
+  hostname: string
+  subdomain: string
+  is_custom_domain: boolean
+  business_name?: string | null
+}
+
 export type HTTPValidationError = {
   detail?: Array<ValidationError>
 }
@@ -11893,6 +11904,21 @@ export type TriggerDeploymentData = {
 export type TriggerDeploymentResponse = {
   [key: string]: unknown
 }
+
+export type ResolveBusinessFromHostData = {
+  /**
+   * Hostname to resolve (e.g., elite-hvac-austin.hero365.ai)
+   */
+  host: string
+}
+
+export type ResolveBusinessFromHostResponse = HostResolution
+
+export type ValidateBusinessData = {
+  businessId: string
+}
+
+export type ValidateBusinessResponse = unknown
 
 export type CreateEstimateNoSlashData = {
   requestBody: CreateEstimateSchema

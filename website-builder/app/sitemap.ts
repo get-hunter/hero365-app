@@ -1,13 +1,19 @@
 import { MetadataRoute } from 'next'
+import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver'
+import { headers } from 'next/headers'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
-  const businessId = process.env.NEXT_PUBLIC_BUSINESS_ID
+  // Get business ID from host for multi-tenant support
+  const resolution = await getBusinessIdFromHost();
+  const businessId = resolution.businessId;
   
-  if (!businessId) {
-    throw new Error('NEXT_PUBLIC_BUSINESS_ID is required for sitemap generation')
-  }
+  // Get the current host to build the base URL
+  const headersList = headers();
+  const host = headersList.get('host') || 'localhost:3000';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const baseUrl = `${protocol}://${host}`;
+  
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
   
   try {
     // Fetch business-specific data from backend

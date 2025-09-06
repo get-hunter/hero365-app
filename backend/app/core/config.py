@@ -99,7 +99,9 @@ class Settings(BaseSettings):
                 "http://localhost:57809",
                 "http://localhost:57810",
                 "http://localhost:57811",
-                "http://localhost:57812"
+                "http://localhost:57812",
+                # ngrok tunnels for testing
+                "https://5ab8f8ec32f1.ngrok-free.app"
             ])
         
         # 4. Cloudflare Pages domains (for website deployments)
@@ -115,6 +117,9 @@ class Settings(BaseSettings):
             "https://hero365-website-staging.hero365.workers.dev",    # Staging Workers
             "https://hero365-website-preview.hero365.workers.dev",    # Preview Workers
             "https://hero365-website-production.hero365.workers.dev", # Production Workers (when ready)
+            # Multi-tenant tradesites.app domains
+            "https://elite-hvac-austin.tradesites.app",               # Current test deployment
+            "https://*.tradesites.app",                               # All tradesites.app subdomains
         ])
         
         # 6. Production domains (only in production)

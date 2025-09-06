@@ -1,7 +1,12 @@
 import { MetadataRoute } from 'next'
+import { headers } from 'next/headers'
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  // Get the current host to build the base URL for multi-tenant support
+  const headersList = headers();
+  const host = headersList.get('host') || 'localhost:3000';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const baseUrl = `${protocol}://${host}`;
   
   return {
     rules: [

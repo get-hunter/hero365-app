@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { getBusinessContext } from '@/lib/server/business-context-loader'
+import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver'
 
 export const metadata: Metadata = {
   title: 'Our Services | Professional Home Services',
@@ -92,10 +93,9 @@ function getCategoryDescription(categoryName: string): string {
 }
 
 export default async function ServicesPage() {
-  const businessId = process.env.NEXT_PUBLIC_BUSINESS_ID
-  if (!businessId) {
-    throw new Error('NEXT_PUBLIC_BUSINESS_ID is required')
-  }
+  // Get business ID from host for multi-tenant support
+  const resolution = await getBusinessIdFromHost();
+  const businessId = resolution.businessId;
 
   // Fetch data in parallel
   const [context, services, locations] = await Promise.all([

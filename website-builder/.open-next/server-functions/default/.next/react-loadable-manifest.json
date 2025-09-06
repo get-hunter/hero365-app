@@ -1,18 +1,60 @@
 {
-  "app/booking/page.tsx -> @/components/commerce/booking/Hero365BookingWizard": {
-    "id": 8408,
+  "app/(commerce)/booking/page.tsx -> @/components/client/commerce/booking/Hero365BookingWizard": {
+    "id": 4004,
     "files": []
   },
-  "components/layout/Hero365Header.client.tsx -> ../../lib/generated/seo-pages.js": {
-    "id": 5417,
+  "components/client/activity-modules/ActivityModuleRenderer.tsx -> ./electrical/ElectricalLoadCalculator": {
+    "id": 127,
     "files": [
-      "static/chunks/417.585a4d59cbe4d3f8.js"
+      "static/chunks/127.c77651d3eb472272.js"
     ]
   },
-  "components/layout/Hero365Header.tsx -> ../../lib/generated/seo-pages.js": {
-    "id": 5417,
+  "components/client/activity-modules/ActivityModuleRenderer.tsx -> ./general-contractor/ProjectEstimator": {
+    "id": 464,
     "files": [
-      "static/chunks/417.585a4d59cbe4d3f8.js"
+      "static/chunks/464.0d2123c31ebc5326.js"
+    ]
+  },
+  "components/client/activity-modules/ActivityModuleRenderer.tsx -> ./hvac/HVACEfficiencyCalculator": {
+    "id": 5732,
+    "files": [
+      "static/chunks/732.c0825f488a2750fb.js"
+    ]
+  },
+  "components/client/activity-modules/ActivityModuleRenderer.tsx -> ./landscaping/LandscapingDesignTool": {
+    "id": 9529,
+    "files": [
+      "static/chunks/529.a9bc36a6aba80c8e.js"
+    ]
+  },
+  "components/client/activity-modules/ActivityModuleRenderer.tsx -> ./plumbing/PlumbingSeverityTriage": {
+    "id": 7050,
+    "files": [
+      "static/chunks/50.e7e4089e8ca50502.js"
+    ]
+  },
+  "components/client/activity-modules/ActivityModuleRenderer.tsx -> ./roofing/RoofingMaterialSelector": {
+    "id": 1129,
+    "files": [
+      "static/chunks/129.cd41fdd9fd0819e0.js"
+    ]
+  },
+  "components/client/activity-modules/ActivityModuleRenderer.tsx -> ./security/SecuritySystemConfigurator": {
+    "id": 1992,
+    "files": [
+      "static/chunks/611.3666301008219777.js"
+    ]
+  },
+  "components/client/trade-aware/ActivityModuleSection.tsx -> @/components/client/activity-modules/ActivityModuleRenderer": {
+    "id": 7398,
+    "files": [
+      "static/chunks/398.47cc8b79a7ea361b.js"
+    ]
+  },
+  "lib/client/hooks/useWebsiteContext.ts -> @/lib/shared/config/api-config": {
+    "id": 8291,
+    "files": [
+      "static/chunks/291.dc33b26b56573964.js"
     ]
   }
 }

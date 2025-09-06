@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { getBusinessContext } from '@/lib/server/business-context-loader'
+import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver'
 
 export const metadata: Metadata = {
   title: 'Service Areas | Locations We Serve',
@@ -72,10 +73,9 @@ function getServiceIcon(slug: string): string {
 }
 
 export default async function LocationsPage() {
-  const businessId = process.env.NEXT_PUBLIC_BUSINESS_ID
-  if (!businessId) {
-    throw new Error('NEXT_PUBLIC_BUSINESS_ID is required')
-  }
+  // Get business ID from host for multi-tenant support
+  const resolution = await getBusinessIdFromHost();
+  const businessId = resolution.businessId;
 
   // Fetch data in parallel
   const [context, locations, services] = await Promise.all([

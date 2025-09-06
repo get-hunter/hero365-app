@@ -20,6 +20,24 @@
       "namedRegex": "^/api/seo/pages/(?<nxtPbusinessId>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/commercial/[activitySlug]/[locationSlug]",
+      "regex": "^/commercial/([^/]+?)/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPactivitySlug": "nxtPactivitySlug",
+        "nxtPlocationSlug": "nxtPlocationSlug"
+      },
+      "namedRegex": "^/commercial/(?<nxtPactivitySlug>[^/]+?)/(?<nxtPlocationSlug>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/emergency/[activitySlug]/[locationSlug]",
+      "regex": "^/emergency/([^/]+?)/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPactivitySlug": "nxtPactivitySlug",
+        "nxtPlocationSlug": "nxtPlocationSlug"
+      },
+      "namedRegex": "^/emergency/(?<nxtPactivitySlug>[^/]+?)/(?<nxtPlocationSlug>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/products/[slug]",
       "regex": "^/products/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -42,6 +60,15 @@
         "nxtPactivitySlug": "nxtPactivitySlug"
       },
       "namedRegex": "^/services/(?<nxtPactivitySlug>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/services/[activitySlug]/[locationSlug]",
+      "regex": "^/services/([^/]+?)/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPactivitySlug": "nxtPactivitySlug",
+        "nxtPlocationSlug": "nxtPlocationSlug"
+      },
+      "namedRegex": "^/services/(?<nxtPactivitySlug>[^/]+?)/(?<nxtPlocationSlug>[^/]+?)(?:/)?$"
     },
     {
       "page": "/[...slug]",
@@ -96,6 +123,12 @@
       "namedRegex": "^/favicon\\.ico(?:/)?$"
     },
     {
+      "page": "/locations",
+      "regex": "^/locations(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/locations(?:/)?$"
+    },
+    {
       "page": "/pricing",
       "regex": "^/pricing(?:/)?$",
       "routeKeys": {},
@@ -114,6 +147,12 @@
       "namedRegex": "^/projects(?:/)?$"
     },
     {
+      "page": "/robots.txt",
+      "regex": "^/robots\\.txt(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/robots\\.txt(?:/)?$"
+    },
+    {
       "page": "/services",
       "regex": "^/services(?:/)?$",
       "routeKeys": {},
@@ -126,28 +165,10 @@
       "namedRegex": "^/sitemap\\.xml(?:/)?$"
     },
     {
-      "page": "/templates/professional",
-      "regex": "^/templates/professional(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/templates/professional(?:/)?$"
-    },
-    {
-      "page": "/templates/professional/booking",
-      "regex": "^/templates/professional/booking(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/templates/professional/booking(?:/)?$"
-    },
-    {
       "page": "/widget",
       "regex": "^/widget(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/widget(?:/)?$"
-    },
-    {
-      "page": "/widget-demo",
-      "regex": "^/widget\\-demo(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/widget\\-demo(?:/)?$"
     }
   ],
   "dataRoutes": [],

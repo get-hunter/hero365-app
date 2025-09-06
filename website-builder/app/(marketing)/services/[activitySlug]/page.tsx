@@ -16,6 +16,7 @@ import { BusinessContext } from '@/lib/shared/types/business-context';
 import { TradeConfiguration } from '@/lib/shared/types/trade-config';
 import ArtifactPage, { generateArtifactMetadata } from '@/components/server/pages/ArtifactPage';
 import { getBusinessContext } from '@/lib/server/business-context-loader';
+import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { getTradeConfig } from '@/lib/shared/config/complete-trade-configs';
 
 interface ActivityPageProps {
@@ -24,11 +25,6 @@ interface ActivityPageProps {
   };
 }
 
-// Configuration from environment
-const BUSINESS_ID = process.env.NEXT_PUBLIC_BUSINESS_ID as string;
-if (!BUSINESS_ID) {
-  throw new Error('NEXT_PUBLIC_BUSINESS_ID is required');
-}
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
 
 /**
@@ -44,9 +40,10 @@ async function getActivityData(activitySlug: string): Promise<{
     const startTime = Date.now();
     
     // Parallel data fetching for optimal performance
+    const { businessId } = await getBusinessIdFromHost();
     const [artifact, businessContext] = await Promise.all([
-      getArtifactByActivity(BUSINESS_ID, activitySlug),
-      getBusinessContext(BUSINESS_ID)
+      getArtifactByActivity(businessId, activitySlug),
+      getBusinessContext(businessId)
     ]);
     
     if (!artifact) {
@@ -55,7 +52,7 @@ async function getActivityData(activitySlug: string): Promise<{
     }
 
     if (!businessContext) {
-      console.warn(`❌ No business context found for: ${BUSINESS_ID}`);
+      console.warn(`❌ No business context found for activity: ${activitySlug}`);
       return null;
     }
 

@@ -15,7 +15,8 @@ import { ActivityPageArtifact } from '@/lib/shared/types/seo-artifacts';
 import { BusinessContext } from '@/lib/shared/types/business-context';
 import { TradeConfiguration } from '@/lib/shared/types/trade-config';
 import ArtifactPage, { generateArtifactMetadata } from '@/components/server/pages/ArtifactPage';
-import { getBusinessContext } from '@/lib/server/business-context-loader';
+import { getBusinessContext, getBusinessContextFromHost } from '@/lib/server/business-context-loader';
+import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { getTradeConfig } from '@/lib/shared/config/complete-trade-configs';
 import { getLocationData, LocationData } from '@/lib/server/location-data-loader';
 
@@ -24,12 +25,6 @@ interface ServiceLocationPageProps {
     activitySlug: string;
     locationSlug: string;
   };
-}
-
-// Configuration
-const BUSINESS_ID = process.env.NEXT_PUBLIC_BUSINESS_ID as string;
-if (!BUSINESS_ID) {
-  throw new Error('NEXT_PUBLIC_BUSINESS_ID is required');
 }
 
 /**
@@ -42,10 +37,14 @@ async function getServiceLocationData(
   console.log(`🔄 [SSR] Loading service-location data: ${activitySlug} in ${locationSlug}`);
   const startTime = Date.now();
 
+  // Get business ID from host for multi-tenant support
+  const resolution = await getBusinessIdFromHost();
+  const businessId = resolution.businessId;
+
   // Parallel data fetching for optimal performance
   const [artifact, businessContext, locationData] = await Promise.all([
-    getArtifactByActivity(BUSINESS_ID, activitySlug, locationSlug), // Location-aware artifact
-    getBusinessContext(BUSINESS_ID),
+    getArtifactByActivity(businessId, activitySlug, locationSlug), // Location-aware artifact
+    getBusinessContext(businessId),
     getLocationData(locationSlug)
   ]);
 

@@ -8,10 +8,24 @@
 
 import { BusinessContext } from '@/lib/shared/types/business-context';
 import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getBusinessIdFromHost } from './host-business-resolver';
 
 // Cache for business context (in-memory for build time)
 const contextCache = new Map<string, { data: BusinessContext; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Get business context from host (multi-tenant)
+ */
+export async function getBusinessContextFromHost(): Promise<BusinessContext | null> {
+  try {
+    const resolution = await getBusinessIdFromHost();
+    return await getBusinessContext(resolution.businessId);
+  } catch (error) {
+    console.error('❌ [CONTEXT] Failed to resolve business from host:', error);
+    return null;
+  }
+}
 
 /**
  * Get business context with caching
