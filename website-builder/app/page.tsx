@@ -7,7 +7,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Header from '@/components/server/layout/header';
+import BusinessHeader from '@/components/shared/BusinessHeader';
 import HeroSection from '@/components/server/hero/hero-section';
 import ServicesGrid from '@/components/server/services/services-grid';
 import { notFound } from 'next/navigation';
@@ -125,12 +125,10 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <Header 
-        businessName={businessData.businessName}
-        city={businessData.serviceAreas[0] || 'Austin'}
-        state={'TX'}
-        phone={businessData.phone}
-        supportHours={'24/7'}
+      <BusinessHeader 
+        businessProfile={serverProfile}
+        showCTA={false}
+        showCart={false}
       />
 
       {/* Hero Section */}

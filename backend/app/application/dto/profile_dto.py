@@ -20,6 +20,9 @@ class BusinessProfileDTO(BaseModel):
     phone_number: Optional[str] = Field(None, description="Business phone")
     business_email: Optional[str] = Field(None, description="Business email")
     business_address: Optional[str] = Field(None, description="Business address")
+    city: Optional[str] = Field(None, description="Business city")
+    state: Optional[str] = Field(None, description="Business state")
+    postal_code: Optional[str] = Field(None, description="Business postal code")
     website: Optional[str] = Field(None, description="Business website")
     
     # Service information

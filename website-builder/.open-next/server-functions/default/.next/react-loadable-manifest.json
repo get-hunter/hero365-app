@@ -1,5 +1,5 @@
 {
-  "app/(commerce)/booking/page.tsx -> @/components/client/commerce/booking/Hero365BookingWizard": {
+  "app/(commerce)/booking/BookingPageClient.tsx -> @/components/client/commerce/booking/Hero365BookingWizard": {
     "id": 4004,
     "files": []
   },

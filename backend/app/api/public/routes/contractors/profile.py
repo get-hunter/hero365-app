@@ -70,6 +70,9 @@ async def get_contractor_profile(
             "phone": profile_dto.phone_number or "",
             "email": profile_dto.business_email or "",
             "address": profile_dto.business_address or "",
+            "city": profile_dto.city or "",
+            "state": profile_dto.state or "",
+            "postal_code": profile_dto.postal_code or "",
             "website": profile_dto.website,
             # Business no longer carries service areas directly; empty list until ServiceAreasService integration
             "service_areas": profile_dto.service_areas,

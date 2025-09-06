@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import Header from '@/components/server/layout/header';
+import BusinessHeader from '@/components/shared/BusinessHeader';
 import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
 import ProductListingClient from './ProductListingClient';
 import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
@@ -94,12 +94,10 @@ export default async function ProductsPage() {
 
   return (
       <div className="min-h-screen bg-gray-50">
-        <Header 
-          businessName={businessData.businessName}
-          city={businessData.serviceAreas[0] || 'Austin'}
-          state={'TX'}
-          phone={businessData.phone}
-          supportHours={'24/7'}
+        <BusinessHeader 
+          businessProfile={serverProfile}
+          showCTA={false}
+          showCart={true}
         />
 
         {/* Products Page Header */}

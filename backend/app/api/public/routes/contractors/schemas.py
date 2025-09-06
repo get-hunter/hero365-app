@@ -20,6 +20,9 @@ class ProfessionalProfile(BaseModel):
     phone: str = Field(..., description="Business phone")
     email: str = Field(..., description="Business email")
     address: str = Field(..., description="Business address")
+    city: str = Field(..., description="Business city")
+    state: str = Field(..., description="Business state")
+    postal_code: str = Field(..., description="Business postal code")
     website: Optional[HttpUrl] = Field(None, description="Business website")
     
     # Service information

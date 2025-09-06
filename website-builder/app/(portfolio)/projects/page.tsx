@@ -2,7 +2,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
-import Header from '@/components/server/layout/header';
+import BusinessHeader from '@/components/shared/BusinessHeader';
 import { notFound } from 'next/navigation';
 import ProjectListingClient from './ProjectListingClient';
 import Footer from '@/components/server/business/footer';
@@ -142,12 +142,10 @@ export default async function ProjectsPage() {
 
   return (
       <div className="min-h-screen bg-white">
-        <Header 
-          businessName={headerData.businessName}
-          city={headerData.serviceAreas[0]?.split(',')[0] || 'Austin'}
-          state={headerData.serviceAreas[0]?.split(',')[1]?.trim() || 'TX'}
-          phone={headerData.phone}
-          supportHours={'24/7'}
+        <BusinessHeader 
+          businessProfile={serverProfile}
+          showCTA={false}
+          showCart={false}
         />
         
         <ProjectListingClient 
