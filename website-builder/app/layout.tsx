@@ -37,7 +37,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head></head>
+      <head>
+        <meta name="x-build" content="cache-fix-v3" />
+        <meta name="cache-bust" content={`${Date.now()}`} />
+        <meta name="force-refresh" content="home-page-fix" />
+      </head>
       <body
         className={`antialiased`}
         suppressHydrationWarning={true}

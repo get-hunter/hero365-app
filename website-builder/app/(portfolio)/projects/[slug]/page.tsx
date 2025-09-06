@@ -108,136 +108,146 @@ interface BusinessProfile {
   seo_keywords?: string[];
 }
 
-export default async function ProjectDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  // Get business ID from host for multi-tenant support
-  const resolution = await getBusinessIdFromHost();
-  const businessId = resolution.businessId;
-  
-  const resolvedParams = await params;
-  const projectSlug = resolvedParams.slug;
+export default async function ProjectDetailPage({ 
+  params 
+}: { 
+  params: { slug: string } 
+}) {
+  try {
+    // Get business ID from host for multi-tenant support
+    const resolution = await getBusinessIdFromHost();
+    const businessId = resolution.businessId;
+    
+    const projectSlug = params.slug;
 
-  const { project: serverProject, profile: serverProfile } = await loadProjectData(businessId, projectSlug);
+    const { project: serverProject, profile: serverProfile } = await loadProjectData(businessId, projectSlug);
 
-  // Enforce no-fallback policy
-  if (!serverProject || !serverProfile) {
-    notFound();
-  }
+    // Enforce no-fallback policy
+    if (!serverProject || !serverProfile) {
+      notFound();
+    }
 
-  const profile: BusinessProfile = serverProfile;
+    // Ensure all data is properly serializable
+    const profile: BusinessProfile = {
+      ...serverProfile,
+      business_hours: serverProfile.business_hours || null,
+      seo_keywords: Array.isArray(serverProfile.seo_keywords) ? serverProfile.seo_keywords : [],
+      // Ensure all string fields are properly serialized
+      business_name: typeof serverProfile.business_name === 'string' ? serverProfile.business_name : '',
+      description: typeof serverProfile.description === 'string' ? serverProfile.description : '',
+      phone: typeof serverProfile.phone === 'string' ? serverProfile.phone : '',
+      email: typeof serverProfile.email === 'string' ? serverProfile.email : '',
+      website: typeof serverProfile.website === 'string' ? serverProfile.website : null,
+      logo_url: typeof serverProfile.logo_url === 'string' ? serverProfile.logo_url : null,
+      address: typeof serverProfile.address === 'string' ? serverProfile.address : '',
+      service_areas: Array.isArray(serverProfile.service_areas) ? serverProfile.service_areas : [],
+      trades: Array.isArray(serverProfile.trades) ? serverProfile.trades : []
+    };
 
-  // Business data for header
-  const headerData = {
-    businessName: profile.business_name,
-    phone: profile.phone,
-    email: profile.email,
-    address: profile.address,
-    serviceAreas: profile.service_areas || ['Local Area'],
-    emergencyService: profile.emergency_service,
-    yearsInBusiness: profile.years_in_business,
-    licenseNumber: 'Licensed & Insured',
-    insuranceVerified: true,
-    averageRating: profile.average_rating,
-    totalReviews: profile.total_reviews,
-    certifications: profile.certifications || []
-  };
+    // Ensure project data is properly serializable
+    const project = {
+      ...serverProject,
+      // Ensure all string fields are properly serialized
+      id: typeof serverProject.id === 'string' ? serverProject.id : String(serverProject.id || ''),
+      title: typeof serverProject.title === 'string' ? serverProject.title : '',
+      description: typeof serverProject.description === 'string' ? serverProject.description : '',
+      trade: typeof serverProject.trade === 'string' ? serverProject.trade : '',
+      service_category: typeof serverProject.service_category === 'string' ? serverProject.service_category : '',
+      location: typeof serverProject.location === 'string' ? serverProject.location : '',
+      slug: typeof serverProject.slug === 'string' ? serverProject.slug : '',
+      // Ensure numeric fields are properly handled
+      project_value: typeof serverProject.project_value === 'number' ? serverProject.project_value : null,
+      display_order: typeof serverProject.display_order === 'number' ? serverProject.display_order : 0,
+      // Ensure boolean fields are properly handled
+      is_featured: Boolean(serverProject.is_featured),
+      // Ensure optional string fields are properly handled
+      video_url: serverProject.video_url || null,
+      warranty_info: serverProject.warranty_info || null,
+      customer_name: serverProject.customer_name || null,
+      customer_testimonial: serverProject.customer_testimonial || null,
+      // Ensure date fields are strings, not Date objects
+      completion_date: typeof serverProject.completion_date === 'string' ? serverProject.completion_date : 
+                      serverProject.completion_date ? String(serverProject.completion_date) : null,
+      project_duration: typeof serverProject.project_duration === 'string' ? serverProject.project_duration : 
+                       serverProject.project_duration ? String(serverProject.project_duration) : null,
+      // Ensure arrays are properly handled
+      before_images: Array.isArray(serverProject.before_images) ? serverProject.before_images : [],
+      after_images: Array.isArray(serverProject.after_images) ? serverProject.after_images : [],
+      gallery_images: Array.isArray(serverProject.gallery_images) ? serverProject.gallery_images : [],
+      challenges_faced: Array.isArray(serverProject.challenges_faced) ? serverProject.challenges_faced : [],
+      solutions_provided: Array.isArray(serverProject.solutions_provided) ? serverProject.solutions_provided : [],
+      equipment_installed: Array.isArray(serverProject.equipment_installed) ? serverProject.equipment_installed : [],
+      tags: Array.isArray(serverProject.tags) ? serverProject.tags : []
+    };
 
-  // Business data for footer (BusinessData type)
-  const footerBusinessData = {
-    id: profile.business_id || businessId,
-    name: profile.business_name,
-    description: profile.description,
-    phone_number: profile.phone,
-    business_email: profile.email,
-    website: profile.website,
-    logo_url: profile.logo_url,
-    address: profile.address,
-    city: profile.service_areas?.[0]?.split(',')[0] || 'Austin',
-    state: profile.service_areas?.[0]?.split(',')[1]?.trim() || 'TX',
-    zip_code: profile.zip_code,
-    trades: profile.trades || ['hvac'],
-    service_areas: profile.service_areas || ['Local Area'],
-    business_hours: profile.business_hours,
-    primary_trade: profile.primary_trade_slug || 'hvac',
-    seo_keywords: profile.seo_keywords || []
-  };
+    // Business data for footer (BusinessData type)
+    const footerBusinessData = {
+      id: profile.business_id || businessId,
+      name: profile.business_name,
+      description: profile.description,
+      phone_number: profile.phone,
+      business_email: profile.email,
+      website: profile.website,
+      logo_url: profile.logo_url,
+      address: profile.address,
+      city: profile.service_areas?.[0]?.split(',')[0] || 'Austin',
+      state: profile.service_areas?.[0]?.split(',')[1]?.trim() || 'TX',
+      zip_code: profile.zip_code,
+      trades: profile.trades || ['hvac'],
+      service_areas: profile.service_areas || ['Local Area'],
+      business_hours: profile.business_hours,
+      primary_trade: profile.primary_trade_slug || 'hvac',
+      seo_keywords: profile.seo_keywords || []
+    };
 
-  return (
-    <CartProvider businessId={businessId}>
-      <Hero365BookingProvider
-        businessId={businessId}
-        services={[]} // Will be loaded by the provider
-        companyName={profile.business_name}
-        companyPhone={profile.phone}
-      >
-        <div className="min-h-screen bg-white">
-          <BusinessHeader
-            businessProfile={serverProfile}
-            showCTA={false}
-            showCart={false}
-          />
+    return (
+      <CartProvider businessId={businessId}>
+        <Hero365BookingProvider
+          businessId={businessId}
+          services={[]} // Will be loaded by the provider
+          companyName={profile.business_name}
+          companyPhone={profile.phone}
+        >
+          <div className="min-h-screen bg-white">
+            <BusinessHeader
+              businessProfile={profile}
+              showCTA={false}
+              showCart={false}
+              ctaSlot={undefined}
+              cartSlot={undefined}
+            />
 
-          <ProjectDetailClient
-            project={serverProject}
-            businessId={businessId}
-            hasRealData={!!serverProject}
-          />
+            <ProjectDetailClient
+              project={project}
+              businessId={businessId}
+              hasRealData={!!project}
+            />
 
-          <Hero365BusinessFooter
-            business={footerBusinessData}
-            serviceCategories={[]}
-            locations={[]}
-          />
+            <Hero365BusinessFooter
+              business={footerBusinessData}
+              serviceCategories={[]}
+              locations={[]}
+            />
+          </div>
+        </Hero365BookingProvider>
+      </CartProvider>
+    );
+  } catch (error) {
+    console.error('Project page error:', error);
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900">Project Not Available</h1>
+          <p className="mt-4 text-gray-600">There was an error loading this project.</p>
         </div>
-      </Hero365BookingProvider>
-    </CartProvider>
-  );
+      </div>
+    );
+  }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = await params;
-  const businessConfig = getBusinessConfig();
-  const businessId = businessConfig.defaultBusinessId;
-  const projectSlug = resolvedParams.slug;
-
-  // Try to load metadata from API during build time
-
-  try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const response = await fetch(
-      `${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}/${projectSlug}`,
-      { headers: { 'Content-Type': 'application/json' }, cache: 'no-store' }
-    ).catch(err => {
-      console.log('⚠️ [METADATA] Project API failed:', err.message);
-      return { ok: false };
-    });
-    
-    if (response.ok) {
-      const project = await response.json();
-      return {
-        title: `${project.title} | Project Portfolio`,
-        description: project.description,
-        openGraph: {
-          title: project.title,
-          description: project.description,
-          images: project.after_images?.length > 0 ? [project.after_images[0]] : [],
-          type: 'article',
-        },
-        twitter: {
-          card: 'summary_large_image',
-          title: project.title,
-          description: project.description,
-          images: project.after_images?.length > 0 ? [project.after_images[0]] : [],
-        },
-      } as any;
-    }
-  } catch (e) {
-    console.error('metadata error', e);
-  }
-
+export async function generateMetadata() {
   return {
     title: 'Project Details | Portfolio',
     description: 'View detailed information about our completed project.',
   } as any;
 }
-
-

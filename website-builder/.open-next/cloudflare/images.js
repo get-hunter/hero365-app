@@ -1,5 +1,5 @@
 var define_IMAGES_LOCAL_PATTERNS_default = [];
-var define_IMAGES_REMOTE_PATTERNS_default = [{ protocol: "https", hostname: "^(?:(?!\\.)(?=.)[^/]*?\\.supabase\\.co\\/?)$", port: "", pathname: "^(?:\\/storage\\/v1\\/object\\/public(?:\\/(?!\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)|$))$" }, { protocol: "https", hostname: "^(?:^(?:images\\.unsplash\\.com)$)$", port: "", pathname: "^(?:\\/(?!\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?))$" }];
+var define_IMAGES_REMOTE_PATTERNS_default = [{ protocol: "https", hostname: "^(?:(?!\\.)(?=.)[^/]*?\\.supabase\\.co\\/?)$", port: "", pathname: "^(?:\\/storage\\/v1\\/object\\/public(?:\\/(?!\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)|$))$" }, { protocol: "https", hostname: "^(?:^(?:images\\.unsplash\\.com)$)$", port: "", pathname: "^(?:\\/(?!\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?))$" }, { protocol: "https", hostname: "^(?:^(?:example\\.com)$)$", port: "", pathname: "^(?:\\/(?!\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?))$" }];
 async function fetchImage(fetcher, imageUrl, ctx) {
   if (!imageUrl || imageUrl.length > 3072 || imageUrl.startsWith("//")) {
     return getUrlErrorResponse();

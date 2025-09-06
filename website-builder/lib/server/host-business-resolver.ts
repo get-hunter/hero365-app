@@ -38,7 +38,7 @@ function parseHostname(hostname: string): { subdomain: string; isCustomDomain: b
  * Resolve business ID from hostname via backend API
  */
 async function resolveBusinessFromBackend(hostname: string): Promise<string | null> {
-  const backendUrl = getBackendUrl();
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://5ab8f8ec32f1.ngrok-free.app';
   const url = `${backendUrl}/api/v1/public/websites/resolve?host=${encodeURIComponent(hostname)}`;
   console.log(`🔍 [HOST-RESOLVER] Resolving business for: ${hostname} → ${url}`);
   
@@ -104,6 +104,18 @@ export async function getBusinessIdFromHost(): Promise<BusinessResolution> {
   // Parse hostname
   const { subdomain, isCustomDomain } = parseHostname(hostname);
   
+  // Staging fallback: allow explicit business ID via env var to avoid
+  // external resolution flakiness when using tunnels/proxies
+  const explicitBusinessId = process.env.NEXT_PUBLIC_BUSINESS_ID;
+  if (explicitBusinessId) {
+    return {
+      businessId: explicitBusinessId,
+      subdomain,
+      hostname,
+      isCustomDomain
+    };
+  }
+
   // Cache check first
   const cached = hostResolutionCache.get(hostKey);
   if (cached && cached.expiresAt > Date.now()) {

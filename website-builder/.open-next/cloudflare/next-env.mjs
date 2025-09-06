@@ -1,3 +1,3 @@
-export const production = {};
-export const development = {};
+export const production = {"NEXT_PUBLIC_BUSINESS_ID":"550e8400-e29b-41d4-a716-446655440010","NEXT_PUBLIC_BUSINESS_NAME":"Elite HVAC Austin","NEXT_PUBLIC_BUSINESS_PHONE":"(512) 555-0100","NEXT_PUBLIC_BUSINESS_EMAIL":"info@elitehvac.com","NEXT_PUBLIC_PRIMARY_TRADE":"HVAC","NEXT_PUBLIC_BUSINESS_CITY":"Austin","NEXT_PUBLIC_BUSINESS_STATE":"TX","NEXT_PUBLIC_API_URL":"http://localhost:8000","BACKEND_API_URL":"http://localhost:8000","NODE_ENV":"development"};
+export const development = {"NEXT_PUBLIC_BUSINESS_ID":"550e8400-e29b-41d4-a716-446655440010","NEXT_PUBLIC_BUSINESS_NAME":"Elite HVAC Austin","NEXT_PUBLIC_BUSINESS_PHONE":"(512) 555-0100","NEXT_PUBLIC_BUSINESS_EMAIL":"info@elitehvac.com","NEXT_PUBLIC_PRIMARY_TRADE":"HVAC","NEXT_PUBLIC_BUSINESS_CITY":"Austin","NEXT_PUBLIC_BUSINESS_STATE":"TX","NEXT_PUBLIC_API_URL":"http://localhost:8000","BACKEND_API_URL":"http://localhost:8000","NODE_ENV":"development"};
 export const test = {};

@@ -153,6 +153,12 @@
       "namedRegex": "^/robots\\.txt(?:/)?$"
     },
     {
+      "page": "/rsc-test",
+      "regex": "^/rsc\\-test(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/rsc\\-test(?:/)?$"
+    },
+    {
       "page": "/services",
       "regex": "^/services(?:/)?$",
       "routeKeys": {},

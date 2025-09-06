@@ -34,7 +34,22 @@ export function middleware(request: NextRequest) {
     }
   }
   
-  return NextResponse.next()
+  // Create response with cache-control headers to prevent stale HTML caching
+  const response = NextResponse.next()
+  
+  // Add cache-busting headers for HTML pages (not static assets)
+  if (!pathname.startsWith('/_next/') && 
+      !pathname.startsWith('/api/') && 
+      !pathname.includes('.') && // Skip files with extensions
+      request.headers.get('accept')?.includes('text/html')) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    response.headers.set('Surrogate-Control', 'no-store')
+    response.headers.set('X-Build-Time', Date.now().toString())
+  }
+  
+  return response
 }
 
 export const config = {

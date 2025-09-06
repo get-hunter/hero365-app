@@ -17,7 +17,7 @@ name = "hero365-website-preview"
 name = "hero365-website-staging"
 
 [[env.staging.routes]]
-pattern = "*.tradesites.app/*"
+pattern = "elite-hvac-austin.tradesites.app/*"
 zone_id = "c28e66bcb1f56af2ac253ae47bf341f4"
 
 # Multi-tenant routing - configure domains as needed
@@ -27,7 +27,7 @@ zone_id = "c28e66bcb1f56af2ac253ae47bf341f4"
 
 # Environment variables
 [vars]
-NEXT_PUBLIC_API_URL = "https://api.hero365.ai"
+NEXT_PUBLIC_API_URL = "https://5ab8f8ec32f1.ngrok-free.app"
 NEXT_PUBLIC_API_VERSION = "v1"
 NEXT_PUBLIC_DEBUG_MODE = "false"
 NEXT_PUBLIC_ANALYTICS_ENABLED = "true"
@@ -44,6 +44,7 @@ NEXT_PUBLIC_API_VERSION = "v1"
 NEXT_PUBLIC_DEBUG_MODE = "true"
 NEXT_PUBLIC_ANALYTICS_ENABLED = "true"
 NEXT_PUBLIC_ENVIRONMENT = "staging"
+NEXT_PUBLIC_BUSINESS_ID = "550e8400-e29b-41d4-a716-446655440010"
 # Multi-tenant: Business resolved from Host header at runtime
 
 [env.development.vars]

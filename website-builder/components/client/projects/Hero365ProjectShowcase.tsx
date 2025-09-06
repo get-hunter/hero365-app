@@ -19,7 +19,7 @@ import {
   Share2
 } from 'lucide-react';
 import Image from 'next/image';
-import Hero365ProjectGallery from './Hero365ProjectGallery';
+// import Hero365ProjectGallery from './Hero365ProjectGallery'; // Removed to fix hydration issues
 
 interface FeaturedProject {
   id: string;
@@ -63,36 +63,54 @@ export default function ProjectShowcase({
   const [activeTab, setActiveTab] = useState<'overview' | 'gallery' | 'details'>('overview');
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString; // Return original string if invalid date
+      }
+      return date.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return dateString; // Return original string if error
+    }
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
+    try {
+      if (typeof value !== 'number' || isNaN(value)) {
+        return '$0'; // Return default if invalid number
+      }
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(value);
+    } catch (error) {
+      return `$${value.toLocaleString()}`; // Fallback formatting
+    }
   };
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try {
+    // Only run on client-side after hydration
+    if (typeof window === 'undefined') return;
+    
+    try {
+      if (navigator.share) {
         await navigator.share({
           title: project.title,
           text: project.description,
           url: window.location.href
         });
-      } catch (err) {
-        console.log('Error sharing:', err);
+      } else if (navigator.clipboard) {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(window.location.href);
       }
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
+    } catch (err) {
+      console.log('Error sharing:', err);
     }
   };
 
@@ -222,7 +240,33 @@ export default function ProjectShowcase({
               {beforeAfterImages.length > 0 && (
                 <div>
                   <h3 className="text-xl font-semibold mb-4">Before & After</h3>
-                  <Hero365ProjectGallery images={beforeAfterImages} />
+                  {/* Simple static before/after display */}
+                  <div className="space-y-4">
+                    {beforeAfterImages.map((image, index) => (
+                      <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="relative aspect-video rounded-lg overflow-hidden">
+                          <img 
+                            src={image.before} 
+                            alt="Before" 
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute bottom-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                            Before
+                          </div>
+                        </div>
+                        <div className="relative aspect-video rounded-lg overflow-hidden">
+                          <img 
+                            src={image.after} 
+                            alt="After" 
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute bottom-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                            After
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -355,7 +399,33 @@ export default function ProjectShowcase({
             {beforeAfterImages.length > 0 && (
               <div>
                 <h3 className="text-xl font-semibold mb-4">Before & After Comparison</h3>
-                <Hero365ProjectGallery images={beforeAfterImages} showThumbnails={true} />
+                {/* Simple static gallery display */}
+                <div className="space-y-4">
+                  {beforeAfterImages.map((image, index) => (
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="relative aspect-video rounded-lg overflow-hidden">
+                        <img 
+                          src={image.before} 
+                          alt="Before" 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                          Before
+                        </div>
+                      </div>
+                      <div className="relative aspect-video rounded-lg overflow-hidden">
+                        <img 
+                          src={image.after} 
+                          alt="After" 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                          After
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

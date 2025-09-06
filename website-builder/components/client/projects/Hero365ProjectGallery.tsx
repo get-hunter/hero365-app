@@ -48,35 +48,40 @@ export default function BeforeAfterGallery({
 
   // Handle mouse/touch events for slider
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (typeof window === 'undefined') return;
     setIsDragging(true);
     updateSliderPosition(e.clientX);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
+    if (typeof window === 'undefined' || !isDragging) return;
     updateSliderPosition(e.clientX);
   };
 
   const handleMouseUp = () => {
+    if (typeof window === 'undefined') return;
     setIsDragging(false);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (typeof window === 'undefined') return;
     setIsDragging(true);
     updateSliderPosition(e.touches[0].clientX);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
+    if (typeof window === 'undefined' || !isDragging) return;
     updateSliderPosition(e.touches[0].clientX);
   };
 
   const handleTouchEnd = () => {
+    if (typeof window === 'undefined') return;
     setIsDragging(false);
   };
 
   const updateSliderPosition = (clientX: number) => {
-    if (!containerRef.current) return;
+    // Only run on client-side after hydration
+    if (typeof window === 'undefined' || !containerRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
     const x = clientX - rect.left;

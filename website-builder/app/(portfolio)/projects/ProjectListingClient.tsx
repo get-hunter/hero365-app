@@ -102,9 +102,21 @@ export default function ProjectListingClient({
   const sortedProjects = [...filteredProjects].sort((a, b) => {
     switch (sortBy) {
       case 'recent':
-        return new Date(b.completion_date).getTime() - new Date(a.completion_date).getTime();
+        try {
+          const dateA = new Date(a.completion_date);
+          const dateB = new Date(b.completion_date);
+          return dateB.getTime() - dateA.getTime();
+        } catch {
+          return 0;
+        }
       case 'oldest':
-        return new Date(a.completion_date).getTime() - new Date(b.completion_date).getTime();
+        try {
+          const dateA = new Date(a.completion_date);
+          const dateB = new Date(b.completion_date);
+          return dateA.getTime() - dateB.getTime();
+        } catch {
+          return 0;
+        }
       case 'value-high':
         return (b.project_value || 0) - (a.project_value || 0);
       case 'value-low':
@@ -117,20 +129,35 @@ export default function ProjectListingClient({
   });
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    try {
+      if (typeof amount !== 'number' || isNaN(amount)) {
+        return '$0';
+      }
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount);
+    } catch (error) {
+      return `$${amount.toLocaleString()}`;
+    }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString;
+      }
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return dateString;
+    }
   };
 
   const getUniqueValues = (key: keyof FeaturedProject) => {

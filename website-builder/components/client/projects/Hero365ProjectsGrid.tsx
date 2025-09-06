@@ -181,19 +181,34 @@ export default function FeaturedProjectsGrid({
   }, [businessId, limit, featuredOnly]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      year: 'numeric'
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString; // Return original string if invalid date
+      }
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return dateString; // Return original string if error
+    }
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
+    try {
+      if (typeof value !== 'number' || isNaN(value)) {
+        return '$0'; // Return default if invalid number
+      }
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(value);
+    } catch (error) {
+      return `$${value.toLocaleString()}`; // Fallback formatting
+    }
   };
 
   if (loading) {

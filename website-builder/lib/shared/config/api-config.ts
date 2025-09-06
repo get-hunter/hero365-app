@@ -66,8 +66,9 @@ function getEnvironment(): 'development' | 'staging' | 'production' {
  * SSR-compatible: prioritizes explicit env vars to ensure consistency
  */
 function getApiBaseUrl(environment: string): string {
-  // HIGHEST PRIORITY: Explicit API URL set during build/deployment
-  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
+  // Client-side: use environment variable if available
+  // Server-side: ignore NEXT_PUBLIC_API_URL to prevent build-time localhost inlining
+  if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   
@@ -86,7 +87,7 @@ function getApiBaseUrl(environment: string): string {
     case 'development':
       return 'http://localhost:8000';
     case 'staging':
-      return 'http://localhost:8000';  // Use localhost for staging builds
+      return 'https://5ab8f8ec32f1.ngrok-free.app';
     case 'production':
       return 'https://api.hero365.ai';
     default:
@@ -318,6 +319,8 @@ export function getDefaultHeaders(): Record<string, string> {
   const apiUrl = getApiConfig().baseUrl;
   if (apiUrl.includes('ngrok')) {
     headers['ngrok-skip-browser-warning'] = 'true';
+    // Note: Host header manipulation doesn't work reliably in Cloudflare Workers
+    // The issue might be that ngrok is rejecting requests from Cloudflare's IPs
   }
 
   return headers;

@@ -64,7 +64,11 @@ export default function ProjectDetailClient({
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Projects
               </Button>
-              <Button onClick={() => window.location.reload()}>
+              <Button onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.reload();
+                }
+              }}>
                 Try Again
               </Button>
             </div>
