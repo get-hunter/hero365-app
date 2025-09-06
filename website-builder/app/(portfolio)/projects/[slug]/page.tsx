@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { getDefaultHeaders } from '@/lib/shared/config/api-config';
 import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import BusinessHeader from '@/components/shared/BusinessHeader';
-import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
+import Hero365Footer from '@/components/shared/Hero365Footer';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '@/lib/client/contexts/CartContext';
 import ProjectDetailClient from './ProjectDetailClient';
@@ -225,7 +225,7 @@ export default async function ProjectDetailPage({
               hasRealData={!!project}
             />
 
-            <Hero365BusinessFooter
+            <Hero365Footer
               business={footerBusinessData}
               serviceCategories={[]}
               locations={[]}

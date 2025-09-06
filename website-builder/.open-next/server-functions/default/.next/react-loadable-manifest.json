@@ -50,11 +50,5 @@
     "files": [
       "static/chunks/398.47cc8b79a7ea361b.js"
     ]
-  },
-  "lib/client/hooks/useWebsiteContext.ts -> @/lib/shared/config/api-config": {
-    "id": 8291,
-    "files": [
-      "static/chunks/291.f4775eb6b8d1ff16.js"
-    ]
   }
 }

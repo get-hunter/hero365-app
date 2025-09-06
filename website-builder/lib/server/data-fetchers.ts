@@ -1,12 +1,11 @@
 /**
- * Server-Side Data Fetchers
+ * Server-Side Data Fetchers (Legacy Compatibility)
  * 
- * Reusable data fetching utilities for Hero365 backend API
- * These handle runtime configuration, error handling, and type safety
+ * @deprecated Use BusinessDataService instead for new code
+ * This file provides backward compatibility for existing code
  */
 
-import { getRuntimeConfig } from './runtime-config';
-import { getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getBusinessDataService } from '../services/business-data-service';
 import type {
   BusinessProfile,
   ServiceItem,
@@ -16,41 +15,34 @@ import type {
   ServiceCategory,
   LocationItem
 } from '@/lib/shared/types/api-responses';
+import type { EnhancedHomepageData } from '@/lib/shared/types/enhanced-api-responses';
+
+// Get the service instance
+const dataService = getBusinessDataService();
 
 /**
  * Generic JSON fetcher with error handling
+ * @deprecated Use BusinessDataService instead
  */
 export async function serverFetchJson<T>(endpointPath: string): Promise<T | null> {
-  try {
-    const config = await getRuntimeConfig();
-    const url = `${config.apiUrl}${endpointPath}`;
-    const response = await fetch(url, {
-      headers: getDefaultHeaders(),
-      cache: 'no-store',
-      // Abort in 8s to avoid long hangs
-      signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined,
-    });
-    if (!response.ok) return null;
-    return (await response.json()) as T;
-  } catch (err) {
-    console.warn('serverFetchJson error:', endpointPath, err);
-    return null;
-  }
+  console.warn('serverFetchJson is deprecated. Use BusinessDataService instead.');
+  return dataService.fetchWithRetry<T>(endpointPath) as any;
 }
 
 /**
  * Fetch business profile
+ * @deprecated Use dataService.getBusinessProfile() instead
  */
 export async function fetchBusinessProfile(businessId: string): Promise<BusinessProfile | null> {
-  return serverFetchJson<BusinessProfile>(`/api/v1/public/contractors/profile/${businessId}`);
+  return dataService.getBusinessProfile(businessId) as any;
 }
 
 /**
  * Fetch business services
+ * @deprecated Use dataService.getBusinessServices() instead
  */
 export async function fetchBusinessServices(businessId: string): Promise<ServiceItem[]> {
-  const result = await serverFetchJson<ServiceItem[]>(`/api/v1/public/contractors/services/${businessId}`);
-  return result || [];
+  return dataService.getBusinessServices(businessId) as any;
 }
 
 /**
@@ -61,7 +53,7 @@ export async function fetchFeaturedProducts(
   limit: number = 6
 ): Promise<ProductItem[]> {
   const result = await serverFetchJson<ProductItem[]>(
-    `/api/v1/public/contractors/product-catalog/${businessId}?featured_only=true&limit=${limit}`
+    `/api/v1/public/contractors/products/${businessId}?featured_only=true&limit=${limit}`
   );
   return result || [];
 }
@@ -84,7 +76,7 @@ export async function fetchFeaturedProjects(
  */
 export async function fetchAllProducts(businessId: string): Promise<ProductItem[]> {
   const result = await serverFetchJson<ProductItem[]>(
-    `/api/v1/public/contractors/product-catalog/${businessId}`
+    `/api/v1/public/contractors/products/${businessId}`
   );
   return result || [];
 }
@@ -94,7 +86,7 @@ export async function fetchAllProducts(businessId: string): Promise<ProductItem[
  */
 export async function fetchAllProjects(businessId: string): Promise<ProjectItem[]> {
   const result = await serverFetchJson<ProjectItem[]>(
-    `/api/v1/public/contractors/projects/${businessId}`
+    `/api/v1/public/contractors/featured-projects/${businessId}`
   );
   return result || [];
 }
@@ -121,57 +113,10 @@ export async function fetchBusinessLocations(businessId: string): Promise<Locati
 
 /**
  * Load all homepage data in parallel
+ * @deprecated Use dataService.loadHomepageData() instead
  */
-export async function loadHomepageData(businessId: string): Promise<HomepageData> {
-  try {
-    console.log('🔄 [SERVER] Loading business data for:', businessId);
-
-    const config = await getRuntimeConfig();
-    const backendUrl = config.apiUrl;
-    console.log('🔄 [SERVER] Runtime config:', { environment: config.environment, backendUrl });
-
-    const [profile, services, products, projects] = await Promise.all([
-      fetchBusinessProfile(businessId),
-      fetchBusinessServices(businessId),
-      fetchFeaturedProducts(businessId, 6),
-      fetchFeaturedProjects(businessId, 6),
-    ]);
-
-    const profileOk = !!profile;
-    const servicesOk = Array.isArray(services);
-    const productsOk = Array.isArray(products);
-    const projectsOk = Array.isArray(projects);
-
-    if (profileOk) {
-      console.log('✅ [SERVER] Profile loaded:', profile.business_name);
-    }
-    if (servicesOk) {
-      console.log('✅ [SERVER] Services loaded:', services.length, 'items');
-    }
-    if (productsOk) {
-      console.log('✅ [SERVER] Products loaded:', products.length, 'items');
-    }
-    if (projectsOk) {
-      console.log('✅ [SERVER] Projects loaded:', projects.length, 'items');
-    }
-
-    return {
-      profile,
-      services,
-      products,
-      projects,
-      diagnostics: {
-        backendUrl,
-        profileOk,
-        servicesOk,
-        productsOk,
-        projectsOk,
-      },
-    };
-  } catch (error) {
-    console.error('⚠️ [SERVER] Failed to load business data:', error);
-    return { profile: null, services: [], products: [], projects: [] };
-  }
+export async function loadHomepageData(businessId: string): Promise<EnhancedHomepageData> {
+  return dataService.loadHomepageData(businessId);
 }
 
 /**
@@ -190,20 +135,30 @@ export async function loadPageData(
   options: PageDataOptions = {}
 ) {
   const promises: Promise<any>[] = [fetchBusinessProfile(businessId)];
+  let servicesIndex = -1;
+  let productsIndex = -1;
+  let projectsIndex = -1;
+  let locationsIndex = -1;
+  let categoriesIndex = -1;
   
   if (options.includeServices) {
+    servicesIndex = promises.length;
     promises.push(fetchBusinessServices(businessId));
   }
   if (options.includeProducts) {
+    productsIndex = promises.length;
     promises.push(fetchAllProducts(businessId));
   }
   if (options.includeProjects) {
+    projectsIndex = promises.length;
     promises.push(fetchAllProjects(businessId));
   }
   if (options.includeLocations) {
+    locationsIndex = promises.length;
     promises.push(fetchBusinessLocations(businessId));
   }
   if (options.includeCategories) {
+    categoriesIndex = promises.length;
     promises.push(fetchServiceCategories(businessId));
   }
 
@@ -211,10 +166,10 @@ export async function loadPageData(
   
   return {
     profile: results[0] as BusinessProfile | null,
-    services: options.includeServices ? results[promises.length > 1 ? 1 : 0] as ServiceItem[] : [],
-    products: options.includeProducts ? results[promises.findIndex(p => p === fetchAllProducts(businessId))] as ProductItem[] : [],
-    projects: options.includeProjects ? results[promises.findIndex(p => p === fetchAllProjects(businessId))] as ProjectItem[] : [],
-    locations: options.includeLocations ? results[promises.findIndex(p => p === fetchBusinessLocations(businessId))] as LocationItem[] : [],
-    categories: options.includeCategories ? results[promises.findIndex(p => p === fetchServiceCategories(businessId))] as ServiceCategory[] : [],
+    services: servicesIndex >= 0 ? results[servicesIndex] as ServiceItem[] : [],
+    products: productsIndex >= 0 ? results[productsIndex] as ProductItem[] : [],
+    projects: projectsIndex >= 0 ? results[projectsIndex] as ProjectItem[] : [],
+    locations: locationsIndex >= 0 ? results[locationsIndex] as LocationItem[] : [],
+    categories: categoriesIndex >= 0 ? results[categoriesIndex] as ServiceCategory[] : [],
   };
 }

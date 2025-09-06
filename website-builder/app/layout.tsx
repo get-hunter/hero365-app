@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import BusinessErrorBoundary from "@/components/error/BusinessErrorBoundary";
 // Use system fonts to avoid next/font server manifest during build
 
 export const metadata: Metadata = {
@@ -46,7 +47,12 @@ export default function RootLayout({
         className={`antialiased`}
         suppressHydrationWarning={true}
       >
-        {children}
+        <BusinessErrorBoundary 
+          businessName="Professional Services"
+          showErrorDetails={process.env.NODE_ENV === 'development'}
+        >
+          {children}
+        </BusinessErrorBoundary>
       </body>
     </html>
   );

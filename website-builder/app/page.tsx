@@ -15,9 +15,11 @@ import ServicesGrid from '@/components/server/services/services-grid';
 import Hero365ContactSection from '@/components/client/business/Hero365ContactSection';
 import Hero365Footer from '@/components/shared/Hero365Footer';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
-import { loadHomepageData } from '@/lib/server/data-fetchers';
+import { getBusinessDataService } from '@/lib/services/business-data-service';
 import { formatCurrencyUSD, formatCompletionYear, formatTradeName } from '@/lib/shared/utils/formatters';
 import type { BusinessProfile, ProductItem, ProjectItem } from '@/lib/shared/types/api-responses';
+import type { EnhancedBusinessProfile, DiagnosticsInfo } from '@/lib/shared/types/enhanced-api-responses';
+import { extractBusinessData } from '@/lib/shared/types/enhanced-api-responses';
 
 
 export default async function HomePage() {
@@ -26,8 +28,9 @@ export default async function HomePage() {
     const resolution = await getBusinessIdFromHost();
     const businessId = resolution.businessId;
 
-    // Load business data server-side
-    const { profile: serverProfile, services: serverServices, products: serverProducts, projects: serverProjects, diagnostics } = await loadHomepageData(businessId);
+    // Load business data server-side using the new service
+    const dataService = getBusinessDataService();
+    const { profile: serverProfile, services: serverServices, products: serverProducts, projects: serverProjects, diagnostics } = await dataService.loadHomepageData(businessId);
 
     // Debug logging
     console.log('🔍 [DEBUG] Server profile:', serverProfile ? 'LOADED' : 'NULL');
@@ -47,11 +50,11 @@ export default async function HomePage() {
             <div className="rounded-lg border bg-gray-50 p-4">
               <h2 className="font-semibold mb-2">Diagnostics</h2>
               <ul className="text-sm text-gray-700 space-y-1">
-                <li><span className="font-medium">backendUrl:</span> {(diagnostics as any)?.backendUrl}</li>
-                <li><span className="font-medium">profileOk:</span> {String((diagnostics as any)?.profileOk)}</li>
-                <li><span className="font-medium">servicesOk:</span> {String((diagnostics as any)?.servicesOk)}</li>
-                <li><span className="font-medium">productsOk:</span> {String((diagnostics as any)?.productsOk)}</li>
-                <li><span className="font-medium">projectsOk:</span> {String((diagnostics as any)?.projectsOk)}</li>
+                <li><span className="font-medium">backendUrl:</span> {diagnostics?.backendUrl}</li>
+                <li><span className="font-medium">profileOk:</span> {String(diagnostics?.profileOk)}</li>
+                <li><span className="font-medium">servicesOk:</span> {String(diagnostics?.servicesOk)}</li>
+                <li><span className="font-medium">productsOk:</span> {String(diagnostics?.productsOk)}</li>
+                <li><span className="font-medium">projectsOk:</span> {String(diagnostics?.projectsOk)}</li>
                 <li><span className="font-medium">businessId:</span> {businessId}</li>
               </ul>
             </div>
@@ -60,7 +63,7 @@ export default async function HomePage() {
       );
     }
 
-    const profile = serverProfile as BusinessProfile;
+    const profile = serverProfile as EnhancedBusinessProfile;
 
     const services = serverServices || [];
 
@@ -68,22 +71,27 @@ export default async function HomePage() {
     const primaryTradeSlugSafe = profile.primary_trade_slug || 'hvac';
     const formattedTradeName = formatTradeName(primaryTradeSlugSafe);
 
-    const businessData = {
-      businessName: (profile as any).business_name ?? '',
+    // Use the type-safe extraction function
+    const businessData = extractBusinessData(profile);
+    
+    // Add computed properties
+    const enhancedBusinessData = {
+      ...businessData,
+      businessName: businessData.name,
       tagline: `Professional ${formattedTradeName} Services`,
-      description: (profile as any).description ?? '',
-      phone: (profile as any).phone?.trim() || null,
-      email: (profile as any).email ?? '',
-      address: (profile as any).address ?? '',
-      serviceAreas: Array.isArray((profile as any).service_areas) ? (profile as any).service_areas : [],
-      emergencyService: !!(profile as any).emergency_service,
-      yearsInBusiness: (profile as any).years_in_business ?? 0,
-      licenseNumber: (profile as any).license_number ?? '',
-      insuranceVerified: !!(profile as any).insurance_verified,
-      averageRating: (profile as any).average_rating ?? 0,
-      totalReviews: (profile as any).total_reviews ?? 0,
-      certifications: Array.isArray((profile as any).certifications) ? (profile as any).certifications : [],
-      website: (profile as any).website ?? ''
+      description: profile.description ?? '',
+      phone: businessData.phone_number?.trim() || null,
+      email: businessData.business_email ?? '',
+      address: businessData.address ?? '',
+      serviceAreas: businessData.service_areas || [],
+      emergencyService: businessData.emergency_service ?? false,
+      yearsInBusiness: businessData.years_in_business ?? 0,
+      licenseNumber: businessData.license_number ?? '',
+      insuranceVerified: businessData.insurance_verified ?? false,
+      averageRating: businessData.average_rating ?? 0,
+      totalReviews: businessData.total_reviews ?? 0,
+      certifications: businessData.certifications || [],
+      website: businessData.website ?? ''
     };
 
     const topProducts = (serverProducts || []).slice(0, 3);
@@ -93,28 +101,39 @@ export default async function HomePage() {
       <div className="min-h-screen bg-white">
         {/* Header */}
         <BusinessHeader 
-          businessProfile={profile as any}
+          businessProfile={{
+            business_id: profile.business_id || profile.id || '',
+            business_name: profile.business_name,
+            phone: profile.phone || '',
+            phone_display: profile.phone_display || undefined,
+            email: profile.email || '',
+            address: profile.address || undefined,
+            city: profile.city || undefined,
+            state: profile.state || undefined,
+            postal_code: profile.postal_code || undefined,
+            logo_url: profile.logo_url || undefined
+          }}
           showCTA={false}
           showCart={false}
         />
 
         {/* Hero Section */}
         <HeroSection
-          businessName={businessData.businessName}
-          headline={`Professional ${businessData.businessName} Services`}
-          subheadline={businessData.tagline}
-          city={businessData.serviceAreas[0] || 'Austin'}
-          phone={businessData.phone}
-          averageRating={businessData.averageRating}
-          totalReviews={businessData.totalReviews}
-          emergencyMessage={businessData.emergencyService ? '24/7 Emergency Service Available' : undefined}
+          businessName={enhancedBusinessData.businessName}
+          headline={`Professional ${enhancedBusinessData.businessName} Services`}
+          subheadline={enhancedBusinessData.tagline}
+          city={enhancedBusinessData.serviceAreas[0] || 'Austin'}
+          phone={enhancedBusinessData.phone || undefined}
+          averageRating={enhancedBusinessData.averageRating}
+          totalReviews={enhancedBusinessData.totalReviews}
+          emergencyMessage={enhancedBusinessData.emergency_service ? '24/7 Emergency Service Available' : undefined}
         />
 
         {/* Services Grid */}
         <ServicesGrid
-          businessName={businessData.businessName}
-          city={businessData.serviceAreas[0] || 'Austin'}
-          phone={businessData.phone}
+          businessName={enhancedBusinessData.businessName}
+          city={enhancedBusinessData.serviceAreas[0] || 'Austin'}
+          phone={enhancedBusinessData.phone || undefined}
         />
         
         {/* View All Services Link */}
@@ -281,14 +300,8 @@ export default async function HomePage() {
         {/* Contact Section */}
         <Hero365ContactSection 
           business={{
-            id: businessId,
-            name: businessData.businessName,
-            phone_number: businessData.phone,
-            business_email: businessData.email,
-            address: businessData.address,
-            service_areas: businessData.serviceAreas,
-            trades: [],
-            seo_keywords: []
+            ...enhancedBusinessData,
+            phone_number: enhancedBusinessData.phone_number || undefined
           }}
           locations={[]}
         />
@@ -297,7 +310,7 @@ export default async function HomePage() {
         <Hero365Footer 
           business={profile}
           services={serverServices}
-          showEmergencyBanner={businessData.emergencyService}
+          showEmergencyBanner={enhancedBusinessData.emergency_service}
         />
       </div>
     );

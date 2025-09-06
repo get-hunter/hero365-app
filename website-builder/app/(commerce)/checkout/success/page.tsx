@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { CheckoutSuccessClient } from './CheckoutSuccessClient';
 import Header from '@/components/server/layout/header';
 import ClientAppProviders from '@/components/client/providers/ClientAppProviders';
-import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
+import Hero365Footer from '@/components/shared/Hero365Footer';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '@/lib/client/contexts/CartContext';
 import { getBusinessConfig, getDefaultHeaders } from '@/lib/shared/config/api-config';
@@ -101,7 +101,7 @@ export default async function CheckoutSuccessPage() {
         </main>
       </ClientAppProviders>
           
-          <Hero365BusinessFooter 
+          <Hero365Footer 
             business={profile} 
             serviceCategories={[]} 
             locations={[]} 

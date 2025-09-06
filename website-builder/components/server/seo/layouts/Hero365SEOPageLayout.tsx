@@ -1,6 +1,6 @@
 import React from 'react'
 import Header from '@/components/server/layout/header'
-import Footer from '@/components/server/business/footer';
+import Hero365Footer from '@/components/shared/Hero365Footer';
 import { getServiceCategoriesForFooter, getLocations } from '@/lib/server/navigation-loader'
 import { generateJSONLD } from '@/lib/server/json-ld-generator'
 
@@ -80,7 +80,7 @@ export default async function SEOPageLayout({ data, contentBlocks, children }: S
       {children}
 
       {/* Footer */}
-      <Footer 
+      <Hero365Footer 
         business={{
           id: businessConfig.businessId,
           name: businessConfig.businessName,

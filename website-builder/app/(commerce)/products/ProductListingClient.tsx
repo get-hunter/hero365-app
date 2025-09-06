@@ -277,8 +277,8 @@ export default function ProductListingClient({
       {filteredAndSortedProducts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredAndSortedProducts.map(product => {
-            const defaultInstallOption = product.installation_options.find(opt => opt.is_default) || 
-                                       product.installation_options[0];
+            const defaultInstallOption = product.installation_options?.find(opt => opt.is_default) || 
+                                       product.installation_options?.[0];
             const memberPrice = getMembershipPrice(product, defaultInstallOption);
             const totalSavings = getTotalSavings(product, defaultInstallOption);
 
@@ -414,7 +414,7 @@ export default function ProductListingClient({
                   </div>
 
                   {/* Installation Options Info */}
-                  {product.installation_options.length > 0 && (
+                  {product.installation_options && product.installation_options.length > 0 && (
                     <div className="text-xs text-center text-blue-600 mt-auto pt-2 group-hover:text-blue-700 transition-colors duration-200">
                       {product.installation_options.length} installation option{product.installation_options.length > 1 ? 's' : ''} available
                     </div>

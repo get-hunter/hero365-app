@@ -773,12 +773,6 @@ import type {
   UsersUpdateUserBusinessContextResponse,
   UtilsTestEmailData,
   UtilsTestEmailResponse,
-  WebsiteBuilderDeployWebsiteData,
-  WebsiteBuilderDeployWebsiteResponse,
-  WebsiteBuilderGetDeploymentStatusData,
-  WebsiteBuilderGetDeploymentStatusResponse,
-  WebsiteBuilderPreviewWebsiteData,
-  WebsiteBuilderPreviewWebsiteResponse,
   WebsiteContextGetWebsiteContextData,
   WebsiteContextGetWebsiteContextResponse,
   WebsiteContextGetWebsiteActivitiesOnlyData,
@@ -11426,77 +11420,6 @@ export class UtilsService {
       url: "/api/v1/utils/test-email/",
       query: {
         email_to: data.emailTo,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-}
-
-export class WebsiteBuilderService {
-  /**
-   * Deploy Website
-   * Deploy website using the existing website-builder system
-   * This triggers the actual Next.js build and Cloudflare deployment
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns WebsiteDeploymentResponse Successful Response
-   * @throws ApiError
-   */
-  public static deployWebsite(
-    data: WebsiteBuilderDeployWebsiteData,
-  ): CancelablePromise<WebsiteBuilderDeployWebsiteResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/websites/deploy",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Deployment Status
-   * Get deployment status for real-time updates in mobile app
-   * @param data The data for the request.
-   * @param data.deploymentId
-   * @returns DeploymentStatusResponse Successful Response
-   * @throws ApiError
-   */
-  public static getDeploymentStatus(
-    data: WebsiteBuilderGetDeploymentStatusData,
-  ): CancelablePromise<WebsiteBuilderGetDeploymentStatusResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/websites/deploy/{deployment_id}/status",
-      path: {
-        deployment_id: data.deploymentId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Preview Website
-   * Get preview URL for the website (if deployed)
-   * @param data The data for the request.
-   * @param data.businessId
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static previewWebsite(
-    data: WebsiteBuilderPreviewWebsiteData,
-  ): CancelablePromise<WebsiteBuilderPreviewWebsiteResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/websites/preview/{business_id}",
-      path: {
-        business_id: data.businessId,
       },
       errors: {
         422: "Validation Error",

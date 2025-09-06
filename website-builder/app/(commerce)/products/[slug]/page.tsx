@@ -4,7 +4,7 @@ import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '@/lib/client/contexts/CartContext';
 import BusinessHeader from '@/components/shared/BusinessHeader';
-import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
+import Hero365Footer from '@/components/shared/Hero365Footer';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { notFound } from 'next/navigation';
 
@@ -40,7 +40,8 @@ async function getProduct(businessId: string, slug: string) {
 
 async function getBusinessProfile(businessId: string) {
   try {
-    const base = getBackendUrl();
+    const config = await getRuntimeConfig();
+    const base = config.apiUrl;
     const url = `${base}/api/v1/public/contractors/profile/${businessId}`;
     
     const res = await fetch(url, {
@@ -126,7 +127,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             membershipPlans={membershipPlans}
           />
 
-          <Hero365BusinessFooter 
+          <Hero365Footer 
             business={{
               id: businessId,
               name: businessProfile.business_name,

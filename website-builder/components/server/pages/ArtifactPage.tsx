@@ -21,7 +21,7 @@ import { TradeAwareHero } from '@/components/server/trade-aware/TradeAwareHero';
 import { ActivityModuleSection } from '@/components/client/trade-aware/ActivityModuleSection';
 import { ProjectShowcase as ProjectShowcaseComponent } from '@/components/server/trade-aware/ProjectShowcase';
 import { TestimonialSection } from '@/components/server/trade-aware/TestimonialSection';
-import { TradeAwareFooter } from '@/components/server/trade-aware/TradeAwareFooter';
+import Hero365Footer from '@/components/shared/Hero365Footer';
 import { StructuredDataRenderer } from '@/components/server/seo/StructuredDataRenderer';
 
 // Client Components (hydrated after SSR)
@@ -269,7 +269,7 @@ export default function ArtifactPage({
         </main>
 
         {/* Trade-Aware Footer */}
-        <TradeAwareFooter 
+        <Hero365Footer 
           businessContext={businessContext}
           tradeConfig={tradeConfig}
           activities={businessContext.activities}

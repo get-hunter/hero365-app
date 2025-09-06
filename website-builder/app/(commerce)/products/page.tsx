@@ -7,6 +7,7 @@ import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { loadPageData } from '@/lib/server/data-fetchers';
 import { notFound } from 'next/navigation';
 import type { BusinessProfile, ProductItem } from '@/lib/shared/types/api-responses';
+import type { ProductCatalogItem } from '@/lib/shared/types/products';
 
 export const metadata: Metadata = {
   title: 'Professional Products & Installation Services - Shop Online',
@@ -35,6 +36,32 @@ export default async function ProductsPage() {
   
   const profile = serverProfile;
 
+  // Convert ProductItem[] to ProductCatalogItem[] format
+  const convertedProducts: ProductCatalogItem[] = serverProducts.map((product: ProductItem) => ({
+    id: product.id.toString(),
+    name: product.name,
+    sku: product.sku || '',
+    description: product.description || '',
+    long_description: product.description || '',
+    unit_price: typeof product.unit_price === 'string' ? parseFloat(product.unit_price) : (product.unit_price || 0),
+    category_name: product.category || 'General',
+    warranty_years: null,
+    energy_efficiency_rating: null,
+    requires_professional_install: false,
+    install_complexity: 'standard' as const,
+    installation_time_estimate: null,
+    featured_image_url: product.image_url || null,
+    gallery_images: [],
+    product_highlights: [],
+    technical_specs: {},
+    meta_title: null,
+    meta_description: null,
+    slug: product.slug || product.name.toLowerCase().replace(/\s+/g, '-'),
+    is_active: true,
+    is_featured: product.featured || false,
+    current_stock: null,
+    installation_options: []
+  }));
 
   return (
       <div className="min-h-screen bg-gray-50">
@@ -81,7 +108,7 @@ export default async function ProductsPage() {
 
         {/* Product Listing Content */}
         <ProductListingClient 
-          products={serverProducts}
+          products={convertedProducts}
           categories={serverCategories}
           businessId={businessId}
           hasRealData={serverProducts.length > 0}

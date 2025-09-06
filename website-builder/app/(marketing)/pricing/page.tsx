@@ -9,7 +9,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import { Phone, Star, Award } from 'lucide-react';
 import Header from '@/components/server/layout/header';
-import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
+import Hero365Footer from '@/components/shared/Hero365Footer';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '../../../lib/client/contexts/CartContext';
 import PricingPageClient from './PricingPageClient';
@@ -234,7 +234,7 @@ export default async function PricingPage() {
         </div>
 
         {/* Professional Footer - Same as main page with real data */}
-        <Hero365BusinessFooter 
+        <Hero365Footer 
           business={{
             id: businessId,
             name: finalBusinessData.businessName,

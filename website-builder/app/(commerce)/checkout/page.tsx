@@ -4,7 +4,7 @@ import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import { CheckoutPageClient } from './CheckoutPageClient';
 import Header from '@/components/server/layout/header';
 import ClientAppProviders from '@/components/client/providers/ClientAppProviders';
-import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
+import Hero365Footer from '@/components/shared/Hero365Footer';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { CartProvider } from '@/lib/client/contexts/CartContext';
 
@@ -107,7 +107,7 @@ export default async function CheckoutPage() {
           </Suspense>
         </main>
       </ClientAppProviders>
-      <Hero365BusinessFooter 
+      <Hero365Footer 
         business={profile} 
         serviceCategories={[]} 
         locations={[]} 

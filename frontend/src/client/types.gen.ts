@@ -4590,15 +4590,6 @@ export type DeploymentEnvironment = {
   NEXT_PUBLIC_ENABLE_REVIEWS: string
 }
 
-export type DeploymentStatusResponse = {
-  deployment_id: string
-  status: string
-  progress: number
-  website_url?: string | null
-  error_message?: string | null
-  logs?: Array<string>
-}
-
 /**
  * Current device state
  */
@@ -4961,9 +4952,9 @@ export type FeaturedProject = {
    */
   is_featured?: boolean
   /**
-   * SEO slug
+   * URL slug
    */
-  seo_slug: string
+  slug: string
   /**
    * Project tags
    */
@@ -7348,6 +7339,18 @@ export type ProfessionalProfile = {
    * Business address
    */
   address: string
+  /**
+   * Business city
+   */
+  city: string
+  /**
+   * Business state
+   */
+  state: string
+  /**
+   * Business postal code
+   */
+  postal_code: string
   /**
    * Business website
    */
@@ -10368,28 +10371,6 @@ export type WebsiteContextResponse = {
   metadata?: {
     [key: string]: unknown
   }
-}
-
-export type WebsiteDeploymentRequest = {
-  business_id: string
-  /**
-   * basic or full_seo
-   */
-  deployment_type?: string
-  custom_domain?: string | null
-  /**
-   * Force rebuild even if already deployed
-   */
-  force_rebuild?: boolean
-}
-
-export type WebsiteDeploymentResponse = {
-  success: boolean
-  deployment_id: string
-  website_url?: string | null
-  status: string
-  message: string
-  estimated_completion_time?: number | null
 }
 
 /**
@@ -14457,24 +14438,6 @@ export type UtilsTestEmailData = {
 }
 
 export type UtilsTestEmailResponse = Message
-
-export type WebsiteBuilderDeployWebsiteData = {
-  requestBody: WebsiteDeploymentRequest
-}
-
-export type WebsiteBuilderDeployWebsiteResponse = WebsiteDeploymentResponse
-
-export type WebsiteBuilderGetDeploymentStatusData = {
-  deploymentId: string
-}
-
-export type WebsiteBuilderGetDeploymentStatusResponse = DeploymentStatusResponse
-
-export type WebsiteBuilderPreviewWebsiteData = {
-  businessId: string
-}
-
-export type WebsiteBuilderPreviewWebsiteResponse = unknown
 
 export type WebsiteContextGetWebsiteContextData = {
   /**
