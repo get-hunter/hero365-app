@@ -1,0 +1,1 @@
+{"kind":"FETCH","data":{"headers":{"content-length":"72","content-type":"application/json","date":"Sat, 06 Sep 2025 08:14:10 GMT","server":"uvicorn"},"body":"W3sic2x1ZyI6ImF1c3Rpbi10eCJ9LHsic2x1ZyI6ImNlZGFyLXBhcmstdHgifSx7InNsdWciOiJyb3VuZC1yb2NrLXR4In1d","status":200,"url":"http://localhost:8000/api/v1/public/locations/active"},"revalidate":3600,"tags":[]}

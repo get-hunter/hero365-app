@@ -1,6 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { getBusinessConfig, getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import Header from '@/components/server/layout/header';
 import { notFound } from 'next/navigation';
 import ProjectListingClient from './ProjectListingClient';
@@ -21,18 +22,30 @@ async function loadProjectData(businessId: string) {
       fetch(`${backendUrl}/api/v1/public/contractors/featured-projects/${businessId}?limit=12&offset=0&featured_only=true`, {
         headers: getDefaultHeaders(),
         next: { revalidate: 600, tags: ['projects', businessId] } // 10 min ISR
+      }).catch(err => {
+        console.log('⚠️ [PROJECTS] Projects API failed:', err.message);
+        return { ok: false };
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/project-categories/${businessId}`, {
         headers: getDefaultHeaders(),
         next: { revalidate: 86400, tags: ['categories', businessId] } // 1 day ISR
+      }).catch(err => {
+        console.log('⚠️ [PROJECTS] Categories API failed:', err.message);
+        return { ok: false };
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/project-tags/${businessId}`, {
         headers: getDefaultHeaders(),
         next: { revalidate: 86400, tags: ['tags', businessId] } // 1 day ISR
+      }).catch(err => {
+        console.log('⚠️ [PROJECTS] Tags API failed:', err.message);
+        return { ok: false };
       }),
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
         headers: getDefaultHeaders(),
         next: { revalidate: 3600, tags: ['profile', businessId] } // 1 hour ISR
+      }).catch(err => {
+        console.log('⚠️ [PROJECTS] Profile API failed:', err.message);
+        return { ok: false };
       })
     ]);
     
@@ -41,27 +54,23 @@ async function loadProjectData(businessId: string) {
     let tags = [];
     let profile = null;
     
-    if (projectsResponse.ok) {
-      projects = await projectsResponse.json();
+    if (projectsResponse && 'ok' in projectsResponse && projectsResponse.ok) {
+      projects = await (projectsResponse as Response).json();
       console.log('✅ [PROJECTS] Projects loaded:', projects.length, 'items');
-    } else {
-      console.warn('⚠️ [PROJECTS] Failed to load projects:', projectsResponse.status);
-      // Use demo projects data as fallback
-      projects = [];
     }
     
-    if (categoriesResponse.ok) {
-      categories = await categoriesResponse.json();
+    if (categoriesResponse && 'ok' in categoriesResponse && categoriesResponse.ok) {
+      categories = await (categoriesResponse as Response).json();
       console.log('✅ [PROJECTS] Categories loaded:', categories.length, 'categories');
     }
     
-    if (tagsResponse.ok) {
-      tags = await tagsResponse.json();
+    if (tagsResponse && 'ok' in tagsResponse && tagsResponse.ok) {
+      tags = await (tagsResponse as Response).json();
       console.log('✅ [PROJECTS] Tags loaded:', tags.length, 'tags');
     }
     
-    if (profileResponse.ok) {
-      profile = await profileResponse.json();
+    if (profileResponse && 'ok' in profileResponse && profileResponse.ok) {
+      profile = await (profileResponse as Response).json();
       console.log('✅ [PROJECTS] Profile loaded:', profile.business_name);
     }
     
@@ -73,8 +82,9 @@ async function loadProjectData(businessId: string) {
 }
 
 export default async function ProjectsPage() {
-  const businessConfig = getBusinessConfig();
-  const businessId = businessConfig.defaultBusinessId;
+  // Get business ID from host for multi-tenant support
+  const resolution = await getBusinessIdFromHost();
+  const businessId = resolution.businessId;
   
   const { 
     projects: serverProjects,

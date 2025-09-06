@@ -3,7 +3,9 @@ import { Metadata } from 'next';
 import Header from '@/components/server/layout/header';
 import Hero365BusinessFooter from '@/components/client/business/Hero365BusinessFooter';
 import ProductListingClient from './ProductListingClient';
-import { getBusinessConfig, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getBackendUrl, getDefaultHeaders } from '@/lib/shared/config/api-config';
+import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
+import { notFound } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'Professional Products & Installation Services - Shop Online',
@@ -14,7 +16,7 @@ async function loadProductData(businessId: string) {
   try {
     console.log('🔄 [PRODUCTS] Loading product catalog for:', businessId);
     
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    const backendUrl = getBackendUrl();
     
     const [catalogResponse, categoriesResponse, profileResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/product-catalog/${businessId}`, {
@@ -58,8 +60,9 @@ async function loadProductData(businessId: string) {
 }
 
 export default async function ProductsPage() {
-  const businessConfig = getBusinessConfig();
-  const businessId = businessConfig.defaultBusinessId;
+  // Get business ID from host for multi-tenant support
+  const resolution = await getBusinessIdFromHost();
+  const businessId = resolution.businessId;
   
   const { 
     products: serverProducts,
@@ -67,20 +70,12 @@ export default async function ProductsPage() {
     profile: serverProfile
   } = await loadProductData(businessId);
   
-  const profile = serverProfile || {
-    business_id: businessId,
-    business_name: businessConfig.defaultBusinessName,
-    primary_trade_slug: 'hvac',
-    selected_activity_slugs: ['ac-installation', 'ac-repair', 'hvac-maintenance'],
-    phone: businessConfig.defaultBusinessPhone,
-    email: businessConfig.defaultBusinessEmail,
-    address: '123 Main St',
-    service_areas: ['Local Area'],
-    emergency_service: true,
-    years_in_business: 10,
-    average_rating: 4.8,
-    total_reviews: 150
-  };
+  // Enforce no-fallback policy
+  if (!serverProfile) {
+    notFound();
+  }
+  
+  const profile = serverProfile;
 
   const businessData = {
     businessName: profile.business_name,
