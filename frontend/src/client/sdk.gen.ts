@@ -220,12 +220,32 @@ import type {
   ContractorsProjectsGetProjectCategoriesResponse,
   ContractorsProjectsGetProjectTagsData,
   ContractorsProjectsGetProjectTagsResponse,
+  ContractorsServicesGetActiveServicesForStaticResponse,
+  ContractorsServicesGetActiveLocationsForStaticResponse,
   ContractorsServicesGetContractorServicesData,
   ContractorsServicesGetContractorServicesResponse,
   ContractorsServicesGetContractorServiceCategoriesData,
   ContractorsServicesGetContractorServiceCategoriesResponse,
   ContractorsServicesGetServicePricingData,
   ContractorsServicesGetServicePricingResponse,
+  GetActiveServicesForStaticResponse,
+  GetActiveLocationsForStaticResponse,
+  GetContractorServicesData,
+  GetContractorServicesResponse,
+  GetContractorServiceCategoriesData,
+  GetContractorServiceCategoriesResponse,
+  GetServicePricingData,
+  GetServicePricingResponse,
+  GenerateBusinessSitemapData,
+  GenerateBusinessSitemapResponse,
+  GenerateBusinessRobotsData,
+  GenerateBusinessRobotsResponse,
+  GetDeploymentConfigData,
+  GetDeploymentConfigResponse,
+  GetEnvironmentVariablesData,
+  GetEnvironmentVariablesResponse,
+  TriggerDeploymentData,
+  TriggerDeploymentResponse,
   CreateEstimateNoSlashData,
   CreateEstimateNoSlashResponse,
   ListEstimatesNoSlashData,
@@ -732,6 +752,18 @@ import type {
   TradeTaxonomyGetTradeActivityResponse,
   TradeTaxonomyListActivitiesWithTemplatesData,
   TradeTaxonomyListActivitiesWithTemplatesResponse,
+  UnifiedContentGenerateContentData,
+  UnifiedContentGenerateContentResponse,
+  UnifiedContentGenerateBulkContentData,
+  UnifiedContentGenerateBulkContentResponse,
+  UnifiedContentGetArtifactData,
+  UnifiedContentGetArtifactResponse,
+  UnifiedContentInvalidateCacheData,
+  UnifiedContentInvalidateCacheResponse,
+  UnifiedContentGetGenerationStatsResponse,
+  UnifiedContentPregenerateContentData,
+  UnifiedContentPregenerateContentResponse,
+  UnifiedContentHealthCheckResponse,
   UsersGetCurrentUserProfileResponse,
   UsersUpdateUserBusinessContextData,
   UsersUpdateUserBusinessContextResponse,
@@ -3993,6 +4025,32 @@ export class ContractorsProjectsService {
 
 export class ContractorsServicesService {
   /**
+   * Get Active Services For Static
+   * Return a list of active service slugs from the database for static generation.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getActiveServicesForStatic(): CancelablePromise<ContractorsServicesGetActiveServicesForStaticResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/services/active",
+    })
+  }
+
+  /**
+   * Get Active Locations For Static
+   * Return a list of active location slugs from the database for static generation.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getActiveLocationsForStatic(): CancelablePromise<ContractorsServicesGetActiveLocationsForStaticResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/locations/active",
+    })
+  }
+
+  /**
    * Get Contractor Services
    * Get contractor services offered by a business.
    *
@@ -4116,6 +4174,297 @@ export class ContractorsServicesService {
         membership_plan_id: data.membershipPlanId,
         service_area: data.serviceArea,
         estimated_hours: data.estimatedHours,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class DefaultService {
+  /**
+   * Get Active Services For Static
+   * Return a list of active service slugs from the database for static generation.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getActiveServicesForStatic(): CancelablePromise<GetActiveServicesForStaticResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/services/active",
+    })
+  }
+
+  /**
+   * Get Active Locations For Static
+   * Return a list of active location slugs from the database for static generation.
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getActiveLocationsForStatic(): CancelablePromise<GetActiveLocationsForStaticResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/locations/active",
+    })
+  }
+
+  /**
+   * Get Contractor Services
+   * Get contractor services offered by a business.
+   *
+   * Returns list of services with pricing and availability information.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * category: Optional category filter
+   * emergency_only: Only return emergency services
+   * limit: Maximum number of services to return
+   * offset: Pagination offset
+   * contractor_service: Injected contractor service
+   *
+   * Returns:
+   * List[ServiceItem]: A list of services
+   *
+   * Raises:
+   * HTTPException: If the business is not found or retrieval fails
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.category Filter by service category
+   * @param data.emergencyOnly Show only emergency services
+   * @param data.limit Maximum number of services to return
+   * @param data.offset Offset for pagination
+   * @returns ServiceItem Successful Response
+   * @throws ApiError
+   */
+  public static getContractorServices(
+    data: GetContractorServicesData,
+  ): CancelablePromise<GetContractorServicesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/services/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        category: data.category,
+        emergency_only: data.emergencyOnly,
+        limit: data.limit,
+        offset: data.offset,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Contractor Service Categories
+   * Get service categories for a business.
+   *
+   * Returns list of service categories with service counts for navigation.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * contractor_service: Injected contractor service
+   *
+   * Returns:
+   * List[ServiceCategory]: A list of service categories
+   *
+   * Raises:
+   * HTTPException: If the business is not found or retrieval fails
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns app__api__public__routes__contractors__schemas__ServiceCategory Successful Response
+   * @throws ApiError
+   */
+  public static getContractorServiceCategories(
+    data: GetContractorServiceCategoriesData,
+  ): CancelablePromise<GetContractorServiceCategoriesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/service-categories/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Service Pricing
+   * Calculate pricing for a service with membership discounts.
+   *
+   * Args:
+   * business_id: The unique identifier of the business
+   * service_id: The unique identifier of the service
+   * membership_plan_id: Optional membership plan for discounts
+   * service_area: Service area for location-based pricing
+   * estimated_hours: Estimated hours for hourly services
+   * contractor_service: Injected contractor service
+   *
+   * Returns:
+   * ServicePricing: Detailed service pricing breakdown
+   *
+   * Raises:
+   * HTTPException: If the business or service is not found
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.serviceId Service ID
+   * @param data.membershipPlanId Membership plan ID for discounts
+   * @param data.serviceArea Service area for location-based pricing
+   * @param data.estimatedHours Estimated hours for hourly services
+   * @returns ServicePricing Successful Response
+   * @throws ApiError
+   */
+  public static getServicePricing(
+    data: GetServicePricingData,
+  ): CancelablePromise<GetServicePricingResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/service-pricing/{business_id}/{service_id}",
+      path: {
+        business_id: data.businessId,
+        service_id: data.serviceId,
+      },
+      query: {
+        membership_plan_id: data.membershipPlanId,
+        service_area: data.serviceArea,
+        estimated_hours: data.estimatedHours,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Generate Business Sitemap
+   * Generate XML sitemap for a specific business
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.baseUrl
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static generateBusinessSitemap(
+    data: GenerateBusinessSitemapData,
+  ): CancelablePromise<GenerateBusinessSitemapResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/{business_id}/sitemap.xml",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        base_url: data.baseUrl,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Generate Business Robots
+   * Generate robots.txt for a specific business
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.baseUrl
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static generateBusinessRobots(
+    data: GenerateBusinessRobotsData,
+  ): CancelablePromise<GenerateBusinessRobotsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/{business_id}/robots.txt",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        base_url: data.baseUrl,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Deployment Config
+   * Get deployment configuration for a business website
+   * @param data The data for the request.
+   * @param data.businessId
+   * @returns BusinessDeploymentConfig Successful Response
+   * @throws ApiError
+   */
+  public static getDeploymentConfig(
+    data: GetDeploymentConfigData,
+  ): CancelablePromise<GetDeploymentConfigResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/{business_id}/deployment-config",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Environment Variables
+   * Get environment variables for deployment
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.siteUrl
+   * @returns DeploymentEnvironment Successful Response
+   * @throws ApiError
+   */
+  public static getEnvironmentVariables(
+    data: GetEnvironmentVariablesData,
+  ): CancelablePromise<GetEnvironmentVariablesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/{business_id}/env-vars",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        site_url: data.siteUrl,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Trigger Deployment
+   * Trigger deployment for a business website
+   * This would integrate with your deployment platform (Vercel, Netlify, etc.)
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.siteUrl
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static triggerDeployment(
+    data: TriggerDeploymentData,
+  ): CancelablePromise<TriggerDeploymentResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/public/contractors/{business_id}/deploy",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        site_url: data.siteUrl,
       },
       errors: {
         422: "Validation Error",
@@ -10775,6 +11124,186 @@ export class TradeTaxonomyService {
       errors: {
         422: "Validation Error",
       },
+    })
+  }
+}
+
+export class UnifiedContentService {
+  /**
+   * Generate Content
+   * Generate content for a specific service and location
+   *
+   * This is the main endpoint that replaces all fragmented content APIs.
+   * It provides:
+   * - Instant template content for immediate deployment
+   * - LLM-enhanced content for better quality
+   * - RAG-enhanced premium content
+   * - Real-time personalization
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ContentGenerationResponse Successful Response
+   * @throws ApiError
+   */
+  public static generateContent(
+    data: UnifiedContentGenerateContentData,
+  ): CancelablePromise<UnifiedContentGenerateContentResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/content/generate",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Generate Bulk Content
+   * Generate content for multiple services/locations in parallel
+   *
+   * This is perfect for:
+   * - Initial site deployment (generate all pages at once)
+   * - Bulk updates after business changes
+   * - Preemptive cache warming
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static generateBulkContent(
+    data: UnifiedContentGenerateBulkContentData,
+  ): CancelablePromise<UnifiedContentGenerateBulkContentResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/content/generate/bulk",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Artifact
+   * Get artifact content (compatible with existing frontend)
+   *
+   * Always returns a 200 with at least template-tier fallback to avoid frontend 500s.
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.activitySlug
+   * @param data.locationSlug
+   * @param data.pageVariant
+   * @param data.tier
+   * @returns ContentGenerationResponse Successful Response
+   * @throws ApiError
+   */
+  public static getArtifact(
+    data: UnifiedContentGetArtifactData,
+  ): CancelablePromise<UnifiedContentGetArtifactResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/content/artifact/{business_id}/{activity_slug}",
+      path: {
+        business_id: data.businessId,
+        activity_slug: data.activitySlug,
+      },
+      query: {
+        location_slug: data.locationSlug,
+        page_variant: data.pageVariant,
+        tier: data.tier,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Invalidate Cache
+   * Invalidate cached content
+   *
+   * Use this when:
+   * - Business information changes
+   * - Service offerings are updated
+   * - Location data is modified
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static invalidateCache(
+    data: UnifiedContentInvalidateCacheData,
+  ): CancelablePromise<UnifiedContentInvalidateCacheResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/content/cache/invalidate",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Generation Stats
+   * Get content generation statistics
+   *
+   * Useful for monitoring and optimization
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getGenerationStats(): CancelablePromise<UnifiedContentGetGenerationStatsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/content/stats",
+    })
+  }
+
+  /**
+   * Pregenerate Content
+   * Pregenerate content for all service-location combinations
+   *
+   * This creates the full SEO matrix (900+ pages) for a business:
+   * - 20 services × 15 locations × 3 variants = 900 pages
+   * - Template tier for instant deployment
+   * - Enhanced tier generated in background
+   * @param data The data for the request.
+   * @param data.businessId
+   * @param data.tier Content tier to pregenerate
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static pregenerateContent(
+    data: UnifiedContentPregenerateContentData,
+  ): CancelablePromise<UnifiedContentPregenerateContentResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/content/pregenerate/{business_id}",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        tier: data.tier,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Health Check
+   * Health check for the unified content system
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static healthCheck(): CancelablePromise<UnifiedContentHealthCheckResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/content/health",
     })
   }
 }

@@ -1976,6 +1976,27 @@ export type BulkCatalogRequest = {
 }
 
 /**
+ * Request model for bulk content generation
+ */
+export type BulkContentRequest = {
+  business_id: string
+  /**
+   * List of content requests
+   */
+  requests: Array<{
+    [key: string]: unknown
+  }>
+  /**
+   * Default content tier for all requests
+   */
+  target_tier?: string
+  /**
+   * Maximum parallel generations
+   */
+  parallel_limit?: number
+}
+
+/**
  * Schema for bulk operation responses.
  */
 export type BulkOperationResponse = {
@@ -2178,6 +2199,27 @@ export type BusinessCreateRequest = {
    * Business timezone
    */
   timezone?: string | null
+}
+
+/**
+ * Business deployment configuration
+ */
+export type BusinessDeploymentConfig = {
+  business_id: string
+  domain?: string | null
+  subdomain?: string | null
+  site_url: string
+  backend_url?: string
+  site_name: string
+  site_description: string
+  default_og_image?: string | null
+  primary_color?: string
+  logo_url?: string | null
+  favicon_url?: string | null
+  enable_booking?: boolean
+  enable_products?: boolean
+  enable_reviews?: boolean
+  enable_blog?: boolean
 }
 
 /**
@@ -2433,40 +2475,27 @@ export type BusinessRoleSchema =
 export type BusinessService = {
   id: string
   business_id: string
-  /**
-   * Template this service was created from
-   */
-  template_id?: string | null
-  category_id: string
-  name: string
+  service_name: string
+  service_slug?: string | null
   description?: string | null
-  pricing_model: string
-  unit_price?: string | null
-  minimum_price?: string | null
-  unit_of_measure?: string
-  estimated_duration_hours?: string | null
-  markup_percentage?: string | null
-  cost_price?: string | null
-  is_active?: boolean
-  is_featured?: boolean
+  category?: string | null
+  price_type?: string
+  price_min?: string | null
+  price_max?: string | null
+  price_unit?: string | null
   is_emergency?: boolean
-  requires_booking?: boolean
-  availability_schedule?: {
+  is_commercial?: boolean
+  is_residential?: boolean
+  is_active?: boolean
+  display_order?: number
+  adopted_from_slug?: string | null
+  template_version?: number
+  pricing_config?: {
     [key: string]: unknown
-  } | null
-  service_areas?: Array<string>
+  }
   booking_settings?: {
     [key: string]: unknown
   }
-  warranty_terms?: string | null
-  terms_and_conditions?: string | null
-  custom_fields?: {
-    [key: string]: unknown
-  }
-  sort_order?: number
-  total_bookings?: number
-  average_rating?: string | null
-  last_booked_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -2547,6 +2576,15 @@ export type BusinessUpdateRequest = {
   max_team_members?: number | null
   subscription_tier?: string | null
   enabled_features?: Array<string> | null
+}
+
+/**
+ * Request model for cache invalidation
+ */
+export type CacheInvalidationRequest = {
+  business_id: string
+  activity_slug?: string | null
+  location_slug?: string | null
 }
 
 /**
@@ -3825,6 +3863,71 @@ export type ContactUpdateRequest = {
 }
 
 /**
+ * Request model for content generation
+ */
+export type ContentGenerationRequest = {
+  /**
+   * Business identifier
+   */
+  business_id: string
+  /**
+   * Service activity slug (e.g., 'ac-repair')
+   */
+  activity_slug: string
+  /**
+   * Location slug (e.g., 'austin-tx')
+   */
+  location_slug?: string | null
+  /**
+   * Page variant: standard, emergency, commercial
+   */
+  page_variant?: string
+  /**
+   * Content tier: template, enhanced, premium, personalized
+   */
+  target_tier?: string
+  /**
+   * Real-time personalization context
+   */
+  personalization_context?: {
+    [key: string]: unknown
+  } | null
+  /**
+   * Cache TTL in seconds
+   */
+  cache_ttl?: number
+}
+
+/**
+ * Response model for content generation
+ */
+export type ContentGenerationResponse = {
+  request_id: string
+  business_id: string
+  activity_slug: string
+  location_slug: string | null
+  page_variant: string
+  artifact: {
+    [key: string]: unknown
+  }
+  business_context: {
+    [key: string]: unknown
+  }
+  location_context: {
+    [key: string]: unknown
+  } | null
+  tier: string
+  status: string
+  quality_score: number
+  generation_time_ms: number
+  cached: boolean
+  expires_at: string
+  seo_score: number
+  readability_score: number
+  conversion_potential: number
+}
+
+/**
  * Source of content generation.
  */
 export type ContentSource =
@@ -4469,6 +4572,22 @@ export type DefaultServicesResponse = {
   commercial_services: {
     [key: string]: Array<ServiceInfo>
   }
+}
+
+/**
+ * Environment variables for deployment
+ */
+export type DeploymentEnvironment = {
+  NEXT_PUBLIC_BUSINESS_ID: string
+  NEXT_PUBLIC_SITE_URL: string
+  NEXT_PUBLIC_BACKEND_URL: string
+  NEXT_PUBLIC_BUSINESS_NAME: string
+  NEXT_PUBLIC_BUSINESS_PHONE: string
+  NEXT_PUBLIC_BUSINESS_EMAIL: string
+  NEXT_PUBLIC_PRIMARY_COLOR: string
+  NEXT_PUBLIC_ENABLE_BOOKING: string
+  NEXT_PUBLIC_ENABLE_PRODUCTS: string
+  NEXT_PUBLIC_ENABLE_REVIEWS: string
 }
 
 export type DeploymentStatusResponse = {
@@ -11602,6 +11721,14 @@ export type ContractorsProjectsGetProjectTagsData = {
 
 export type ContractorsProjectsGetProjectTagsResponse = unknown
 
+export type ContractorsServicesGetActiveServicesForStaticResponse = Array<{
+  [key: string]: unknown
+}>
+
+export type ContractorsServicesGetActiveLocationsForStaticResponse = Array<{
+  [key: string]: unknown
+}>
+
 export type ContractorsServicesGetContractorServicesData = {
   /**
    * Business ID
@@ -11662,6 +11789,110 @@ export type ContractorsServicesGetServicePricingData = {
 }
 
 export type ContractorsServicesGetServicePricingResponse = ServicePricing
+
+export type GetActiveServicesForStaticResponse = Array<{
+  [key: string]: unknown
+}>
+
+export type GetActiveLocationsForStaticResponse = Array<{
+  [key: string]: unknown
+}>
+
+export type GetContractorServicesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Filter by service category
+   */
+  category?: string | null
+  /**
+   * Show only emergency services
+   */
+  emergencyOnly?: boolean
+  /**
+   * Maximum number of services to return
+   */
+  limit?: number
+  /**
+   * Offset for pagination
+   */
+  offset?: number
+}
+
+export type GetContractorServicesResponse = Array<ServiceItem>
+
+export type GetContractorServiceCategoriesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type GetContractorServiceCategoriesResponse =
+  Array<app__api__public__routes__contractors__schemas__ServiceCategory>
+
+export type GetServicePricingData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Estimated hours for hourly services
+   */
+  estimatedHours?: number | null
+  /**
+   * Membership plan ID for discounts
+   */
+  membershipPlanId?: string | null
+  /**
+   * Service area for location-based pricing
+   */
+  serviceArea?: string | null
+  /**
+   * Service ID
+   */
+  serviceId: string
+}
+
+export type GetServicePricingResponse = ServicePricing
+
+export type GenerateBusinessSitemapData = {
+  baseUrl?: string
+  businessId: string
+}
+
+export type GenerateBusinessSitemapResponse = unknown
+
+export type GenerateBusinessRobotsData = {
+  baseUrl?: string
+  businessId: string
+}
+
+export type GenerateBusinessRobotsResponse = unknown
+
+export type GetDeploymentConfigData = {
+  businessId: string
+}
+
+export type GetDeploymentConfigResponse = BusinessDeploymentConfig
+
+export type GetEnvironmentVariablesData = {
+  businessId: string
+  siteUrl?: string | null
+}
+
+export type GetEnvironmentVariablesResponse = DeploymentEnvironment
+
+export type TriggerDeploymentData = {
+  businessId: string
+  siteUrl?: string | null
+}
+
+export type TriggerDeploymentResponse = {
+  [key: string]: unknown
+}
 
 export type CreateEstimateNoSlashData = {
   requestBody: CreateEstimateSchema
@@ -14144,6 +14375,48 @@ export type TradeTaxonomyListActivitiesWithTemplatesData = {
 
 export type TradeTaxonomyListActivitiesWithTemplatesResponse =
   Array<ActivityWithTemplatesResponse>
+
+export type UnifiedContentGenerateContentData = {
+  requestBody: ContentGenerationRequest
+}
+
+export type UnifiedContentGenerateContentResponse = ContentGenerationResponse
+
+export type UnifiedContentGenerateBulkContentData = {
+  requestBody: BulkContentRequest
+}
+
+export type UnifiedContentGenerateBulkContentResponse = unknown
+
+export type UnifiedContentGetArtifactData = {
+  activitySlug: string
+  businessId: string
+  locationSlug?: string | null
+  pageVariant?: string
+  tier?: string
+}
+
+export type UnifiedContentGetArtifactResponse = ContentGenerationResponse
+
+export type UnifiedContentInvalidateCacheData = {
+  requestBody: CacheInvalidationRequest
+}
+
+export type UnifiedContentInvalidateCacheResponse = unknown
+
+export type UnifiedContentGetGenerationStatsResponse = unknown
+
+export type UnifiedContentPregenerateContentData = {
+  businessId: string
+  /**
+   * Content tier to pregenerate
+   */
+  tier?: string
+}
+
+export type UnifiedContentPregenerateContentResponse = unknown
+
+export type UnifiedContentHealthCheckResponse = unknown
 
 export type UsersGetCurrentUserProfileResponse = UserProfileResponse
 
