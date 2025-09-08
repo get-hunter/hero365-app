@@ -26,6 +26,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def get_product_service_association_service():
+    """Dependency to get product-service association service."""
+    from .....application.services.product_service_association_service import ProductServiceAssociationService
+    from .....infrastructure.repositories.product_service_association_repository import SupabaseProductServiceAssociationRepository
+    from .....infrastructure.config.dependency_injection import get_container
+    
+    client = get_container()._get_supabase_client()
+    repository = SupabaseProductServiceAssociationRepository(client)
+    return ProductServiceAssociationService(repository)
+
+
 def _extract_product_highlights(catalog_dto) -> List[str]:
     """Extract product highlights from specifications and other data."""
     highlights = []
@@ -143,11 +154,15 @@ async def get_contractor_products(
 async def get_product_catalog(
     business_id: str = Path(..., description="Business ID"),
     category: Optional[str] = Query(None, description="Filter by category"),
+    service_id: Optional[str] = Query(None, description="Filter by associated service"),
+    trade_slug: Optional[str] = Query(None, description="Filter by trade category"),
+    association_type: Optional[str] = Query(None, description="Filter by association type (required, recommended, etc.)"),
     search: Optional[str] = Query(None, description="Search products by name or description"),
     featured_only: bool = Query(False, description="Show only featured products"),
     limit: int = Query(50, ge=1, le=100, description="Maximum number of products to return"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
-    product_service: ProductService = Depends(get_product_service)
+    product_service: ProductService = Depends(get_product_service),
+    association_service = Depends(get_product_service_association_service)
 ):
     """
     Get product catalog with installation options for e-commerce display.
@@ -172,6 +187,60 @@ async def get_product_catalog(
     """
     
     try:
+        # If service_id is provided, get service-specific products
+        if service_id:
+            try:
+                from uuid import UUID
+                service_uuid = UUID(service_id)
+                business_uuid = UUID(business_id)
+                
+                # Parse association type if provided
+                assoc_type = None
+                if association_type:
+                    try:
+                        from ....domain.entities.product_service_association import AssociationType
+                        assoc_type = AssociationType(association_type.lower())
+                    except ValueError:
+                        raise HTTPException(status_code=400, detail=f"Invalid association_type: {association_type}")
+                
+                # Get products associated with the service
+                service_products = await association_service.get_service_products(
+                    business_uuid, service_uuid, assoc_type, featured_only
+                )
+                
+                # Convert to catalog items
+                catalog_items = []
+                for item in service_products:
+                    if item.get("product"):
+                        product = item["product"]
+                        association = item["association"]
+                        
+                        # Create catalog item with association context
+                        catalog_item = ProductCatalogItem(
+                            id=product["id"],
+                            name=product["name"],
+                            description=product.get("description", ""),
+                            category=product.get("category", ""),
+                            unit_price=float(product["unit_price"]),
+                            compare_at_price=float(product.get("compare_at_price", 0)) if product.get("compare_at_price") else None,
+                            featured_image_url=product.get("featured_image_url"),
+                            gallery_images=product.get("gallery_images", []),
+                            is_featured=product.get("is_featured", False),
+                            requires_installation=product.get("requires_installation", False),
+                            installation_time_hours=float(product.get("installation_time_hours", 0)) if product.get("installation_time_hours") else None,
+                            installation_complexity=product.get("installation_complexity", "medium"),
+                            highlights=_extract_product_highlights(product),
+                            installation_options=[],  # Would populate from separate query
+                            membership_pricing=[]  # Would populate from separate query
+                        )
+                        catalog_items.append(catalog_item)
+                
+                return catalog_items[:limit]
+                
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=f"Invalid UUID format: {str(e)}")
+        
+        # Default behavior - get all products
         catalog_dtos = await product_service.get_product_catalog(
             business_id=business_id,
             category=category,

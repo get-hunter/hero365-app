@@ -7,10 +7,17 @@ DTOs for contact-related data transfer operations.
 import uuid
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
+from enum import Enum
 from pydantic import BaseModel, Field
 
 from ...domain.entities.contact import ContactType, ContactStatus, ContactSource, ContactPriority, RelationshipStatus, LifecycleStage
-from ...api.schemas.contact_schemas import UserDetailLevel
+
+
+class UserDetailLevel(str, Enum):
+    """User detail inclusion levels."""
+    NONE = "none"
+    BASIC = "basic"
+    FULL = "full"
 
 
 class ContactAddressDTO(BaseModel):

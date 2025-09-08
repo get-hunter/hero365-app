@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+
 # Real database-backed discovery endpoints for static generation
 @router.get("/services/active", response_model=List[dict])
 async def get_active_services_for_static():
@@ -203,6 +204,7 @@ async def get_contractor_service_categories(
             category = ServiceCategory(
                 id=category_dto.id,
                 name=category_dto.name,
+                slug=category_dto.slug,
                 description=category_dto.description,
                 service_count=category_dto.service_count,
                 sort_order=category_dto.sort_order
@@ -291,5 +293,3 @@ async def get_service_pricing(
     except Exception as e:
         logger.error(f"Unexpected error calculating service pricing for {service_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
-
-

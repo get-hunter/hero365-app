@@ -16,6 +16,7 @@ from ...domain.entities.contact_enums.enums import (
     ContactType, ContactStatus, ContactPriority, ContactSource,
     RelationshipStatus, LifecycleStage
 )
+from ...application.dto.contact_dto import UserDetailLevel
 from ..converters import EnumConverter, SupabaseConverter
 
 
@@ -40,11 +41,6 @@ class UserReferenceFull(BaseModel):
 
 
 # Enum for user detail inclusion levels
-class UserDetailLevel(str, Enum):
-    """User detail inclusion levels."""
-    NONE = "none"
-    BASIC = "basic"
-    FULL = "full"
 
 
 # Use centralized enums directly as API schemas

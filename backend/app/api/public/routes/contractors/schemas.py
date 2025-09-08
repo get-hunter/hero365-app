@@ -89,15 +89,30 @@ class ProductItem(BaseModel):
     sku: Optional[str] = Field(None, description="Product SKU")
     
     # Pricing and availability
-    price: float = Field(..., description="Product price")
+    unit_price: float = Field(..., description="Product unit price")
+    compare_at_price: Optional[float] = Field(None, description="Compare at price")
+    price: Optional[float] = Field(None, description="Legacy price field")
     msrp: Optional[float] = Field(None, description="Manufacturer suggested retail price")
     in_stock: bool = Field(True, description="Product in stock")
     stock_quantity: int = Field(0, description="Current stock quantity")
     
-    # Additional information
+    # Product media
+    featured_image_url: Optional[str] = Field(None, description="Featured product image")
+    gallery_images: List[str] = Field(default_factory=list, description="Product gallery images")
+    
+    # Installation details
+    requires_installation: bool = Field(False, description="Product requires installation")
+    installation_time_hours: Optional[float] = Field(None, description="Installation time in hours")
+    installation_complexity: Optional[str] = Field(None, description="Installation complexity level")
+    
+    # Product features
+    is_featured: bool = Field(False, description="Featured product")
     specifications: Dict[str, str] = Field(default_factory=dict, description="Product specifications")
     warranty_years: Optional[int] = Field(None, description="Warranty period in years")
     energy_rating: Optional[str] = Field(None, description="Energy efficiency rating")
+    
+    # Service context (when product is associated with a service)
+    service_context: Optional[Dict[str, Any]] = Field(None, description="Service association context")
 
 
 class ProductCategory(BaseModel):

@@ -46,9 +46,12 @@ export default function ProductListingClient({
         if (!matchesSearch) return false;
       }
       
-      // Category filter
-      if (selectedCategory !== 'all' && product.category_name !== selectedCategory) {
-        return false;
+      // Service-based category filter
+      if (selectedCategory !== 'all') {
+        // For now, show all products when a service category is selected
+        // The actual filtering will be handled by fetching service-specific products
+        // from the backend API when a service filter is applied
+        return true;
       }
       
       // Price range filter

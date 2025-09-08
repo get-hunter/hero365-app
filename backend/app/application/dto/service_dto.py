@@ -34,6 +34,7 @@ class ServiceCategoryDTO(BaseModel):
     
     id: str = Field(..., description="Category ID")
     name: str = Field(..., description="Category name")
+    slug: str = Field(..., description="Category slug")
     description: str = Field(..., description="Category description")
     service_count: int = Field(default=0, description="Number of services in category")
     is_active: bool = Field(default=True, description="Category is active")

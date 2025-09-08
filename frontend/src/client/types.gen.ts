@@ -7171,9 +7171,17 @@ export type ProductItem = {
    */
   sku?: string | null
   /**
-   * Product price
+   * Product unit price
    */
-  price: number
+  unit_price: number
+  /**
+   * Compare at price
+   */
+  compare_at_price?: number | null
+  /**
+   * Legacy price field
+   */
+  price?: number | null
   /**
    * Manufacturer suggested retail price
    */
@@ -7186,6 +7194,30 @@ export type ProductItem = {
    * Current stock quantity
    */
   stock_quantity?: number
+  /**
+   * Featured product image
+   */
+  featured_image_url?: string | null
+  /**
+   * Product gallery images
+   */
+  gallery_images?: Array<string>
+  /**
+   * Product requires installation
+   */
+  requires_installation?: boolean
+  /**
+   * Installation time in hours
+   */
+  installation_time_hours?: number | null
+  /**
+   * Installation complexity level
+   */
+  installation_complexity?: string | null
+  /**
+   * Featured product
+   */
+  is_featured?: boolean
   /**
    * Product specifications
    */
@@ -7200,6 +7232,12 @@ export type ProductItem = {
    * Energy efficiency rating
    */
   energy_rating?: string | null
+  /**
+   * Service association context
+   */
+  service_context?: {
+    [key: string]: unknown
+  } | null
 }
 
 /**
@@ -11665,6 +11703,10 @@ export type ContractorsProductsGetContractorProductsResponse =
 
 export type ContractorsProductsGetProductCatalogData = {
   /**
+   * Filter by association type (required, recommended, etc.)
+   */
+  associationType?: string | null
+  /**
    * Business ID
    */
   businessId: string
@@ -11688,6 +11730,14 @@ export type ContractorsProductsGetProductCatalogData = {
    * Search products by name or description
    */
   search?: string | null
+  /**
+   * Filter by associated service
+   */
+  serviceId?: string | null
+  /**
+   * Filter by trade category
+   */
+  tradeSlug?: string | null
 }
 
 export type ContractorsProductsGetProductCatalogResponse =
@@ -11894,6 +11944,49 @@ export type ContractorsServicesGetServicePricingData = {
 
 export type ContractorsServicesGetServicePricingResponse = ServicePricing
 
+export type ContractorsServicesGetServiceProductsData = {
+  /**
+   * Filter by association type
+   */
+  associationType?: string | null
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Show only featured products
+   */
+  featuredOnly?: boolean
+  /**
+   * Maximum number of products to return
+   */
+  limit?: number
+  /**
+   * Service ID
+   */
+  serviceId: string
+}
+
+export type ContractorsServicesGetServiceProductsResponse = Array<ProductItem>
+
+export type ContractorsServicesGetServiceRecommendedProductsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Maximum number of products to return
+   */
+  limit?: number
+  /**
+   * Service ID
+   */
+  serviceId: string
+}
+
+export type ContractorsServicesGetServiceRecommendedProductsResponse =
+  Array<ProductItem>
+
 export type GetActiveServicesForStaticResponse = Array<{
   [key: string]: unknown
 }>
@@ -11962,6 +12055,48 @@ export type GetServicePricingData = {
 }
 
 export type GetServicePricingResponse = ServicePricing
+
+export type GetServiceProductsData = {
+  /**
+   * Filter by association type
+   */
+  associationType?: string | null
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Show only featured products
+   */
+  featuredOnly?: boolean
+  /**
+   * Maximum number of products to return
+   */
+  limit?: number
+  /**
+   * Service ID
+   */
+  serviceId: string
+}
+
+export type GetServiceProductsResponse = Array<ProductItem>
+
+export type GetServiceRecommendedProductsData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Maximum number of products to return
+   */
+  limit?: number
+  /**
+   * Service ID
+   */
+  serviceId: string
+}
+
+export type GetServiceRecommendedProductsResponse = Array<ProductItem>
 
 export type GenerateBusinessSitemapData = {
   baseUrl?: string

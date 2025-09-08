@@ -155,6 +155,7 @@ class ContractorService:
                 ServiceCategoryDTO(
                     id="cat-1",
                     name="Installation",
+                    slug="installation",
                     description="New system installations",
                     service_count=5,
                     is_active=True,
@@ -163,6 +164,7 @@ class ContractorService:
                 ServiceCategoryDTO(
                     id="cat-2",
                     name="Repair",
+                    slug="repair",
                     description="System repairs and troubleshooting",
                     service_count=8,
                     is_active=True,
@@ -171,6 +173,7 @@ class ContractorService:
                 ServiceCategoryDTO(
                     id="cat-3",
                     name="Maintenance",
+                    slug="maintenance",
                     description="Preventive maintenance services",
                     service_count=6,
                     is_active=True,

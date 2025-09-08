@@ -6,8 +6,9 @@ import ProductListingClient from './ProductListingClient';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { loadPageData } from '@/lib/server/data-fetchers';
 import { notFound } from 'next/navigation';
-import type { BusinessProfile, ProductItem } from '@/lib/shared/types/api-responses';
+import type { BusinessProfile, ProductItem, ServiceCategory } from '@/lib/shared/types/api-responses';
 import type { ProductCatalogItem, ProductCategory } from '@/lib/shared/types/products';
+
 
 export const metadata: Metadata = {
   title: 'Professional Products & Installation Services - Shop Online',
@@ -20,6 +21,7 @@ export default async function ProductsPage() {
   const resolution = await getBusinessIdFromHost();
   const businessId = resolution.businessId;
   
+  // Fetch regular products and service categories
   const { 
     profile: serverProfile,
     products: serverProducts,
@@ -36,7 +38,7 @@ export default async function ProductsPage() {
   
   const profile = serverProfile;
 
-  // Convert ProductItem[] to ProductCatalogItem[] format
+  // Convert regular products to ProductCatalogItem[] format
   const convertedProducts: ProductCatalogItem[] = serverProducts.map((product: ProductItem) => ({
     id: product.id.toString(),
     name: product.name,
@@ -63,20 +65,21 @@ export default async function ProductsPage() {
     installation_options: []
   }));
 
-  // Derive ProductCategory[] from available products (backend categories endpoint not implemented yet)
-  const derivedCategories: ProductCategory[] = (() => {
-    const counts = new Map<string, number>();
-    for (const p of convertedProducts) {
-      const name = p.category_name || 'General';
-      counts.set(name, (counts.get(name) || 0) + 1);
-    }
-    return Array.from(counts.entries()).map(([name, count]) => ({
-      id: name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-'),
-      name,
-      product_count: count,
-      sort_order: 0
-    }));
-  })();
+  // Create service-based filters using actual service data
+  const serviceFilters: ProductCategory[] = [
+    {
+      id: 'all',
+      name: 'All Products',
+      product_count: convertedProducts.length,
+      sort_order: -1
+    },
+    ...serverCategories.map((category: ServiceCategory) => ({
+      id: category.slug,
+      name: category.name,
+      product_count: 0, // Will be populated dynamically when filtering
+      sort_order: category.sort_order || 0
+    }))
+  ];
 
   return (
       <div className="min-h-screen bg-gray-50">
@@ -124,7 +127,7 @@ export default async function ProductsPage() {
         {/* Product Listing Content */}
         <ProductListingClient 
           products={convertedProducts}
-          categories={derivedCategories}
+          categories={serviceFilters}
           businessId={businessId}
           hasRealData={serverProducts.length > 0}
         />
