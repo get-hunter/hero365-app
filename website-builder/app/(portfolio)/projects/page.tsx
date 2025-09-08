@@ -43,8 +43,8 @@ export default async function ProjectsPage() {
       <div className="min-h-screen bg-white">
         <Hero365Header 
           businessProfile={serverProfile as any}
-          showCTA={false}
-          showCart={false}
+          showCTA={true}
+          showCart={true}
         />
         
         <ProjectListingClient 

@@ -122,15 +122,8 @@ export default async function Hero365Header({
   // Group services by trade/category for mega menu
   const serviceCategories = groupServicesByCategory(services);
 
-  const companyLinks = [
-    { name: "About Us", href: "/about" },
-    { name: "Service Area", href: "/service-area" },
-    { name: "Why Choose Us", href: "/why-us" },
-    { name: "Our Work", href: "/projects" },
-    { name: "Customer Reviews", href: "/reviews" },
-    { name: "Careers", href: "/careers" },
-    { name: "Blog", href: "/blog" }
-  ];
+  // Simplified: only keep prioritized nav in client; companyLinks not used
+  const companyLinks: Array<{ name: string; href: string }> = [];
 
   return (
     <>

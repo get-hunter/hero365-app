@@ -213,8 +213,8 @@ export default async function ProjectDetailPage({
           <div className="min-h-screen bg-white">
             <Hero365Header
               businessProfile={profile}
-              showCTA={false}
-              showCart={false}
+              showCTA={true}
+              showCart={true}
               ctaSlot={undefined}
               cartSlot={undefined}
             />

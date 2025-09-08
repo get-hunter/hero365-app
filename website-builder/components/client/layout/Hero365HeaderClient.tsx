@@ -11,6 +11,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { ShoppingBag } from 'lucide-react';
 
 interface ServiceCategory {
   name: string;
@@ -101,129 +102,54 @@ export default function Hero365HeaderClient({
     <>
       {/* Desktop Navigation */}
       <nav className="hidden lg:flex items-center space-x-8">
-        
-        {/* Services Mega Menu */}
-        <div 
-          className="relative"
-          onMouseEnter={() => handleDropdownEnter('services')}
-          onMouseLeave={handleDropdownLeave}
-        >
-          <button 
-            className="flex items-center text-gray-700 hover:text-gray-900 font-medium py-2"
-            aria-expanded={activeDropdown === 'services'}
-            aria-haspopup="true"
-          >
-            Services
-            <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          
-          <div className={`absolute top-full left-0 mt-0 w-screen max-w-4xl bg-white shadow-xl border rounded-lg z-50 transition-all duration-200 ${
-            activeDropdown === 'services' ? 'opacity-100 visible' : 'opacity-0 invisible'
-          }`}>
-            <div className="p-6">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                {serviceCategories.map((category) => (
-                  <div key={category.name}>
-                    <h3 className="font-semibold text-gray-900 mb-3">
-                      {category.name}
-                    </h3>
-                    <ul className="space-y-2">
-                      {category.services.map((service) => (
-                        <li key={service.name}>
-                          <Link 
-                            href={service.href}
-                            className="block text-sm text-gray-600 hover:text-blue-600 transition-colors"
-                            onClick={() => setActiveDropdown(null)}
-                          >
-                            {service.name}
-                            {service.is_emergency && (
-                              <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">
-                                24/7
-                              </span>
-                            )}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Need Help Choosing?</h4>
-                    <p className="text-sm text-gray-600">Our experts are here to help - call the number above</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Locations / Service Areas */}
+        <Link href="/locations" className="text-gray-700 hover:text-gray-900 font-medium py-2">
+          Service Areas
+        </Link>
 
-        {/* Products Link */}
+        {/* Products */}
         <Link href="/products" className="text-gray-700 hover:text-gray-900 font-medium py-2">
           Products
         </Link>
 
-        {/* Projects Link */}
+        {/* Projects */}
         <Link href="/projects" className="text-gray-700 hover:text-gray-900 font-medium py-2">
           Projects
-        </Link>
-
-        {/* Company Dropdown */}
-        <div 
-          className="relative"
-          onMouseEnter={() => handleDropdownEnter('company')}
-          onMouseLeave={handleDropdownLeave}
-        >
-          <button 
-            className="flex items-center text-gray-700 hover:text-gray-900 font-medium py-2"
-            aria-expanded={activeDropdown === 'company'}
-            aria-haspopup="true"
-          >
-            Company
-            <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          
-          <div className={`absolute top-full left-0 mt-0 w-64 bg-white shadow-xl border rounded-lg z-50 transition-all duration-200 ${
-            activeDropdown === 'company' ? 'opacity-100 visible' : 'opacity-0 invisible'
-          }`}>
-            <div className="py-2">
-              {companyLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                  onClick={() => setActiveDropdown(null)}
-                >
-                  {link.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <Link href="/pricing" className="text-gray-700 hover:text-gray-900 font-medium">
-          Pricing
-        </Link>
-        <Link href="/contact" className="text-gray-700 hover:text-gray-900 font-medium">
-          Contact
         </Link>
       </nav>
 
       {/* Desktop CTAs */}
       <div className="hidden lg:flex items-center space-x-3">
-        {showCart && cartSlot}
-        {showCTA && ctaSlot}
+        {showCart && (cartSlot || (
+          <Link href="/cart" className="p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100" aria-label="View cart">
+            <ShoppingBag className="w-5 h-5" />
+          </Link>
+        ))}
+        {showCTA && (ctaSlot || (
+          <div className="flex items-center space-x-2">
+            <Link
+              href="/contact?action=quote"
+              className="px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Get a Quote Now
+            </Link>
+            <Link
+              href="/booking"
+              className="px-4 py-2 bg-white text-blue-600 font-medium rounded-md border border-blue-600 hover:bg-blue-50 transition-colors"
+            >
+              Book Now
+            </Link>
+          </div>
+        ))}
       </div>
 
       {/* Mobile Menu Button */}
       <div className="lg:hidden flex items-center space-x-3">
-        {showCart && cartSlot}
+        {showCart && (cartSlot || (
+          <Link href="/cart" className="p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100" aria-label="View cart">
+            <ShoppingBag className="w-5 h-5" />
+          </Link>
+        ))}
         <button
           className="mobile-menu-button p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -246,29 +172,13 @@ export default function Hero365HeaderClient({
       }`}>
         <div className="px-4 py-6 space-y-6">
           <div className="space-y-4">
-            <div>
-              <div className="text-gray-900 font-semibold mb-2">Services</div>
-              {serviceCategories.map((category) => (
-                <div key={category.name} className="ml-4 mb-3">
-                  <div className="font-medium text-gray-800 mb-1">{category.name}</div>
-                  {category.services.map((service) => (
-                    <Link
-                      key={service.name}
-                      href={service.href}
-                      className="block text-sm text-gray-600 py-1 hover:text-blue-600"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {service.name}
-                      {service.is_emergency && (
-                        <span className="ml-2 text-xs bg-red-100 text-red-600 px-1 py-0.5 rounded">
-                          24/7
-                        </span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              ))}
-            </div>
+            <Link 
+              href="/locations" 
+              className="block text-gray-700 font-medium"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Service Areas
+            </Link>
             <Link 
               href="/products" 
               className="block text-gray-700 font-medium"
@@ -283,35 +193,6 @@ export default function Hero365HeaderClient({
             >
               Projects
             </Link>
-            <div>
-              <div className="text-gray-900 font-semibold mb-2">Company</div>
-              <div className="ml-4 space-y-1">
-                {companyLinks.map((link) => (
-                  <Link
-                    key={link.name}
-                    href={link.href}
-                    className="block text-sm text-gray-600 py-1 hover:text-blue-600"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {link.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <Link 
-              href="/pricing" 
-              className="block text-gray-700 font-medium"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Pricing
-            </Link>
-            <Link 
-              href="/contact" 
-              className="block text-gray-700 font-medium"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Contact
-            </Link>
           </div>
           
           <div className="pt-6 border-t border-gray-200 space-y-3">
@@ -319,7 +200,24 @@ export default function Hero365HeaderClient({
               <p className="text-sm text-gray-600 mb-3">
                 Ready to get started? Call the number above or book online!
               </p>
-              {showCTA && ctaSlot}
+              {showCTA && (ctaSlot || (
+                <div className="flex items-center justify-center gap-3">
+                  <Link
+                    href="/contact?action=quote"
+                    className="px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Get a Quote Now
+                  </Link>
+                  <Link
+                    href="/booking"
+                    className="px-4 py-2 bg-white text-blue-600 font-medium rounded-md border border-blue-600 hover:bg-blue-50 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Book Now
+                  </Link>
+                </div>
+              ))}
             </div>
           </div>
         </div>

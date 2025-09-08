@@ -75,7 +75,7 @@ export default async function HomePage() {
     const businessData = extractBusinessData(profile);
     
     // Add computed properties
-    const enhancedBusinessData = {
+    const homepageBusiness = {
       ...businessData,
       businessName: businessData.name,
       tagline: `Professional ${formattedTradeName} Services`,
@@ -113,27 +113,27 @@ export default async function HomePage() {
             postal_code: profile.postal_code || undefined,
             logo_url: profile.logo_url || undefined
           }}
-          showCTA={false}
-          showCart={false}
+          showCTA={true}
+          showCart={true}
         />
 
         {/* Hero Section */}
         <HeroSection
-          businessName={enhancedBusinessData.businessName}
-          headline={`Professional ${enhancedBusinessData.businessName} Services`}
-          subheadline={enhancedBusinessData.tagline}
-          city={enhancedBusinessData.serviceAreas[0] || 'Austin'}
-          phone={enhancedBusinessData.phone || '(555) 123-4567'}
-          averageRating={enhancedBusinessData.averageRating}
-          totalReviews={enhancedBusinessData.totalReviews}
-          emergencyMessage={enhancedBusinessData.emergency_service ? '24/7 Emergency Service Available' : undefined}
+          businessName={homepageBusiness.businessName}
+          headline={`Professional ${homepageBusiness.businessName} Services`}
+          subheadline={homepageBusiness.tagline}
+          city={homepageBusiness.serviceAreas[0] || 'Austin'}
+          phone={homepageBusiness.phone || '(555) 123-4567'}
+          averageRating={homepageBusiness.averageRating}
+          totalReviews={homepageBusiness.totalReviews}
+          emergencyMessage={homepageBusiness.emergency_service ? '24/7 Emergency Service Available' : undefined}
         />
 
         {/* Services Grid */}
         <ServicesGrid
-          businessName={enhancedBusinessData.businessName}
-          city={enhancedBusinessData.serviceAreas[0] || 'Austin'}
-          phone={enhancedBusinessData.phone || '(555) 123-4567'}
+          businessName={homepageBusiness.businessName}
+          city={homepageBusiness.serviceAreas[0] || 'Austin'}
+          phone={homepageBusiness.phone || '(555) 123-4567'}
         />
         
         {/* View All Services Link */}
@@ -300,12 +300,12 @@ export default async function HomePage() {
         {/* Contact Section */}
         <Hero365ContactSection 
           business={{
-            ...enhancedBusinessData,
-            phone_number: enhancedBusinessData.phone_number ?? undefined,
-            business_email: enhancedBusinessData.business_email ?? undefined,
-            trades: enhancedBusinessData.trades || [],
-            service_areas: enhancedBusinessData.service_areas || [],
-            seo_keywords: enhancedBusinessData.seo_keywords || []
+            ...homepageBusiness,
+            phone_number: homepageBusiness.phone_number ?? undefined,
+            business_email: homepageBusiness.business_email ?? undefined,
+            trades: homepageBusiness.trades || [],
+            service_areas: homepageBusiness.service_areas || [],
+            seo_keywords: homepageBusiness.seo_keywords || []
           }}
           locations={[]}
         />
@@ -314,7 +314,7 @@ export default async function HomePage() {
         <Hero365Footer 
           business={profile}
           services={serverServices}
-          showEmergencyBanner={enhancedBusinessData.emergency_service}
+          showEmergencyBanner={homepageBusiness.emergency_service}
         />
       </div>
     );

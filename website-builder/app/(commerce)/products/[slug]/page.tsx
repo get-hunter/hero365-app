@@ -115,7 +115,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         <div className="min-h-screen bg-white">
           <Hero365Header 
             businessProfile={businessProfile}
-            showCTA={false}
+            showCTA={true}
             showCart={true}
           />
 

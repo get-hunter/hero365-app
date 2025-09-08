@@ -85,7 +85,7 @@ export default async function ProductsPage() {
       <div className="min-h-screen bg-gray-50">
         <Hero365Header 
           businessProfile={serverProfile}
-          showCTA={false}
+          showCTA={true}
           showCart={true}
         />
 
