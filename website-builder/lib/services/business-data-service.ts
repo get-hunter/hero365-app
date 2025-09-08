@@ -325,17 +325,27 @@ export class BusinessDataService {
       const results = await Promise.all(promises);
       const loadTime = Date.now() - startTime;
       
+      // Map results to correct data based on what was requested
+      let resultIndex = 0;
+      const profile = results[resultIndex++] as EnhancedBusinessProfile | null;
+      
+      const services = (options.includeServices !== false ? results[resultIndex++] : []) as EnhancedServiceItem[];
+      const products = (options.includeProducts ? results[resultIndex++] : []) as EnhancedProductItem[];
+      const projects = (options.includeProjects ? results[resultIndex++] : []) as EnhancedProjectItem[];
+      const locations = (options.includeLocations ? results[resultIndex++] : []) as EnhancedLocationItem[];
+      const categories = (options.includeCategories ? results[resultIndex++] : []) as EnhancedServiceCategory[];
+      
       const data: EnhancedHomepageData = {
-        profile: results[0] as EnhancedBusinessProfile | null,
-        services: (options.includeServices !== false ? results[1] : []) as EnhancedServiceItem[],
-        products: (options.includeProducts ? results[promises.indexOf(this.getBusinessProducts(businessId, {}))] : []) as EnhancedProductItem[],
-        projects: (options.includeProjects ? results[promises.findIndex((_, i) => i > 1 && options.includeProjects)] : []) as EnhancedProjectItem[],
+        profile,
+        services,
+        products,
+        projects,
         diagnostics: {
           backendUrl: this.baseUrl || '',
-          profileOk: !!results[0],
-          servicesOk: options.includeServices !== false ? Array.isArray(results[1]) : true,
-          productsOk: options.includeProducts ? Array.isArray(results[2]) : true,
-          projectsOk: options.includeProjects ? Array.isArray(results[3]) : true,
+          profileOk: !!profile,
+          servicesOk: options.includeServices !== false ? Array.isArray(services) : true,
+          productsOk: options.includeProducts ? Array.isArray(products) : true,
+          projectsOk: options.includeProjects ? Array.isArray(projects) : true,
           timestamp: Date.now(),
           environment: process.env.NODE_ENV || 'development'
         } as DiagnosticsInfo

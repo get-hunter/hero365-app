@@ -19,6 +19,7 @@ import {
   Share2
 } from 'lucide-react';
 import Image from 'next/image';
+import ImageCompare from '@/components/client/media/ImageCompare';
 // import Hero365ProjectGallery from './Hero365ProjectGallery'; // Removed to fix hydration issues
 
 interface FeaturedProject {
@@ -236,37 +237,11 @@ export default function ProjectShowcase({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Before/After Gallery */}
+              {/* Before/After Gallery (interactive) */}
               {beforeAfterImages.length > 0 && (
                 <div>
-                  <h3 className="text-xl font-semibold mb-4">Before & After</h3>
-                  {/* Simple static before/after display */}
-                  <div className="space-y-4">
-                    {beforeAfterImages.map((image, index) => (
-                      <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="relative aspect-video rounded-lg overflow-hidden">
-                          <img 
-                            src={image.before} 
-                            alt="Before" 
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute bottom-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                            Before
-                          </div>
-                        </div>
-                        <div className="relative aspect-video rounded-lg overflow-hidden">
-                          <img 
-                            src={image.after} 
-                            alt="After" 
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute bottom-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                            After
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <h3 className="text-xl font-semibold mb-4">Before &amp; After</h3>
+                  <ImageCompare images={beforeAfterImages} showThumbnails startPosition={50} />
                 </div>
               )}
 
@@ -398,34 +373,8 @@ export default function ProjectShowcase({
             {/* Before/After Gallery */}
             {beforeAfterImages.length > 0 && (
               <div>
-                <h3 className="text-xl font-semibold mb-4">Before & After Comparison</h3>
-                {/* Simple static gallery display */}
-                <div className="space-y-4">
-                  {beforeAfterImages.map((image, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="relative aspect-video rounded-lg overflow-hidden">
-                        <img 
-                          src={image.before} 
-                          alt="Before" 
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute bottom-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                          Before
-                        </div>
-                      </div>
-                      <div className="relative aspect-video rounded-lg overflow-hidden">
-                        <img 
-                          src={image.after} 
-                          alt="After" 
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute bottom-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                          After
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <h3 className="text-xl font-semibold mb-4">Before &amp; After Comparison</h3>
+                <ImageCompare images={beforeAfterImages} showThumbnails startPosition={50} />
               </div>
             )}
 
