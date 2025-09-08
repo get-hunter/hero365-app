@@ -169,13 +169,22 @@ export class BusinessDataService {
       `/api/v1/public/contractors/services/${businessId}${queryString}`
     );
     
-    // Add slug field to each service for navigation (matches backend logic)
-    const servicesWithSlugs = (result || []).map(service => ({
-      ...service,
-      slug: this.generateServiceSlug(service.name || '')
-    }));
+    // Normalize fields and prefer canonical_slug for navigation
+    const servicesWithSlugs = (result || []).map((service, index) => {
+      const canonical = service.canonical_slug as string | undefined;
+      const name: string = service.name || service.service_name || '';
+      const computedSlug = canonical && typeof canonical === 'string' && canonical.length > 0
+        ? canonical
+        : this.generateServiceSlug(name);
+      return {
+        id: service.id ?? `${computedSlug || 'service'}-${index}`,
+        name,
+        slug: computedSlug,
+        ...service,
+      };
+    });
     
-    return servicesWithSlugs;
+    return servicesWithSlugs as unknown as EnhancedServiceItem[];
   }
 
   /**

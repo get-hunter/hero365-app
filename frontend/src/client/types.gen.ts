@@ -11944,49 +11944,6 @@ export type ContractorsServicesGetServicePricingData = {
 
 export type ContractorsServicesGetServicePricingResponse = ServicePricing
 
-export type ContractorsServicesGetServiceProductsData = {
-  /**
-   * Filter by association type
-   */
-  associationType?: string | null
-  /**
-   * Business ID
-   */
-  businessId: string
-  /**
-   * Show only featured products
-   */
-  featuredOnly?: boolean
-  /**
-   * Maximum number of products to return
-   */
-  limit?: number
-  /**
-   * Service ID
-   */
-  serviceId: string
-}
-
-export type ContractorsServicesGetServiceProductsResponse = Array<ProductItem>
-
-export type ContractorsServicesGetServiceRecommendedProductsData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  /**
-   * Maximum number of products to return
-   */
-  limit?: number
-  /**
-   * Service ID
-   */
-  serviceId: string
-}
-
-export type ContractorsServicesGetServiceRecommendedProductsResponse =
-  Array<ProductItem>
-
 export type GetActiveServicesForStaticResponse = Array<{
   [key: string]: unknown
 }>
@@ -12055,48 +12012,6 @@ export type GetServicePricingData = {
 }
 
 export type GetServicePricingResponse = ServicePricing
-
-export type GetServiceProductsData = {
-  /**
-   * Filter by association type
-   */
-  associationType?: string | null
-  /**
-   * Business ID
-   */
-  businessId: string
-  /**
-   * Show only featured products
-   */
-  featuredOnly?: boolean
-  /**
-   * Maximum number of products to return
-   */
-  limit?: number
-  /**
-   * Service ID
-   */
-  serviceId: string
-}
-
-export type GetServiceProductsResponse = Array<ProductItem>
-
-export type GetServiceRecommendedProductsData = {
-  /**
-   * Business ID
-   */
-  businessId: string
-  /**
-   * Maximum number of products to return
-   */
-  limit?: number
-  /**
-   * Service ID
-   */
-  serviceId: string
-}
-
-export type GetServiceRecommendedProductsResponse = Array<ProductItem>
 
 export type GenerateBusinessSitemapData = {
   baseUrl?: string
@@ -13226,6 +13141,52 @@ export type OnboardingValidateActivitiesLegacyData = {
 export type OnboardingValidateActivitiesLegacyResponse = {
   [key: string]: unknown
 }
+
+export type ProductAssociationsGetServiceProductsData = {
+  /**
+   * Filter by association type
+   */
+  associationType?: string | null
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Show only featured products
+   */
+  featuredOnly?: boolean
+  /**
+   * Maximum number of products to return
+   */
+  limit?: number
+  /**
+   * Service ID
+   */
+  serviceId: string
+}
+
+export type ProductAssociationsGetServiceProductsResponse = unknown
+
+export type ProductAssociationsGetProductsByServiceData = {
+  /**
+   * Filter by association type
+   */
+  associationType?: string | null
+  /**
+   * Business ID
+   */
+  businessId: string
+  /**
+   * Maximum number of products to return
+   */
+  limit?: number
+  /**
+   * Filter by service slug
+   */
+  serviceSlug?: string | null
+}
+
+export type ProductAssociationsGetProductsByServiceResponse = unknown
 
 export type CreateProductNoSlashData = {
   requestBody: CreateProductSchema

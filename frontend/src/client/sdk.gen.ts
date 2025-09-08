@@ -238,10 +238,6 @@ import type {
   ContractorsServicesGetContractorServiceCategoriesResponse,
   ContractorsServicesGetServicePricingData,
   ContractorsServicesGetServicePricingResponse,
-  ContractorsServicesGetServiceProductsData,
-  ContractorsServicesGetServiceProductsResponse,
-  ContractorsServicesGetServiceRecommendedProductsData,
-  ContractorsServicesGetServiceRecommendedProductsResponse,
   GetActiveServicesForStaticResponse,
   GetActiveLocationsForStaticResponse,
   GetContractorServicesData,
@@ -250,10 +246,6 @@ import type {
   GetContractorServiceCategoriesResponse,
   GetServicePricingData,
   GetServicePricingResponse,
-  GetServiceProductsData,
-  GetServiceProductsResponse,
-  GetServiceRecommendedProductsData,
-  GetServiceRecommendedProductsResponse,
   GenerateBusinessSitemapData,
   GenerateBusinessSitemapResponse,
   GenerateBusinessRobotsData,
@@ -495,6 +487,10 @@ import type {
   OnboardingValidateProfileLegacyResponse,
   OnboardingValidateActivitiesLegacyData,
   OnboardingValidateActivitiesLegacyResponse,
+  ProductAssociationsGetServiceProductsData,
+  ProductAssociationsGetServiceProductsResponse,
+  ProductAssociationsGetProductsByServiceData,
+  ProductAssociationsGetProductsByServiceResponse,
   CreateProductNoSlashData,
   CreateProductNoSlashResponse,
   ListProductsNoSlashData,
@@ -4345,72 +4341,6 @@ export class ContractorsServicesService {
       },
     })
   }
-
-  /**
-   * Get Service Products
-   * Get products associated with a specific service.
-   *
-   * Returns products that are linked to the service with their association context.
-   * @param data The data for the request.
-   * @param data.businessId Business ID
-   * @param data.serviceId Service ID
-   * @param data.associationType Filter by association type
-   * @param data.featuredOnly Show only featured products
-   * @param data.limit Maximum number of products to return
-   * @returns ProductItem Successful Response
-   * @throws ApiError
-   */
-  public static getServiceProducts(
-    data: ContractorsServicesGetServiceProductsData,
-  ): CancelablePromise<ContractorsServicesGetServiceProductsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/public/contractors/services/{business_id}/{service_id}/products",
-      path: {
-        business_id: data.businessId,
-        service_id: data.serviceId,
-      },
-      query: {
-        association_type: data.associationType,
-        featured_only: data.featuredOnly,
-        limit: data.limit,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Service Recommended Products
-   * Get recommended products for a service.
-   *
-   * Returns required and recommended products for the service.
-   * @param data The data for the request.
-   * @param data.businessId Business ID
-   * @param data.serviceId Service ID
-   * @param data.limit Maximum number of products to return
-   * @returns ProductItem Successful Response
-   * @throws ApiError
-   */
-  public static getServiceRecommendedProducts(
-    data: ContractorsServicesGetServiceRecommendedProductsData,
-  ): CancelablePromise<ContractorsServicesGetServiceRecommendedProductsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/public/contractors/services/{business_id}/{service_id}/recommended-products",
-      path: {
-        business_id: data.businessId,
-        service_id: data.serviceId,
-      },
-      query: {
-        limit: data.limit,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
 }
 
 export class DefaultService {
@@ -4564,72 +4494,6 @@ export class DefaultService {
         membership_plan_id: data.membershipPlanId,
         service_area: data.serviceArea,
         estimated_hours: data.estimatedHours,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Service Products
-   * Get products associated with a specific service.
-   *
-   * Returns products that are linked to the service with their association context.
-   * @param data The data for the request.
-   * @param data.businessId Business ID
-   * @param data.serviceId Service ID
-   * @param data.associationType Filter by association type
-   * @param data.featuredOnly Show only featured products
-   * @param data.limit Maximum number of products to return
-   * @returns ProductItem Successful Response
-   * @throws ApiError
-   */
-  public static getServiceProducts(
-    data: GetServiceProductsData,
-  ): CancelablePromise<GetServiceProductsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/public/services/{business_id}/{service_id}/products",
-      path: {
-        business_id: data.businessId,
-        service_id: data.serviceId,
-      },
-      query: {
-        association_type: data.associationType,
-        featured_only: data.featuredOnly,
-        limit: data.limit,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Service Recommended Products
-   * Get recommended products for a service.
-   *
-   * Returns required and recommended products for the service.
-   * @param data The data for the request.
-   * @param data.businessId Business ID
-   * @param data.serviceId Service ID
-   * @param data.limit Maximum number of products to return
-   * @returns ProductItem Successful Response
-   * @throws ApiError
-   */
-  public static getServiceRecommendedProducts(
-    data: GetServiceRecommendedProductsData,
-  ): CancelablePromise<GetServiceRecommendedProductsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/public/services/{business_id}/{service_id}/recommended-products",
-      path: {
-        business_id: data.businessId,
-        service_id: data.serviceId,
-      },
-      query: {
-        limit: data.limit,
       },
       errors: {
         422: "Validation Error",
@@ -7728,6 +7592,76 @@ export class OnboardingService {
       url: "/api/v1/onboarding/validate-activities",
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class ProductAssociationsService {
+  /**
+   * Get Service Products
+   * Get products associated with a specific service.
+   *
+   * Returns products that are linked to the service with their association context.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.serviceId Service ID
+   * @param data.associationType Filter by association type
+   * @param data.featuredOnly Show only featured products
+   * @param data.limit Maximum number of products to return
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getServiceProducts(
+    data: ProductAssociationsGetServiceProductsData,
+  ): CancelablePromise<ProductAssociationsGetServiceProductsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/services/{business_id}/{service_id}/products",
+      path: {
+        business_id: data.businessId,
+        service_id: data.serviceId,
+      },
+      query: {
+        association_type: data.associationType,
+        featured_only: data.featuredOnly,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Products By Service
+   * Get products filtered by service associations.
+   *
+   * This is the main endpoint for service-driven product filtering.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @param data.serviceSlug Filter by service slug
+   * @param data.associationType Filter by association type
+   * @param data.limit Maximum number of products to return
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static getProductsByService(
+    data: ProductAssociationsGetProductsByServiceData,
+  ): CancelablePromise<ProductAssociationsGetProductsByServiceResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/products/{business_id}/by-service",
+      path: {
+        business_id: data.businessId,
+      },
+      query: {
+        service_slug: data.serviceSlug,
+        association_type: data.associationType,
+        limit: data.limit,
+      },
       errors: {
         422: "Validation Error",
       },

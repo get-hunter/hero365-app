@@ -52,14 +52,26 @@ export async function loadNavigationData(): Promise<NavigationData> {
     if (response.ok) {
       const navigationData = await response.json();
       
-      // Transform to expected format
-      const serviceCategories = navigationData.services?.map((service: any) => ({
-        name: service.name,
-        slug: service.canonical_slug,
-        href: `/services/${service.canonical_slug}`,
-        is_emergency: service.is_emergency,
-        is_featured: service.is_featured
-      })) || [];
+      // Build flat service list for grouping in the header component
+      const rawServices = navigationData.services || [];
+      const flatServices = rawServices
+        .map((svc: any) => {
+          const name = svc.name || svc.service_name;
+          const slug = svc.canonical_slug || svc.slug;
+          const href = svc.href || (slug ? `/services/${slug}` : undefined);
+          if (!name || !href) return null;
+          return {
+            name,
+            description: `Professional ${String(name).toLowerCase()} services`,
+            href,
+            is_emergency: svc.is_emergency,
+            is_featured: svc.is_featured,
+            trade_slug: svc.trade_slug,
+            category: svc.category_name || svc.category || null,
+            category_slug: svc.category_slug || null
+          };
+        })
+        .filter(Boolean);
       
       const locations = navigationData.locations?.map((location: any) => ({
         name: location.name,
@@ -70,15 +82,15 @@ export async function loadNavigationData(): Promise<NavigationData> {
       
       navigationCache = {
         businessId,
-        serviceCategories,
+        serviceCategories: flatServices as any[],
         locations,
         lastUpdated: now
       };
       
-      console.log(`✅ [NAV] Loaded ${serviceCategories.length} services, ${locations.length} locations from API`);
+      console.log(`✅ [NAV] Loaded ${flatServices.length} services, ${locations.length} locations from API`);
       
       return {
-        serviceCategories,
+        serviceCategories: flatServices as any[],
         locations
       };
     } else {

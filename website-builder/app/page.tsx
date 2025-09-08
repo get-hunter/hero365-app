@@ -129,30 +129,87 @@ export default async function HomePage() {
           emergencyMessage={homepageBusiness.emergency_service ? '24/7 Emergency Service Available' : undefined}
         />
 
-        {/* Services Grid */}
+        {/* Services Grid - dynamic from API */}
         <ServicesGrid
           businessName={homepageBusiness.businessName}
           city={homepageBusiness.serviceAreas[0] || 'Austin'}
           phone={homepageBusiness.phone || '(555) 123-4567'}
+          services={serverServices}
         />
-        
-        {/* View All Services Link */}
-        <div className="text-center py-8">
-          <Link
-            href="/services"
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            View All Services →
-          </Link>
-          <Link
-            href="/locations"
-            className="inline-flex items-center px-6 py-3 ml-4 bg-white text-blue-600 font-semibold rounded-lg border-2 border-blue-600 hover:bg-blue-50 transition-colors"
-          >
-            Service Areas →
-          </Link>
-        </div>
 
-        {/* Products Showcase */}
+        {/* Projects Showcase (moved up) */}
+        {topProjects && topProjects.length > 0 && (
+          <div className="py-16 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                  Our Recent Projects
+                </h2>
+                <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-6">
+                  See examples of our professional work and satisfied customers.
+                </p>
+                <div className="flex justify-center">
+                  <Link 
+                    href="/projects"
+                    className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Explore All Projects
+                    <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {topProjects.map((project: ProjectItem) => (
+                  <div key={project.id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 group border border-gray-200">
+                    <Link href={`/projects/${project.slug}`} className="block h-full">
+                      <div className="relative">
+                        <div className="aspect-w-16 aspect-h-9 w-full overflow-hidden rounded-t-lg bg-gray-200">
+                          {project.featured_image_url ? (
+                            <img 
+                              src={project.featured_image_url} 
+                              alt={project.title}
+                              className="h-48 w-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            />
+                          ) : (
+                            <div className="h-48 w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center group-hover:from-gray-200 group-hover:to-gray-300 transition-colors duration-200">
+                              <svg className="h-12 w-12 text-gray-400 group-hover:text-gray-500 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h6m-6 4h6m-2 4h2" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          {project.title}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                          {project.description || ''}
+                        </p>
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-sm font-medium text-blue-600">
+                            {project.category || 'Project'}
+                          </span>
+                          {project.completion_date && (
+                            <span className="text-sm text-gray-500">
+                              {formatCompletionYear(project.completion_date)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Products Showcase (moved down) */}
         {topProducts && topProducts.length > 0 && (
           <div className="py-16 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -202,92 +259,6 @@ export default async function HomePage() {
                             {formatCurrencyUSD(product.unit_price)}
                           </span>
                         </div>
-                      </div>
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Projects Showcase */}
-        {topProjects && topProjects.length > 0 && (
-          <div className="py-16 bg-white">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                  Our Recent Projects
-                </h2>
-                <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-6">
-                  See examples of our professional work and satisfied customers.
-                </p>
-                <div className="flex justify-center">
-                  <Link 
-                    href="/projects"
-                    className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    View All Projects
-                    <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {topProjects.map((project: ProjectItem) => (
-                  <div key={project.id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 group border border-gray-200">
-                    <Link href={`/projects/${project.slug}`} className="block h-full">
-                      <div className="relative">
-                        <div className="aspect-w-16 aspect-h-9 w-full overflow-hidden rounded-t-lg bg-gray-200">
-                          {project.featured_image_url ? (
-                            <img 
-                              src={project.featured_image_url} 
-                              alt={project.title}
-                              className="h-48 w-full object-cover group-hover:scale-105 transition-transform duration-200"
-                            />
-                          ) : (
-                            <div className="h-48 w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center group-hover:from-gray-200 group-hover:to-gray-300 transition-colors duration-200">
-                              <svg className="h-12 w-12 text-gray-400 group-hover:text-gray-500 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h6m-6 4h6m-2 4h2" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                          {project.title}
-                        </h3>
-                        <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                          {project.description || ''}
-                        </p>
-                        <div className="flex items-center justify-between mb-4">
-                          <span className="text-sm font-medium text-blue-600">
-                            {project.category || 'Project'}
-                          </span>
-                          {project.completion_date && (
-                            <span className="text-sm text-gray-500">
-                              {formatCompletionYear(project.completion_date)}
-                            </span>
-                          )}
-                        </div>
-                        {project.customer_testimonial && (
-                          <div className="border-t pt-4">
-                            <p className="text-sm text-gray-600 italic">
-                              "{(() => {
-                                try {
-                                  const testimonial = project.customer_testimonial;
-                                  return typeof testimonial === 'string' ? testimonial.slice(0, 100) : '';
-                                } catch {
-                                  return '';
-                                }
-                              })()}..."
-                            </p>
-                          </div>
-                        )}
                       </div>
                     </Link>
                   </div>
