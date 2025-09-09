@@ -5985,6 +5985,7 @@ export type LocationItem = {
   kind: string
   is_primary?: boolean
   service_radius_miles?: number | null
+  postal_codes?: Array<string> | null
 }
 
 /**

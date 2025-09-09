@@ -64,8 +64,8 @@ export default function ArtifactPage({
       enabled={enableABTesting}
       variants={allVariants}
       activeExperiments={artifact.active_experiment_keys}
-      artifactId={artifact.artifact_id}
-      businessId={artifact.business_id}
+      artifactId={artifact.artifact_id || ""}
+      businessId={artifact.business_id || ""}
     >
       <div className={`min-h-screen bg-white trade-${tradeConfig.trade}`}>
         {/* Performance Monitoring */}
@@ -78,15 +78,22 @@ export default function ArtifactPage({
         {/* Enhanced Structured Data */}
         <StructuredDataRenderer schemas={structuredData} />
         
-        {/* Trade-Aware Header */}
-        <Hero365Header 
-          businessName={businessContext.business.name}
-          city={businessContext.primary_area?.city || businessContext.business.city}
-          state={businessContext.primary_area?.state || businessContext.business.state}
-          phone={businessContext.business.phone}
-          supportHours={tradeConfig.emergency_services ? "24/7" : "Business Hours"}
-          logo={businessContext.business.logo_url}
-          primaryColor={tradeConfig.colors.primary}
+        {/* Unified Header props with services list page */}
+        <Hero365Header
+          businessProfile={{
+            business_id: businessContext.business.id,
+            business_name: businessContext.business.name,
+            phone: businessContext.business.phone,
+            phone_display: businessContext.business.phone,
+            email: businessContext.business.email,
+            address: businessContext.business.address,
+            city: businessContext.business.city,
+            state: businessContext.business.state,
+            postal_code: businessContext.business.postal_code,
+            logo_url: businessContext.business.logo_url
+          }}
+          showCTA={true}
+          showCart={false}
         />
 
         {/* Main Content */}
@@ -104,11 +111,11 @@ export default function ArtifactPage({
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-8">Our {artifact.activity_name} Services</h2>
               <p className="text-lg text-gray-700 text-center max-w-3xl mx-auto mb-12">
-                {artifact.content_blocks?.overview || `Learn more about our expert ${artifact.activity_name} services tailored to your needs.`}
+                {(artifact as any).content_blocks?.overview || `Learn more about our expert ${artifact.activity_name} services tailored to your needs.`}
               </p>
-              {artifact.content_blocks?.benefits && (
+              {(artifact as any).content_blocks?.benefits && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {artifact.content_blocks.benefits.slice(0, 3).map((benefit, index) => (
+                  {(artifact as any).content_blocks.benefits.slice(0, 3).map((benefit: any, index: number) => (
                     <div key={index} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                       <h3 className="text-xl font-semibold mb-3 text-gray-900">{benefit.title}</h3>
                       <p className="text-gray-700">{benefit.description}</p>
@@ -282,7 +289,7 @@ export default function ArtifactPage({
             website: businessContext.business.website,
             years_in_business: businessContext.business.years_in_business,
             average_rating: businessContext.average_rating,
-            license_number: businessContext.business.license_number,
+            license_number: (businessContext.business as any).license_number,
             emergency_service: tradeConfig.emergency_services,
             service_areas: businessContext.service_areas.map(area => area.name)
           }}
@@ -295,6 +302,7 @@ export default function ArtifactPage({
           })) || []}
           locations={businessContext.service_areas?.map(area => ({
             id: area.slug,
+            slug: area.slug,
             name: area.name,
             city: area.city,
             state: area.state,
@@ -405,11 +413,11 @@ export async function generateArtifactMetadata({
   tradeConfig: TradeConfiguration;
 }): Promise<Metadata> {
   
-  const title = (artifact.title || artifact.meta_title || `${artifact.activity_name} Services`)
+  const title = ((artifact as any).title || (artifact as any).meta_title || `${artifact.activity_name} Services`)
     .replace('{business_name}', businessContext.business.name)
     .replace('{city}', businessContext.primary_area?.city || businessContext.business.city);
 
-  const description = (artifact.meta_description || `Professional ${artifact.activity_name} services`)
+  const description = ((artifact as any).meta_description || `Professional ${artifact.activity_name} services`)
     .replace('{business_name}', businessContext.business.name)
     .replace('{years_experience}', businessContext.combined_experience_years?.toString() || '10');
 

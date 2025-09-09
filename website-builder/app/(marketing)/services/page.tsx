@@ -153,6 +153,9 @@ export default async function ServicesPage() {
     }
   })
 
+  const tradeCount = Object.keys(servicesByCategory).length
+  const totalServices = services.length
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Hero365Header 
@@ -171,29 +174,17 @@ export default async function ServicesPage() {
         showCTA={true}
         showCart={false}
       />
-      {/* Hero Section */}
-      <section className="relative py-20 px-6">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            Our Professional Services
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            {context.business.name} provides comprehensive home services with licensed, 
-            insured professionals you can trust. Available 24/7 for emergencies.
-          </p>
-          <div className="flex gap-4 justify-center">
-            <a
-              href={`tel:${context.business.phone}`}
-              className="inline-flex items-center px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              📞 Call Now: {context.business.phone}
-            </a>
-            <Link
-              href="/contact"
-              className="inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg border-2 border-blue-600 hover:bg-blue-50 transition-colors"
-            >
-              Get Free Quote
-            </Link>
+      {/* Compact header (no hero) */}
+      <section className="px-6 pt-6 pb-4 border-b border-gray-100">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">Services</h1>
+            <p className="mt-1 text-sm text-gray-600">Explore all services by trade.</p>
+          </div>
+          <div className="hidden md:flex items-center gap-2 text-sm text-gray-500">
+            <span>{totalServices} services</span>
+            <span>•</span>
+            <span>{tradeCount} trades</span>
           </div>
         </div>
       </section>

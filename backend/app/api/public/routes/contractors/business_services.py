@@ -50,6 +50,7 @@ class LocationItem(BaseModel):
     kind: str  # 'physical' or 'coverage'
     is_primary: bool = False
     service_radius_miles: Optional[int] = None
+    postal_codes: Optional[List[str]] = None
 
 
 class NavigationResponse(BaseModel):
@@ -186,7 +187,8 @@ async def get_business_locations(
                 state,
                 kind,
                 is_primary,
-                service_radius_miles
+                service_radius_miles,
+                postal_codes
             """)\
             .eq("business_id", business_id)\
             .order("is_primary", desc=True)\
@@ -212,7 +214,8 @@ async def get_business_locations(
                 state=row["state"],
                 kind=row.get("kind", "coverage"),
                 is_primary=row.get("is_primary", False),
-                service_radius_miles=row.get("service_radius_miles")
+                service_radius_miles=row.get("service_radius_miles"),
+                postal_codes=row.get("postal_codes")
             )
             locations.append(location)
         

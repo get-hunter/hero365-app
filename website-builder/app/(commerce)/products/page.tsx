@@ -47,21 +47,21 @@ export default async function ProductsPage() {
     long_description: product.description || '',
     unit_price: typeof product.unit_price === 'string' ? parseFloat(product.unit_price) : (product.unit_price || 0),
     category_name: product.category || 'General',
-    warranty_years: null,
-    energy_efficiency_rating: null,
+    warranty_years: undefined,
+    energy_efficiency_rating: undefined,
     requires_professional_install: false,
     install_complexity: 'standard' as const,
-    installation_time_estimate: null,
-    featured_image_url: product.image_url || null,
+    installation_time_estimate: undefined,
+    featured_image_url: product.image_url || undefined,
     gallery_images: [],
     product_highlights: [],
     technical_specs: {},
-    meta_title: null,
-    meta_description: null,
+    meta_title: undefined,
+    meta_description: undefined,
     slug: product.slug || product.name.toLowerCase().replace(/\s+/g, '-'),
     is_active: true,
     is_featured: product.featured || false,
-    current_stock: null,
+    current_stock: undefined,
     installation_options: []
   }));
 
@@ -84,45 +84,36 @@ export default async function ProductsPage() {
   return (
       <div className="min-h-screen bg-gray-50">
         <Hero365Header 
-          businessProfile={serverProfile}
+          businessProfile={{
+            business_id: (profile.business_id as string) || '',
+            business_name: profile.business_name || '',
+            phone: profile.phone || '',
+            phone_display: profile.phone || '',
+            email: profile.email || '',
+            address: profile.address || '',
+            city: profile.city || '',
+            state: profile.state || '',
+            postal_code: profile.postal_code || '',
+            logo_url: profile.logo_url || ''
+          }}
           showCTA={true}
           showCart={true}
         />
 
-        {/* Products Page Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h1 className="text-4xl font-bold mb-4">
-                Professional Products & Installation
-              </h1>
-              <p className="text-xl text-blue-100 mb-6 max-w-3xl mx-auto">
-                Shop professional-grade equipment with expert installation services. 
-                Get instant pricing with membership discounts and bundle savings.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-white/90">
-                <div className="flex items-center gap-2">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
-                  <span>Instant Pricing Calculator</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                  <span>Professional Installation</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                  </svg>
-                  <span>Member Exclusive Discounts</span>
-                </div>
-              </div>
+        {/* Compact header (no hero) */}
+        <section className="px-4 sm:px-6 lg:px-8 pt-6 pb-4 border-b border-gray-100 bg-white">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">Products</h1>
+              <p className="mt-1 text-sm text-gray-600">Shop professional-grade products with installation.</p>
+            </div>
+            <div className="hidden md:flex items-center gap-2 text-sm text-gray-500">
+              <span>{convertedProducts.length} items</span>
+              <span>•</span>
+              <span>{serviceFilters.length - 1} categories</span>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Product Listing Content */}
         <ProductListingClient 

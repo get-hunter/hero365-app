@@ -9,7 +9,7 @@ import {
   ProductInstallationOption,
   MembershipType, 
   SortOption 
-} from '../../../lib/types/products';
+} from '@/lib/shared/types/products';
 
 interface ProductListingClientProps {
   products: ProductCatalogItem[];
@@ -280,17 +280,17 @@ export default function ProductListingClient({
       {filteredAndSortedProducts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredAndSortedProducts.map(product => {
-            const defaultInstallOption = product.installation_options?.find(opt => opt.is_default) || 
+            const defaultInstallOption = product.installation_options?.find((opt: ProductInstallationOption) => opt.is_default) || 
                                        product.installation_options?.[0];
             const memberPrice = getMembershipPrice(product, defaultInstallOption);
             const totalSavings = getTotalSavings(product, defaultInstallOption);
 
             return (
-              <div key={product.id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 group">
+              <div key={product.id} className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-200 group overflow-hidden">
                 <Link href={`/products/${product.slug}`} className="block h-full">
                   {/* Product Image */}
                   <div className="relative">
-                    <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg bg-gray-200">
+                    <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden bg-gray-100">
                       {product.featured_image_url ? (
                         <img
                           src={product.featured_image_url}
@@ -298,7 +298,7 @@ export default function ProductListingClient({
                           className="h-48 w-full object-cover object-center group-hover:scale-105 transition-transform duration-200"
                         />
                       ) : (
-                        <div className="h-48 w-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center group-hover:from-blue-200 group-hover:to-blue-300 transition-colors duration-200">
+                        <div className="h-48 w-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center group-hover:from-blue-100 group-hover:to-blue-200 transition-colors duration-200">
                           <ShoppingCart className="h-12 w-12 text-blue-400 group-hover:text-blue-500 transition-colors duration-200" />
                         </div>
                       )}
@@ -307,12 +307,12 @@ export default function ProductListingClient({
                     {/* Badges */}
                     <div className="absolute top-2 left-2 flex flex-col gap-1">
                       {product.is_featured && (
-                        <span className="px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded">
+                        <span className="px-2 py-1 bg-yellow-500 text-white text-[10px] font-bold rounded">
                           FEATURED
                         </span>
                       )}
                       {totalSavings > 0 && (
-                        <span className="px-2 py-1 bg-green-500 text-white text-xs font-bold rounded">
+                        <span className="px-2 py-1 bg-green-600 text-white text-[10px] font-bold rounded">
                           SAVE ${totalSavings.toFixed(0)}
                         </span>
                       )}
@@ -328,9 +328,9 @@ export default function ProductListingClient({
                   </div>
 
                   {/* Product Info */}
-                  <div className="p-4 flex-1 flex flex-col">
+                  <div className="p-5 flex-1 flex flex-col">
                   <div className="mb-2">
-                    <h3 className="text-sm font-medium text-gray-900 overflow-hidden group-hover:text-blue-700 transition-colors duration-200" style={{
+                    <h3 className="text-sm font-semibold text-gray-900 overflow-hidden group-hover:text-blue-700 transition-colors duration-200" style={{
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical'
@@ -359,7 +359,7 @@ export default function ProductListingClient({
                   {product.product_highlights.length > 0 && (
                     <div className="mb-3">
                       <ul className="text-xs text-gray-600 space-y-1">
-                        {product.product_highlights.slice(0, 2).map((highlight, index) => (
+                        {product.product_highlights.slice(0, 2).map((highlight: string, index: number) => (
                           <li key={index} className="flex items-center gap-1">
                             <CheckCircle className="h-3 w-3 text-green-500 flex-shrink-0" />
                             {highlight}
@@ -416,12 +416,11 @@ export default function ProductListingClient({
                     )}
                   </div>
 
-                  {/* Installation Options Info */}
-                  {product.installation_options && product.installation_options.length > 0 && (
-                    <div className="text-xs text-center text-blue-600 mt-auto pt-2 group-hover:text-blue-700 transition-colors duration-200">
-                      {product.installation_options.length} installation option{product.installation_options.length > 1 ? 's' : ''} available
-                    </div>
-                  )}
+                  {/* CTAs */}
+                  <div className="mt-auto pt-2 flex items-center justify-between">
+                    <button className="px-3 py-2 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700">Add to cart</button>
+                    <span className="text-xs text-gray-500">SKU: {product.sku}</span>
+                  </div>
                   </div>
                 </Link>
               </div>
