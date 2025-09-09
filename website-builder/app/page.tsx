@@ -20,6 +20,7 @@ import { formatCurrencyUSD, formatCompletionYear, formatTradeName } from '@/lib/
 import type { BusinessProfile, ProductItem, ProjectItem } from '@/lib/shared/types/api-responses';
 import type { EnhancedBusinessProfile, DiagnosticsInfo } from '@/lib/shared/types/api-responses';
 import { extractBusinessData } from '@/lib/shared/types/api-responses';
+import ServiceAreasMap from '@/components/client/locations/ServiceAreasMap';
 
 
 export default async function HomePage() {
@@ -96,6 +97,18 @@ export default async function HomePage() {
 
     const topProducts = (serverProducts || []).slice(0, 3);
     const topProjects = (serverProjects || []).filter((p: ProjectItem) => p.slug).slice(0, 3);
+
+    // Load business-specific locations for service areas map
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    let homeLocations: any[] = [];
+    try {
+      const res = await fetch(`${backendUrl}/api/v1/public/contractors/${businessId}/locations`, {
+        next: { revalidate: 900 }
+      });
+      if (res.ok) {
+        homeLocations = await res.json();
+      }
+    } catch {}
 
     return (
       <div className="min-h-screen bg-white">
@@ -266,6 +279,31 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Service Areas Map (before contact) */}
+        {homeLocations && homeLocations.length > 0 && (
+          <section className="py-16 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold text-gray-900">Service Areas</h2>
+                <Link href="/locations" className="text-blue-600 hover:text-blue-700 font-semibold">View all service areas →</Link>
+              </div>
+              <ServiceAreasMap 
+                locations={homeLocations.map((l: any) => ({
+                  slug: l.location_slug,
+                  name: l.name,
+                  city: l.city,
+                  state: l.state,
+                  service_radius_miles: l.service_radius_miles,
+                  is_primary: l.is_primary,
+                  postal_codes: l.postal_codes
+                }))}
+                className="mb-3"
+              />
+              <p className="text-sm text-gray-600">Colored regions indicate approximate coverage zones. Exact availability may vary by neighborhood.</p>
+            </div>
+          </section>
         )}
 
         {/* Contact Section */}
