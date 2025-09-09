@@ -6,6 +6,7 @@
 
 import React from 'react';
 import Hero365Header from '@/components/server/layout/Hero365Header';
+import Hero365Footer from '@/components/shared/Hero365Footer';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { getDefaultHeaders } from '@/lib/shared/config/api-config';
@@ -24,7 +25,7 @@ async function loadBusinessData(businessId: string) {
     const backendUrl = config.apiUrl;
     const headers = getDefaultHeaders();
 
-    const [profileResponse, servicesResponse] = await Promise.all([
+    const [profileResponse, servicesResponse, locationsResponse] = await Promise.all([
       fetch(`${backendUrl}/api/v1/public/contractors/profile/${businessId}`, {
         headers,
         next: { revalidate: 3600, tags: ['profile', businessId] }
@@ -32,11 +33,16 @@ async function loadBusinessData(businessId: string) {
       fetch(`${backendUrl}/api/v1/public/contractors/services/${businessId}`, {
         headers,
         next: { revalidate: 3600, tags: ['services', businessId] }
+      }),
+      fetch(`${backendUrl}/api/v1/public/contractors/${businessId}/locations`, {
+        headers,
+        next: { revalidate: 3600, tags: ['locations', businessId] }
       })
     ]);
 
     let profile = null;
     let services = [];
+    let locations = [];
 
     if (profileResponse.ok) {
       profile = await profileResponse.json();
@@ -52,10 +58,17 @@ async function loadBusinessData(businessId: string) {
       console.error('❌ [BOOKING] Failed to load services:', servicesResponse.status);
     }
 
-    return { profile, services };
+    if (locationsResponse.ok) {
+      locations = await locationsResponse.json();
+      console.log('✅ [BOOKING] Locations loaded:', locations.length, 'locations');
+    } else {
+      console.error('❌ [BOOKING] Failed to load locations:', locationsResponse.status);
+    }
+
+    return { profile, services, locations };
   } catch (error) {
     console.error('❌ [BOOKING] Error loading business data:', error);
-    return { profile: null, services: [] };
+    return { profile: null, services: [], locations: [] };
   }
 }
 
@@ -64,7 +77,7 @@ export default async function BookingPage() {
   const resolution = await getBusinessIdFromHost();
   const businessId = resolution.businessId;
 
-  const { profile, services } = await loadBusinessData(businessId);
+  const { profile, services, locations } = await loadBusinessData(businessId);
 
   if (!profile) {
     console.error('❌ [BOOKING] No profile data found for business:', businessId);
@@ -83,6 +96,13 @@ export default async function BookingPage() {
         businessProfile={profile}
         businessServices={services}
         businessId={businessId}
+      />
+
+      <Hero365Footer
+        business={profile}
+        services={services}
+        locations={locations}
+        showEmergencyBanner={true}
       />
     </div>
   );

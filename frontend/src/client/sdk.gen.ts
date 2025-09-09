@@ -103,6 +103,8 @@ import type {
   BookingsHandlePaymentConfirmationResponse,
   BookingsHandleTechnicianLocationUpdateData,
   BookingsHandleTechnicianLocationUpdateResponse,
+  BookingTradesGetBookingTradesData,
+  BookingTradesGetBookingTradesResponse,
   BusinessContextGetCurrentBusinessContextResponse,
   BusinessContextSwitchBusinessContextData,
   BusinessContextSwitchBusinessContextResponse,
@@ -2119,6 +2121,34 @@ export class BookingsService {
       },
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class BookingTradesService {
+  /**
+   * Get Booking Trades
+   * Get trades and services optimized for the booking flow.
+   *
+   * Returns trades with their associated bookable services, including
+   * trade metadata (icons, colors) and service details.
+   * @param data The data for the request.
+   * @param data.businessId
+   * @returns BookingTradesResponse Successful Response
+   * @throws ApiError
+   */
+  public static getBookingTrades(
+    data: BookingTradesGetBookingTradesData,
+  ): CancelablePromise<BookingTradesGetBookingTradesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/{business_id}/booking-trades",
+      path: {
+        business_id: data.businessId,
+      },
       errors: {
         422: "Validation Error",
       },

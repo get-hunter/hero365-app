@@ -147,7 +147,7 @@ export class ServiceAreasApiClient {
       end: string;
     };
   }> {
-    const url = buildPublicApiUrl('availability/slots');
+    const url = buildPublicApiUrl('contractors/availability/slots');
     const response = await fetch(url, {
       method: 'POST',
       headers: getDefaultHeaders(),

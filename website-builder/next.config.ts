@@ -1,6 +1,34 @@
 import type { NextConfig } from "next";
 import webpack from "webpack";
 import path from "path";
+import fs from "fs";
+
+// Load env from /environments if not already present
+// This allows the website-builder to consume root-level env files
+const loadRootEnv = () => {
+  try {
+    const fileName = process.env.NODE_ENV === 'production' ? 'production.env' : '.env';
+    const envPath = path.resolve(__dirname, `../environments/${fileName}`);
+    if (!fs.existsSync(envPath)) return;
+
+    const raw = fs.readFileSync(envPath, 'utf-8');
+    raw.split('\n').forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      const eq = trimmed.indexOf('=');
+      if (eq === -1) return;
+      const key = trimmed.slice(0, eq).trim();
+      const value = trimmed.slice(eq + 1).trim();
+      if (!process.env[key]) {
+        process.env[key] = value;
+      }
+    });
+  } catch (err) {
+    // Non-fatal: fall back to process env
+  }
+};
+
+loadRootEnv();
 
 const nextConfig: NextConfig = {
   // Optimized for Cloudflare Workers with OpenNext adapter
@@ -56,6 +84,9 @@ const nextConfig: NextConfig = {
     // Feature Flags (Global)
     NEXT_PUBLIC_DEBUG_MODE: process.env.NEXT_PUBLIC_DEBUG_MODE || 'true',
     NEXT_PUBLIC_ANALYTICS_ENABLED: process.env.NEXT_PUBLIC_ANALYTICS_ENABLED || 'false',
+    
+    // Google Maps API
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
     
     // Business Configuration: DO NOT SET DEFAULTS HERE
     // These should be passed via environment variables or deployment scripts

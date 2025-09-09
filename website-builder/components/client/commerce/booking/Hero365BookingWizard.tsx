@@ -17,7 +17,7 @@ import {
 } from './Hero365BookingContext';
 import StepperHeader from './StepperHeader';
 import ZipGateStep from './steps/ZipGateStep';
-import ServiceCategoryStep from './steps/ServiceCategoryStep';
+import TradeServiceStep from './steps/TradeServiceStep';
 import AddressStep from './steps/AddressStep';
 import DateTimeStep from './steps/DateTimeStep';
 import ContactStep from './steps/ContactStep';
@@ -67,17 +67,8 @@ function BookingWizardContent({
       
       case WIZARD_STEPS.CATEGORY:
         return (
-          <ServiceCategoryStep
+          <TradeServiceStep
             businessId={businessId}
-            services={services?.map((s) => ({
-              id: s.id,
-              name: s.name,
-              category: s.category ?? 'General',
-              description: s.description,
-              duration_minutes: s.estimated_duration_minutes,
-              price_cents: typeof s.base_price === 'number' ? Math.round(s.base_price * 100) : undefined,
-              is_emergency: false
-            }))}
           />
         );
       
@@ -160,15 +151,7 @@ function BookingWizardContent({
       <div className="flex-shrink-0 border-t border-gray-200 p-4">
         <div className="flex items-center justify-between">
           <div>
-            {currentStep > WIZARD_STEPS.ZIP_CHECK && (
-              <Button
-                variant="outline"
-                onClick={prevStep}
-                disabled={isLoading}
-              >
-                Back
-              </Button>
-            )}
+            {/* Back button removed - each step handles its own navigation */}
           </div>
 
           <div className="flex items-center space-x-3">

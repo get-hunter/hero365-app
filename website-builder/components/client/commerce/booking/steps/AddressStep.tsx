@@ -7,20 +7,25 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, Home, Edit3, AlertCircle, CheckCircle } from 'lucide-react';
+import { MapPin, Home, Edit3, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useBookingWizard, Address } from '../Hero365BookingContext';
+import GooglePlacesAutocomplete, { parseGooglePlaceResult } from '@/components/client/maps/GooglePlacesAutocomplete';
 
 interface AddressStepProps {
   businessId: string;
 }
 
 export default function AddressStep({ businessId }: AddressStepProps) {
-  const { state, updateAddress, nextStep, setLoading, setError } = useBookingWizard();
+  const { state, updateAddress, nextStep, prevStep, setLoading, setError } = useBookingWizard();
+  
+  // State for service details
+  const [selectedServiceDetails, setSelectedServiceDetails] = useState<any>(null);
+  const [isPlaceSelected, setIsPlaceSelected] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState<Partial<Address>>({
@@ -58,10 +63,49 @@ export default function AddressStep({ businessId }: AddressStepProps) {
     }
   }, [state.zipInfo]);
 
+  // Load service details when component mounts
+  useEffect(() => {
+    if (state.serviceId && businessId) {
+      loadServiceDetails();
+    }
+  }, [state.serviceId, businessId]);
+
+  const loadServiceDetails = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/public/contractors/${businessId}/booking-trades`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Find the selected service across all trades
+        for (const trade of data.trades) {
+          const service = trade.services.find((s: any) => s.id === state.serviceId);
+          if (service) {
+            setSelectedServiceDetails({
+              ...service,
+              tradeName: trade.trade_display_name,
+              tradeIcon: trade.trade_icon,
+              tradeColor: trade.trade_color
+            });
+            break;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading service details:', error);
+    }
+  };
+
   const handleInputChange = (field: keyof Address, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setValidationResult(null);
     setError();
+    
+    // Reset place selection flag if user manually edits the address
+    if (field === 'line1') {
+      setIsPlaceSelected(false);
+    }
   };
 
   const validateAddress = async () => {
@@ -156,11 +200,44 @@ export default function AddressStep({ businessId }: AddressStepProps) {
     setValidationResult(null);
   };
 
+  const handlePlaceSelect = (place: google.maps.places.PlaceResult) => {
+    const parsedAddress = parseGooglePlaceResult(place);
+    
+    setFormData(prev => ({
+      ...prev,
+      line1: parsedAddress.line1 || prev.line1,
+      city: parsedAddress.city || prev.city,
+      region: parsedAddress.region || prev.region,
+      postalCode: parsedAddress.postalCode || prev.postalCode,
+      countryCode: parsedAddress.countryCode || prev.countryCode
+    }));
+    
+    // Mark that a place was selected from Google Places
+    setIsPlaceSelected(true);
+    
+    // Clear any previous validation errors
+    setValidationResult(null);
+    setError();
+  };
+
   const isFormValid = formData.line1?.trim() && formData.city?.trim() && 
                      formData.region?.trim() && formData.postalCode?.trim();
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
+      {/* Back Button */}
+      <div className="flex items-center justify-start mb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={prevStep}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back</span>
+        </Button>
+      </div>
+
       {/* Header */}
       <div className="text-center">
         <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -174,24 +251,36 @@ export default function AddressStep({ businessId }: AddressStepProps) {
         </p>
       </div>
 
-      {/* Service Area Info */}
-      {state.zipInfo && (
-        <Card className="border-green-200 bg-green-50">
+      {/* Selected Service Summary */}
+      {selectedServiceDetails && (
+        <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <div>
-                <p className="text-sm font-medium text-green-900">
-                  Service confirmed for {state.zipInfo.city}, {state.zipInfo.region}
+              <CheckCircle className="w-5 h-5 text-blue-600" />
+              <div className="flex-1">
+                <p className="font-medium text-blue-900">
+                  Service selected: {selectedServiceDetails.name}
                 </p>
-                <p className="text-xs text-green-700">
-                  Response time: {state.zipInfo.minResponseTimeHours}-{state.zipInfo.maxResponseTimeHours} hours
+                <p className="text-sm text-blue-700">
+                  {selectedServiceDetails.tradeName} • {selectedServiceDetails.base_price ? `Starting at $${selectedServiceDetails.base_price.toLocaleString()}` : 'Custom pricing'}
                 </p>
+              </div>
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
+                style={{ 
+                  backgroundColor: `${selectedServiceDetails.tradeColor}20`, 
+                  border: `1px solid ${selectedServiceDetails.tradeColor}` 
+                }}
+              >
+                {selectedServiceDetails.tradeIcon === 'zap' ? '⚡' : 
+                 selectedServiceDetails.tradeIcon === 'thermometer' ? '🌡️' : 
+                 selectedServiceDetails.tradeIcon === 'wrench' ? '🔧' : '🔧'}
               </div>
             </div>
           </CardContent>
         </Card>
       )}
+
 
       {/* Address Form */}
       <Card>
@@ -202,17 +291,30 @@ export default function AddressStep({ businessId }: AddressStepProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Street Address */}
+          {/* Street Address with Google Places Autocomplete */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Street Address *
             </label>
-            <Input
+            <GooglePlacesAutocomplete
               value={formData.line1 || ''}
-              onChange={(e) => handleInputChange('line1', e.target.value)}
-              placeholder="123 Main Street"
+              onChange={(value) => handleInputChange('line1', value)}
+              onPlaceSelect={handlePlaceSelect}
+              placeholder="Start typing your address..."
               className="w-full"
             />
+            {isPlaceSelected ? (
+              <div className="flex items-center space-x-2 mt-1">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <p className="text-xs text-green-600 font-medium">
+                  Address verified with Google Maps
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 mt-1">
+                Start typing and select from suggestions for faster, accurate address entry
+              </p>
+            )}
           </div>
 
           {/* Address Line 2 */}

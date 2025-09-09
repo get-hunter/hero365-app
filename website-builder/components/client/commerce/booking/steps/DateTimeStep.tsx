@@ -7,7 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Zap, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Zap, ChevronLeft, ChevronRight, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { serviceAreasApi } from '@/lib/api/service-areas-client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,19 +27,57 @@ interface AvailableSlot {
 }
 
 export default function DateTimeStep({ businessId }: DateTimeStepProps) {
-  const { state, updateSlot, nextStep, setLoading, setError } = useBookingWizard();
+  const { state, updateSlot, nextStep, prevStep, setLoading, setError } = useBookingWizard();
+  
+  // State for service details
+  const [selectedServiceDetails, setSelectedServiceDetails] = useState<any>(null);
   
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
   const [viewMode, setViewMode] = useState<'first_available' | 'calendar'>('first_available');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [availableSlots, setAvailableSlots] = useState<Record<string, AvailableSlot[]>>({});
+  const [firstAvailableSlots, setFirstAvailableSlots] = useState<AvailableSlot[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   // Load available slots when component mounts or date changes
   useEffect(() => {
     loadAvailableSlots();
   }, [businessId, state.serviceId, state.zipInfo]);
+
+  // Load service details when component mounts
+  useEffect(() => {
+    if (state.serviceId && businessId) {
+      loadServiceDetails();
+    }
+  }, [state.serviceId, businessId]);
+
+  const loadServiceDetails = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/public/contractors/${businessId}/booking-trades`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Find the selected service across all trades
+        for (const trade of data.trades) {
+          const service = trade.services.find((s: any) => s.id === state.serviceId);
+          if (service) {
+            setSelectedServiceDetails({
+              ...service,
+              tradeName: trade.trade_display_name,
+              tradeIcon: trade.trade_icon,
+              tradeColor: trade.trade_color
+            });
+            break;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading service details:', error);
+    }
+  };
 
   const loadAvailableSlots = async () => {
     if (!state.serviceId || !state.zipInfo?.postalCode) return;
@@ -89,16 +127,16 @@ export default function DateTimeStep({ businessId }: DateTimeStepProps) {
 
         setAvailableSlots(slots);
         
-        // Auto-select first available slot if in "first available" mode
-        if (viewMode === 'first_available' && result.first_available) {
-          const firstAvailableDate = new Date(result.first_available.start).toISOString().split('T')[0];
-          setSelectedDate(firstAvailableDate);
-          setSelectedSlot({
-            start: result.first_available.start,
-            end: result.first_available.end,
+        // Set first available slots for quick booking
+        if (result.first_available_slots) {
+          const firstSlots = result.first_available_slots.map(slot => ({
+            start: slot.start,
+            end: slot.end,
             available: true,
-            price: 15000
-          });
+            price: 15000 + Math.floor(Math.random() * 5000), // Mock pricing with variation
+            isEmergency: false
+          }));
+          setFirstAvailableSlots(firstSlots);
         }
 
       } catch (apiError) {
@@ -213,6 +251,19 @@ export default function DateTimeStep({ businessId }: DateTimeStepProps) {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Back Button */}
+      <div className="flex items-center justify-start mb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={prevStep}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back</span>
+        </Button>
+      </div>
+
       {/* Header */}
       <div className="text-center">
         <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -225,6 +276,71 @@ export default function DateTimeStep({ businessId }: DateTimeStepProps) {
           Choose your preferred appointment time
         </p>
       </div>
+
+      {/* Selected Service Summary */}
+      {selectedServiceDetails && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-blue-600" />
+              <div className="flex-1">
+                <p className="font-medium text-blue-900">
+                  Service selected: {selectedServiceDetails.name}
+                </p>
+                <p className="text-sm text-blue-700">
+                  {selectedServiceDetails.tradeName} • {selectedServiceDetails.base_price ? `Starting at $${selectedServiceDetails.base_price.toLocaleString()}` : 'Custom pricing'}
+                </p>
+              </div>
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
+                style={{ 
+                  backgroundColor: `${selectedServiceDetails.tradeColor}20`, 
+                  border: `1px solid ${selectedServiceDetails.tradeColor}` 
+                }}
+              >
+                {selectedServiceDetails.tradeIcon === 'zap' ? '⚡' : 
+                 selectedServiceDetails.tradeIcon === 'thermometer' ? '🌡️' : 
+                 selectedServiceDetails.tradeIcon === 'wrench' ? '🔧' : '🔧'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Location Summary (combines address and service area info) */}
+      {(state.address?.line1 || state.zipInfo) && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-blue-600" />
+              <div>
+                {state.address?.line1 ? (
+                  <>
+                    <p className="font-medium text-blue-900">
+                      Service location: {state.address.line1}
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      {state.address.city}, {state.address.region} {state.address.postalCode}
+                      {state.zipInfo?.minResponseTimeHours && (
+                        <> • Response time: {state.zipInfo.minResponseTimeHours}-{state.zipInfo.maxResponseTimeHours} hours</>
+                      )}
+                    </p>
+                  </>
+                ) : state.zipInfo ? (
+                  <>
+                    <p className="font-medium text-blue-900">
+                      Service area confirmed: {state.zipInfo.city}, {state.zipInfo.region}
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      Response time: {state.zipInfo.minResponseTimeHours}-{state.zipInfo.maxResponseTimeHours} hours
+                    </p>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* View Mode Tabs */}
       <div className="flex justify-center">
@@ -263,61 +379,84 @@ export default function DateTimeStep({ businessId }: DateTimeStepProps) {
       {/* First Available Mode */}
       {viewMode === 'first_available' && !isLoadingSlots && (
         <div className="space-y-4">
-          {selectedSlot && selectedDate ? (
-            <Card className="border-green-200 bg-green-50">
-              <CardHeader>
-                <CardTitle className="text-green-900 flex items-center">
-                  <Zap className="w-5 h-5 mr-2" />
-                  Next Available Appointment
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-green-900">
-                        {formatDate(selectedDate)}
-                      </p>
-                      <p className="text-green-700">
-                        {formatTime(selectedSlot.start)} - {formatTime(selectedSlot.end)}
-                      </p>
-                    </div>
-                    {selectedSlot.price && (
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">
-                        ${(selectedSlot.price / 100).toFixed(0)} starting
-                      </Badge>
-                    )}
-                  </div>
+          {firstAvailableSlots.length > 0 ? (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Zap className="w-5 h-5 mr-2 text-blue-600" />
+                Next Available Appointments
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {firstAvailableSlots.map((slot, index) => {
+                  const isSelected = selectedSlot?.start === slot.start;
+                  const slotDate = new Date(slot.start).toISOString().split('T')[0];
                   
-                  <div className="flex items-center space-x-4 text-sm text-green-700">
-                    <div className="flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
-                      2 hours estimated
-                    </div>
-                    {state.zipInfo?.emergencyAvailable && (
-                      <div className="flex items-center">
-                        <Zap className="w-4 h-4 mr-1" />
-                        Emergency available
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  return (
+                    <Card
+                      key={slot.start}
+                      className={`cursor-pointer transition-all duration-200 border-2 ${
+                        isSelected 
+                          ? 'border-blue-400 ring-2 ring-blue-100 bg-blue-50' 
+                          : 'border-gray-200 hover:border-blue-300'
+                      }`}
+                      onClick={() => {
+                        setSelectedSlot(slot);
+                        setSelectedDate(slotDate);
+                      }}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {formatDate(slotDate)}
+                            </p>
+                            <p className="text-gray-700">
+                              {formatTime(slot.start)} - {formatTime(slot.end)}
+                            </p>
+                            <div className="flex items-center space-x-3 mt-1 text-sm text-gray-500">
+                              <div className="flex items-center">
+                                <Clock className="w-3 h-3 mr-1" />
+                                2h estimated
+                              </div>
+                              {state.zipInfo?.emergencyAvailable && (
+                                <div className="flex items-center">
+                                  <Zap className="w-3 h-3 mr-1" />
+                                  Emergency OK
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {slot.price && (
+                            <div className="text-right">
+                              <Badge variant="outline">
+                                ${(slot.price / 100).toFixed(0)}
+                              </Badge>
+                              <p className="text-xs text-gray-500 mt-1">starting</p>
+                            </div>
+                          )}
+                          {isSelected && (
+                            <CheckCircle className="w-5 h-5 text-blue-600 ml-2" />
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
           ) : (
-            <Card className="border-orange-200 bg-orange-50">
+            <Card className="border-gray-200 bg-gray-50">
               <CardContent className="p-6 text-center">
-                <AlertCircle className="w-8 h-8 text-orange-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-orange-900 mb-2">
+                <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+                <h3 className="font-semibold text-gray-700 mb-2">
                   No immediate availability
                 </h3>
-                <p className="text-orange-700 mb-4">
+                <p className="text-gray-600 mb-4">
                   Switch to "All Appointments" to see available times
                 </p>
                 <Button
                   variant="outline"
                   onClick={() => setViewMode('calendar')}
-                  className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-100"
                 >
                   View Calendar
                 </Button>

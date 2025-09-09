@@ -6,7 +6,7 @@ These endpoints are completely public and don't require authentication.
 """
 
 from fastapi import APIRouter
-from . import profile, services, products, cart, checkout, availability, projects, membership, installation_quotes, website_context, business_services, business_trades, product_associations
+from . import profile, services, products, cart, checkout, availability, projects, membership, installation_quotes, website_context, business_services, business_trades, booking_trades, product_associations
 
 # Create contractors API router
 contractors_router = APIRouter()
@@ -24,4 +24,5 @@ contractors_router.include_router(installation_quotes.router, tags=["Contractors
 contractors_router.include_router(website_context.router, prefix="/website", tags=["Website Context"])
 contractors_router.include_router(business_services.router, prefix="/{business_id}", tags=["Business Services"])
 contractors_router.include_router(business_trades.router, prefix="/{business_id}", tags=["Business Trades"])
+contractors_router.include_router(booking_trades.router, prefix="/{business_id}", tags=["Booking Trades"])
 contractors_router.include_router(product_associations.router, tags=["Product Associations"])

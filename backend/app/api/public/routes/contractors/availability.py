@@ -6,7 +6,7 @@ Public endpoints for retrieving contractor availability slots.
 
 from fastapi import APIRouter, HTTPException, Query, Path, Depends
 from typing import List
-from datetime import date
+from datetime import date, datetime
 import logging
 
 from .schemas import AvailabilitySlot
@@ -16,6 +16,8 @@ from app.application.exceptions.application_exceptions import (
     ApplicationError, ValidationError, EntityNotFoundError
 )
 from app.infrastructure.config.dependency_injection import get_business_repository
+from app.core.db import get_supabase_client
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +28,99 @@ def get_availability_service():
     """Dependency injection for AvailabilityService."""
     business_repo = get_business_repository()
     return AvailabilityService(business_repo)
+
+
+class AvailabilitySlotsRequest(BaseModel):
+    """Request body for POST /availability/slots used by the website builder."""
+    business_id: str
+    service_id: str | None = Field(default=None, description="Business service ID")
+    postal_code: str
+    country_code: str | None = "US"
+    timezone: str
+    date_range: dict
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+@router.post("/availability/slots")
+async def get_available_slots(
+    payload: AvailabilitySlotsRequest,
+    availability_service: AvailabilityService = Depends(get_availability_service),
+):
+    """
+    Public endpoint that returns available time slots. This matches the
+    website-builder client which POSTs to /availability/slots.
+
+    It adapts the request into our internal AvailabilitySearchCriteria and
+    returns slots in a simplified shape `{ slots: [{start, end}], first_available }`.
+    """
+    try:
+        # Parse date range
+        start_iso = payload.date_range.get("from")
+        end_iso = payload.date_range.get("to")
+        if not start_iso or not end_iso:
+            raise ValidationError("date_range.from and date_range.to are required")
+
+        start_date = date.fromisoformat(start_iso)
+        end_date = date.fromisoformat(end_iso)
+
+        # Determine desired duration (fallback to 60 minutes)
+        duration_minutes = 60
+        try:
+            if payload.service_id:
+                supabase = get_supabase_client()
+                view = supabase.table("v_service_catalog").select(
+                    "estimated_duration_minutes"
+                ).eq("id", payload.service_id).limit(1).execute()
+                if view.data and view.data[0].get("estimated_duration_minutes"):
+                    duration_minutes = int(view.data[0]["estimated_duration_minutes"]) or 60
+        except Exception:
+            # Non-fatal; keep default
+            pass
+
+        # Build search criteria
+        criteria = AvailabilitySearchCriteria(
+            start_date=start_date,
+            end_date=end_date,
+            duration_minutes=duration_minutes,
+            available_only=True,
+        )
+
+        # Fetch availability
+        slots_dto = await availability_service.get_availability_slots(payload.business_id, criteria)
+
+        # Transform to public response
+        slots = []
+        first_available_slots = []
+        for s in slots_dto:
+            start_dt = datetime.combine(s.date, s.start_time).isoformat()
+            end_dt = datetime.combine(s.date, s.end_time).isoformat()
+            if s.is_available:
+                slot_data = {"start": start_dt, "end": end_dt, "capacity": 1}
+                slots.append(slot_data)
+                # Collect first 6 available slots for quick booking
+                if len(first_available_slots) < 6:
+                    first_available_slots.append(slot_data)
+
+        return {
+            "slots": slots, 
+            "first_available": first_available_slots[0] if first_available_slots else None,
+            "first_available_slots": first_available_slots
+        }
+
+    except EntityNotFoundError as e:
+        logger.warning(f"Business not found: {payload.business_id}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValidationError as e:
+        logger.warning(f"Validation error: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except ApplicationError as e:
+        logger.error(f"Application error retrieving availability: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve availability")
+    except Exception as e:
+        logger.error(f"Unexpected error retrieving availability: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/availability/{business_id}", response_model=List[AvailabilitySlot])

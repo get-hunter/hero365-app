@@ -2016,6 +2016,21 @@ export type BookingResponse = {
   } | null
 }
 
+/**
+ * Service model optimized for booking flow
+ */
+export type BookingService = {
+  id: string
+  service_id: string
+  name: string
+  description?: string | null
+  base_price?: number | null
+  estimated_duration_minutes?: number | null
+  is_bookable?: boolean
+  service_type_code?: string | null
+  service_type_display_name?: string | null
+}
+
 export type BookingSource =
   | "website"
   | "phone"
@@ -2030,6 +2045,27 @@ export type BookingStatus =
   | "completed"
   | "cancelled"
   | "no_show"
+
+/**
+ * Trade model optimized for booking flow
+ */
+export type BookingTrade = {
+  trade_slug: string
+  trade_display_name: string
+  trade_icon: string
+  trade_color: string
+  market_type: string
+  service_count: number
+  services: Array<BookingService>
+}
+
+/**
+ * Response model for booking trades
+ */
+export type BookingTradesResponse = {
+  trades: Array<BookingTrade>
+  total_services: number
+}
 
 /**
  * Adopt multiple service templates at once (useful for onboarding).
@@ -11152,6 +11188,12 @@ export type BookingsHandleTechnicianLocationUpdateData = {
 }
 
 export type BookingsHandleTechnicianLocationUpdateResponse = unknown
+
+export type BookingTradesGetBookingTradesData = {
+  businessId: string
+}
+
+export type BookingTradesGetBookingTradesResponse = BookingTradesResponse
 
 export type BusinessContextGetCurrentBusinessContextResponse =
   BusinessContextInfoResponse
