@@ -10,21 +10,13 @@ import { loadNavigationData } from '@/lib/server/navigation-loader';
 import Hero365HeaderClient from '@/components/client/layout/Hero365HeaderClient';
 import { ShoppingBag, Menu } from 'lucide-react';
 
-// Helper function to group services by category (not trade) and limit items per group
+// Helper function to group services by TRADE and limit items per group
 function groupServicesByCategory(services: any[]) {
   const categories: Record<string, any[]> = {};
 
-  const titleCase = (str?: string) => {
-    if (!str) return '';
-    return String(str)
-      .toLowerCase()
-      .replace(/\b\w/g, (m) => m.toUpperCase());
-  };
-
   for (const service of services) {
-    // Prefer normalized category values; fallback to trade-derived label
-    const rawCategory: string = service.category || service.category_slug || '';
-    const categoryName = rawCategory ? titleCase(rawCategory) : getCategoryDisplayName(service.trade_slug);
+    // Group strictly by trade (primary/secondary)
+    const categoryName = getCategoryDisplayName(service.trade_slug);
 
     if (!categories[categoryName]) {
       categories[categoryName] = [];
@@ -39,8 +31,8 @@ function groupServicesByCategory(services: any[]) {
     });
   }
 
-  // Sort categories by a sensible priority, then alphabetically
-  const priority = ['Installation', 'Repair', 'Maintenance', 'Emergency', 'Inspection', 'Cleaning', 'Upgrade', 'General'];
+  // Sort trades: primary trade first if present, then alphabetically
+  const priority = ['HVAC', 'Plumbing', 'Electrical', 'Roofing', 'Landscaping', 'Security', 'Pool & Spa', 'General'];
   const sortKey = (name: string) => {
     const idx = priority.indexOf(name);
     return idx === -1 ? 999 : idx;

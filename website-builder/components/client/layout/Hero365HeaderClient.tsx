@@ -105,6 +105,9 @@ export default function Hero365HeaderClient({
                     <h4 className="font-semibold text-gray-900">Need Help Choosing?</h4>
                     <p className="text-sm text-gray-600">Our experts are here to help - call the number above</p>
                   </div>
+                  <Link href="/services" className="text-blue-600 hover:text-blue-700 font-medium">
+                    Browse all services →
+                  </Link>
                 </div>
               </div>
             </div>

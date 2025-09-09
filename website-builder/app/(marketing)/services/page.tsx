@@ -1,6 +1,9 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
+import Hero365Header from '@/components/server/layout/Hero365Header'
+import Hero365Footer from '@/components/shared/Hero365Footer'
 import { getBusinessContext } from '@/lib/server/business-context-loader'
+import ServicesCategorySection from '@/components/client/services/ServicesCategorySection'
 import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver'
 
 export const metadata: Metadata = {
@@ -8,17 +11,17 @@ export const metadata: Metadata = {
   description: 'Explore our comprehensive range of professional home services including HVAC, plumbing, electrical, and more.',
 }
 
-// Fetch active services and locations from backend
-async function getActiveServices() {
+// Fetch business-specific services
+async function getBusinessServices(businessId: string) {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
   try {
-    const response = await fetch(`${backendUrl}/api/v1/public/services/active`, {
+    const response = await fetch(`${backendUrl}/api/v1/public/contractors/${businessId}/services?include_pricing=true`, {
       next: { revalidate: 3600 } // Cache for 1 hour
     })
-    if (!response.ok) throw new Error('Failed to fetch services')
+    if (!response.ok) throw new Error('Failed to fetch business services')
     return await response.json()
   } catch (error) {
-    console.error('Failed to fetch active services:', error)
+    console.error('Failed to fetch business services:', error)
     return []
   }
 }
@@ -100,25 +103,44 @@ export default async function ServicesPage() {
   // Fetch data in parallel
   const [context, services, locations] = await Promise.all([
     getBusinessContext(businessId),
-    getActiveServices(),
+    getBusinessServices(businessId),
     getActiveLocations()
   ])
 
-  // Group services by category
+  // Group services by TRADE first; attach category, description, and pricing for UI
   const servicesByCategory: { [key: string]: any[] } = {}
   services.forEach((service: any) => {
-    const { category, icon, urgent } = getServiceCategory(service.slug)
-    const serviceName = service.name || service.slug.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
-    
-    if (!servicesByCategory[category]) {
-      servicesByCategory[category] = []
+    const trade = (service.trade_slug || 'general')
+      .replace('-', ' ')
+      .replace(/\b\w/g, (l: string) => l.toUpperCase())
+    const map = getServiceCategory(service.canonical_slug)
+    const categoryFromSlug = map.category
+    const icon = map.icon
+    const inferredUrgent = map.urgent
+    const serviceName = service.name || service.canonical_slug.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+
+    if (!servicesByCategory[trade]) {
+      servicesByCategory[trade] = []
     }
-    
-    servicesByCategory[category].push({
-      slug: service.slug,
+
+    const pricingSummary: string | undefined = service.pricing_summary || (service.price_min ? (
+      service.price_max ? `$${service.price_min}-$${service.price_max}${service.price_unit ? ` per ${service.price_unit}` : ''}`
+      : `$${service.price_min}${service.price_unit ? ` per ${service.price_unit}` : ''}`
+    ) : undefined)
+
+    servicesByCategory[trade].push({
+      slug: service.canonical_slug,
       name: serviceName,
       icon,
-      urgent
+      urgent: Boolean(service.is_emergency) || Boolean(inferredUrgent),
+      category: service.category || categoryFromSlug,
+      description: service.description || undefined,
+      pricingSummary,
+      priceMin: service.price_min ?? undefined,
+      priceMax: service.price_max ?? undefined,
+      priceUnit: service.price_unit ?? undefined,
+      image_url: service.image_url ?? undefined,
+      image_alt: service.image_alt ?? undefined,
     })
   })
 
@@ -133,6 +155,22 @@ export default async function ServicesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <Hero365Header 
+        businessProfile={{
+          business_id: context.business.id,
+          business_name: context.business.name,
+          phone: context.business.phone,
+          phone_display: context.business.phone,
+          email: context.business.email,
+          address: context.business.address,
+          city: context.business.city,
+          state: context.business.state,
+          postal_code: context.business.postal_code,
+          logo_url: context.business.logo_url
+        }}
+        showCTA={true}
+        showCart={false}
+      />
       {/* Hero Section */}
       <section className="relative py-20 px-6">
         <div className="max-w-7xl mx-auto text-center">
@@ -163,66 +201,17 @@ export default async function ServicesPage() {
       {/* Service Categories */}
       <section className="py-16 px-6">
         <div className="max-w-7xl mx-auto">
-          {Object.entries(servicesByCategory).map(([categoryName, categoryServices]) => {
-            const categoryIcon = categoryServices[0]?.icon || '🔧'
-            const categoryDescription = getCategoryDescription(categoryName)
-            
-            return (
-              <div key={categoryName} className="mb-16">
-                <div className="flex items-center gap-4 mb-8">
-                  <span className="text-4xl">{categoryIcon}</span>
-                  <div>
-                    <h2 className="text-3xl font-bold text-gray-900">{categoryName}</h2>
-                    <p className="text-gray-600">{categoryDescription}</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {categoryServices.map((service) => (
-                    <div key={service.slug} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{service.icon}</span>
-                          <h3 className="text-xl font-semibold text-gray-900">
-                            {service.name}
-                          </h3>
-                        </div>
-                        {service.urgent && (
-                          <span className="bg-red-100 text-red-700 text-xs font-semibold px-2 py-1 rounded">
-                            24/7 Emergency
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <Link
-                          href={`/services/${service.slug}`}
-                          className="block text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                          Learn More →
-                        </Link>
-                        
-                        <div className="pt-3 border-t border-gray-100">
-                          <p className="text-sm text-gray-500 mb-2">Available in:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {popularLocations.map((location) => (
-                              <Link
-                                key={location.slug}
-                                href={`/services/${service.slug}/${location.slug}`}
-                                className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded transition-colors"
-                              >
-                                {location.name}
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
+          {Object.entries(servicesByCategory).map(([categoryName, categoryServices]) => (
+            <ServicesCategorySection
+              key={categoryName}
+              title={categoryName}
+              icon={categoryServices[0]?.icon || '🔧'}
+              description={getCategoryDescription(categoryName)}
+              services={categoryServices}
+              popularLocations={popularLocations}
+              initialVisibleCount={9}
+            />
+          ))}
         </div>
       </section>
 
@@ -262,6 +251,22 @@ export default async function ServicesPage() {
           </p>
         </div>
       </section>
+
+      <Hero365Footer 
+        business={{
+          id: context.business.id,
+          name: context.business.name,
+          phone_number: context.business.phone,
+          business_email: context.business.email,
+          address: context.business.address,
+          website: context.business.website,
+          service_areas: context.business.service_areas || [],
+          trades: context.business.trades || [],
+          seo_keywords: []
+        }}
+        serviceCategories={[]}
+        locations={[]}
+      />
     </div>
   )
 }

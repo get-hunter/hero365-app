@@ -1137,12 +1137,20 @@ export type app__api__public__routes__contractors__business_services__ServiceIte
     name: string
     trade_slug?: string | null
     category?: string | null
+    description?: string | null
     is_emergency?: boolean
     is_featured?: boolean
     is_commercial?: boolean
     is_residential?: boolean
     sort_order?: number
+    price_type?: string | null
+    price_min?: number | null
+    price_max?: number | null
+    price_unit?: string | null
     pricing_summary?: string | null
+    image_url?: string | null
+    image_alt?: string | null
+    image_gallery?: unknown | null
   }
 
 /**

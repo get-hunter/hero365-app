@@ -54,7 +54,7 @@ export async function loadNavigationData(): Promise<NavigationData> {
       
       // Build flat service list for grouping in the header component
       const rawServices = navigationData.services || [];
-      const flatServices = rawServices
+      let flatServices = rawServices
         .map((svc: any) => {
           const name = svc.name || svc.service_name;
           const slug = svc.canonical_slug || svc.slug;
@@ -72,6 +72,43 @@ export async function loadNavigationData(): Promise<NavigationData> {
           };
         })
         .filter(Boolean);
+
+      // Supplement with full services list to include secondary trades
+      try {
+        const fullRes = await fetch(`${backendUrl}/api/v1/public/contractors/${businessId}/services`, {
+          headers: getDefaultHeaders(),
+          next: { revalidate: 300 }
+        });
+        if (fullRes.ok) {
+          const full = await fullRes.json();
+          const extra = (full || []).map((svc: any) => {
+            const name = svc.name || svc.service_name;
+            const slug = svc.canonical_slug || svc.slug;
+            const href = slug ? `/services/${slug}` : undefined;
+            if (!name || !href) return null;
+            return {
+              name,
+              description: `Professional ${String(name).toLowerCase()} services`,
+              href,
+              is_emergency: svc.is_emergency,
+              is_featured: svc.is_featured,
+              trade_slug: svc.trade_slug,
+              category: svc.category_name || svc.category || null
+            };
+          }).filter(Boolean) as any[];
+
+          // Deduplicate by href
+          const seen = new Set(flatServices.map((s: any) => s.href));
+          for (const item of extra) {
+            if (!seen.has(item.href)) {
+              seen.add(item.href);
+              flatServices.push(item);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('⚠️ [NAV] Supplement full services fetch failed:', e);
+      }
       
       const locations = navigationData.locations?.map((location: any) => ({
         name: location.name,

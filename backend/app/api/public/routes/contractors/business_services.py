@@ -25,12 +25,20 @@ class ServiceItem(BaseModel):
     name: str
     trade_slug: Optional[str] = None
     category: Optional[str] = None
+    description: Optional[str] = None
     is_emergency: bool = False
     is_featured: bool = False
     is_commercial: bool = False
     is_residential: bool = True
     sort_order: int = 0
+    price_type: Optional[str] = None
+    price_min: Optional[float] = None
+    price_max: Optional[float] = None
+    price_unit: Optional[str] = None
     pricing_summary: Optional[str] = None
+    image_url: Optional[str] = None
+    image_alt: Optional[str] = None
+    image_gallery: Optional[Any] = None
 
 
 class LocationItem(BaseModel):
@@ -58,7 +66,7 @@ class NavigationResponse(BaseModel):
 async def get_business_services(
     business_id: str = Path(..., description="Business ID"),
     only_active: bool = Query(True, description="Only return active services"),
-    include_pricing: bool = Query(False, description="Include pricing summary"),
+    include_pricing: bool = Query(True, description="Include pricing summary"),
     supabase: SupabaseClient = Depends(get_supabase_client)
 ) -> List[ServiceItem]:
     """
@@ -75,7 +83,8 @@ async def get_business_services(
                 canonical_slug,
                 service_name,
                 trade_slug,
-                category,
+                category_id,
+                description,
                 is_emergency,
                 is_featured,
                 is_commercial,
@@ -84,7 +93,11 @@ async def get_business_services(
                 price_type,
                 price_min,
                 price_max,
-                price_unit
+                price_unit,
+                image_url,
+                image_alt,
+                image_gallery,
+                service_categories(name)
             """)\
             .eq("business_id", business_id)\
             .order("sort_order", desc=False)\
@@ -117,17 +130,30 @@ async def get_business_services(
                 else:
                     pricing_summary = "Quote required"
             
+            # Extract category name from joined service_categories table
+            category_name = None
+            if row.get("service_categories") and isinstance(row["service_categories"], dict):
+                category_name = row["service_categories"].get("name")
+            
             service = ServiceItem(
                 canonical_slug=row["canonical_slug"],
                 name=row["service_name"],
                 trade_slug=row.get("trade_slug"),
-                category=row.get("category"),
+                category=category_name,
+                description=row.get("description"),
                 is_emergency=row.get("is_emergency", False),
                 is_featured=row.get("is_featured", False),
                 is_commercial=row.get("is_commercial", False),
                 is_residential=row.get("is_residential", True),
                 sort_order=row.get("sort_order", 0),
-                pricing_summary=pricing_summary
+                price_type=row.get("price_type"),
+                price_min=(float(row.get("price_min")) if row.get("price_min") is not None else None),
+                price_max=(float(row.get("price_max")) if row.get("price_max") is not None else None),
+                price_unit=row.get("price_unit"),
+                pricing_summary=pricing_summary,
+                image_url=row.get("image_url"),
+                image_alt=row.get("image_alt"),
+                image_gallery=row.get("image_gallery")
             )
             services.append(service)
         
