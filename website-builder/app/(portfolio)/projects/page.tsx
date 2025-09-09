@@ -55,8 +55,8 @@ export default async function ProjectsPage() {
           hasRealData={safeProjects.length > 0}
         />
         <Hero365Footer 
-          business={profile}
-          showEmergencyBanner={!!profile.emergency_service}
+          business={profile as any}
+          showEmergencyBanner={!!(profile as any).emergency_service}
         />
       </div>
   );

@@ -321,8 +321,33 @@ export default async function HomePage() {
 
         {/* Footer */}
         <Hero365Footer 
-          business={profile}
+          business={{
+            business_id: profile.business_id || profile.id || '',
+            business_name: profile.business_name,
+            description: profile.description,
+            phone: profile.phone,
+            email: profile.email,
+            address: profile.address,
+            city: profile.city,
+            state: profile.state,
+            postal_code: profile.postal_code,
+            website: profile.website,
+            years_in_business: profile.years_in_business,
+            average_rating: (profile as any).average_rating,
+            license_number: (profile as any).license_number,
+            emergency_service: !!profile.emergency_service,
+            service_areas: (profile as any).service_areas || (homepageBusiness as any).service_areas || (homepageBusiness as any).serviceAreas || []
+          }}
           services={serverServices}
+          locations={(homeLocations || []).map((area: any) => ({
+            id: area.location_slug,
+            slug: area.location_slug,
+            name: area.name,
+            city: area.city,
+            state: area.state,
+            address: area.name,
+            is_primary: area.is_primary
+          }))}
           showEmergencyBanner={homepageBusiness.emergency_service}
         />
       </div>

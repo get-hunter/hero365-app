@@ -245,18 +245,38 @@ export default async function ServicesPage() {
 
       <Hero365Footer 
         business={{
-          id: context.business.id,
-          name: context.business.name,
-          phone_number: context.business.phone,
-          business_email: context.business.email,
+          business_id: context.business.id,
+          business_name: context.business.name,
+          description: context.business.description,
+          phone: context.business.phone,
+          email: context.business.email,
           address: context.business.address,
+          city: context.business.city,
+          state: context.business.state,
+          postal_code: context.business.postal_code,
           website: context.business.website,
-          service_areas: context.business.service_areas || [],
-          trades: context.business.trades || [],
-          seo_keywords: []
+          years_in_business: context.business.years_in_business,
+          average_rating: context.average_rating,
+          license_number: (context.business as any).license_number,
+          emergency_service: true,
+          service_areas: context.service_areas?.map((a: any) => a.name) || []
         }}
-        serviceCategories={[]}
-        locations={[]}
+        services={context.activities?.map((a: any) => ({
+          id: a.slug,
+          name: a.name,
+          slug: a.slug,
+          is_featured: a.is_featured,
+          category: a.trade_name
+        })) || []}
+        locations={context.service_areas?.map((area: any) => ({
+          id: area.slug,
+          slug: area.slug,
+          name: area.name,
+          city: area.city,
+          state: area.state,
+          address: area.name,
+          is_primary: area.is_primary
+        })) || []}
       />
     </div>
   )

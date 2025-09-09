@@ -124,8 +124,8 @@ export default async function ProductsPage() {
         />
 
         <Hero365Footer 
-          business={profile}
-          showEmergencyBanner={!!profile.emergency_service}
+          business={profile as any}
+          showEmergencyBanner={!!(profile as any).emergency_service}
         />
 
         {serverProducts.length === 0 && (

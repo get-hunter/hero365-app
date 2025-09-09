@@ -129,17 +129,23 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
           <Hero365Footer 
             business={{
-              id: businessId,
-              name: businessProfile.business_name,
-              phone_number: businessProfile.phone,
-              business_email: businessProfile.email,
+              business_id: businessId,
+              business_name: businessProfile.business_name,
+              description: (businessProfile as any).description,
+              phone: businessProfile.phone,
+              email: businessProfile.email,
               address: businessProfile.address,
+              city: (businessProfile as any).city,
+              state: (businessProfile as any).state,
+              postal_code: (businessProfile as any).postal_code,
               website: (businessProfile as any)?.website,
-              service_areas: businessProfile.service_areas,
-              trades: [],
-              seo_keywords: []
+              years_in_business: (businessProfile as any).years_in_business,
+              average_rating: (businessProfile as any).average_rating,
+              license_number: (businessProfile as any).license_number,
+              emergency_service: !!(businessProfile as any).emergency_service,
+              service_areas: (businessProfile as any).service_areas || []
             }}
-            serviceCategories={[]}
+            services={[]}
             locations={[]}
           />
         </div>
