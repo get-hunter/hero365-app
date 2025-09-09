@@ -32,6 +32,7 @@ interface BookingWidgetProviderProps {
   companyEmail?: string;
   primaryColor?: string;
   showLauncher?: boolean;
+  countryCode?: string;
 }
 
 export function Hero365BookingProvider({
@@ -43,7 +44,8 @@ export function Hero365BookingProvider({
   companyPhone,
   companyEmail,
   primaryColor = '#3b82f6',
-  showLauncher = false
+  showLauncher = false,
+  countryCode
 }: BookingWidgetProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
@@ -176,6 +178,7 @@ export function Hero365BookingProvider({
                     onClose={closeBookingWidget}
                     onComplete={handleBookingComplete}
                     className="h-full"
+                    countryCode={countryCode}
                   />
                 </Hero365BookingErrorBoundary>
               </div>
@@ -219,13 +222,13 @@ export function BookingCTAButton({
     primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
     secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
     outline: 'border border-input hover:bg-accent hover:text-accent-foreground'
-  };
+  } as const;
 
   const sizeClasses = {
     sm: 'h-9 px-3 text-sm',
     default: 'h-10 py-2 px-4',
     lg: 'h-11 px-8 text-lg'
-  };
+  } as const;
 
   return (
     <button

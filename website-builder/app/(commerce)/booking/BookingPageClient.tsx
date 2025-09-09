@@ -8,7 +8,6 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import Hero365Header from '@/components/shared/Hero365Header';
 import { Hero365BookingProvider } from '@/components/client/commerce/booking/Hero365BookingProvider';
 
 // Dynamically import the booking wizard to avoid SSR issues
@@ -33,39 +32,41 @@ interface BookingPageClientProps {
   businessId: string;
 }
 
-export function BookingPageClient({ businessProfile, businessServices, businessId }: BookingPageClientProps) {
-  // Transform business profile to header format
-  // Business data is now handled by Hero365Header component
-
-  // Transform services for booking provider
+export default function BookingPageClient({ businessProfile, businessServices, businessId }: BookingPageClientProps) {
+  // Transform services for booking provider (popup integration, carts, etc.)
   const bookingServices = businessServices.map(service => ({
-    id: service.id || service.service_id,
+    id: String(service.id || service.service_id),
     name: service.service_name || service.name,
     description: service.description || `Professional ${service.service_name || service.name} service`,
     price: service.base_price || 150,
-    duration: service.estimated_duration || 60,
+    duration: service.estimated_duration || service.estimated_duration_minutes || 60,
     category: service.category || 'Service'
   }));
+
+  // Transform services for inline booking wizard (expects estimated_duration_minutes/base_price)
+  const wizardServices = businessServices.map(service => ({
+    id: String(service.id || service.service_id),
+    name: service.service_name || service.name,
+    category: service.category || 'Service',
+    description: service.description || '',
+    estimated_duration_minutes: service.estimated_duration || service.estimated_duration_minutes || undefined,
+    base_price: service.base_price || undefined
+  }));
+
+  const countryCode = (businessProfile?.country_code || 'US').toUpperCase();
 
   return (
     <Hero365BookingProvider
       businessId={businessId}
-      services={bookingServices}
+      services={bookingServices as any}
       companyName={businessProfile.business_name}
       companyPhone={businessProfile.phone_display || businessProfile.phone}
       primaryColor="#2563eb"
+      countryCode={countryCode}
     >
-      <div className="min-h-screen bg-gray-50">
-        <Hero365Header
-          businessProfile={businessProfile}
-          showCTA={true}
-          showCart={true}
-        />
-
-        <main>
-          <Hero365BookingWizard />
-        </main>
-      </div>
+      <main>
+        <Hero365BookingWizard businessId={businessId} services={wizardServices as any} />
+      </main>
     </Hero365BookingProvider>
   );
 }

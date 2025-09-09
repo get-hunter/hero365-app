@@ -11,7 +11,7 @@ import { getBusinessIdFromHost } from '@/lib/server/host-business-resolver';
 import { getDefaultHeaders } from '@/lib/shared/config/api-config';
 import { getRuntimeConfig } from '@/lib/server/runtime-config';
 import { notFound } from 'next/navigation';
-import { BookingPageClient } from './BookingPageClient';
+import BookingPageClient from '@/app/(commerce)/booking/BookingPageClient';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -72,10 +72,18 @@ export default async function BookingPage() {
   }
 
   return (
-    <BookingPageClient 
-      businessProfile={profile}
-      businessServices={services}
-      businessId={businessId}
-    />
+    <div className="min-h-screen bg-gray-50">
+      <Hero365Header
+        businessProfile={profile}
+        showCTA={true}
+        showCart={true}
+      />
+
+      <BookingPageClient 
+        businessProfile={profile}
+        businessServices={services}
+        businessId={businessId}
+      />
+    </div>
   );
 }

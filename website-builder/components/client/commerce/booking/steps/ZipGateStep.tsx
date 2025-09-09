@@ -12,7 +12,6 @@ import { serviceAreasApi, ServiceAreaCheckResponse } from '@/lib/api/service-are
 import { useBookingAnalytics } from '@/lib/client/analytics/booking-analytics';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBookingWizard, ZipInfo } from '../Hero365BookingContext';
@@ -22,38 +21,145 @@ interface ZipGateStepProps {
   businessName?: string;
   businessPhone?: string;
   businessEmail?: string;
+  countryCode: string; // new: provided by wizard based on business
 }
-
-// ServiceAreaCheckResponse is now imported from the API client
-
-const COUNTRIES = [
-  { code: 'US', name: 'United States', flag: '🇺🇸' },
-  { code: 'CA', name: 'Canada', flag: '🇨🇦' },
-  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
-  { code: 'AU', name: 'Australia', flag: '🇦🇺' }
-];
 
 export default function ZipGateStep({
   businessId,
   businessName = 'our team',
   businessPhone,
-  businessEmail
+  businessEmail,
+  countryCode
 }: ZipGateStepProps) {
   const { state, updateZipInfo, nextStep, setLoading, setError } = useBookingWizard();
   const analytics = useBookingAnalytics();
   
+  const resolvedCountryCode = (countryCode || 'US').toUpperCase();
   const [postalCode, setPostalCode] = useState(state.zipInfo?.postalCode || '');
-  const [countryCode, setCountryCode] = useState(state.zipInfo?.countryCode || 'US');
   const [checkResult, setCheckResult] = useState<ServiceAreaCheckResponse | null>(null);
   const [isChecking, setIsChecking] = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [autoAttempted, setAutoAttempted] = useState(false);
+  const [lastCheckedCode, setLastCheckedCode] = useState<string | null>(null);
 
-  // Auto-detect country from browser if available
   useEffect(() => {
-    if (!state.zipInfo && 'geolocation' in navigator) {
-      // Could implement IP-based country detection here
-      // For now, default to US
+    // Clear previous errors when component mounts or country changes
+    setError();
+    setCheckResult(null);
+    setLastCheckedCode(null);
+  }, [resolvedCountryCode, setError]);
+
+  useEffect(() => {
+    // Auto-check when the postal code becomes valid (debounced)
+    if (!postalCode) return;
+    const normalized = serviceAreasApi.normalizePostalCode(postalCode, resolvedCountryCode);
+    if (!serviceAreasApi.validatePostalCode(normalized, resolvedCountryCode)) return;
+    if (isChecking || normalized === lastCheckedCode) return;
+    const t = setTimeout(() => {
+      setLastCheckedCode(normalized);
+      void checkServiceArea(normalized);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [postalCode, resolvedCountryCode, isChecking, lastCheckedCode]);
+
+  useEffect(() => {
+    // Try auto-detect once if user already granted permission and no postal filled
+    if (autoAttempted || postalCode || typeof window === 'undefined') return;
+    const permissions: any = (navigator as any).permissions;
+    if (permissions && permissions.query) {
+      permissions.query({ name: 'geolocation' as any }).then((result: any) => {
+        if (result.state === 'granted') {
+          setAutoAttempted(true);
+          void handleUseMyLocation(true);
+        }
+      }).catch(() => {/* noop */});
     }
-  }, [state.zipInfo]);
+  }, [autoAttempted, postalCode]);
+
+  const reverseGeocodePostal = async (lat: number, lon: number): Promise<string | null> => {
+    // Try BigDataCloud first, then fall back to OpenStreetMap Nominatim
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+    try {
+      const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=en`;
+      const res = await fetch(url, { signal: controller.signal });
+      if (res.ok) {
+        const data: any = await res.json();
+        const candidates: Array<any> = [
+          data.postcode,
+          data.postalCode,
+          data?.localityInfo?.administrative?.find?.((x: any) => /postal|zip/i.test(x.description || ''))?.name,
+          data?.localityInfo?.informative?.find?.((x: any) => /postal|zip/i.test(x.description || ''))?.name
+        ];
+        const raw = candidates.find(Boolean) || null;
+        if (raw) {
+          const normalized = serviceAreasApi.normalizePostalCode(String(raw), resolvedCountryCode);
+          if (serviceAreasApi.validatePostalCode(normalized, resolvedCountryCode)) return normalized;
+        }
+      }
+    } catch (_) {
+      // ignore and try fallback
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    // Fallback: OSM Nominatim
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&addressdetails=1`;
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'hero365-booking/1.0 (+https://hero365.app)' }
+      });
+      if (!res.ok) return null;
+      const data: any = await res.json();
+      const addr = data.address || {};
+      const raw = addr.postcode || addr['postal_code'] || addr['zip'] || null;
+      if (!raw) return null;
+      const normalized = serviceAreasApi.normalizePostalCode(String(raw), resolvedCountryCode);
+      return serviceAreasApi.validatePostalCode(normalized, resolvedCountryCode) ? normalized : null;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const handleUseMyLocation = async (silent?: boolean) => {
+    if (!('geolocation' in navigator)) {
+      if (!silent) setError('Geolocation is not supported on this device');
+      return;
+    }
+    setIsDetecting(true);
+    setError();
+    setCheckResult(null);
+
+    const getPosition = () => new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: false,
+        maximumAge: 5 * 60 * 1000,
+        timeout: 8000
+      });
+    });
+
+    try {
+      const position = await getPosition();
+      const { latitude, longitude } = position.coords;
+      const detected = await reverseGeocodePostal(latitude, longitude);
+      if (detected) {
+        setPostalCode(detected);
+        // Run check using the freshly detected value to avoid stale state
+        await checkServiceArea(detected);
+      } else if (!silent) {
+        setError('Unable to detect postal code from your location');
+      }
+    } catch (err: any) {
+      if (!silent) {
+        const message = err?.code === 1
+          ? 'Location permission denied'
+          : 'Unable to access your location';
+        setError(message);
+      }
+    } finally {
+      setIsDetecting(false);
+    }
+  };
 
   const handlePostalCodeChange = (value: string) => {
     setPostalCode(value.toUpperCase());
@@ -61,15 +167,16 @@ export default function ZipGateStep({
     setError();
   };
 
-  const checkServiceArea = async () => {
-    if (!postalCode.trim()) {
+  const checkServiceArea = async (overridePostal?: string) => {
+    const code = (overridePostal ?? postalCode).trim();
+    if (!code) {
       setError('Please enter a postal code');
       return;
     }
 
     // Validate postal code format
-    if (!serviceAreasApi.validatePostalCode(postalCode, countryCode)) {
-      setError(`Please enter a valid ${serviceAreasApi.getPostalCodeLabel(countryCode).toLowerCase()}`);
+    if (!serviceAreasApi.validatePostalCode(code, resolvedCountryCode)) {
+      setError(`Please enter a valid ${serviceAreasApi.getPostalCodeLabel(resolvedCountryCode).toLowerCase()}`);
       return;
     }
 
@@ -77,21 +184,19 @@ export default function ZipGateStep({
     setLoading(true);
     setError();
 
+    const normalizedPostalCode = serviceAreasApi.normalizePostalCode(code, resolvedCountryCode);
+
     try {
-      const normalizedPostalCode = serviceAreasApi.normalizePostalCode(postalCode, countryCode);
-      
       const result = await serviceAreasApi.checkServiceAreaSupport({
         business_id: businessId,
         postal_code: normalizedPostalCode,
-        country_code: countryCode
+        country_code: resolvedCountryCode
       });
-
-      setCheckResult(result);
 
       // Track ZIP validation analytics
       analytics.trackZipValidation(
         normalizedPostalCode, 
-        countryCode, 
+        resolvedCountryCode, 
         result.supported, 
         result.suggestions
       );
@@ -112,18 +217,29 @@ export default function ZipGateStep({
         };
 
         updateZipInfo(zipInfo);
+        setCheckResult(null); // do not render success card
+        nextStep();
       } else {
+        setCheckResult(result);
         updateZipInfo({
           postalCode: normalizedPostalCode,
-          countryCode: countryCode,
+          countryCode: resolvedCountryCode,
           timezone: 'America/New_York', // Default
           supported: false
         });
       }
 
     } catch (error) {
+      // Graceful fallback on server errors: treat as unsupported instead of hard error
       console.error('Error checking service area:', error);
-      setError('Unable to check service area. Please try again.');
+      setCheckResult({ supported: false });
+      updateZipInfo({
+        postalCode: normalizedPostalCode,
+        countryCode: resolvedCountryCode,
+        timezone: 'America/New_York',
+        supported: false
+      });
+      // Do not set a blocking error banner; the UI will show the unsupported card
     } finally {
       setIsChecking(false);
       setLoading(false);
@@ -146,8 +262,6 @@ export default function ZipGateStep({
     setError('Please contact us directly to request service in your area');
   };
 
-  const selectedCountry = COUNTRIES.find(c => c.code === countryCode);
-
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       {/* Header */}
@@ -159,7 +273,7 @@ export default function ZipGateStep({
           What's your location?
         </h1>
         <p className="text-gray-600">
-          Enter your postal code so we can check if we provide service in your area
+          Enter your {serviceAreasApi.getPostalCodeLabel(resolvedCountryCode).toLowerCase()} so we can check if we provide service in your area
         </p>
       </div>
 
@@ -169,41 +283,13 @@ export default function ZipGateStep({
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Country
+                {serviceAreasApi.getPostalCodeLabel(resolvedCountryCode)} *
               </label>
-              <Select value={countryCode} onValueChange={setCountryCode}>
-                <SelectTrigger>
-                  <SelectValue>
-                    {selectedCountry && (
-                      <span className="flex items-center">
-                        <span className="mr-2">{selectedCountry.flag}</span>
-                        {selectedCountry.name}
-                      </span>
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNTRIES.map((country) => (
-                    <SelectItem key={country.code} value={country.code}>
-                      <span className="flex items-center">
-                        <span className="mr-2">{country.flag}</span>
-                        {country.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {serviceAreasApi.getPostalCodeLabel(countryCode)} *
-              </label>
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-3 sm:space-y-0">
                 <Input
                   value={postalCode}
                   onChange={(e) => handlePostalCodeChange(e.target.value)}
-                  placeholder={serviceAreasApi.getPostalCodePlaceholder(countryCode)}
+                  placeholder={serviceAreasApi.getPostalCodePlaceholder(resolvedCountryCode)}
                   className="flex-1"
                   maxLength={10}
                   onKeyPress={(e) => {
@@ -212,13 +298,27 @@ export default function ZipGateStep({
                     }
                   }}
                 />
-                <Button
-                  onClick={checkServiceArea}
-                  disabled={!postalCode.trim() || isChecking}
-                  className="px-6"
-                >
-                  {isChecking ? 'Checking...' : 'Check'}
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    onClick={() => checkServiceArea()}
+                    disabled={!postalCode.trim() || isChecking}
+                    className="px-6"
+                  >
+                    {isChecking ? 'Checking...' : 'Check'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleUseMyLocation(false)}
+                    disabled={isDetecting}
+                  >
+                    {isDetecting ? (
+                      <span className="inline-flex items-center"><span className="w-4 h-4 mr-2 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></span>Detecting</span>
+                    ) : (
+                      'Use my location'
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

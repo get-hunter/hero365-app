@@ -37,62 +37,100 @@ class ServiceAreasService:
         self.supabase = get_supabase_client()
 
     async def check_service_area_support(self, request: ServiceAreaCheckRequest) -> ServiceAreaCheckResponse:
-        """Check if a postal code is supported by a business"""
+        """Check if a postal code is supported by a business (direct DB query).
+        Supports either `postal_code` (text) or `postal_codes` (text[]) schemas.
+        """
         try:
-            # Call the database function for service area check
-            result = self.supabase.rpc(
-                'check_service_area_support',
-                {
-                    'p_business_id': request.business_id,
-                    'p_postal_code': request.postal_code,
-                    'p_country_code': request.country_code
-                }
-            ).execute()
+            postal = request.postal_code.upper()
+            country = request.country_code.upper()
 
-            if not result.data:
-                return ServiceAreaCheckResponse(
-                    supported=False,
-                    message="Unable to check service area"
+            def _build_normalized(row: dict) -> NormalizedLocation:
+                return NormalizedLocation(
+                    postal_code=row.get('postal_code', postal),
+                    country_code=row.get('country_code', country),
+                    city=row.get('city'),
+                    region=row.get('region'),
+                    timezone=row.get('timezone') or 'America/New_York',
+                    dispatch_fee_cents=row.get('dispatch_fee_cents') or 0,
+                    min_response_time_hours=row.get('min_response_time_hours') or 2,
+                    max_response_time_hours=row.get('max_response_time_hours') or 24,
+                    emergency_available=row.get('emergency_services_available', True),
+                    regular_available=row.get('regular_services_available', True)
                 )
 
-            area_data = result.data[0]
-            
-            if area_data['supported']:
-                normalized = NormalizedLocation(
-                    postal_code=request.postal_code,
-                    country_code=request.country_code,
-                    city=area_data['city'],
-                    region=area_data['region'],
-                    timezone=area_data['timezone'],
-                    dispatch_fee_cents=area_data['dispatch_fee_cents'] or 0,
-                    min_response_time_hours=area_data['min_response_time_hours'],
-                    max_response_time_hours=area_data['max_response_time_hours'],
-                    emergency_available=area_data['emergency_available'],
-                    regular_available=area_data['regular_available']
-                )
+            row = None
 
+            # Attempt 1: exact match on `postal_code` column
+            try:
+                result = self.supabase.table('service_areas').select('*') \
+                    .eq('business_id', request.business_id) \
+                    .eq('country_code', country) \
+                    .eq('postal_code', postal) \
+                    .eq('is_active', True) \
+                    .limit(1).execute()
+                if result.data:
+                    row = result.data[0]
+            except Exception as e:
+                logger.info(f"postal_code column lookup failed, will try postal_codes array: {e}")
+
+            # Attempt 2: array contains on `postal_codes` column
+            if row is None:
+                try:
+                    # Prefer `.contains`, fallback to generic filter if not available
+                    query = self.supabase.table('service_areas').select('*') \
+                        .eq('business_id', request.business_id) \
+                        .eq('country_code', country) \
+                        .eq('is_active', True)
+                    try:
+                        query = query.contains('postal_codes', [postal])  # type: ignore[attr-defined]
+                    except Exception:
+                        query = query.filter('postal_codes', 'cs', f'{{{postal}}}')
+                    result2 = query.limit(1).execute()
+                    if result2.data:
+                        # Ensure normalized has a single postal_code
+                        row = {**result2.data[0], 'postal_code': postal}
+                except Exception as e:
+                    logger.info(f"postal_codes array lookup failed: {e}")
+
+            if row is not None:
                 return ServiceAreaCheckResponse(
                     supported=True,
-                    normalized=normalized,
+                    normalized=_build_normalized(row),
                     message="Service available in your area"
                 )
-            else:
-                # Get nearby suggestions
-                suggestions = await self._get_nearby_suggestions(
-                    request.business_id,
-                    request.postal_code,
-                    request.country_code
-                )
 
-                return ServiceAreaCheckResponse(
-                    supported=False,
-                    suggestions=suggestions,
-                    message="Service not yet available in your area"
-                )
+            # No match: return simple suggestions (first few active areas in same country)
+            try:
+                suggest = self.supabase.table('service_areas').select('postal_code,postal_codes,city,region') \
+                    .eq('business_id', request.business_id) \
+                    .eq('country_code', country) \
+                    .eq('is_active', True).limit(5).execute()
+                suggestions: List[ServiceAreaSuggestion] = []
+                for srow in suggest.data or []:
+                    pc = srow.get('postal_code')
+                    if not pc and isinstance(srow.get('postal_codes'), list) and srow['postal_codes']:
+                        pc = srow['postal_codes'][0]
+                    suggestions.append(ServiceAreaSuggestion(
+                        postal_code=pc or '',
+                        city=srow.get('city'),
+                        region=srow.get('region'),
+                        distance_estimate='nearby'
+                    ))
+            except Exception:
+                suggestions = []
+
+            return ServiceAreaCheckResponse(
+                supported=False,
+                suggestions=suggestions,
+                message="Service not yet available in your area"
+            )
 
         except Exception as e:
             logger.error(f"Error checking service area support: {e}")
-            raise DataCompositionError(f"Failed to check service area: {str(e)}")
+            return ServiceAreaCheckResponse(
+                supported=False,
+                message="Unable to check service area"
+            )
 
     async def _get_nearby_suggestions(
         self, 

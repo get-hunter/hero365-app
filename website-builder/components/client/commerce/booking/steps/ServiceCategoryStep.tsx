@@ -179,6 +179,24 @@ export default function ServiceCategoryStep({
   const [selectedServiceId, setSelectedServiceId] = useState<string>(state.serviceId || '');
   const [availableServices, setAvailableServices] = useState(services);
 
+  const locationLabel = state.zipInfo
+    ? `${state.zipInfo.city || ''}${state.zipInfo.city ? ', ' : ''}${state.zipInfo.region || ''} ${state.zipInfo.postalCode}`.trim()
+    : '';
+
+  const formatDuration = (minutes?: number) => {
+    if (!minutes) return null;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h && m) return `${h}h ${m}m`;
+    if (h) return `${h}h`;
+    return `${m}m`;
+  };
+
+  const formatPrice = (cents?: number) => {
+    if (typeof cents !== 'number') return null;
+    return `$${(cents / 100).toLocaleString()}`;
+  };
+
   // Group services by category
   const servicesByCategory = availableServices.reduce((acc, service) => {
     const category = service.category || 'Other';
@@ -286,6 +304,12 @@ export default function ServiceCategoryStep({
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="text-center">
+        {locationLabel && (
+          <div className="inline-flex items-center px-3 py-1 mb-3 text-sm rounded-full bg-blue-50 border border-blue-200 text-blue-800">
+            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
+            Service area: {locationLabel}
+          </div>
+        )}
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
           What do you need help with?
         </h1>
@@ -294,64 +318,51 @@ export default function ServiceCategoryStep({
         </p>
       </div>
 
-      {/* Service Categories */}
-      {!selectedCategory && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {availableCategories.map((category) => {
-            const config = SERVICE_CATEGORIES[category as keyof typeof SERVICE_CATEGORIES] || SERVICE_CATEGORIES['Mechanical'];
-            const Icon = config.icon;
-            const serviceCount = servicesByCategory[category]?.length || 0;
+      {/* Service Categories (always visible) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {availableCategories.map((category) => {
+          const config = SERVICE_CATEGORIES[category as keyof typeof SERVICE_CATEGORIES] || SERVICE_CATEGORIES['Mechanical'];
+          const Icon = config.icon;
 
-            return (
-              <Card
-                key={category}
-                className={`cursor-pointer transition-all duration-200 hover:shadow-md ${config.borderColor} hover:border-blue-400`}
-                onClick={() => handleCategorySelect(category)}
-              >
-                <CardContent className={`p-6 ${config.bgColor}`}>
-                  <div className="flex items-start space-x-4">
-                    <div className={`p-3 rounded-full ${config.bgColor} border ${config.borderColor}`}>
-                      <Icon className={`w-6 h-6 ${config.textColor}`} />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className={`font-semibold ${config.textColor} mb-1`}>
-                        {category}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-2">
-                        {config.description}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <Badge variant="secondary" className="text-xs">
-                          {serviceCount} service{serviceCount !== 1 ? 's' : ''}
-                        </Badge>
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
-                      </div>
-                    </div>
+          const isActive = selectedCategory === category;
+
+          return (
+            <Card
+              key={category}
+              className={`cursor-pointer transition-all duration-200 hover:shadow-md ${config.borderColor} ${isActive ? 'ring-2 ring-blue-400' : ''} hover:border-blue-400`}
+              onClick={() => handleCategorySelect(category)}
+            >
+              <CardContent className={`p-5 h-28 flex items-center ${config.bgColor}`}>
+                <div className="flex items-center space-x-3">
+                  <div className={`p-3 rounded-full ${config.bgColor} border ${config.borderColor}`}>
+                    <Icon className={`w-6 h-6 ${config.textColor}`} />
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                  <h3 className={`font-semibold ${config.textColor}`}>{category}</h3>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
-      {/* Specific Services */}
+      {/* Specific Services: appears below after a category is selected */}
       {selectedCategory && (
-        <div className="space-y-4">
+        <div className="space-y-4 pt-4 border-t border-gray-100">
           {/* Category Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {(() => {
                 const config = SERVICE_CATEGORIES[selectedCategory as keyof typeof SERVICE_CATEGORIES] || SERVICE_CATEGORIES['Mechanical'];
                 const Icon = config.icon;
+                const count = (servicesByCategory[selectedCategory] || []).length;
                 return (
                   <>
                     <div className={`p-2 rounded-full ${config.bgColor} border ${config.borderColor}`}>
                       <Icon className={`w-5 h-5 ${config.textColor}`} />
                     </div>
-                    <div>
+                    <div className="flex items-center space-x-3">
                       <h2 className="text-xl font-semibold text-gray-900">{selectedCategory}</h2>
-                      <p className="text-sm text-gray-600">{config.description}</p>
+                      <Badge variant="outline" className="text-xs">{count} service{count !== 1 ? 's' : ''}</Badge>
                     </div>
                   </>
                 );
@@ -373,14 +384,13 @@ export default function ServiceCategoryStep({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {categoryServices.map((service) => {
               const isSelected = selectedServiceId === service.id;
-              
+              const duration = formatDuration(service.duration_minutes);
+              const price = formatPrice(service.price_cents);
               return (
                 <Card
                   key={service.id}
                   className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                    isSelected 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-blue-300'
+                    isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
                   }`}
                   onClick={() => handleServiceSelect(service.id)}
                 >
@@ -395,27 +405,25 @@ export default function ServiceCategoryStep({
                             <CheckCircle className="w-5 h-5 text-blue-500" />
                           )}
                         </div>
-                        
                         {service.description && (
                           <p className="text-sm text-gray-600 mb-3">
                             {service.description}
                           </p>
                         )}
-                        
                         <div className="flex flex-wrap gap-2">
-                          {service.duration_minutes && (
+                          {duration && (
                             <Badge variant="outline" className="text-xs">
-                              {Math.round(service.duration_minutes / 60)}h {service.duration_minutes % 60}min
+                              {duration}
                             </Badge>
                           )}
-                          {service.price_cents && (
+                          {price && (
                             <Badge variant="outline" className="text-xs">
-                              Starting at ${(service.price_cents / 100).toLocaleString()}
+                              {price}
                             </Badge>
                           )}
                           {service.is_emergency && (
                             <Badge variant="destructive" className="text-xs">
-                              24/7 Emergency
+                              24/7
                             </Badge>
                           )}
                         </div>
@@ -430,12 +438,8 @@ export default function ServiceCategoryStep({
           {/* Continue Button */}
           {selectedServiceId && (
             <div className="flex justify-center pt-6">
-              <Button
-                onClick={handleContinue}
-                size="lg"
-                className="px-8"
-              >
-                Continue with {selectedService?.name}
+              <Button onClick={handleContinue} size="lg" className="px-8">
+                Continue
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             </div>

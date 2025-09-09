@@ -34,6 +34,7 @@ interface BookingWizardProps {
   onClose?: () => void;
   onComplete?: (bookingData: any) => void;
   className?: string;
+  countryCode?: string;
 }
 
 function BookingWizardContent({
@@ -43,10 +44,13 @@ function BookingWizardContent({
   businessEmail,
   services,
   onClose,
-  onComplete
+  onComplete,
+  countryCode
 }: BookingWizardProps) {
   const { state, prevStep, canProceed, resetWizard } = useBookingWizard();
   const { currentStep, isLoading } = state;
+
+  const resolvedCountryCode = (countryCode || 'US').toUpperCase();
 
   const renderCurrentStep = () => {
     switch (currentStep) {
@@ -57,6 +61,7 @@ function BookingWizardContent({
             businessName={businessName}
             businessPhone={businessPhone}
             businessEmail={businessEmail}
+            countryCode={resolvedCountryCode}
           />
         );
       
@@ -86,7 +91,7 @@ function BookingWizardContent({
         return <ContactStep businessId={businessId} businessName={businessName} />;
       
       case WIZARD_STEPS.DETAILS:
-        return <DetailsStep businessId={businessId} businessName={businessName} />;
+        return <DetailsStep businessId={businessId} />;
       
       case WIZARD_STEPS.REVIEW:
         return (
