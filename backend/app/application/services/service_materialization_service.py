@@ -49,12 +49,7 @@ class ServiceMaterializationService:
             market_focus=business.market_focus
         )
         
-        # Update business with selected service keys
-        updated_business = business.model_copy(update={
-            'selected_residential_service_keys': default_services['residential'],
-            'selected_commercial_service_keys': default_services['commercial']
-        })
-        await self.business_repository.update(updated_business)
+        # Note: No longer updating legacy service keys - services are materialized directly into business_services
         
         # Create business_services entries
         residential_count = await self._create_business_services(

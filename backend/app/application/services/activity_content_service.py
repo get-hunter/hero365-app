@@ -31,12 +31,14 @@ class ActivityContentService:
         trade_activity_repository: SupabaseTradeActivityRepository,
         trade_profile_repository: SupabaseTradeProfileRepository,
         service_template_repository: SupabaseServiceTemplateRepository,
-        business_repository: SupabaseBusinessRepository
+        business_repository: SupabaseBusinessRepository,
+        supabase_client
     ):
         self.trade_activity_repository = trade_activity_repository
         self.trade_profile_repository = trade_profile_repository
         self.service_template_repository = service_template_repository
         self.business_repository = business_repository
+        self.supabase = supabase_client
         
         # Static content packs - in production, these could come from a CMS or database
         self._content_packs = self._initialize_content_packs()
@@ -244,9 +246,15 @@ class ActivityContentService:
             if not trade_profile:
                 return None
 
-            # Get business to check selected activities
-            business = await self.business_repository.get_by_id(business_id)
-            if not business or activity_slug not in business.selected_activity_slugs:
+            # Check if business has selected this activity
+            activity_check = self.supabase.table("business_activity_selections")\
+                .select("id")\
+                .eq("business_id", business_id)\
+                .eq("activity_slug", activity_slug)\
+                .eq("is_active", True)\
+                .execute()
+            
+            if not activity_check.data:
                 return None
 
             # Get service templates for this activity (if any)

@@ -143,6 +143,10 @@ import type {
   BusinessServicesGetServiceSlugsOnlyResponse,
   BusinessServicesGetLocationSlugsOnlyData,
   BusinessServicesGetLocationSlugsOnlyResponse,
+  BusinessTradesGetBusinessTradesData,
+  BusinessTradesGetBusinessTradesResponse,
+  BusinessTradesGetAvailableTradesData,
+  BusinessTradesGetAvailableTradesResponse,
   CreateContactNoSlashData,
   CreateContactNoSlashResponse,
   ListContactsNoSlashData,
@@ -2679,6 +2683,60 @@ export class BusinessServicesService {
       },
       query: {
         only_active: data.onlyActive,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class BusinessTradesService {
+  /**
+   * Get Business Trades
+   * Get all trade relationships for a business.
+   *
+   * This endpoint provides the canonical trade relationships for filtering
+   * services, products, and content by trade specialization.
+   * @param data The data for the request.
+   * @param data.businessId Business ID
+   * @returns BusinessTradesResponse Successful Response
+   * @throws ApiError
+   */
+  public static getBusinessTrades(
+    data: BusinessTradesGetBusinessTradesData,
+  ): CancelablePromise<BusinessTradesGetBusinessTradesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/{business_id}/trades",
+      path: {
+        business_id: data.businessId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Available Trades
+   * Get all available trades in the system.
+   *
+   * This endpoint provides the complete trade taxonomy for filtering
+   * and selection purposes.
+   * @param data The data for the request.
+   * @param data.marketType Filter by market type (residential/commercial/both)
+   * @returns TradeItem Successful Response
+   * @throws ApiError
+   */
+  public static getAvailableTrades(
+    data: BusinessTradesGetAvailableTradesData = {},
+  ): CancelablePromise<BusinessTradesGetAvailableTradesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/public/contractors/{business_id}/available-trades",
+      query: {
+        market_type: data.marketType,
       },
       errors: {
         422: "Validation Error",

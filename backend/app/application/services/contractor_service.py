@@ -97,16 +97,7 @@ class ContractorService:
             except Exception as e:
                 logger.warning(f"Failed to get business_services for {business_id}: {str(e)}")
             
-            # PREFERENCE 2: Use selected service keys from business (fallback 1)
-            residential_keys = getattr(business, 'selected_residential_service_keys', []) or []
-            commercial_keys = getattr(business, 'selected_commercial_service_keys', []) or []
-            all_service_keys = residential_keys + commercial_keys
-            
-            if all_service_keys:
-                logger.info(f"Using selected service keys: {len(all_service_keys)} services")
-                return self._convert_service_keys_to_dtos(all_service_keys, business, emergency_only, limit, offset)
-            
-            # PREFERENCE 3: Use default mapping based on trades (fallback 2)
+            # PREFERENCE 2: Use default mapping based on trades (fallback)
             logger.info("Using default service mapping based on trades")
             default_services = self.default_services_mapping.get_default_services_for_business(
                 primary_trade=getattr(business, 'primary_trade_slug', ''),

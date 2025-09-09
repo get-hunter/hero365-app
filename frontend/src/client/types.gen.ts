@@ -1151,6 +1151,17 @@ export type app__api__public__routes__contractors__business_services__ServiceIte
     image_url?: string | null
     image_alt?: string | null
     image_gallery?: unknown | null
+    id?: string | null
+    service_id?: string | null
+    base_price?: number | null
+    estimated_duration_minutes?: number | null
+    estimated_duration?: number | null
+    trade_display_name?: string | null
+    trade_icon?: string | null
+    trade_color?: string | null
+    service_type_code?: string | null
+    service_type_display_name?: string | null
+    is_bookable?: boolean
   }
 
 /**
@@ -2633,6 +2644,16 @@ export type BusinessSummaryResponse = {
   created_date: string | null
   team_member_count: number | null
   onboarding_completed: boolean
+}
+
+/**
+ * Response containing business trade relationships.
+ */
+export type BusinessTradesResponse = {
+  business_id: string
+  primary_trade?: TradeItem | null
+  secondary_trades?: Array<TradeItem>
+  all_trades?: Array<TradeItem>
 }
 
 /**
@@ -9782,6 +9803,20 @@ export type TradeActivityResponse = {
 }
 
 /**
+ * Public trade item for website consumption.
+ */
+export type TradeItem = {
+  trade_slug: string
+  trade_display_name: string
+  trade_icon?: string | null
+  trade_color?: string | null
+  market_type: string
+  is_primary?: boolean
+  proficiency_level?: string
+  years_experience?: number
+}
+
+/**
  * Response model for trade profile.
  */
 export type TradeProfileResponse = {
@@ -11306,6 +11341,24 @@ export type BusinessServicesGetLocationSlugsOnlyData = {
 }
 
 export type BusinessServicesGetLocationSlugsOnlyResponse = Array<string>
+
+export type BusinessTradesGetBusinessTradesData = {
+  /**
+   * Business ID
+   */
+  businessId: string
+}
+
+export type BusinessTradesGetBusinessTradesResponse = BusinessTradesResponse
+
+export type BusinessTradesGetAvailableTradesData = {
+  /**
+   * Filter by market type (residential/commercial/both)
+   */
+  marketType?: string | null
+}
+
+export type BusinessTradesGetAvailableTradesResponse = Array<TradeItem>
 
 export type CreateContactNoSlashData = {
   requestBody: ContactCreateRequest

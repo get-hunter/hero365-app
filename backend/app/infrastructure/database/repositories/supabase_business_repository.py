@@ -61,10 +61,10 @@ class SupabaseBusinessRepository(BusinessRepository):
             raise DatabaseError(f"Failed to create business: {str(e)}")
     
     async def get_by_id(self, business_id: uuid.UUID) -> Optional[Business]:
-        """Get business by ID."""
+        """Get business by ID using the normalized profile view."""
         try:
-            # Use wildcard selection to avoid column mismatch errors across environments
-            response = self.client.table(self.table_name).select("*").eq("id", str(business_id)).execute()
+            # Use v_business_profile to get derived primary_trade_slug
+            response = self.client.table("v_business_profile").select("*").eq("id", str(business_id)).execute()
             
             if response.data:
                 return self._dict_to_business(response.data[0])
@@ -269,20 +269,20 @@ class SupabaseBusinessRepository(BusinessRepository):
         except Exception as e:
             raise DatabaseError(f"Failed to get recent businesses: {str(e)}"        ) 
     
-    def _parse_selected_activity_slugs(self, data: dict) -> List[str]:
-        """Parse selected activity slugs from database data."""
-        activity_slugs = data.get("selected_activity_slugs", [])
-        if isinstance(activity_slugs, list):
-            return [slug for slug in activity_slugs if isinstance(slug, str)]
-        elif isinstance(activity_slugs, str):
-            # Handle JSON string format
-            try:
-                parsed = json.loads(activity_slugs)
-                if isinstance(parsed, list):
-                    return [slug for slug in parsed if isinstance(slug, str)]
-            except (json.JSONDecodeError, TypeError):
-                logger.warning(f"Invalid activity_slugs format: {activity_slugs}")
-        return []
+    def _get_business_activity_slugs(self, business_id: str) -> List[str]:
+        """Get business activity slugs from the normalized business_activity_selections table."""
+        try:
+            response = self.client.table("business_activity_selections")\
+                .select("activity_slug")\
+                .eq("business_id", business_id)\
+                .eq("is_active", True)\
+                .order("display_order")\
+                .execute()
+            
+            return [row["activity_slug"] for row in response.data or []]
+        except Exception as e:
+            logger.warning(f"Failed to fetch activity slugs for business {business_id}: {e}")
+            return []
     
 
     
@@ -403,7 +403,7 @@ class SupabaseBusinessRepository(BusinessRepository):
             
             # Trade Information (clean model)
             market_focus=MarketFocus(data.get("market_focus", "both")),
-            selected_activity_slugs=self._parse_selected_activity_slugs(data),
+            selected_activity_slugs=self._get_business_activity_slugs(data["id"]),
             # Note: service_areas removed - now managed via dedicated service_areas table
             
             created_date=datetime.fromisoformat(data["created_date"]) if data.get("created_date") else None,

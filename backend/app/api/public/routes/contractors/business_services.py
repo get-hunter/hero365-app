@@ -39,6 +39,19 @@ class ServiceItem(BaseModel):
     image_url: Optional[str] = None
     image_alt: Optional[str] = None
     image_gallery: Optional[Any] = None
+    
+    # New normalized fields from consolidated trade taxonomy
+    id: Optional[str] = None
+    service_id: Optional[str] = None  # Backward compatibility
+    base_price: Optional[float] = None
+    estimated_duration_minutes: Optional[int] = None
+    estimated_duration: Optional[int] = None  # Backward compatibility
+    trade_display_name: Optional[str] = None
+    trade_icon: Optional[str] = None
+    trade_color: Optional[str] = None
+    service_type_code: Optional[str] = None
+    service_type_display_name: Optional[str] = None
+    is_bookable: bool = True
 
 
 class LocationItem(BaseModel):
@@ -78,30 +91,33 @@ async def get_business_services(
     try:
         logger.info(f"🔍 [API] Fetching services for business: {business_id}")
         
-        # Build query
-        query = supabase.table("business_services")\
+        # Build query using the new service catalog view
+        query = supabase.table("v_service_catalog")\
             .select("""
-                canonical_slug,
+                id,
                 service_name,
-                trade_slug,
-                category_id,
+                service_slug,
                 description,
-                is_emergency,
-                is_featured,
-                is_commercial,
-                is_residential,
-                sort_order,
+                trade_slug,
+                trade_display_name,
+                trade_icon,
+                trade_color,
+                service_type_code,
+                service_type_display_name,
+                base_price,
                 price_type,
                 price_min,
                 price_max,
                 price_unit,
-                image_url,
-                image_alt,
-                image_gallery,
-                service_categories(name)
+                estimated_duration_minutes,
+                is_emergency,
+                is_commercial,
+                is_residential,
+                is_bookable,
+                display_order
             """)\
             .eq("business_id", business_id)\
-            .order("sort_order", desc=False)\
+            .order("display_order", desc=False)\
             .order("service_name", desc=False)
             
         if only_active:
@@ -113,49 +129,65 @@ async def get_business_services(
             logger.warning(f"⚠️ [API] No services found for business: {business_id}")
             return []
         
-        # Convert to response format
+        # Convert to response format using the new normalized data
         services = []
         for row in result.data:
             pricing_summary = None
-            if include_pricing and row.get("price_type") and row.get("price_min"):
-                if row["price_type"] == "range" and row.get("price_max"):
-                    pricing_summary = f"${row['price_min']}-${row['price_max']}"
+            base_price = row.get("base_price")
+            price_min = row.get("price_min")
+            price_max = row.get("price_max")
+            
+            if include_pricing:
+                if row.get("price_type") == "range" and price_min and price_max:
+                    pricing_summary = f"${price_min}-${price_max}"
                     if row.get("price_unit"):
                         pricing_summary += f" per {row['price_unit']}"
-                elif row["price_type"] == "fixed":
-                    pricing_summary = f"${row['price_min']}"
+                elif row.get("price_type") == "fixed" and (base_price or price_min):
+                    price = base_price or price_min
+                    pricing_summary = f"${price}"
                     if row.get("price_unit"):
                         pricing_summary += f" per {row['price_unit']}"
-                elif row["price_type"] == "hourly":
-                    pricing_summary = f"${row['price_min']}/hour"
+                elif row.get("price_type") == "hourly" and (base_price or price_min):
+                    price = base_price or price_min
+                    pricing_summary = f"${price}/hour"
+                elif base_price:
+                    pricing_summary = f"Starting at ${base_price}"
                 else:
                     pricing_summary = "Quote required"
             
-            # Extract category name from joined service_categories table
-            category_name = None
-            if row.get("service_categories") and isinstance(row["service_categories"], dict):
-                category_name = row["service_categories"].get("name")
-            
             service = ServiceItem(
-                canonical_slug=row["canonical_slug"],
+                canonical_slug=row.get("service_slug", f"service-{row['id']}"),
                 name=row["service_name"],
                 trade_slug=row.get("trade_slug"),
-                category=category_name,
+                category=row.get("trade_display_name"),  # Use trade display name as category
                 description=row.get("description"),
                 is_emergency=row.get("is_emergency", False),
-                is_featured=row.get("is_featured", False),
+                is_featured=False,  # TODO: Add is_featured to view if needed
                 is_commercial=row.get("is_commercial", False),
                 is_residential=row.get("is_residential", True),
-                sort_order=row.get("sort_order", 0),
+                sort_order=row.get("display_order", 0),
                 price_type=row.get("price_type"),
-                price_min=(float(row.get("price_min")) if row.get("price_min") is not None else None),
-                price_max=(float(row.get("price_max")) if row.get("price_max") is not None else None),
+                price_min=(float(price_min) if price_min is not None else None),
+                price_max=(float(price_max) if price_max is not None else None),
                 price_unit=row.get("price_unit"),
                 pricing_summary=pricing_summary,
-                image_url=row.get("image_url"),
-                image_alt=row.get("image_alt"),
-                image_gallery=row.get("image_gallery")
+                image_url=None,  # TODO: Add image fields to view if needed
+                image_alt=None,
+                image_gallery=None,
+                # New normalized fields from consolidated trade taxonomy
+                id=str(row['id']),
+                service_id=str(row['id']),  # Backward compatibility
+                base_price=float(base_price) if base_price else None,
+                estimated_duration_minutes=row.get('estimated_duration_minutes'),
+                estimated_duration=row.get('estimated_duration_minutes'),  # Backward compatibility
+                trade_display_name=row.get('trade_display_name'),
+                trade_icon=row.get('trade_icon'),
+                trade_color=row.get('trade_color'),
+                service_type_code=row.get('service_type_code'),
+                service_type_display_name=row.get('service_type_display_name'),
+                is_bookable=row.get('is_bookable', True)
             )
+            
             services.append(service)
         
         logger.info(f"✅ [API] Returning {len(services)} services for business: {business_id}")

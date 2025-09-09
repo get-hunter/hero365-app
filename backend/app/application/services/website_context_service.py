@@ -407,16 +407,23 @@ class WebsiteContextService:
     async def _get_trade_intelligence(self, business_id: str) -> Dict[str, Any]:
         """Get trade-specific intelligence and knowledge"""
         try:
-            # Get business trade information
-            result = self.supabase.table("businesses").select(
-                "primary_trade_slug, selected_activity_slugs, market_focus"
+            # Get business trade information from normalized view
+            result = self.supabase.table("v_business_profile").select(
+                "primary_trade_slug, market_focus"
             ).eq("id", business_id).execute()
+            
+            # Get selected activities from normalized table
+            activities_result = self.supabase.table("business_activity_selections").select(
+                "activity_slug"
+            ).eq("business_id", business_id).eq("is_active", True).order("display_order").execute()
             
             if result.data:
                 business = result.data[0]
+                selected_activities = [row["activity_slug"] for row in activities_result.data or []]
+                
                 return {
                     "primary_trade": business.get("primary_trade_slug", ""),
-                    "selected_activities": business.get("selected_activity_slugs", []),
+                    "selected_activities": selected_activities,
                     "market_focus": business.get("market_focus", "both"),
                     "emergency_services": True,  # Could be configurable
                     "commercial_focus": business.get("market_focus") in ["commercial", "both"],
@@ -451,15 +458,15 @@ class WebsiteContextService:
     async def _get_activity_information(self, business_id: str) -> List[ActivityInfo]:
         """Get detailed activity information"""
         try:
-            # Get business activities
-            business_result = self.supabase.table("businesses").select(
-                "selected_activity_slugs"
-            ).eq("id", business_id).execute()
+            # Get business activities from normalized table
+            business_activities_result = self.supabase.table("business_activity_selections").select(
+                "activity_slug"
+            ).eq("business_id", business_id).eq("is_active", True).order("display_order").execute()
             
-            if not business_result.data:
+            if not business_activities_result.data:
                 return []
             
-            activity_slugs = business_result.data[0].get("selected_activity_slugs", [])
+            activity_slugs = [row["activity_slug"] for row in business_activities_result.data]
             if not activity_slugs:
                 return []
             
