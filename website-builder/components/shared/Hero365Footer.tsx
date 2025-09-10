@@ -143,7 +143,7 @@ export default function Hero365Footer({
               {topServiceAreas.length > 0 ? (
                 <>
                   {topServiceAreas.map((area, index) => (
-                    <li key={index}>
+                    <li key={`${area}-${index}`}>
                       <span>{area}</span>
                     </li>
                   ))}
@@ -160,8 +160,8 @@ export default function Hero365Footer({
                 </>
               ) : locations.length > 0 ? (
                 <>
-                  {locations.slice(0, 6).map((location) => (
-                    <li key={location.id}>
+                  {locations.slice(0, 6).map((location, i) => (
+                    <li key={location.id ?? `${location.city}-${location.state}-${i}`}>
                       <span>{location.city}, {location.state}</span>
                     </li>
                   ))}

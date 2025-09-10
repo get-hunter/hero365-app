@@ -6,13 +6,14 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Zap, ChevronLeft, ChevronRight, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Calendar, Clock, Zap, ChevronLeft, ChevronRight, AlertCircle, CheckCircle, ArrowLeft, FileText, MapPin } from 'lucide-react';
 import { serviceAreasApi } from '@/lib/api/service-areas-client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBookingWizard, TimeSlot } from '../Hero365BookingContext';
+import BookingSummaryCard from '../shared/BookingSummaryCard';
 
 interface DateTimeStepProps {
   businessId: string;
@@ -31,6 +32,8 @@ export default function DateTimeStep({ businessId }: DateTimeStepProps) {
   
   // State for service details
   const [selectedServiceDetails, setSelectedServiceDetails] = useState<any>(null);
+  const modeTabsRef = useRef<HTMLDivElement>(null);
+  const slotsRef = useRef<HTMLDivElement>(null);
   
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
@@ -44,6 +47,15 @@ export default function DateTimeStep({ businessId }: DateTimeStepProps) {
   useEffect(() => {
     loadAvailableSlots();
   }, [businessId, state.serviceId, state.zipInfo]);
+
+  // After slots load, auto-scroll to the first interactive section
+  useEffect(() => {
+    if (isLoadingSlots) return;
+    setTimeout(() => {
+      const target = viewMode === 'first_available' ? (slotsRef.current || modeTabsRef.current) : modeTabsRef.current;
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 0);
+  }, [isLoadingSlots, viewMode]);
 
   // Load service details when component mounts
   useEffect(() => {
@@ -277,73 +289,31 @@ export default function DateTimeStep({ businessId }: DateTimeStepProps) {
         </p>
       </div>
 
-      {/* Selected Service Summary */}
-      {selectedServiceDetails && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-blue-600" />
-              <div className="flex-1">
-                <p className="font-medium text-blue-900">
-                  Service selected: {selectedServiceDetails.name}
-                </p>
-                <p className="text-sm text-blue-700">
-                  {selectedServiceDetails.tradeName} • {selectedServiceDetails.base_price ? `Starting at $${selectedServiceDetails.base_price.toLocaleString()}` : 'Custom pricing'}
-                </p>
-              </div>
-              <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
-                style={{ 
-                  backgroundColor: `${selectedServiceDetails.tradeColor}20`, 
-                  border: `1px solid ${selectedServiceDetails.tradeColor}` 
-                }}
-              >
-                {selectedServiceDetails.tradeIcon === 'zap' ? '⚡' : 
-                 selectedServiceDetails.tradeIcon === 'thermometer' ? '🌡️' : 
-                 selectedServiceDetails.tradeIcon === 'wrench' ? '🔧' : '🔧'}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Location Summary (combines address and service area info) */}
-      {(state.address?.line1 || state.zipInfo) && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-blue-600" />
-              <div>
-                {state.address?.line1 ? (
-                  <>
-                    <p className="font-medium text-blue-900">
-                      Service location: {state.address.line1}
-                    </p>
-                    <p className="text-sm text-blue-700">
-                      {state.address.city}, {state.address.region} {state.address.postalCode}
-                      {state.zipInfo?.minResponseTimeHours && (
-                        <> • Response time: {state.zipInfo.minResponseTimeHours}-{state.zipInfo.maxResponseTimeHours} hours</>
-                      )}
-                    </p>
-                  </>
-                ) : state.zipInfo ? (
-                  <>
-                    <p className="font-medium text-blue-900">
-                      Service area confirmed: {state.zipInfo.city}, {state.zipInfo.region}
-                    </p>
-                    <p className="text-sm text-blue-700">
-                      Response time: {state.zipInfo.minResponseTimeHours}-{state.zipInfo.maxResponseTimeHours} hours
-                    </p>
-                  </>
-                ) : null}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Progress Summary */}
+      <BookingSummaryCard
+        items={[
+          ...(selectedServiceDetails ? [{
+            icon: FileText,
+            title: 'Service Selected',
+            subtitle: selectedServiceDetails.name,
+            details: `${selectedServiceDetails.tradeName} • ${selectedServiceDetails.base_price ? `Starting at $${selectedServiceDetails.base_price.toLocaleString()}` : 'Custom pricing'}`
+          }] : []),
+          ...(state.address?.line1 ? [{
+            icon: MapPin,
+            title: 'Service Location',
+            subtitle: state.address.line1,
+            details: `${state.address.city}, ${state.address.region} ${state.address.postalCode}${state.zipInfo?.minResponseTimeHours ? ` • Response time: ${state.zipInfo.minResponseTimeHours}-${state.zipInfo.maxResponseTimeHours} hours` : ''}`
+          }] : state.zipInfo ? [{
+            icon: MapPin,
+            title: 'Service Area Confirmed',
+            subtitle: `${state.zipInfo.city}, ${state.zipInfo.region}`,
+            details: `Response time: ${state.zipInfo.minResponseTimeHours}-${state.zipInfo.maxResponseTimeHours} hours`
+          }] : [])
+        ]}
+      />
 
       {/* View Mode Tabs */}
-      <div className="flex justify-center">
+      <div ref={modeTabsRef} className="flex justify-center">
         <div className="bg-gray-100 rounded-lg p-1 flex">
           <Button
             variant={viewMode === 'first_available' ? 'default' : 'ghost'}
@@ -378,7 +348,7 @@ export default function DateTimeStep({ businessId }: DateTimeStepProps) {
 
       {/* First Available Mode */}
       {viewMode === 'first_available' && !isLoadingSlots && (
-        <div className="space-y-4">
+        <div ref={slotsRef} className="space-y-4">
           {firstAvailableSlots.length > 0 ? (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">

@@ -6,8 +6,8 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { User, Phone, Mail, MessageSquare, Shield, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Phone, Mail, MessageSquare, Shield, CheckCircle, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,7 +23,7 @@ export default function ContactStep({
   businessId, 
   businessName = 'our team' 
 }: ContactStepProps) {
-  const { state, updateContact, nextStep, setError } = useBookingWizard();
+  const { state, updateContact, nextStep, prevStep, setError } = useBookingWizard();
   
   const [formData, setFormData] = useState<Partial<Contact>>({
     firstName: state.contact?.firstName || '',
@@ -36,6 +36,17 @@ export default function ContactStep({
 
   const [phoneFormatted, setPhoneFormatted] = useState('');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const firstInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => {
+      const el = firstInputRef.current;
+      if (el) {
+        try { el.focus(); } catch {}
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 0);
+  }, []);
 
   const handleInputChange = (field: keyof Contact, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -131,6 +142,19 @@ export default function ContactStep({
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
+      {/* Back Button */}
+      <div className="flex items-center justify-start mb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={prevStep}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back</span>
+        </Button>
+      </div>
+
       {/* Header */}
       <div className="text-center">
         <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -160,6 +184,7 @@ export default function ContactStep({
                 First Name *
               </label>
               <Input
+                ref={firstInputRef}
                 value={formData.firstName || ''}
                 onChange={(e) => handleInputChange('firstName', e.target.value)}
                 placeholder="John"

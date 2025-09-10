@@ -6,8 +6,8 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { MapPin, Home, Edit3, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { MapPin, Home, Edit3, AlertCircle, CheckCircle, ArrowLeft, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useBookingWizard, Address } from '../Hero365BookingContext';
 import GooglePlacesAutocomplete, { parseGooglePlaceResult } from '@/components/client/maps/GooglePlacesAutocomplete';
+import BookingSummaryCard from '../shared/BookingSummaryCard';
 
 interface AddressStepProps {
   businessId: string;
@@ -26,6 +27,7 @@ export default function AddressStep({ businessId }: AddressStepProps) {
   // State for service details
   const [selectedServiceDetails, setSelectedServiceDetails] = useState<any>(null);
   const [isPlaceSelected, setIsPlaceSelected] = useState(false);
+  const firstInputRef = useRef<HTMLInputElement>(null);
   
   // Form state
   const [formData, setFormData] = useState<Partial<Address>>({
@@ -62,6 +64,17 @@ export default function AddressStep({ businessId }: AddressStepProps) {
       }));
     }
   }, [state.zipInfo]);
+
+  // On mount, scroll the street address input into view and focus it
+  useEffect(() => {
+    setTimeout(() => {
+      const el = firstInputRef.current as any;
+      if (el) {
+        try { el.focus?.(); } catch {}
+        (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 0);
+  }, []);
 
   // Load service details when component mounts
   useEffect(() => {
@@ -251,35 +264,23 @@ export default function AddressStep({ businessId }: AddressStepProps) {
         </p>
       </div>
 
-      {/* Selected Service Summary */}
-      {selectedServiceDetails && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-blue-600" />
-              <div className="flex-1">
-                <p className="font-medium text-blue-900">
-                  Service selected: {selectedServiceDetails.name}
-                </p>
-                <p className="text-sm text-blue-700">
-                  {selectedServiceDetails.tradeName} • {selectedServiceDetails.base_price ? `Starting at $${selectedServiceDetails.base_price.toLocaleString()}` : 'Custom pricing'}
-                </p>
-              </div>
-              <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
-                style={{ 
-                  backgroundColor: `${selectedServiceDetails.tradeColor}20`, 
-                  border: `1px solid ${selectedServiceDetails.tradeColor}` 
-                }}
-              >
-                {selectedServiceDetails.tradeIcon === 'zap' ? '⚡' : 
-                 selectedServiceDetails.tradeIcon === 'thermometer' ? '🌡️' : 
-                 selectedServiceDetails.tradeIcon === 'wrench' ? '🔧' : '🔧'}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Progress Summary */}
+      <BookingSummaryCard
+        items={[
+          ...(selectedServiceDetails ? [{
+            icon: FileText,
+            title: 'Service Selected',
+            subtitle: selectedServiceDetails.name,
+            details: `${selectedServiceDetails.tradeName} • ${selectedServiceDetails.base_price ? `Starting at $${selectedServiceDetails.base_price.toLocaleString()}` : 'Custom pricing'}`
+          }] : []),
+          ...(state.zipInfo ? [{
+            icon: MapPin,
+            title: 'Service Area Confirmed',
+            subtitle: `${state.zipInfo.city}, ${state.zipInfo.region}`,
+            details: `Response time: ${state.zipInfo.minResponseTimeHours}-${state.zipInfo.maxResponseTimeHours} hours`
+          }] : [])
+        ]}
+      />
 
 
       {/* Address Form */}
@@ -302,6 +303,7 @@ export default function AddressStep({ businessId }: AddressStepProps) {
               onPlaceSelect={handlePlaceSelect}
               placeholder="Start typing your address..."
               className="w-full"
+              autoFocus
             />
             {isPlaceSelected ? (
               <div className="flex items-center space-x-2 mt-1">

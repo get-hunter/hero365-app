@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Eye, MapPin, Calendar, Clock, User, Phone, Mail, FileText, 
   CreditCard, Shield, CheckCircle, AlertCircle, Zap 
@@ -35,6 +35,42 @@ export default function ReviewStep({
   const { state, updateFlags, nextStep, setLoading, setError } = useBookingWizard();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedServiceDetails, setSelectedServiceDetails] = useState<any>(null);
+  const termsRef = useRef<HTMLDivElement>(null);
+
+  // Load service details when component mounts
+  useEffect(() => {
+    if (state.serviceId && businessId) {
+      loadServiceDetails();
+    }
+  }, [state.serviceId, businessId]);
+
+  const loadServiceDetails = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/public/contractors/${businessId}/booking-trades`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Find the selected service across all trades
+        for (const trade of data.trades) {
+          const service = trade.services.find((s: any) => s.id === state.serviceId);
+          if (service) {
+            setSelectedServiceDetails({
+              ...service,
+              tradeName: trade.trade_display_name,
+              tradeIcon: trade.trade_icon,
+              tradeColor: trade.trade_color
+            });
+            break;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading service details:', error);
+    }
+  };
 
   const handleTermsChange = (accepted: boolean) => {
     updateFlags({ termsAccepted: accepted });
@@ -47,6 +83,7 @@ export default function ReviewStep({
   const handleConfirmBooking = async () => {
     if (!state.termsAccepted) {
       setError('Please accept the terms of service to continue');
+      setTimeout(() => termsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
       return;
     }
 
@@ -225,8 +262,17 @@ export default function ReviewStep({
           <div className="flex items-start space-x-3">
             <FileText className="w-5 h-5 text-gray-500 mt-0.5" />
             <div>
-              <p className="font-medium text-gray-900">Service Category</p>
-              <p className="text-sm text-gray-600">{state.categoryId}</p>
+              <p className="font-medium text-gray-900">Service Selected</p>
+              {selectedServiceDetails ? (
+                <>
+                  <p className="text-sm text-gray-600">{selectedServiceDetails.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {selectedServiceDetails.tradeName} • {selectedServiceDetails.base_price ? `Starting at $${selectedServiceDetails.base_price.toLocaleString()}` : 'Custom pricing'}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-600">{state.categoryId}</p>
+              )}
               {state.details?.notes && (
                 <p className="text-xs text-gray-500 mt-1">
                   <strong>Notes:</strong> {state.details.notes}
@@ -361,7 +407,7 @@ export default function ReviewStep({
           )}
 
           {/* Terms of Service */}
-          <div className="flex items-start space-x-3">
+          <div ref={termsRef} className="flex items-start space-x-3">
             <Checkbox
               id="terms"
               checked={state.termsAccepted}

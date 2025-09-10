@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, CheckCircle, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -68,6 +68,7 @@ export default function TradeServiceStep({ businessId }: TradeServiceStepProps) 
   const [selectedTrade, setSelectedTrade] = useState<string>(state.categoryId || '');
   const [selectedServiceId, setSelectedServiceId] = useState<string>(state.serviceId || '');
   const [isLoadingTrades, setIsLoadingTrades] = useState(true);
+  const servicesSectionRef = useRef<HTMLDivElement>(null);
 
   const locationLabel = state.zipInfo
     ? `${state.zipInfo.city || ''}${state.zipInfo.city ? ', ' : ''}${state.zipInfo.region || ''} ${state.zipInfo.postalCode}`.trim()
@@ -109,6 +110,10 @@ export default function TradeServiceStep({ businessId }: TradeServiceStepProps) 
   const handleTradeSelect = (tradeSlug: string) => {
     setSelectedTrade(tradeSlug);
     setSelectedServiceId(''); // Reset service selection when trade changes
+    // After selecting a trade, scroll services section into view
+    setTimeout(() => {
+      servicesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 0);
   };
 
   const handleServiceSelect = (serviceId: string) => {
@@ -247,7 +252,7 @@ export default function TradeServiceStep({ businessId }: TradeServiceStepProps) 
 
       {/* Services within selected trade (shown below trade categories) */}
       {selectedTrade && selectedTradeData && (
-        <div className="space-y-4 pt-6 border-t border-gray-200">
+        <div ref={servicesSectionRef} className="space-y-4 pt-6 border-t border-gray-200">
           {/* Services grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {selectedTradeData.services.map((service) => {

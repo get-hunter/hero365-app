@@ -16,6 +16,7 @@ interface GooglePlacesAutocompleteProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  autoFocus?: boolean;
 }
 
 interface ParsedAddress {
@@ -32,30 +33,67 @@ export default function GooglePlacesAutocomplete({
   onPlaceSelect,
   placeholder = "Enter your address",
   className = "",
-  disabled = false
+  disabled = false,
+  autoFocus = false
 }: GooglePlacesAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const placeElContainerRef = useRef<HTMLDivElement>(null);
+  const placeElementRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [usingPlaceElement, setUsingPlaceElement] = useState(false);
 
   // Load Google Maps API
   useEffect(() => {
-    if (typeof window !== 'undefined' && !window.google) {
+    if (typeof window !== 'undefined') {
+      // Check if already loaded
+      if (window.google?.maps?.places) {
+        // Ensure places lib is ready (importLibrary is idempotent)
+        const importPlaces = (window.google as any)?.maps?.importLibrary;
+        if (importPlaces) {
+          importPlaces('places').then(() => setIsLoaded(true));
+        } else {
+          setIsLoaded(true);
+        }
+        return;
+      }
+      
+      // Check if script is already being loaded
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+      if (existingScript) {
+        const handleLoad = () => {
+          const importPlaces = (window.google as any)?.maps?.importLibrary;
+          if (importPlaces) {
+            importPlaces('places').then(() => setIsLoaded(true));
+          } else if (window.google?.maps?.places) {
+            setIsLoaded(true);
+          }
+        };
+        existingScript.addEventListener('load', handleLoad);
+        return () => existingScript.removeEventListener('load', handleLoad);
+      }
+      
+      // Load API if not present
       loadGoogleMapsAPI();
-    } else if (window.google) {
-      setIsLoaded(true);
     }
   }, []);
 
   // Initialize autocomplete when API is loaded
   useEffect(() => {
-    if (isLoaded && inputRef.current && !autocompleteRef.current) {
-      initializeAutocomplete();
-    }
+    if (!isLoaded) return;
+    if (autocompleteRef.current || placeElementRef.current) return;
+    initializeAutocomplete();
 
     return () => {
       if (autocompleteRef.current) {
         google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+      if (placeElementRef.current && placeElContainerRef.current) {
+        // Detach and cleanup custom element
+        try {
+          placeElContainerRef.current.removeChild(placeElementRef.current);
+        } catch {}
+        placeElementRef.current = null;
       }
     };
   }, [isLoaded]);
@@ -69,12 +107,17 @@ export default function GooglePlacesAutocomplete({
     }
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
     script.async = true;
     script.defer = true;
     
     script.onload = () => {
-      setIsLoaded(true);
+      const importPlaces = (window.google as any)?.maps?.importLibrary;
+      if (importPlaces) {
+        importPlaces('places').then(() => setIsLoaded(true));
+      } else {
+        setIsLoaded(true);
+      }
     };
     
     script.onerror = () => {
@@ -87,32 +130,87 @@ export default function GooglePlacesAutocomplete({
   const initializeAutocomplete = () => {
     if (!inputRef.current) return;
 
-    const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
-      types: ['address'],
-      componentRestrictions: { country: ['us', 'ca'] }, // Restrict to US and Canada
-      fields: [
-        'address_components',
-        'formatted_address',
-        'geometry',
-        'name',
-        'place_id'
-      ]
-    });
+    const placesLib: any = (google as any)?.maps?.places;
+    if (!placesLib) return;
 
-    autocompleteRef.current = autocomplete;
+    // Prefer new PlaceAutocompleteElement if classic Autocomplete is unavailable
+    if (!placesLib.Autocomplete && placesLib.PlaceAutocompleteElement && placeElContainerRef.current) {
+      setUsingPlaceElement(true);
+      const el = new placesLib.PlaceAutocompleteElement();
+      // Basic attributes
+      try {
+        if (typeof placeholder === 'string') el.setAttribute('placeholder', placeholder);
+        if (disabled) el.setAttribute('disabled', 'true');
+        if (value) (el as any).value = value;
+      } catch {}
 
-    // Handle place selection
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      
-      if (place.formatted_address) {
-        onChange(place.formatted_address);
+      // Handle selection
+      el.addEventListener('gmp-placeselect', async (evt: any) => {
+        try {
+          const place = evt?.detail?.place;
+          if (place?.fetchFields) {
+            await place.fetchFields({ fields: ['formattedAddress', 'addressComponents'] });
+          }
+
+          // Update display value
+          const formatted = place?.formattedAddress || (el as any).value || '';
+          if (formatted) onChange(formatted);
+
+          if (onPlaceSelect) {
+            // Convert to legacy-like PlaceResult shape expected by callers
+            const addressComponents = (place?.addressComponents || []).map((c: any) => ({
+              long_name: c.longText,
+              short_name: c.shortText,
+              types: c.types || []
+            }));
+
+            const legacyLike: any = {
+              formatted_address: formatted,
+              address_components: addressComponents
+            };
+            onPlaceSelect(legacyLike as google.maps.places.PlaceResult);
+          }
+        } catch {}
+      });
+
+      placeElementRef.current = el;
+      placeElContainerRef.current.appendChild(el);
+      if (autoFocus) {
+        try { (el as any).focus?.(); } catch {}
+      }
+      return;
+    }
+
+    // Fallback to classic Autocomplete when available
+    if (placesLib.Autocomplete) {
+      const autocomplete = new placesLib.Autocomplete(inputRef.current, {
+        types: ['address'],
+        componentRestrictions: { country: ['us', 'ca'] },
+        fields: [
+          'address_components',
+          'formatted_address',
+          'geometry',
+          'name',
+          'place_id'
+        ]
+      });
+
+      autocompleteRef.current = autocomplete;
+
+      if (autoFocus) {
+        try { inputRef.current?.focus(); } catch {}
       }
 
-      if (onPlaceSelect && place.address_components) {
-        onPlaceSelect(place);
-      }
-    });
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place?.formatted_address) {
+          onChange(place.formatted_address);
+        }
+        if (onPlaceSelect && place?.address_components) {
+          onPlaceSelect(place);
+        }
+      });
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,15 +219,18 @@ export default function GooglePlacesAutocomplete({
 
   return (
     <div className="relative">
-      <Input
-        ref={inputRef}
-        value={value}
-        onChange={handleInputChange}
-        placeholder={placeholder}
-        className={className}
-        disabled={disabled}
-        autoComplete="off"
-      />
+      <div ref={placeElContainerRef} className={`${usingPlaceElement ? '' : 'hidden'} ${className}`} />
+      {!usingPlaceElement && (
+        <Input
+          ref={inputRef}
+          value={value}
+          onChange={handleInputChange}
+          placeholder={placeholder}
+          className={className}
+          disabled={disabled}
+          autoComplete="off"
+        />
+      )}
       {!isLoaded && (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
           <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>

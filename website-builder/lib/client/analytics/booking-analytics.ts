@@ -242,9 +242,10 @@ class BookingAnalyticsService {
       });
     }
 
-    // Example: Send to custom analytics endpoint
+    // Example: Send to custom analytics endpoint (proxy to backend API base)
     if (typeof window !== 'undefined') {
-      fetch('/api/v1/analytics/events', {
+      const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+      fetch(`${base}/public/analytics/events`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

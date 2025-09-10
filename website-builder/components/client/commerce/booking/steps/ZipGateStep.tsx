@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Truck, Clock, AlertCircle, CheckCircle, Phone, Mail } from 'lucide-react';
 import { serviceAreasApi, ServiceAreaCheckResponse } from '@/lib/api/service-areas-client';
 import { useBookingAnalytics } from '@/lib/client/analytics/booking-analytics';
@@ -34,6 +34,7 @@ export default function ZipGateStep({
   const { state, updateZipInfo, nextStep, setLoading, setError } = useBookingWizard();
   const analytics = useBookingAnalytics();
   
+  const inputRef = useRef<HTMLInputElement>(null);
   const resolvedCountryCode = (countryCode || 'US').toUpperCase();
   const [postalCode, setPostalCode] = useState(state.zipInfo?.postalCode || '');
   const [checkResult, setCheckResult] = useState<ServiceAreaCheckResponse | null>(null);
@@ -47,6 +48,14 @@ export default function ZipGateStep({
     setError();
     setCheckResult(null);
     setLastCheckedCode(null);
+    // Focus and center on the postal input
+    setTimeout(() => {
+      const el = inputRef.current;
+      if (el) {
+        try { el.focus(); } catch {}
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 0);
   }, [resolvedCountryCode, setError]);
 
   useEffect(() => {
@@ -287,6 +296,7 @@ export default function ZipGateStep({
               </label>
               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-3 sm:space-y-0">
                 <Input
+                  ref={inputRef}
                   value={postalCode}
                   onChange={(e) => handlePostalCodeChange(e.target.value)}
                   placeholder={serviceAreasApi.getPostalCodePlaceholder(resolvedCountryCode)}

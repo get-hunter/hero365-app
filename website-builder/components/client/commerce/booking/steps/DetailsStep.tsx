@@ -7,7 +7,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { FileText, Camera, Upload, X, AlertCircle, CheckCircle, Zap } from 'lucide-react';
+import { FileText, Camera, Upload, X, AlertCircle, CheckCircle, Zap, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +23,7 @@ export default function DetailsStep({
   businessId, 
   businessName = 'our team' 
 }: DetailsStepProps) {
-  const { state, updateDetails, nextStep, setError } = useBookingWizard();
+  const { state, updateDetails, nextStep, prevStep, setError } = useBookingWizard();
   
   const [formData, setFormData] = useState<Partial<BookingDetails>>({
     notes: state.details?.notes || '',
@@ -173,6 +173,19 @@ export default function DetailsStep({
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
+      {/* Back Button */}
+      <div className="flex items-center justify-start mb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={prevStep}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back</span>
+        </Button>
+      </div>
+
       {/* Header */}
       <div className="text-center">
         <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
